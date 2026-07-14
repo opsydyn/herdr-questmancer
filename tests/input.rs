@@ -54,6 +54,9 @@ fn desk_navigation_and_actions_have_explicit_keys() {
     assert_eq!(action_for(key(KeyCode::Char('o'))), Action::Refresh);
     assert_eq!(action_for(key(KeyCode::Char('v'))), Action::Reviewr);
     assert_eq!(action_for(key(KeyCode::Tab)), Action::CycleRegion);
+    assert_eq!(action_for(key(KeyCode::Char('g'))), Action::First);
+    assert_eq!(action_for(key(KeyCode::Char('G'))), Action::Last);
+    assert_eq!(action_for(key(KeyCode::Char('/'))), Action::Search);
 }
 
 #[test]

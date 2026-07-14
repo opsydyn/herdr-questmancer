@@ -55,12 +55,21 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         render_agent(frame, inner, model);
     }
 
-    let mut footer_text = "[1] desk  [2] cafe  [enter] visit  [r] reply  [space] seen".to_owned();
-    if model.reviewr_available() {
-        footer_text.push_str("  [v] view source");
+    let mut footer_actions = vec!["[1] desk", "[2] cafe", "[tab] region"];
+    if !model.domain().agents.is_empty() {
+        footer_actions.push("[/] search");
+    }
+    if let Some(agent) = model.selected_agent() {
+        footer_actions.extend(["[enter] visit", "[r] reply", "[o] output"]);
+        if agent.attention.is_unseen() {
+            footer_actions.push("[space] seen");
+        }
+        if model.reviewr_available() {
+            footer_actions.push("[v] reviewr");
+        }
     }
     frame.render_widget(
-        Paragraph::new(footer_text)
+        Paragraph::new(footer_actions.join("  "))
             .alignment(Alignment::Center)
             .style(MUTED),
         footer,

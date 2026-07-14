@@ -11,8 +11,18 @@ use crate::{
 };
 
 pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
-    let Modal::Reply { draft } = model.modal() else {
-        return;
+    let (title, input, keys) = match model.modal() {
+        Modal::Reply { draft } => (
+            " SHOUT OVER ",
+            draft.as_str(),
+            "[enter] send   [esc] cancel   [ctrl-u] clear",
+        ),
+        Modal::Search { query } => (
+            " SEARCH AGENTS ",
+            query.as_str(),
+            "[enter] find   [esc] cancel   [ctrl-u] clear",
+        ),
+        Modal::None | Modal::Help => return,
     };
     let frame_area = frame.area();
     if frame_area.width < 8 || frame_area.height < 5 {
@@ -27,17 +37,17 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         height,
     );
     frame.render_widget(Clear, area);
-    let text = Text::from(vec![
-        Line::from(""),
-        Line::from(draft.clone()),
-        Line::from(""),
-        Line::styled("[enter] send   [esc] cancel   [ctrl-u] clear", MUTED),
-    ]);
+    let mut lines = vec![Line::from(""), Line::from(input.to_owned())];
+    if let Some(status) = model.status_message() {
+        lines.push(Line::styled(status.to_owned(), MUTED));
+    }
+    lines.extend([Line::from(""), Line::styled(keys, MUTED)]);
+    let text = Text::from(lines);
     frame.render_widget(
         Paragraph::new(text)
             .block(
                 Block::default()
-                    .title(" SHOUT OVER ")
+                    .title(title)
                     .title_alignment(Alignment::Center)
                     .borders(Borders::ALL)
                     .border_style(ACCENT),

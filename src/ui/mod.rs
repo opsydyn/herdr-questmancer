@@ -12,7 +12,7 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
         View::Desk => views::desk::render(frame, model),
         View::Cafe => views::cafe::render(frame),
     }
-    if matches!(model.modal(), Modal::Reply { .. }) {
+    if matches!(model.modal(), Modal::Reply { .. } | Modal::Search { .. }) {
         views::reply::render(frame, model);
     }
 }

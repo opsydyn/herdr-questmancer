@@ -142,6 +142,14 @@ impl Model {
         self.move_agent_selection(-1);
     }
 
+    pub fn select_first_agent(&mut self) {
+        self.domain.selected_agent = self.domain.agents.keys().next().cloned();
+    }
+
+    pub fn select_last_agent(&mut self) {
+        self.domain.selected_agent = self.domain.agents.keys().next_back().cloned();
+    }
+
     fn move_agent_selection(&mut self, direction: i8) {
         let keys = self.domain.agents.keys().cloned().collect::<Vec<_>>();
         if keys.is_empty() {
@@ -170,6 +178,15 @@ impl Model {
         self.region = region;
     }
 
+    pub fn cycle_region(&mut self) {
+        self.region = match self.region {
+            Region::Sites => Region::Inbox,
+            Region::Inbox => Region::Guestbook,
+            Region::Guestbook => Region::Agent,
+            Region::Agent => Region::Sites,
+        };
+    }
+
     pub const fn modal(&self) -> &Modal {
         &self.modal
     }
@@ -180,15 +197,44 @@ impl Model {
         };
     }
 
+    pub fn open_search(&mut self) {
+        self.modal = Modal::Search {
+            query: String::new(),
+        };
+    }
+
+    pub fn reply_draft(&self) -> Option<&str> {
+        match &self.modal {
+            Modal::Reply { draft } => Some(draft),
+            Modal::None | Modal::Help | Modal::Search { .. } => None,
+        }
+    }
+
     pub fn push_reply_character(&mut self, character: char) {
-        if let Modal::Reply { draft } = &mut self.modal {
-            draft.push(character);
+        self.push_modal_character(character);
+    }
+
+    pub fn push_modal_character(&mut self, character: char) {
+        match &mut self.modal {
+            Modal::Reply { draft } => draft.push(character),
+            Modal::Search { query } => query.push(character),
+            Modal::None | Modal::Help => {}
         }
     }
 
     pub fn backspace_reply(&mut self) {
-        if let Modal::Reply { draft } = &mut self.modal {
-            draft.pop();
+        self.backspace_modal_input();
+    }
+
+    pub fn backspace_modal_input(&mut self) {
+        match &mut self.modal {
+            Modal::Reply { draft } => {
+                draft.pop();
+            }
+            Modal::Search { query } => {
+                query.pop();
+            }
+            Modal::None | Modal::Help => {}
         }
     }
 

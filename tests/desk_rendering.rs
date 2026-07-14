@@ -2,7 +2,9 @@ use herdr_webmaster::{
     app::{ConnectionState, Model, OutputPreview, View},
     domain::{DomainState, PaneId, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
+    interaction::reduce_action,
     ui,
+    ui::input::Action,
 };
 use ratatui::{Terminal, backend::TestBackend};
 
@@ -83,4 +85,30 @@ fn disconnected_desk_preserves_data_and_shows_connection_state() {
 
     assert!(screen.contains("reconnecting #3"));
     assert!(screen.contains("Codex"));
+}
+
+#[test]
+fn footer_advertises_only_actions_valid_for_the_current_context() {
+    let empty = render(&Model::new(View::Desk), 160, 24);
+    assert!(!empty.contains("[enter] visit"));
+    assert!(!empty.contains("[r] reply"));
+    assert!(!empty.contains("[o] output"));
+    assert!(!empty.contains("[space] seen"));
+    assert!(!empty.contains("[/] search"));
+    assert!(!empty.contains("[v] reviewr"));
+
+    let mut live = live_model();
+    let selected = render(&live, 160, 24);
+    assert!(selected.contains("[/] search"));
+    assert!(selected.contains("[enter] visit"));
+    assert!(selected.contains("[r] reply"));
+    assert!(selected.contains("[o] output"));
+    assert!(selected.contains("[space] seen"));
+    assert!(!selected.contains("[v] reviewr"));
+
+    let _ = reduce_action(&mut live, Action::MarkSeen);
+    live.set_reviewr_available(true);
+    let seen = render(&live, 160, 24);
+    assert!(!seen.contains("[space] seen"));
+    assert!(seen.contains("[v] reviewr"));
 }

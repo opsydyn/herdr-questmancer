@@ -5,6 +5,7 @@ pub mod cli;
 pub mod command;
 pub mod domain;
 pub mod herdr;
+pub mod interaction;
 pub mod runtime;
 pub mod runtime_loop;
 pub mod terminal;

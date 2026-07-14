@@ -26,11 +26,12 @@ use crate::{
     app::{Model, View},
     domain::Timestamp,
     herdr::environment::HerdrEnvironment,
+    interaction::reduce_action,
     runtime_loop::{
         RuntimeConnection, RuntimeEvent, apply_command_result, apply_connection_update,
         bootstrap_model,
     },
-    ui::{self, input::Action},
+    ui,
 };
 
 type Tui = Terminal<CrosstermBackend<Stdout>>;
@@ -103,7 +104,12 @@ async fn run_live_loop(
                     break;
                 };
                 let event = event.context("read terminal input")?;
-                if apply_action(model, ui::input::action_for_event_in(&event, model.modal())) {
+                let reduction = reduce_action(
+                    model,
+                    ui::input::action_for_event_in(&event, model.modal()),
+                );
+                connection.schedule(reduction.commands);
+                if reduction.control.is_break() {
                     break;
                 }
             }
@@ -149,7 +155,16 @@ async fn run_offline_loop(
                     break;
                 };
                 let event = event.context("read terminal input")?;
-                if apply_action(model, ui::input::action_for_event_in(&event, model.modal())) {
+                let reduction = reduce_action(
+                    model,
+                    ui::input::action_for_event_in(&event, model.modal()),
+                );
+                if !reduction.commands.is_empty() {
+                    model.set_status_message(Some(
+                        "offline: action unavailable until connected to Herdr".to_owned(),
+                    ));
+                }
+                if reduction.control.is_break() {
                     break;
                 }
             }
@@ -161,32 +176,6 @@ async fn run_offline_loop(
     }
 
     Ok(())
-}
-
-fn apply_action(model: &mut Model, action: Action) -> bool {
-    match action {
-        Action::Switch(view) => model.switch_to(view),
-        Action::Redraw | Action::None => {}
-        Action::ShowHelp
-        | Action::Visit
-        | Action::MarkSeen
-        | Action::Refresh
-        | Action::Reviewr
-        | Action::CycleRegion
-        | Action::Submit => {
-            // Task 7 owns the remaining desk intent-to-command wiring.
-            return false;
-        }
-        Action::Quit => return true,
-        Action::Next => model.select_next_agent(),
-        Action::Previous => model.select_previous_agent(),
-        Action::Reply => model.open_reply(),
-        Action::Dismiss => model.dismiss_modal(),
-        Action::TypeCharacter(character) => model.push_reply_character(character),
-        Action::Backspace => model.backspace_reply(),
-        Action::ClearInput => model.clear_modal_input(),
-    }
-    false
 }
 
 fn now() -> Timestamp {

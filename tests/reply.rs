@@ -1,6 +1,8 @@
 use herdr_webmaster::{
     app::{Model, View},
+    interaction::reduce_action,
     ui,
+    ui::input::Action,
 };
 use ratatui::{Terminal, backend::TestBackend};
 
@@ -28,5 +30,34 @@ fn reply_modal_renders_draft_and_contextual_keys() {
     assert!(screen.contains("SHOUT OVER"));
     assert!(screen.contains("use jsonb"));
     assert!(screen.contains("[enter] send"));
+    assert!(screen.contains("[esc] cancel"));
+}
+
+#[test]
+fn search_modal_renders_query_status_and_contextual_keys() {
+    let mut model = Model::new(View::Desk);
+    let _ = reduce_action(&mut model, Action::Search);
+    for character in "missing".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let _ = reduce_action(&mut model, Action::Submit);
+    let backend = TestBackend::new(80, 24);
+    let mut terminal = Terminal::new(backend).unwrap();
+
+    terminal.draw(|frame| ui::render(frame, &model)).unwrap();
+
+    let buffer = terminal.backend().buffer();
+    let screen = (0..24)
+        .map(|y| {
+            (0..80)
+                .map(|x| buffer.cell((x, y)).unwrap().symbol())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(screen.contains("SEARCH AGENTS"));
+    assert!(screen.contains("missing"));
+    assert!(screen.contains("no agents match"));
+    assert!(screen.contains("[enter] find"));
     assert!(screen.contains("[esc] cancel"));
 }
