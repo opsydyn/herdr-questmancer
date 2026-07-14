@@ -2,6 +2,7 @@ mod theme;
 mod views;
 
 pub mod input;
+pub mod persona;
 pub mod pixel;
 pub mod theatre;
 

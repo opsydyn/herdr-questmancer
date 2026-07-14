@@ -4,4 +4,6 @@ mod palette;
 
 pub use canvas::Canvas;
 pub use pack::pack;
-pub use palette::{ColorRole, Palette};
+pub use palette::{
+    AccentShade, ColorRole, FabricShade, FootwearShade, HairShade, Palette, SkinShade,
+};

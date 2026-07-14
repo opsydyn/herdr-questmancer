@@ -40,11 +40,11 @@ impl Canvas {
         &self.pixels
     }
 
-    pub(super) fn width(&self) -> u16 {
+    pub const fn width(&self) -> u16 {
         self.width
     }
 
-    pub(super) fn height(&self) -> u16 {
+    pub const fn height(&self) -> u16 {
         self.height
     }
 
