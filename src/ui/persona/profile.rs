@@ -2,10 +2,10 @@ use crate::{
     domain::{
         Accessory, BodyProportions, FaceDetail, HairShape, HeadShape, OutfitTop, PersonaAppearance,
     },
-    ui::pixel::{Canvas, ColorRole},
+    ui::pixel::{Canvas, ColorRole, Palette},
 };
 
-use super::appearance::{AppearanceRoles, appearance_roles};
+use super::appearance::{AppearanceRoles, appearance_roles, appearance_roles_for_palette};
 
 const PROFILE_WIDTH: u16 = 16;
 const PROFILE_HEIGHT: u16 = 32;
@@ -100,8 +100,18 @@ impl ProfileLayout {
 }
 
 pub fn compose_profile(appearance: &PersonaAppearance) -> Canvas {
+    compose_profile_with_roles(appearance, appearance_roles(appearance))
+}
+
+pub fn compose_profile_for_palette(appearance: &PersonaAppearance, palette: Palette) -> Canvas {
+    compose_profile_with_roles(
+        appearance,
+        appearance_roles_for_palette(appearance, palette),
+    )
+}
+
+fn compose_profile_with_roles(appearance: &PersonaAppearance, roles: AppearanceRoles) -> Canvas {
     let mut canvas = Canvas::new(PROFILE_WIDTH, PROFILE_HEIGHT);
-    let roles = appearance_roles(appearance);
     let layout = ProfileLayout::for_proportions(appearance.proportions);
 
     draw_head(&mut canvas, appearance, roles, layout);

@@ -23,35 +23,47 @@ pub struct AppearanceRoles {
 
 pub fn appearance_roles(appearance: &PersonaAppearance) -> AppearanceRoles {
     let skin = ColorRole::SkinTone(skin_shade(appearance.skin_tone));
-    let hair = contrasting(
-        ColorRole::HairTone(hair_shade(appearance.hair_tone)),
-        &[skin, ColorRole::PanelBackground],
-        &HAIR_FALLBACKS,
-    );
-    let top = contrasting(
-        ColorRole::Fabric(top_shade(appearance.top)),
-        &[skin, hair],
-        &FABRIC_FALLBACKS,
-    );
-    let bottom = contrasting(
-        ColorRole::Fabric(bottom_shade(appearance.bottom)),
-        &[top],
-        &FABRIC_FALLBACKS,
-    );
-    let shoes = contrasting(
-        ColorRole::Footwear(shoe_shade(appearance.shoes)),
-        &[bottom, ColorRole::PanelBackground],
-        &FOOTWEAR_FALLBACKS,
-    );
+    let hair = ColorRole::HairTone(hair_shade(appearance.hair_tone));
+    let top = ColorRole::Fabric(top_shade(appearance.top));
+    let bottom = ColorRole::Fabric(bottom_shade(appearance.bottom));
+    let shoes = ColorRole::Footwear(shoe_shade(appearance.shoes));
+    let accessory = ColorRole::AccentTone(accessory_shade(appearance.accessory));
+    let accent = ColorRole::AccentTone(accent_shade(appearance.accent));
+
+    AppearanceRoles {
+        skin,
+        hair,
+        top,
+        bottom,
+        shoes,
+        accessory,
+        accent,
+        highlight: ColorRole::Highlight,
+        shadow: ColorRole::Shadow,
+    }
+}
+
+pub fn appearance_roles_for_palette(
+    appearance: &PersonaAppearance,
+    palette: Palette,
+) -> AppearanceRoles {
+    let canonical = appearance_roles(appearance);
+    let skin = canonical.skin;
+    let hair = contrasting(canonical.hair, &[skin], &HAIR_FALLBACKS, palette);
+    let top = contrasting(canonical.top, &[skin, hair], &FABRIC_FALLBACKS, palette);
+    let bottom = contrasting(canonical.bottom, &[top], &FABRIC_FALLBACKS, palette);
+    let shoes = contrasting(canonical.shoes, &[bottom], &FOOTWEAR_FALLBACKS, palette);
     let accessory = contrasting(
-        ColorRole::AccentTone(accessory_shade(appearance.accessory)),
-        &[top, skin],
+        canonical.accessory,
+        &[top, skin, hair],
         &ACCENT_FALLBACKS,
+        palette,
     );
     let accent = contrasting(
-        ColorRole::AccentTone(accent_shade(appearance.accent)),
-        &[accessory, top],
+        canonical.accent,
+        &[top, skin, hair, accessory],
         &ACCENT_FALLBACKS,
+        palette,
     );
 
     AppearanceRoles {
@@ -71,23 +83,23 @@ fn contrasting(
     preferred: ColorRole,
     neighbours: &[ColorRole],
     fallbacks: &[ColorRole],
+    palette: Palette,
 ) -> ColorRole {
-    if contrasts_with_all(preferred, neighbours) {
+    if contrasts_with_all(preferred, neighbours, palette) {
         return preferred;
     }
 
     fallbacks
         .iter()
         .copied()
-        .find(|candidate| contrasts_with_all(*candidate, neighbours))
-        .unwrap_or(ColorRole::Highlight)
+        .find(|candidate| contrasts_with_all(*candidate, neighbours, palette))
+        .unwrap_or(preferred)
 }
 
-fn contrasts_with_all(role: ColorRole, neighbours: &[ColorRole]) -> bool {
-    let colour = Palette::Ansi16.resolve(role);
+fn contrasts_with_all(role: ColorRole, neighbours: &[ColorRole], palette: Palette) -> bool {
     neighbours
         .iter()
-        .all(|neighbour| Palette::Ansi16.resolve(*neighbour) != colour)
+        .all(|neighbour| palette.roles_contrast(role, *neighbour))
 }
 
 const HAIR_FALLBACKS: [ColorRole; 6] = [

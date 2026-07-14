@@ -63,13 +63,6 @@ pub enum ColorRole {
     CrtCase,
     CrtScreen,
     CrtGlow,
-    Skin,
-    Hair,
-    Top,
-    Bottom,
-    Shoes,
-    Accessory,
-    Accent,
     Highlight,
     Shadow,
     SkinTone(SkinShade),
@@ -86,6 +79,10 @@ pub enum Palette {
 }
 
 impl Palette {
+    pub fn roles_contrast(self, first: ColorRole, second: ColorRole) -> bool {
+        self.resolve(first) != self.resolve(second)
+    }
+
     pub(crate) const fn resolve(self, role: ColorRole) -> Color {
         match self {
             Self::Xterm256 => xterm256(role),
@@ -104,13 +101,6 @@ const fn xterm256(role: ColorRole) -> Color {
         ColorRole::CrtCase => 58,
         ColorRole::CrtScreen => 22,
         ColorRole::CrtGlow => 46,
-        ColorRole::Skin => 223,
-        ColorRole::Hair => 52,
-        ColorRole::Top => 33,
-        ColorRole::Bottom => 18,
-        ColorRole::Shoes => 232,
-        ColorRole::Accessory => 208,
-        ColorRole::Accent => 48,
         ColorRole::Highlight => 229,
         ColorRole::Shadow => 236,
         ColorRole::SkinTone(shade) => match shade {
@@ -165,18 +155,13 @@ const fn ansi16(role: ColorRole) -> Color {
     match role {
         ColorRole::PanelBackground => Color::Black,
         ColorRole::RoomWall => Color::Yellow,
-        ColorRole::RoomFloor | ColorRole::Hair => Color::Red,
+        ColorRole::RoomFloor => Color::Red,
         ColorRole::Desk => Color::LightRed,
         ColorRole::Chair => Color::Magenta,
-        ColorRole::CrtCase | ColorRole::Shoes => Color::Gray,
+        ColorRole::CrtCase => Color::Gray,
         ColorRole::CrtScreen => Color::Green,
         ColorRole::CrtGlow => Color::LightGreen,
-        ColorRole::Skin => Color::LightYellow,
-        ColorRole::Top => Color::LightBlue,
-        ColorRole::Bottom => Color::Blue,
         ColorRole::Shadow => Color::DarkGray,
-        ColorRole::Accessory => Color::LightMagenta,
-        ColorRole::Accent => Color::LightCyan,
         ColorRole::Highlight => Color::White,
         ColorRole::SkinTone(shade) => match shade {
             SkinShade::Porcelain | SkinShade::Sand => Color::LightYellow,

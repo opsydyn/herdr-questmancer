@@ -6,8 +6,14 @@ use herdr_webmaster::{
         HeadShape, OutfitBottom, OutfitTop, PersonaAppearance, Shoes, SkinTone,
     },
     ui::{
-        persona::{AppearanceRoles, appearance_roles, compose_profile, compose_seated},
-        pixel::{Canvas, ColorRole, Palette, pack},
+        persona::{
+            AppearanceRoles, appearance_roles, appearance_roles_for_palette, compose_profile,
+            compose_profile_for_palette, compose_seated, compose_seated_for_palette,
+        },
+        pixel::{
+            AccentShade, Canvas, ColorRole, FabricShade, FootwearShade, HairShade, Palette,
+            SkinShade,
+        },
         theatre::{TheatreFrame, TheatrePose},
     },
 };
@@ -25,7 +31,7 @@ fn compact() -> PersonaAppearance {
         shoes: Shoes::Platforms,
         accessory: Accessory::Headphones,
         desk_prop: DeskProp::NoveltyMug,
-        accent: AccentTone::Amber,
+        accent: AccentTone::Blue,
     }
 }
 
@@ -55,7 +61,7 @@ fn broad() -> PersonaAppearance {
         hair_tone: HairTone::Black,
         face_detail: FaceDetail::Moustache,
         top: OutfitTop::WorkShirt,
-        bottom: OutfitBottom::Cargos,
+        bottom: OutfitBottom::Jeans,
         shoes: Shoes::Loafers,
         accessory: Accessory::ShoulderBag,
         desk_prop: DeskProp::TinyCactus,
@@ -122,6 +128,25 @@ fn logical_role_map(canvas: &Canvas, roles: AppearanceRoles) -> String {
         .join("\n")
 }
 
+fn assert_adjacency_contrast(roles: AppearanceRoles, palette: Palette) {
+    for (upper, lower) in [
+        (roles.hair, roles.skin),
+        (roles.top, roles.skin),
+        (roles.top, roles.hair),
+        (roles.bottom, roles.top),
+        (roles.shoes, roles.bottom),
+        (roles.accessory, roles.top),
+        (roles.accessory, roles.skin),
+        (roles.accessory, roles.hair),
+        (roles.accent, roles.top),
+        (roles.accent, roles.skin),
+        (roles.accent, roles.hair),
+        (roles.accent, roles.accessory),
+    ] {
+        assert!(palette.roles_contrast(upper, lower));
+    }
+}
+
 #[test]
 fn fixed_personas_have_exact_dimensions_and_distinct_silhouettes() {
     let appearances = [compact(), tall(), broad()];
@@ -151,36 +176,177 @@ fn fixed_personas_have_exact_dimensions_and_distinct_silhouettes() {
 }
 
 #[test]
-fn appearance_mapping_preserves_typed_colour_traits_and_ansi_contrast() {
-    let compact_roles = appearance_roles(&compact());
-    let tall_roles = appearance_roles(&tall());
+fn canonical_roles_preserve_requested_typed_traits_without_palette_fallback() {
+    let roles = appearance_roles(&broad());
 
-    assert_ne!(compact_roles.skin, tall_roles.skin);
-    assert_ne!(compact_roles.hair, tall_roles.hair);
-    assert_ne!(compact_roles.top, tall_roles.top);
-    assert_ne!(compact_roles.bottom, tall_roles.bottom);
-    assert_ne!(compact_roles.accent, tall_roles.accent);
+    assert_eq!(roles.skin, ColorRole::SkinTone(SkinShade::Rose));
+    assert_eq!(roles.hair, ColorRole::HairTone(HairShade::Black));
+    assert_eq!(roles.top, ColorRole::Fabric(FabricShade::Green));
+    assert_eq!(roles.bottom, ColorRole::Fabric(FabricShade::Navy));
+    assert_eq!(roles.shoes, ColorRole::Footwear(FootwearShade::Black));
+    assert_eq!(roles.accessory, ColorRole::AccentTone(AccentShade::Teal));
+    assert_eq!(roles.accent, ColorRole::AccentTone(AccentShade::Magenta));
+}
 
-    for roles in [compact_roles, tall_roles, appearance_roles(&broad())] {
-        for (upper, lower) in [
-            (roles.hair, roles.skin),
-            (roles.skin, roles.top),
-            (roles.top, roles.bottom),
-            (roles.bottom, roles.shoes),
-            (roles.top, roles.accessory),
-            (roles.accessory, roles.accent),
-            (roles.hair, ColorRole::PanelBackground),
-            (roles.shoes, ColorRole::PanelBackground),
-        ] {
-            let mut pair = Canvas::new(1, 2);
-            pair.set(0, 0, upper);
-            pair.set(0, 1, lower);
-            let text = pack(&pair, &Palette::Ansi16, ColorRole::PanelBackground);
-            assert_eq!(text.lines[0].spans[0].content, "▀");
-            assert_ne!(
-                text.lines[0].spans[0].style.fg,
-                text.lines[0].spans[0].style.bg
-            );
+#[test]
+fn ansi_safe_roles_cover_the_full_persona_adjacency_graph() {
+    let mut appearance = compact();
+    appearance.skin_tone = SkinTone::Rose;
+    appearance.hair_tone = HairTone::Gold;
+    appearance.face_detail = FaceDetail::Visor;
+    appearance.top = OutfitTop::BandTee;
+    appearance.bottom = OutfitBottom::Jeans;
+    appearance.shoes = Shoes::Loafers;
+    appearance.accessory = Accessory::Headphones;
+    appearance.accent = AccentTone::Red;
+
+    let canonical = appearance_roles(&appearance);
+    assert_eq!(canonical.skin, ColorRole::SkinTone(SkinShade::Rose));
+    assert_eq!(canonical.hair, ColorRole::HairTone(HairShade::Gold));
+    assert_eq!(canonical.top, ColorRole::Fabric(FabricShade::Navy));
+    assert_eq!(
+        canonical.accessory,
+        ColorRole::AccentTone(AccentShade::Amber)
+    );
+    assert_eq!(canonical.accent, ColorRole::AccentTone(AccentShade::Red));
+
+    let safe = appearance_roles_for_palette(&appearance, Palette::Ansi16);
+    assert_adjacency_contrast(safe, Palette::Ansi16);
+    assert_ne!(safe.accessory, canonical.accessory);
+    assert_ne!(safe.accent, canonical.accent);
+}
+
+#[test]
+fn xterm_safe_roles_preserve_non_colliding_black_hair_and_loafers() {
+    let appearance = broad();
+    let canonical = appearance_roles(&appearance);
+    let safe = appearance_roles_for_palette(&appearance, Palette::Xterm256);
+
+    assert_eq!(safe.hair, ColorRole::HairTone(HairShade::Black));
+    assert_eq!(safe.shoes, ColorRole::Footwear(FootwearShade::Black));
+    assert_eq!(safe.hair, canonical.hair);
+    assert_eq!(safe.shoes, canonical.shoes);
+    assert_adjacency_contrast(safe, Palette::Xterm256);
+}
+
+#[test]
+fn palette_aware_composers_apply_xterm_collision_fallbacks() {
+    let mut appearance = tall();
+    appearance.skin_tone = SkinTone::Ebony;
+    appearance.hair_tone = HairTone::Chestnut;
+    let canonical = appearance_roles(&appearance);
+    assert_eq!(canonical.skin, ColorRole::SkinTone(SkinShade::Ebony));
+    assert_eq!(canonical.hair, ColorRole::HairTone(HairShade::Chestnut));
+
+    let safe = appearance_roles_for_palette(&appearance, Palette::Xterm256);
+    assert_eq!(safe.skin, canonical.skin);
+    assert_ne!(safe.hair, canonical.hair);
+    assert_adjacency_contrast(safe, Palette::Xterm256);
+
+    let canonical_profile = compose_profile(&appearance);
+    let safe_profile = compose_profile_for_palette(&appearance, Palette::Xterm256);
+    let safe_seated = compose_seated_for_palette(
+        &appearance,
+        frame(TheatrePose::Working, 0),
+        Palette::Xterm256,
+    );
+    assert!(canonical_profile.pixels().contains(&Some(canonical.hair)));
+    assert!(safe_profile.pixels().contains(&Some(safe.hair)));
+    assert!(!safe_profile.pixels().contains(&Some(canonical.hair)));
+    assert!(safe_seated.pixels().contains(&Some(safe.hair)));
+    assert!(!safe_seated.pixels().contains(&Some(canonical.hair)));
+}
+
+#[test]
+fn safe_roles_exhaust_every_colour_trait_combination_for_both_palettes() {
+    let skin_tones = [
+        SkinTone::Porcelain,
+        SkinTone::Rose,
+        SkinTone::Sand,
+        SkinTone::Umber,
+        SkinTone::Sienna,
+        SkinTone::Ebony,
+    ];
+    let hair_tones = [
+        HairTone::Black,
+        HairTone::Espresso,
+        HairTone::Chestnut,
+        HairTone::Copper,
+        HairTone::Gold,
+        HairTone::Silver,
+    ];
+    let tops = [
+        OutfitTop::BandTee,
+        OutfitTop::StripeJumper,
+        OutfitTop::HighCollar,
+        OutfitTop::WorkShirt,
+        OutfitTop::Hoodie,
+        OutfitTop::Cardigan,
+        OutfitTop::Waistcoat,
+        OutfitTop::TrackTop,
+    ];
+    let bottoms = [
+        OutfitBottom::Jeans,
+        OutfitBottom::Slacks,
+        OutfitBottom::Cargos,
+        OutfitBottom::Skirt,
+        OutfitBottom::Shorts,
+    ];
+    let shoes = [
+        Shoes::Trainers,
+        Shoes::Boots,
+        Shoes::Loafers,
+        Shoes::HighTops,
+        Shoes::Platforms,
+    ];
+    let accessories = [
+        Accessory::Headphones,
+        Accessory::Pager,
+        Accessory::Lanyard,
+        Accessory::Wristband,
+        Accessory::Scarf,
+        Accessory::Badge,
+        Accessory::PocketPen,
+        Accessory::ShoulderBag,
+    ];
+    let accents = [
+        AccentTone::Amber,
+        AccentTone::Cyan,
+        AccentTone::Lime,
+        AccentTone::Magenta,
+        AccentTone::Red,
+        AccentTone::Blue,
+        AccentTone::Violet,
+        AccentTone::Teal,
+    ];
+
+    for palette in [Palette::Xterm256, Palette::Ansi16] {
+        for skin_tone in skin_tones {
+            for hair_tone in hair_tones {
+                for top in tops {
+                    for bottom in bottoms {
+                        for shoes in shoes {
+                            for accessory in accessories {
+                                for accent in accents {
+                                    let mut appearance = compact();
+                                    appearance.skin_tone = skin_tone;
+                                    appearance.hair_tone = hair_tone;
+                                    appearance.top = top;
+                                    appearance.bottom = bottom;
+                                    appearance.shoes = shoes;
+                                    appearance.accessory = accessory;
+                                    appearance.accent = accent;
+
+                                    assert_adjacency_contrast(
+                                        appearance_roles_for_palette(&appearance, palette),
+                                        palette,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

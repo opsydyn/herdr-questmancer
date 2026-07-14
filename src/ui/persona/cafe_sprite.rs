@@ -1,13 +1,13 @@
 use crate::{
     domain::{BodyProportions, FaceDetail, HairShape, OutfitTop, PersonaAppearance, Shoes},
     ui::{
-        pixel::{Canvas, ColorRole},
+        pixel::{Canvas, ColorRole, Palette},
         theatre::TheatreFrame,
     },
 };
 
 use super::{
-    appearance::{AppearanceRoles, appearance_roles},
+    appearance::{AppearanceRoles, appearance_roles, appearance_roles_for_palette},
     state_pose::{SeatedLayout, SeatedPose, seated_pose},
 };
 
@@ -15,13 +15,32 @@ const CAFE_WIDTH: u16 = 10;
 const CAFE_HEIGHT: u16 = 12;
 
 pub fn compose_seated(appearance: &PersonaAppearance, frame: TheatreFrame) -> Canvas {
+    compose_seated_with_roles(appearance, frame, appearance_roles(appearance))
+}
+
+pub fn compose_seated_for_palette(
+    appearance: &PersonaAppearance,
+    frame: TheatreFrame,
+    palette: Palette,
+) -> Canvas {
+    compose_seated_with_roles(
+        appearance,
+        frame,
+        appearance_roles_for_palette(appearance, palette),
+    )
+}
+
+fn compose_seated_with_roles(
+    appearance: &PersonaAppearance,
+    frame: TheatreFrame,
+    roles: AppearanceRoles,
+) -> Canvas {
     let mut canvas = Canvas::new(CAFE_WIDTH, CAFE_HEIGHT);
     let pose = seated_pose(frame);
     if pose == SeatedPose::Absent {
         return canvas;
     }
 
-    let roles = appearance_roles(appearance);
     let layout = SeatedLayout::for_proportions(appearance.proportions);
     draw_head(&mut canvas, appearance, roles, layout);
     draw_torso(&mut canvas, appearance, roles, layout);
