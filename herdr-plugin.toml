@@ -1,0 +1,46 @@
+id = "opsydyn.webmaster"
+name = "webmaster"
+version = "0.1.0"
+min_herdr_version = "0.7.3"
+platforms = ["macos", "linux"]
+description = "A 90s internet control room for your herd of coding agents."
+
+[[build]]
+command = ["bash", "herdr/install.sh"]
+
+[[panes]]
+id = "webmaster"
+title = "webmaster"
+placement = "tab"
+command = ["bash", "herdr/run.sh", "ui"]
+
+[[actions]]
+id = "toggle"
+title = "webmaster: toggle"
+contexts = ["pane", "workspace"]
+command = ["bash", "herdr/control.sh", "toggle"]
+
+[[actions]]
+id = "open"
+title = "webmaster: open"
+contexts = ["pane", "workspace"]
+command = ["bash", "herdr/control.sh", "open"]
+
+[[actions]]
+id = "close"
+title = "webmaster: close"
+contexts = ["pane", "workspace"]
+command = ["bash", "herdr/control.sh", "close"]
+
+[[actions]]
+id = "desk"
+title = "webmaster: open desk"
+contexts = ["pane", "workspace"]
+command = ["bash", "herdr/control.sh", "desk"]
+
+[[actions]]
+id = "cafe"
+title = "webmaster: open cybercafe"
+contexts = ["pane", "workspace"]
+command = ["bash", "herdr/control.sh", "cafe"]
+
