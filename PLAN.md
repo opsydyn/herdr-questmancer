@@ -11,8 +11,7 @@ the operational **webmaster desk** and the ambient, interactive **cybercafe**.
 
 - Target Herdr `0.7.3`, where `session.snapshot`, `herdr api schema`, the `done`
   agent state, and the required subscription surface are available.
-- Keep the local `0.7.0` installation as a compile/unit-test environment only;
-  live protocol and plugin-link acceptance tests require `0.7.3`.
+- The local development and live acceptance environment runs Herdr `0.7.3`.
 - Treat the installed `herdr api schema --json` output as protocol ground truth.
 - Use `HERDR_BIN_PATH` for action scripts and separate socket connections for
   request/response traffic and subscriptions in the long-running TUI.
@@ -81,6 +80,8 @@ Exit: the desk supports the complete scan, inspect, reply, and visit loop.
 
 - Render a responsive workstation grid and tiny-terminal list fallback.
 - Add deterministic personas and semantic working/blocked/done/idle/exited art.
+- Use the approved half-block seated-sprite and full-body profile system from
+  `docs/superpowers/specs/2026-07-14-pixel-art-design.md`.
 - Separate persistent state, transition effects, and frame animation.
 - Support selection, focus, reply, reduced motion, and ASCII mode.
 
@@ -104,4 +105,3 @@ Exit: all twenty v0.1 acceptance criteria in the product handoff pass.
 - Every milestone includes its documentation and verification commands.
 - No output polling per frame and no persistence writes per animation tick.
 - The terminal must be restored after normal exit, error, signal, and panic.
-

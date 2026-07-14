@@ -47,8 +47,8 @@ hook.
 Domain behavior uses reducer unit tests. Ratatui output uses `TestBackend` with
 an injected clock. Socket parsing uses split/coalesced/interleaved fixtures.
 Lifecycle scripts use shell-level tests before live plugin linking. Live
-acceptance requires Herdr `0.7.3`; this machine currently has `0.7.0`, so that
-environmental gap must be reported separately from code failures.
+acceptance uses the locally installed Herdr `0.7.3`; the bundled
+`herdr api schema --output` document is protocol ground truth.
 
 ## Scope
 
@@ -58,3 +58,5 @@ macOS/Linux binaries, and release automation. It excludes images, sound,
 telemetry, cloud/network services, GitHub integration, Git worktree decoration,
 multiple themes, Windows, and SQLite.
 
+The canonical character rendering, cafe composition, profile treatment, and
+animation rules are defined in `2026-07-14-pixel-art-design.md`.

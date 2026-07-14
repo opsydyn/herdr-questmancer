@@ -104,9 +104,8 @@ bash tests/scripts.sh
 bash -n herdr/install.sh herdr/run.sh herdr/control.sh
 ```
 
-The current machine used for initial development has Herdr `0.7.0`, so live
-plugin-link acceptance remains an explicit `0.7.3` environment check rather
-than being represented as passing.
+The local acceptance environment runs Herdr `0.7.3`. The installed schema is
+used as protocol ground truth for the next implementation milestone.
 
 ## Privacy
 
@@ -119,4 +118,3 @@ best viewed with ratatui
 80x24 minimum
 this site is always under construction
 ```
-
