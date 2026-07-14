@@ -1,6 +1,8 @@
 mod theme;
 mod views;
 
+pub mod input;
+
 use ratatui::Frame;
 
 use crate::app::{Model, View};
