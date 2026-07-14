@@ -101,8 +101,10 @@ from stale pane state.
 
 ## Manual live acceptance
 
-The following is a procedure, not a record of a completed acceptance run. It
-uses the Herdr `0.7.3` CLI syntax; the plugin commands require a running server.
+This procedure was last completed against Herdr `0.7.3` / protocol `16` on
+2026-07-14. It verified a stable live subscription, blocked mail without a
+restart, search, exact reply delivery, and pane focus. The plugin commands
+require a running server.
 
 ```bash
 herdr status
@@ -198,8 +200,9 @@ Run the focused operational desk suite with `just desk-test`.
 
 The fixture suite does not require a running Herdr server. Live plugin linking
 does: start `herdr server` in another terminal before `herdr plugin link .`.
-The local milestone-2 acceptance run linked `opsydyn.webmaster` successfully
-against Herdr `0.7.3` / protocol `16` and then stopped its temporary server.
+The local milestone-4 acceptance run linked `opsydyn.webmaster`, exercised the
+live desk loop against Herdr `0.7.3` / protocol `16`, and then stopped its
+temporary server.
 
 ## Privacy
 

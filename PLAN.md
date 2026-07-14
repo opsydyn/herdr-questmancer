@@ -76,9 +76,9 @@ Exit: reducer tests cover every required transition and snapshot replacement.
 
 Exit: focused application, command, runtime, interaction, reply, and rendering
 tests verify the scan, inspect, reply, seen, search, reviewr, reconnect, lazy
-output, and visit behavior. The README carries a separate manual live Herdr
-`0.7.3` acceptance procedure; completing that procedure remains a release
-gate, not a claim made by this milestone.
+output, and visit behavior. The manual Herdr `0.7.3` / protocol `16` acceptance
+also verified a stable subscription, blocked transition, search, exact reply
+delivery, and pane focus on 2026-07-14.
 
 ### 5. Cybercafe
 

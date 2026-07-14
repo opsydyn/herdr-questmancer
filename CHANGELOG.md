@@ -33,3 +33,9 @@ All notable changes to this project will be documented here.
   agent/site search, and optional `persiyanov.reviewr.open` integration.
 - Rendering and interaction coverage for empty, working, blocked, done/unseen,
   exited, disconnected, narrow, modal, and contextual-footer states.
+
+### Fixed
+
+- Topology-event replay no longer causes a tight resubscription loop; the
+  supervisor refreshes pane membership and rebuilds subscriptions only when
+  the subscribed pane set actually changes.
