@@ -89,6 +89,10 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         .borders(Borders::ALL)
         .border_style(styles.accent)
         .style(styles.ink);
+    if area.width >= 80 {
+        block =
+            block.title_top(Line::styled(" CAFE WALL ", styles.wall).alignment(Alignment::Left));
+    }
     if model.preferences().character_set == crate::app::CharacterSet::Ascii {
         block = block.border_set(ASCII_BORDER);
     }
@@ -161,11 +165,7 @@ fn render_grid(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         return;
     }
     let capacity = columns.saturating_mul(max_rows);
-    let selected_index = model
-        .selected_agent_key()
-        .and_then(|selected| model.domain().agents.keys().position(|key| key == selected))
-        .unwrap_or_default();
-    let page_start = selected_index / capacity * capacity;
+    let page_start = selected_page_start(model, capacity);
     let visible_count = count.saturating_sub(page_start).min(capacity);
     let rows = visible_count.div_ceil(columns);
     let row_count = u16::try_from(rows).unwrap_or(1);
@@ -231,8 +231,18 @@ fn render_compact_list(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         area.width,
         area.height.saturating_sub(1),
     );
-    let item_height = (list.height / u16::try_from(count).unwrap_or(1)).max(1);
-    for (index, (key, agent)) in model.domain().agents.iter().enumerate() {
+    let capacity = usize::from(list.height / 2).max(1);
+    let page_start = selected_page_start(model, capacity);
+    let visible_count = count.saturating_sub(page_start).min(capacity);
+    let item_height = (list.height / u16::try_from(visible_count).unwrap_or(1)).max(1);
+    for (index, (key, agent)) in model
+        .domain()
+        .agents
+        .iter()
+        .skip(page_start)
+        .take(capacity)
+        .enumerate()
+    {
         let y = list.y.saturating_add(
             u16::try_from(index)
                 .unwrap_or_default()
@@ -255,6 +265,14 @@ fn render_compact_list(frame: &mut Frame<'_>, area: Rect, model: &Model) {
             model.preferences(),
         );
     }
+}
+
+fn selected_page_start(model: &Model, capacity: usize) -> usize {
+    let selected_index = model
+        .selected_agent_key()
+        .and_then(|selected| model.domain().agents.keys().position(|key| key == selected))
+        .unwrap_or_default();
+    selected_index / capacity * capacity
 }
 
 fn render_empty(frame: &mut Frame<'_>, area: Rect, styles: CafeStyles) {

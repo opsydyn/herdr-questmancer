@@ -98,6 +98,10 @@ fn one_hundred_twenty_columns_show_the_room_grid_and_selected_profile() {
         "missing shared room:\n{screen}"
     );
     assert!(
+        screen.contains("CAFE WALL"),
+        "full grid overwrote the shared wall cue:\n{screen}"
+    );
+    assert!(
         screen.contains("FLOOR / CABLE RUN / COUNTER"),
         "grid overwrote the shared floor/cable cue:\n{screen}"
     );
@@ -140,6 +144,10 @@ fn eighty_columns_keep_the_full_grid_without_a_side_profile() {
     assert!(
         screen.contains("CABLE RUN"),
         "missing shared room:\n{screen}"
+    );
+    assert!(
+        screen.contains("CAFE WALL"),
+        "full grid overwrote the shared wall cue:\n{screen}"
     );
     assert!(
         screen.contains("FLOOR / CABLE RUN / COUNTER"),
@@ -245,6 +253,28 @@ fn dense_grid_pages_to_keep_a_late_selection_visible() {
     model.domain_mut().selected_agent = Some(AgentKey::new("agent-z-60"));
 
     let screen = render(&model, 80, 24);
+
+    assert!(
+        screen.contains("> Agent 60"),
+        "late selection hidden:\n{screen}"
+    );
+    assert!(screen.contains("[>] BUILDING"), "state hidden:\n{screen}");
+}
+
+#[test]
+fn compact_dense_list_pages_to_keep_a_late_selection_visible() {
+    let mut model = three_agent_model();
+    let source = model.domain().agents.values().next().unwrap().clone();
+    for index in 4..=60 {
+        let mut agent = source.clone();
+        agent.key = AgentKey::new(format!("agent-z-{index:02}"));
+        agent.pane_id = PaneId::new(format!("w1:p{index}"));
+        agent.name = format!("Agent {index:02}");
+        model.domain_mut().agents.insert(agent.key.clone(), agent);
+    }
+    model.domain_mut().selected_agent = Some(AgentKey::new("agent-z-60"));
+
+    let screen = render(&model, 60, 18);
 
     assert!(
         screen.contains("> Agent 60"),

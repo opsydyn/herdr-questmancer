@@ -46,6 +46,15 @@ The change was developed through observed RED/GREEN cycles.
     border retains a dedicated `FLOOR / CABLE RUN / COUNTER` cue, and the grid
     deterministically pages whole 28x10 workstations to the page containing the
     current selection.
+12. Compact-selection re-review RED: a 60-agent 60x18 model failed with
+    `late selection hidden` because compact rendering still consumed the
+    BTreeMap prefix.
+13. Exact-80 wall re-review RED: the tightened 80x24 assertion failed with
+    `full grid overwrote the shared wall cue`; the full 20-row workstation grid
+    covered the inner wall caption.
+14. Re-review GREEN: full and compact layouts now share deterministic selected
+    page calculation, compact pages retain complete identity/state rows, and a
+    semantic top-border `CAFE WALL` survives exact-height grids.
 
 The Cafe interaction additions characterize a deliberately pre-existing
 view-neutral boundary and passed on their first run. A fabricated reducer
@@ -70,6 +79,9 @@ typed `DeskCommand` values as Desk.
   widths of 120 columns and above. The 80-column layout retains full
   workstations without the profile.
 - Added a compact vertical actionable workstation list below 80 columns.
+- Compact dense lists page deterministic complete two-line rows around the
+  current selection, keeping late selected identity and state visible at
+  60x18.
 - Bounded dense-grid rows to the drawable rectangle and clamped every cell to
   the remaining grid height, so large agent maps never create off-grid cells.
 - Derived every workstation and profile frame with
@@ -93,7 +105,7 @@ typed `DeskCommand` values as Desk.
 
 Verification run from `/Users/alancurrie/Projects/herdr-web-master`:
 
-- `cargo test --test cafe_rendering` - passed, 14 tests.
+- `cargo test --test cafe_rendering` - passed, 15 tests.
 - `cargo test --test interaction` - passed, 19 tests.
 - `cargo test --all-targets` - passed, full Rust suite.
 - `cargo fmt --all --check` - passed.
@@ -121,5 +133,7 @@ connection overlays; ASCII; ANSI-16; reduced motion; and no motion.
   action is silently clipped; exact 80 uses the same complete two-row legend.
 - A floor/cable/counter title on the room's bottom border survives even when an
   exact-height full grid occupies every inner row.
+- A palette-aware `CAFE WALL` title on the top border likewise survives an
+  exact 80x24 grid without consuming a workstation row.
 - No terminal timers, persistence behavior, output reads, raster assets, or
   supplied reference artwork were introduced.
