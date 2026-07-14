@@ -4,13 +4,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::herdr::protocol::{SessionSnapshot, WorkspaceInfo};
 
-use super::{Agent, AgentKey, PaneId, Site, Timestamp, WorkspaceId};
+use super::{Agent, AgentKey, Guestbook, PaneId, Site, Timestamp, WorkspaceId};
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DomainState {
     pub sites: BTreeMap<WorkspaceId, Site>,
     pub agents: BTreeMap<AgentKey, Agent>,
     pub selected_agent: Option<AgentKey>,
+    pub guestbook: Guestbook,
 }
 
 impl DomainState {
