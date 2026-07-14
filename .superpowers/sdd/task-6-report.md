@@ -153,29 +153,33 @@ monotonic clock, slow-render done +999 ms, prolonged 6 fps, mixed 6/8 fps, and
 environment (`zsh: command not found: just`); every command in that recipe was
 run directly as listed above.
 
-## Live Herdr handoff
+## Live Herdr acceptance
 
-Per the task boundary, this worker did not start or mutate a live Herdr server.
-The installed client is ready and confirmed as:
+The parent task reran the smoke test against the final reviewed commit
+`9d5d257` with the temporary server cleaned up afterward. The live baseline was:
 
 ```text
-herdr 0.7.3
-protocol: 16
-server status: not running
+client: Herdr 0.7.3 / protocol 16
+server: Herdr 0.7.3 / protocol 16 / compatible yes
 ```
 
-Exact smoke sequence for the parent task:
+The run built and linked the local plugin, invoked
+`opsydyn.webmaster.cafe`, and confirmed:
 
-```bash
-herdr server
-cargo build
-herdr plugin link .
-herdr plugin action invoke opsydyn.webmaster.cafe
-```
+- the managed cafe pane connected to the live session;
+- a synthetic blocked agent appeared without restart as `HELP!` with its
+  custom status;
+- keyboard navigation and search selected that agent;
+- refresh executed and marking seen removed the local unread action;
+- `Enter` focused the synthetic agent's real pane;
+- the reply composer delivered the exact text `final-live-reply` to an
+  isolated capture process;
+- the synthetic report and pane were released, the plugin was closed, the
+  temporary file was removed, and the server stopped cleanly.
 
-Then publish a blocked agent with the README's `pane report-agent` command and
-confirm `HELP!`, raised-hand pose, selection, visit, reply, seen, search, and
-refresh at 80x24. The unchanged no-motion no-wake property is deterministic and
-covered with paused Tokio time; the runtime currently exposes the documented
-default display preferences and does not yet persist or offer preference
-configuration.
+The headless live pane was narrower than 80 columns, so exact 80x24 and the
+other responsive sizes remain covered by `TestBackend`; the live run exercised
+the actual protocol, subscription, action, focus, and reply paths. The
+unchanged no-motion no-wake property is covered deterministically with paused
+Tokio time. Display preferences are runtime model state only and are not yet
+persisted or exposed through configuration.

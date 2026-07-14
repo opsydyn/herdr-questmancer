@@ -151,9 +151,10 @@ from stale pane state.
 ## Manual live acceptance
 
 This procedure was last completed against Herdr `0.7.3` / protocol `16` on
-2026-07-14. It verified a stable live subscription, blocked mail without a
-restart, search, exact reply delivery, and pane focus. The plugin commands
-require a running server.
+2026-07-14, including the Milestone 5 cafe on final commit `9d5d257`. It
+verified a stable live subscription, a blocked `HELP!` transition without a
+restart, search, refresh, local seen state, exact isolated reply delivery, and
+pane focus. The plugin commands require a running server.
 
 ```bash
 herdr status
