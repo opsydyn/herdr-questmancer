@@ -26,10 +26,9 @@ fn pong_tolerates_unknown_fields() {
 
 #[test]
 fn snapshot_tolerates_unknown_fields() {
-    let response: SuccessResponse<SessionSnapshotResult> = serde_json::from_str(include_str!(
-        "fixtures/herdr/session_snapshot.json"
-    ))
-    .expect("valid snapshot");
+    let response: SuccessResponse<SessionSnapshotResult> =
+        serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json"))
+            .expect("valid snapshot");
 
     assert_eq!(response.result.kind, "session_snapshot");
     assert_eq!(response.result.snapshot.protocol, 16);
@@ -72,4 +71,3 @@ fn error_response_retains_code_and_message() {
     assert_eq!(response.error.code, "pane_not_found");
     assert_eq!(response.error.message, "pane w9:p9 does not exist");
 }
-

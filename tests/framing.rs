@@ -16,7 +16,9 @@ async fn reads_a_message_split_across_writes() {
     });
     let mut reader = BufReader::new(reader);
 
-    let value: Value = read_json_line(&mut reader).await.expect("complete JSON line");
+    let value: Value = read_json_line(&mut reader)
+        .await
+        .expect("complete JSON line");
 
     write_task.await.unwrap();
     assert_eq!(value["event"], "pane.agent_status_changed");
@@ -25,10 +27,7 @@ async fn reads_a_message_split_across_writes() {
 #[tokio::test]
 async fn reads_several_messages_from_one_write() {
     let (mut writer, reader) = duplex(128);
-    writer
-        .write_all(b"{\"id\":1}\n{\"id\":2}\n")
-        .await
-        .unwrap();
+    writer.write_all(b"{\"id\":1}\n{\"id\":2}\n").await.unwrap();
     let mut reader = BufReader::new(reader);
 
     let first: Value = read_json_line(&mut reader).await.unwrap();

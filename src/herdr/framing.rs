@@ -19,7 +19,9 @@ where
     R: AsyncBufRead + Unpin,
     T: DeserializeOwned,
 {
-    read_optional_json_line(reader).await?.ok_or(FramingError::Eof)
+    read_optional_json_line(reader)
+        .await?
+        .ok_or(FramingError::Eof)
 }
 
 pub async fn read_optional_json_line<R, T>(reader: &mut R) -> Result<Option<T>, FramingError>

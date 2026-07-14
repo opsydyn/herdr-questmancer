@@ -38,6 +38,8 @@ fn parses_required_plugin_paths() {
     .expect("valid environment");
 
     assert_eq!(environment.socket_path(), PathBuf::from("/tmp/herdr.sock"));
-    assert_eq!(environment.bin_path(), PathBuf::from("/opt/herdr/bin/herdr"));
+    assert_eq!(
+        environment.bin_path(),
+        PathBuf::from("/opt/herdr/bin/herdr")
+    );
 }
-
