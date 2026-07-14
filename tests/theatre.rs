@@ -1,5 +1,5 @@
 use herdr_webmaster::{
-    app::{CharacterSet, DisplayPreferences, Model, Motion, View},
+    app::{CharacterSet, ColorMode, DisplayPreferences, Model, Motion, View},
     domain::{Agent, Attention, AttentionReason, DomainState, Presence, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::theatre::{RenderCadence, TheatrePose, cadence_for, frame_for},
@@ -19,6 +19,7 @@ fn preferences() -> DisplayPreferences {
     DisplayPreferences {
         motion: Motion::Full,
         character_set: CharacterSet::Unicode,
+        color_mode: ColorMode::Xterm256,
     }
 }
 
@@ -29,6 +30,7 @@ fn frame_at(agent: &Agent, milliseconds: i64, motion: Motion) -> u8 {
         &DisplayPreferences {
             motion,
             character_set: CharacterSet::Unicode,
+            color_mode: ColorMode::Xterm256,
         },
     )
     .animation_frame
@@ -43,6 +45,7 @@ fn model_with(agent: Agent, now: i64, motion: Motion) -> Model {
     model.set_preferences(DisplayPreferences {
         motion,
         character_set: CharacterSet::Unicode,
+        color_mode: ColorMode::Xterm256,
     });
     model
 }
@@ -399,6 +402,7 @@ fn display_preferences_are_model_state_with_accessible_defaults() {
     let configured = DisplayPreferences {
         motion: Motion::Reduced,
         character_set: CharacterSet::Ascii,
+        color_mode: ColorMode::Ansi16,
     };
     model.set_preferences(configured);
     assert_eq!(model.preferences(), &configured);

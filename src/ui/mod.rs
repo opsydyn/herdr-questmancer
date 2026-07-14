@@ -5,6 +5,7 @@ pub mod input;
 pub mod persona;
 pub mod pixel;
 pub mod theatre;
+pub mod widgets;
 
 use ratatui::Frame;
 

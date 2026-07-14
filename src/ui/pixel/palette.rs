@@ -1,5 +1,7 @@
 use ratatui::style::Color;
 
+use crate::app::ColorMode;
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SkinShade {
     Porcelain,
@@ -76,6 +78,15 @@ pub enum ColorRole {
 pub enum Palette {
     Xterm256,
     Ansi16,
+}
+
+impl From<ColorMode> for Palette {
+    fn from(mode: ColorMode) -> Self {
+        match mode {
+            ColorMode::Xterm256 => Self::Xterm256,
+            ColorMode::Ansi16 => Self::Ansi16,
+        }
+    }
 }
 
 impl Palette {

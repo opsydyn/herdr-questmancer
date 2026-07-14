@@ -25,9 +25,17 @@ pub enum CharacterSet {
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ColorMode {
+    #[default]
+    Xterm256,
+    Ansi16,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct DisplayPreferences {
     pub motion: Motion,
     pub character_set: CharacterSet,
+    pub color_mode: ColorMode,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

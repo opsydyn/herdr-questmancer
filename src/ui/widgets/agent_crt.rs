@@ -1,0 +1,309 @@
+use ratatui::{
+    Frame,
+    layout::Rect,
+    style::Style,
+    symbols::border,
+    text::{Line, Text},
+    widgets::{Block, BorderType, Borders, Paragraph},
+};
+
+use crate::{
+    app::{CharacterSet, DisplayPreferences},
+    domain::Agent,
+    ui::{
+        persona::compose_seated_for_palette,
+        pixel::{ColorRole, Palette, pack},
+        theatre::{TheatreFrame, TheatrePose},
+    },
+};
+
+const MIN_FULL_WIDTH: u16 = 28;
+const MIN_FULL_HEIGHT: u16 = 10;
+const ASCII_BORDER: border::Set<'static> = border::Set {
+    top_left: "+",
+    top_right: "+",
+    bottom_left: "+",
+    bottom_right: "+",
+    vertical_left: "|",
+    vertical_right: "|",
+    horizontal_top: "-",
+    horizontal_bottom: "-",
+};
+
+pub fn render_workstation(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    agent: &Agent,
+    theatre: TheatreFrame,
+    selected: bool,
+    preferences: &DisplayPreferences,
+) {
+    if area.is_empty() {
+        return;
+    }
+    if area.width < MIN_FULL_WIDTH || area.height < MIN_FULL_HEIGHT {
+        render_compact(frame, area, agent, theatre, selected);
+        return;
+    }
+
+    let palette = Palette::from(preferences.color_mode);
+    let panel = Style::new()
+        .fg(palette.resolve(ColorRole::Highlight))
+        .bg(palette.resolve(ColorRole::PanelBackground));
+    let border_style = Style::new().fg(if theatre.focused || selected {
+        palette.resolve(ColorRole::CrtGlow)
+    } else {
+        palette.resolve(ColorRole::CrtCase)
+    });
+    let mut block = Block::default()
+        .borders(Borders::ALL)
+        .style(panel)
+        .border_style(border_style);
+    block = match preferences.character_set {
+        CharacterSet::Unicode => block.border_type(if selected {
+            BorderType::Double
+        } else {
+            BorderType::Rounded
+        }),
+        CharacterSet::Ascii => block.border_set(ASCII_BORDER),
+    };
+    if theatre.focused {
+        block = block.title(" * ");
+    }
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+    if inner.is_empty() {
+        return;
+    }
+
+    let selection = if selected { ">" } else { " " };
+    let name = format!("{selection} {}", agent.name);
+    frame.render_widget(
+        Paragraph::new(name).style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
+        Rect::new(inner.x, inner.y, inner.width, 1),
+    );
+
+    let scene = Rect::new(
+        inner.x,
+        inner.y.saturating_add(1),
+        inner.width,
+        inner.height.saturating_sub(2).min(6),
+    );
+    render_scene(
+        frame,
+        scene,
+        agent,
+        theatre,
+        preferences.character_set,
+        palette,
+    );
+
+    let state_y = inner.y.saturating_add(inner.height.saturating_sub(1));
+    let state = state_line(agent, theatre, inner.width);
+    frame.render_widget(
+        Paragraph::new(state).style(Style::new().fg(palette.resolve(ColorRole::CrtGlow))),
+        Rect::new(inner.x, state_y, inner.width, 1),
+    );
+}
+
+fn render_compact(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    agent: &Agent,
+    theatre: TheatreFrame,
+    selected: bool,
+) {
+    let selection = if selected { ">" } else { " " };
+    let live = if theatre.focused { " LIVE" } else { "" };
+    let text = Text::from(vec![
+        Line::from(format!("{selection} {}", agent.name)),
+        Line::from(format!(
+            "{} {}{live}",
+            state_marker(theatre.pose),
+            theatre.label
+        )),
+    ]);
+    frame.render_widget(Paragraph::new(text), area);
+}
+
+fn render_scene(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    agent: &Agent,
+    theatre: TheatreFrame,
+    character_set: CharacterSet,
+    palette: Palette,
+) {
+    if area.is_empty() {
+        return;
+    }
+    let background = Style::new()
+        .fg(palette.resolve(ColorRole::Desk))
+        .bg(palette.resolve(ColorRole::PanelBackground));
+    frame.render_widget(
+        Paragraph::new(Text::from(scene_lines(theatre))).style(background),
+        area,
+    );
+
+    let persona_area = Rect::new(
+        area.x.saturating_add(area.width.saturating_sub(10)),
+        area.y,
+        area.width.min(10),
+        area.height.min(6),
+    );
+    match character_set {
+        CharacterSet::Unicode => {
+            let canvas = compose_seated_for_palette(&agent.persona.appearance, theatre, palette);
+            frame.render_widget(
+                Paragraph::new(pack(&canvas, &palette, ColorRole::PanelBackground)),
+                persona_area,
+            );
+        }
+        CharacterSet::Ascii => frame.render_widget(
+            Paragraph::new(Text::from(ascii_pose(theatre.pose))),
+            persona_area,
+        ),
+    }
+}
+
+fn scene_lines(theatre: TheatreFrame) -> Vec<Line<'static>> {
+    let lamp = if theatre.focused { "(*)" } else { "(.)" };
+    let modem = if theatre.animation_frame.is_multiple_of(2) {
+        "o*o"
+    } else {
+        "*o*"
+    };
+    let (screen, activity) = match theatre.pose {
+        TheatrePose::Working => (
+            if theatre.animation_frame.is_multiple_of(2) {
+                "> BUILD_"
+            } else {
+                "> BUILD "
+            },
+            "CURSOR/HAND",
+        ),
+        TheatrePose::Blocked => ("! HELP !", "RAISED HAND"),
+        TheatrePose::DoneUnseen => ("[+] UPD", "UPDATE READY"),
+        TheatrePose::DoneSeen => ("[+] DONE", "COMPLETE"),
+        TheatrePose::Idle => ("[~] IDLE", "SCREENSAVER"),
+        TheatrePose::Exited => ("[x] /\\", "EMPTY CHAIR"),
+        TheatrePose::Unknown => ("[?] ???", "UNKNOWN"),
+    };
+
+    let mut rows = vec![
+        format!(" .--------. {lamp}"),
+        format!(" |{screen:<8}|"),
+        format!(" |{activity:<12}"),
+        " '--------'".to_owned(),
+        " ======DESK=====".to_owned(),
+        format!(" {modem} MODEM"),
+    ];
+    if theatre.pose == TheatrePose::DoneUnseen && (1..=8).contains(&theatre.animation_frame) {
+        const CONFETTI: [(usize, usize, char); 8] = [
+            (0, 1, '^'),
+            (0, 8, '^'),
+            (1, 0, '^'),
+            (2, 1, '^'),
+            (3, 0, '^'),
+            (4, 1, '^'),
+            (4, 13, '^'),
+            (5, 0, '^'),
+        ];
+        let (row, column, glyph) = CONFETTI[usize::from(theatre.animation_frame - 1)];
+        replace_ascii_char(&mut rows[row], column, glyph);
+    }
+    rows.into_iter().map(Line::from).collect()
+}
+
+fn replace_ascii_char(text: &mut String, index: usize, replacement: char) {
+    if index < text.len() {
+        text.replace_range(index..=index, &replacement.to_string());
+    }
+}
+
+fn ascii_pose(pose: TheatrePose) -> Vec<Line<'static>> {
+    let rows: [&str; 6] = match pose {
+        TheatrePose::Working => [
+            "  AGENT   ",
+            "   o>_    ",
+            "  /|\\     ",
+            "  / \\     ",
+            "  CHAIR   ",
+            "  typing  ",
+        ],
+        TheatrePose::Blocked => [
+            " AGENT [!]",
+            "   \\o/    ",
+            "    |     ",
+            "   / \\    ",
+            "  CHAIR   ",
+            " raised   ",
+        ],
+        TheatrePose::DoneUnseen => [
+            " AGENT [+]",
+            "   \\o/    ",
+            "    |     ",
+            "   / \\    ",
+            "  CHAIR   ",
+            " update   ",
+        ],
+        TheatrePose::DoneSeen => [
+            " AGENT [+]",
+            "    o     ",
+            "   /|\\    ",
+            "   / \\    ",
+            "  CHAIR   ",
+            "   done   ",
+        ],
+        TheatrePose::Idle => [
+            " AGENT [~]",
+            "    o     ",
+            "   /|\\    ",
+            "   / \\    ",
+            "  CHAIR   ",
+            "   idle   ",
+        ],
+        TheatrePose::Exited => [
+            "   [x]    ",
+            "  EMPTY   ",
+            "  CHAIR   ",
+            "   /_\\    ",
+            "          ",
+            "  exited  ",
+        ],
+        TheatrePose::Unknown => [
+            " AGENT [?]",
+            "    ?     ",
+            "   /|\\    ",
+            "   / \\    ",
+            "  CHAIR   ",
+            " unknown  ",
+        ],
+    };
+    rows.into_iter().map(Line::from).collect()
+}
+
+fn state_line(agent: &Agent, theatre: TheatreFrame, width: u16) -> String {
+    let mut state = format!("{} {}", state_marker(theatre.pose), theatre.label);
+    if theatre.focused {
+        state.push_str(" | LIVE");
+    }
+    if let Some(status) = agent.custom_status.as_deref() {
+        let suffix = format!(" | {status}");
+        if state.chars().count() + suffix.chars().count() <= usize::from(width) {
+            state.push_str(&suffix);
+        }
+    }
+    state
+}
+
+const fn state_marker(pose: TheatrePose) -> &'static str {
+    match pose {
+        TheatrePose::Working => "[>]",
+        TheatrePose::Blocked => "[!]",
+        TheatrePose::DoneUnseen | TheatrePose::DoneSeen => "[+]",
+        TheatrePose::Idle => "[~]",
+        TheatrePose::Exited => "[x]",
+        TheatrePose::Unknown => "[?]",
+    }
+}
