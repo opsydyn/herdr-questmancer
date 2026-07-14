@@ -1,6 +1,6 @@
 use crate::{
     app::{DisplayPreferences, Model, Motion, View},
-    domain::{Agent, Presence, Timestamp},
+    domain::{Agent, Attention, AttentionReason, Presence, Timestamp},
 };
 
 use std::time::Duration;
@@ -34,7 +34,9 @@ pub fn frame_for(agent: &Agent, now: Timestamp, preferences: &DisplayPreferences
     let (pose, label) = match agent.presence {
         Presence::Working => (TheatrePose::Working, "BUILDING"),
         Presence::Blocked => (TheatrePose::Blocked, "HELP!"),
-        Presence::Done if agent.attention.is_unseen() => (TheatrePose::DoneUnseen, "UPDATE READY"),
+        Presence::Done if unseen_completion_since(&agent.attention).is_some() => {
+            (TheatrePose::DoneUnseen, "UPDATE READY")
+        }
         Presence::Done => (TheatrePose::DoneSeen, "DONE"),
         Presence::Idle => (TheatrePose::Idle, "IDLE"),
         Presence::Exited => (TheatrePose::Exited, "BROKEN LINK"),
@@ -87,9 +89,9 @@ fn animation_frame(agent: &Agent, pose: TheatrePose, now: Timestamp, motion: Mot
 }
 
 fn done_transition_frame(agent: &Agent, now: Timestamp) -> u8 {
-    agent.attention.since().map_or(0, |since| {
+    unseen_completion_since(&agent.attention).map_or(0, |since| {
         let elapsed = since.elapsed_until(now);
-        if elapsed < Duration::from_secs(1) {
+        if now >= since && elapsed < Duration::from_secs(1) {
             frame_from_elapsed(elapsed, 8, 8) + 1
         } else {
             0
@@ -121,9 +123,19 @@ fn cadence_for_agent(agent: &Agent, now: Timestamp, motion: Motion) -> Option<u8
 }
 
 fn done_transition_is_active(agent: &Agent, now: Timestamp) -> bool {
-    agent.attention.is_unseen()
-        && agent
-            .attention
-            .since()
-            .is_some_and(|since| since.elapsed_until(now) < Duration::from_secs(1))
+    unseen_completion_since(&agent.attention)
+        .is_some_and(|since| now >= since && since.elapsed_until(now) < Duration::from_secs(1))
+}
+
+fn unseen_completion_since(attention: &Attention) -> Option<Timestamp> {
+    match attention {
+        Attention::Unseen {
+            reason: AttentionReason::WorkCompleted,
+            since,
+        } => Some(*since),
+        Attention::Clear
+        | Attention::Unseen { .. }
+        | Attention::Seen { .. }
+        | Attention::Snoozed { .. } => None,
+    }
 }

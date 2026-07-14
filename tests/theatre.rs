@@ -47,6 +47,27 @@ fn model_with(agent: Agent, now: i64, motion: Motion) -> Model {
     model
 }
 
+fn attention_variants() -> Vec<Attention> {
+    let since = Timestamp::from_millis(1_000);
+    let until = Timestamp::from_millis(10_000);
+    let reasons = [
+        AttentionReason::NeedsInput,
+        AttentionReason::WorkCompleted,
+        AttentionReason::PaneExited,
+    ];
+    let mut variants = vec![Attention::Clear];
+    for reason in reasons {
+        variants.push(Attention::Unseen { reason, since });
+        variants.push(Attention::Seen { reason, since });
+        variants.push(Attention::Snoozed {
+            reason,
+            since,
+            until,
+        });
+    }
+    variants
+}
+
 #[test]
 fn presence_maps_to_explicit_theatre_poses_and_labels() {
     let cases = [
@@ -86,6 +107,73 @@ fn unseen_and_seen_done_attention_map_to_distinct_explicit_states() {
     let seen = frame_for(&done, Timestamp::from_millis(1_500), &preferences());
     assert_eq!(seen.pose, TheatrePose::DoneSeen);
     assert_eq!(seen.label, "DONE");
+}
+
+#[test]
+fn done_pose_and_cadence_follow_complete_attention_semantics() {
+    for attention in attention_variants() {
+        let completion_unseen = matches!(
+            &attention,
+            Attention::Unseen {
+                reason: AttentionReason::WorkCompleted,
+                ..
+            }
+        );
+        let mut done = agent();
+        done.presence = Presence::Done;
+        done.attention = attention;
+
+        let frame = frame_for(&done, Timestamp::from_millis(1_500), &preferences());
+
+        let expected_pose = if completion_unseen {
+            TheatrePose::DoneUnseen
+        } else {
+            TheatrePose::DoneSeen
+        };
+        let expected_label = if completion_unseen {
+            "UPDATE READY"
+        } else {
+            "DONE"
+        };
+        let expected_frame = if completion_unseen { 5 } else { 0 };
+        let expected_cadence = if completion_unseen {
+            RenderCadence::Fps(8)
+        } else {
+            RenderCadence::EventDriven
+        };
+
+        assert_eq!(frame.pose, expected_pose);
+        assert_eq!(frame.label, expected_label);
+        assert_eq!(frame.animation_frame, expected_frame);
+        assert_eq!(
+            cadence_for(&model_with(done, 1_500, Motion::Full)),
+            expected_cadence
+        );
+    }
+}
+
+#[test]
+fn non_done_presence_is_authoritative_for_every_attention_variant() {
+    let cases = [
+        (Presence::Working, TheatrePose::Working, "BUILDING"),
+        (Presence::Blocked, TheatrePose::Blocked, "HELP!"),
+        (Presence::Idle, TheatrePose::Idle, "IDLE"),
+        (Presence::Exited, TheatrePose::Exited, "BROKEN LINK"),
+        (Presence::Unknown, TheatrePose::Unknown, "UNKNOWN"),
+    ];
+
+    for (presence, expected_pose, expected_label) in cases {
+        for attention in attention_variants() {
+            let mut agent = agent();
+            agent.presence = presence;
+            agent.attention = attention;
+
+            let frame = frame_for(&agent, Timestamp::from_millis(5_000), &preferences());
+
+            assert_eq!(frame.pose, expected_pose);
+            assert_eq!(frame.label, expected_label);
+        }
+    }
 }
 
 #[test]
@@ -143,6 +231,11 @@ fn done_unseen_animation_uses_attention_time_and_ends_exactly_at_one_second() {
     );
     let original_attention = done.attention.clone();
 
+    assert_eq!(frame_at(&done, 1_999, Motion::Full), 0);
+    assert_eq!(
+        cadence_for(&model_with(done.clone(), 1_999, Motion::Full)),
+        RenderCadence::EventDriven
+    );
     assert_eq!(frame_at(&done, 2_000, Motion::Full), 1);
     assert_eq!(frame_at(&done, 2_125, Motion::Full), 2);
     assert_eq!(frame_at(&done, 2_875, Motion::Full), 8);

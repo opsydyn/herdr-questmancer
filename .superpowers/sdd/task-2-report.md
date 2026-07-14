@@ -22,12 +22,21 @@ confetti frame and the stable update badge. The transition-boundary test was
 changed first and failed with actual `0`, expected `1`. Active completion
 frames now use `1..=8`, reserving `0` for the stable badge.
 
+A second independent review found two semantic gaps. New tests first produced
+two genuine failures: at one millisecond before completion the frame was `1`
+instead of stable `0`, and done with mismatched unseen attention was projected
+as `DoneUnseen` instead of `DoneSeen`. The active interval now requires
+`now >= since && elapsed < 1,000 ms`, and completion theatre requires unseen
+`WorkCompleted` attention specifically.
+
 ## Changes
 
 - Added `Motion`, `CharacterSet`, and `DisplayPreferences` as explicit app
   state, with full-motion Unicode defaults and `Model` accessors.
 - Added pure theatre pose and label derivation for every presence state, with
-  done-unseen distinguished from stable done via attention state.
+  done-unseen distinguished from stable done only by unseen `WorkCompleted`
+  attention. Clear, seen, snoozed, and mismatched unseen reasons are stable
+  done; all non-done poses remain presence-driven regardless of attention.
 - Added deterministic animation frames derived only from injected timestamps.
   Working uses four frames at 6 fps, blocked two at 2 fps, done-unseen active
   frames `1..=8` at 8 fps for strictly less than 1,000 ms, and idle four at 1
@@ -41,7 +50,7 @@ frames now use `1..=8`, reserving `0` for the stable badge.
 
 ## Verification
 
-- Focused test: `cargo test --test theatre` — 14 passed, 0 failed.
+- Focused test: `cargo test --test theatre` — 16 passed, 0 failed.
 - Full test suite: `cargo test --all-targets` — all test binaries passed.
 - Formatting: `cargo fmt --all` followed by `cargo fmt --all --check`.
 - Lints: `cargo clippy --all-targets -- -D warnings` — clean.
@@ -52,7 +61,10 @@ frames now use `1..=8`, reserving `0` for the stable badge.
 - `frame_for` borrows the agent and preferences and cannot mutate domain
   attention. It performs no wall-clock reads; all timing comes from `now`.
 - The one-shot boundary is explicit: 999 ms still produces transition frame 8,
-  while 1,000 ms returns the stable frame and event-driven cadence.
+  while 1,000 ms returns the stable frame and event-driven cadence. Before the
+  attention timestamp, the frame is also stable and cadence is event-driven.
+- Pose and cadence share the same unseen-completion predicate, preventing a
+  mismatched attention reason from scheduling invisible completion animation.
 - Reduced motion intentionally keeps only the one-frame-per-second idle
   screensaver. Working, blocked, and completion transition effects are static.
 - Preferences live only on `Model`, as requested. Config-file persistence and
