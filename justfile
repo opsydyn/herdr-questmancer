@@ -14,6 +14,11 @@ test:
     cargo test --all-targets --all-features
     bash tests/scripts.sh
 
+protocol-test:
+    jq empty tests/fixtures/herdr/pong.json tests/fixtures/herdr/session_snapshot.json tests/fixtures/herdr/error.json
+    jq -c . tests/fixtures/herdr/events.jsonl >/dev/null
+    cargo test --test environment --test protocol --test framing --test client --test subscription --test supervisor
+
 verify: fmt-check lint test
     bash -n herdr/install.sh herdr/run.sh herdr/control.sh
 
@@ -26,4 +31,3 @@ install-local:
     rm -f bin/herdr-webmaster
     cp target/release/herdr-webmaster bin/herdr-webmaster
     [ "$(uname)" = "Darwin" ] && codesign --force --sign - bin/herdr-webmaster || true
-

@@ -12,7 +12,7 @@ the operational **webmaster desk** and the ambient, interactive **cybercafe**.
 - Target Herdr `0.7.3`, where `session.snapshot`, `herdr api schema`, the `done`
   agent state, and the required subscription surface are available.
 - The local development and live acceptance environment runs Herdr `0.7.3`.
-- Treat the installed `herdr api schema --json` output as protocol ground truth.
+- Treat `herdr api schema --output <path>` as protocol ground truth.
 - Use `HERDR_BIN_PATH` for action scripts and separate socket connections for
   request/response traffic and subscriptions in the long-running TUI.
 
@@ -36,7 +36,7 @@ uses a clock-derived frame so rendering remains deterministic in tests.
 
 ## Milestones
 
-### 1. Executable shell
+### 1. Executable shell — complete
 
 - Initialize the Rust package and repository policy files.
 - Add the verified Herdr manifest and lifecycle scripts.
@@ -47,7 +47,7 @@ uses a clock-derived frame so rendering remains deterministic in tests.
 Exit: `cargo test`, `cargo fmt --check`, and `cargo clippy` pass; the local
 binary can switch between empty desk and cafe views.
 
-### 2. Herdr protocol
+### 2. Herdr protocol — complete
 
 - Parse plugin environment and validate Herdr compatibility.
 - Implement newline-delimited request and subscription connections.

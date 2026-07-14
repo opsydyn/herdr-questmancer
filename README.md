@@ -14,10 +14,10 @@ needs you, reading their output, replying, and jumping back into the work.
 
 ## Project status
 
-Milestone 1 is implemented: the Rust executable, empty desk/cafe projections,
-keyboard switching, safe terminal lifecycle, plugin manifest, and singleton
-action scripts. Herdr session data and agent interactions arrive in the next
-milestones described in [PLAN.md](PLAN.md).
+Milestones 1 and 2 are implemented: the Rust executable, empty desk/cafe
+projections, safe terminal lifecycle, plugin manifest, singleton actions, and
+the schema-grounded Herdr protocol runtime. Domain normalization and agent
+interactions arrive in the next milestones described in [PLAN.md](PLAN.md).
 
 The plugin requires Herdr `0.7.3` because its runtime design depends on
 `session.snapshot`, the protocol schema command, and the current agent event
@@ -81,12 +81,19 @@ from stale pane state.
 ## Architecture
 
 One pure domain model feeds both views. Ratatui widgets are projections, not
-owners of session state. The planned Herdr client uses separate request and
-subscription sockets, refreshes with `session.snapshot` after reconnect, and
-loads recent pane output only for the selected agent.
+owners of session state. The Herdr transport opens a fresh socket for each
+ordinary request and a separate long-lived socket for event subscriptions.
+It validates protocol `16`, refreshes with `session.snapshot` after disconnect
+or pane-topology changes, and preserves unknown event names for the reducer.
 
-See the [design](docs/superpowers/specs/2026-07-14-herdr-webmaster-design.md)
-and [milestone implementation plan](docs/superpowers/plans/2026-07-14-milestone-1-executable-shell.md).
+Herdr `0.7.3` emits two event-envelope styles on the subscription stream:
+snake-case lifecycle names such as `workspace_created`, and dotted scoped
+events such as `pane.agent_status_changed`. Because agent-status subscriptions
+are scoped, webmaster rebuilds one entry per unique pane after each snapshot.
+
+See the [design](docs/superpowers/specs/2026-07-14-herdr-webmaster-design.md),
+[pixel-art bible](docs/superpowers/specs/2026-07-14-pixel-art-design.md), and
+[protocol plan](docs/superpowers/plans/2026-07-14-milestone-2-herdr-protocol.md).
 
 ## Verification
 
@@ -104,8 +111,17 @@ bash tests/scripts.sh
 bash -n herdr/install.sh herdr/run.sh herdr/control.sh
 ```
 
-The local acceptance environment runs Herdr `0.7.3`. The installed schema is
-used as protocol ground truth for the next implementation milestone.
+Run the focused protocol suite and regenerate the installed schema with:
+
+```bash
+just protocol-test
+herdr api schema --output /tmp/herdr-api.schema.json
+```
+
+The fixture suite does not require a running Herdr server. Live plugin linking
+does: start `herdr server` in another terminal before `herdr plugin link .`.
+The local milestone-2 acceptance run linked `opsydyn.webmaster` successfully
+against Herdr `0.7.3` / protocol `16` and then stopped its temporary server.
 
 ## Privacy
 
