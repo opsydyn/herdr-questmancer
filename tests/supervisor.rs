@@ -221,8 +221,18 @@ async fn topology_event_resnapshots_without_reconnect_backoff() {
         )
         .await;
 
+        let mut changed_snapshot = fixture("session_snapshot.json");
+        let mut added_pane = changed_snapshot["result"]["snapshot"]["panes"][0].clone();
+        added_pane["pane_id"] = json!("w1:p2");
+        added_pane["terminal_id"] = json!("terminal-2");
+        changed_snapshot["result"]["snapshot"]["panes"]
+            .as_array_mut()
+            .unwrap()
+            .push(added_pane);
+        accept_request(&listener, "session.snapshot", changed_snapshot.clone()).await;
+
         accept_request(&listener, "ping", fixture("pong.json")).await;
-        let mut second_snapshot = fixture("session_snapshot.json");
+        let mut second_snapshot = changed_snapshot;
         second_snapshot["result"]["snapshot"]["panes"][0]["revision"] = json!(99);
         accept_request(&listener, "session.snapshot", second_snapshot).await;
         let _second_subscription = accept_subscription(&listener).await;
@@ -252,4 +262,112 @@ async fn topology_event_resnapshots_without_reconnect_backoff() {
     shutdown_tx.send(true).unwrap();
     supervisor.await.unwrap();
     server.abort();
+}
+
+#[tokio::test]
+async fn replayed_topology_event_with_unchanged_panes_keeps_the_subscription_open() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        accept_request(&listener, "ping", fixture("pong.json")).await;
+        accept_request(
+            &listener,
+            "session.snapshot",
+            fixture("session_snapshot.json"),
+        )
+        .await;
+        let mut subscription = accept_subscription(&listener).await;
+        write_lines(
+            &mut subscription,
+            &[json!({"event": "pane_created", "data": {"type": "pane_created", "pane": {"pane_id": "w1:p1"}}})],
+        )
+        .await;
+
+        accept_request(
+            &listener,
+            "session.snapshot",
+            fixture("session_snapshot.json"),
+        )
+        .await;
+        write_lines(
+            &mut subscription,
+            &[json!({"event": "workspace_focused", "data": {"type": "workspace_focused", "workspace_id": "w1"}})],
+        )
+        .await;
+
+        assert!(
+            timeout(Duration::from_millis(50), listener.accept())
+                .await
+                .is_err(),
+            "unchanged pane subscriptions must not reconnect or resubscribe"
+        );
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    });
+    let (update_tx, mut update_rx) = mpsc::channel(16);
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+    let supervisor = tokio::spawn(test_supervisor(path).run(update_tx, shutdown_rx));
+
+    assert!(matches!(
+        next_update(&mut update_rx).await,
+        ConnectionUpdate::Connected(_)
+    ));
+    assert!(matches!(
+        next_update(&mut update_rx).await,
+        ConnectionUpdate::Event(event) if event.event == "pane_created"
+    ));
+    assert!(matches!(
+        next_update(&mut update_rx).await,
+        ConnectionUpdate::Event(event) if event.event == "workspace_focused"
+    ));
+
+    shutdown_tx.send(true).unwrap();
+    supervisor.await.unwrap();
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn topology_snapshot_refresh_failure_disconnects_the_subscription() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        accept_request(&listener, "ping", fixture("pong.json")).await;
+        accept_request(
+            &listener,
+            "session.snapshot",
+            fixture("session_snapshot.json"),
+        )
+        .await;
+        let mut subscription = accept_subscription(&listener).await;
+        write_lines(
+            &mut subscription,
+            &[json!({"event": "pane_created", "data": {"type": "pane_created", "pane": {"pane_id": "w1:p2"}}})],
+        )
+        .await;
+        accept_request(&listener, "session.snapshot", fixture("error.json")).await;
+    });
+    let (update_tx, mut update_rx) = mpsc::channel(16);
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+    let supervisor = tokio::spawn(test_supervisor(path).run(update_tx, shutdown_rx));
+
+    assert!(matches!(
+        next_update(&mut update_rx).await,
+        ConnectionUpdate::Connected(_)
+    ));
+    assert!(matches!(
+        next_update(&mut update_rx).await,
+        ConnectionUpdate::Event(event) if event.event == "pane_created"
+    ));
+    assert!(matches!(
+        next_update(&mut update_rx).await,
+        ConnectionUpdate::Disconnected(message) if message.contains("pane w9:p9 does not exist")
+    ));
+    assert!(matches!(
+        next_update(&mut update_rx).await,
+        ConnectionUpdate::Reconnecting {
+            attempt: 1,
+            delay
+        } if delay == Duration::from_millis(1)
+    ));
+
+    shutdown_tx.send(true).unwrap();
+    supervisor.await.unwrap();
+    server.await.unwrap();
 }

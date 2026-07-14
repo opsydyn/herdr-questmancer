@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::BTreeSet, time::Duration};
 
 use tokio::{
     sync::{mpsc, watch},
@@ -156,6 +156,7 @@ impl ConnectionSupervisor {
         }
 
         let request = SubscriptionRequest::for_snapshot(&snapshot);
+        let subscribed_pane_ids = pane_subscription_ids(&snapshot);
         let mut subscription =
             match HerdrSubscription::connect(self.client.socket_path(), request).await {
                 Ok(subscription) => subscription,
@@ -190,7 +191,18 @@ impl ConnectionSupervisor {
                 return CycleOutcome::Stopped;
             }
             if topology_changed {
-                return CycleOutcome::Resync;
+                let refreshed_snapshot = match self.client.snapshot().await {
+                    Ok(snapshot) => snapshot,
+                    Err(error) => return CycleOutcome::disconnected(error, true),
+                };
+                if refreshed_snapshot.protocol != SUPPORTED_PROTOCOL {
+                    return CycleOutcome::Incompatible {
+                        actual: refreshed_snapshot.protocol,
+                    };
+                }
+                if pane_subscription_ids(&refreshed_snapshot) != subscribed_pane_ids {
+                    return CycleOutcome::Resync;
+                }
             }
         }
     }
@@ -225,4 +237,13 @@ fn is_topology_event(event: &str) -> bool {
             | "pane.moved"
             | "pane.agent_detected"
     )
+}
+
+fn pane_subscription_ids(snapshot: &SessionSnapshot) -> BTreeSet<String> {
+    snapshot
+        .panes
+        .iter()
+        .map(|pane| pane.pane_id.clone())
+        .chain(snapshot.agents.iter().map(|agent| agent.pane_id.clone()))
+        .collect()
 }
