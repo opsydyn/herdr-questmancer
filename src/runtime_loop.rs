@@ -88,12 +88,18 @@ impl RuntimeConnection {
 
     pub async fn shutdown(mut self) -> Result<(), tokio::task::JoinError> {
         let _ = self.shutdown_tx.send(true);
-        self.command_tasks.abort_all();
-        let supervisor_result = self
+        let supervisor_task = self
             .supervisor_task
             .take()
-            .expect("runtime supervisor task is owned until shutdown")
-            .await;
+            .expect("runtime supervisor task is owned until shutdown");
+        supervisor_task.abort();
+        let supervisor_error = match supervisor_task.await {
+            Ok(()) => None,
+            Err(error) if error.is_cancelled() => None,
+            Err(error) => Some(error),
+        };
+
+        self.command_tasks.abort_all();
         let mut command_error = None;
         while let Some(result) = self.command_tasks.join_next().await {
             if let Err(error) = result
@@ -103,7 +109,7 @@ impl RuntimeConnection {
                 command_error = Some(error);
             }
         }
-        supervisor_result.and(command_error.map_or(Ok(()), Err))
+        supervisor_error.or(command_error).map_or(Ok(()), Err)
     }
 }
 
@@ -236,5 +242,47 @@ fn selected_revision(model: &Model) -> Option<(PaneId, u64)> {
 fn push_unique_refresh(commands: &mut Vec<DeskCommand>) {
     if !commands.contains(&DeskCommand::RefreshSnapshot) {
         commands.push(DeskCommand::RefreshSnapshot);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{path::PathBuf, time::Duration};
+
+    use tokio::{sync::oneshot, time::timeout};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn shutdown_cancels_a_supervisor_blocked_on_a_saturated_update_channel() {
+        let (update_tx, update_rx) = mpsc::channel(1);
+        let (first_sent_tx, first_sent_rx) = oneshot::channel();
+        let supervisor_task = tokio::spawn(async move {
+            update_tx
+                .send(ConnectionUpdate::Disconnected("first".into()))
+                .await
+                .unwrap();
+            first_sent_tx.send(()).unwrap();
+            update_tx
+                .send(ConnectionUpdate::Disconnected("blocked".into()))
+                .await
+                .unwrap();
+        });
+        let (shutdown_tx, _shutdown_rx) = watch::channel(false);
+        let connection = RuntimeConnection {
+            executor: CommandExecutor::new(HerdrClient::new(PathBuf::from("missing.sock"))),
+            update_rx,
+            updates_open: true,
+            shutdown_tx,
+            supervisor_task: Some(supervisor_task),
+            command_tasks: JoinSet::new(),
+        };
+        first_sent_rx.await.unwrap();
+        tokio::task::yield_now().await;
+
+        timeout(Duration::from_millis(100), connection.shutdown())
+            .await
+            .expect("shutdown hung behind the saturated supervisor update channel")
+            .unwrap();
     }
 }
