@@ -186,6 +186,24 @@ impl Model {
         }
     }
 
+    pub fn backspace_reply(&mut self) {
+        if let Modal::Reply { draft } = &mut self.modal {
+            draft.pop();
+        }
+    }
+
+    pub fn clear_modal_input(&mut self) {
+        match &mut self.modal {
+            Modal::Reply { draft } => draft.clear(),
+            Modal::Search { query } => query.clear(),
+            Modal::None | Modal::Help => {}
+        }
+    }
+
+    pub fn dismiss_modal(&mut self) {
+        self.modal = Modal::None;
+    }
+
     pub fn take_reply(&mut self) -> Option<String> {
         match std::mem::take(&mut self.modal) {
             Modal::Reply { draft } => Some(draft),

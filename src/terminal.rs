@@ -84,7 +84,42 @@ pub fn run(initial_view: View) -> Result<()> {
             }
             Action::Redraw => needs_render = true,
             Action::Quit => break,
-            Action::ShowHelp | Action::Dismiss | Action::None => {}
+            Action::Next => {
+                model.select_next_agent();
+                needs_render = true;
+            }
+            Action::Previous => {
+                model.select_previous_agent();
+                needs_render = true;
+            }
+            Action::Reply => {
+                model.open_reply();
+                needs_render = true;
+            }
+            Action::Dismiss => {
+                model.dismiss_modal();
+                needs_render = true;
+            }
+            Action::TypeCharacter(character) => {
+                model.push_reply_character(character);
+                needs_render = true;
+            }
+            Action::Backspace => {
+                model.backspace_reply();
+                needs_render = true;
+            }
+            Action::ClearInput => {
+                model.clear_modal_input();
+                needs_render = true;
+            }
+            Action::ShowHelp
+            | Action::Visit
+            | Action::MarkSeen
+            | Action::Refresh
+            | Action::Reviewr
+            | Action::CycleRegion
+            | Action::Submit
+            | Action::None => {}
         }
     }
 

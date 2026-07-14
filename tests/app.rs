@@ -73,3 +73,23 @@ fn region_and_reply_modal_are_explicit_app_state() {
     assert_eq!(model.take_reply(), Some("hi".into()));
     assert_eq!(model.modal(), &Modal::None);
 }
+
+#[test]
+fn reply_editing_can_backspace_clear_and_cancel() {
+    let mut model = Model::new(View::Desk);
+    model.open_reply();
+    model.push_reply_character('o');
+    model.push_reply_character('k');
+    model.backspace_reply();
+    assert_eq!(model.modal(), &Modal::Reply { draft: "o".into() });
+
+    model.clear_modal_input();
+    assert_eq!(
+        model.modal(),
+        &Modal::Reply {
+            draft: String::new()
+        }
+    );
+    model.dismiss_modal();
+    assert_eq!(model.modal(), &Modal::None);
+}
