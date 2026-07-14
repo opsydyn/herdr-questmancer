@@ -9,13 +9,15 @@ use ratatui::{
 
 use crate::{
     app::{CharacterSet, DisplayPreferences},
-    domain::Agent,
+    domain::{Agent, PersonaAppearance},
     ui::{
         persona::compose_seated_for_palette,
-        pixel::{ColorRole, Palette, pack},
+        pixel::{Canvas, ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
     },
 };
+
+use super::presentation::present;
 
 const MIN_FULL_WIDTH: u16 = 28;
 const MIN_FULL_HEIGHT: u16 = 10;
@@ -42,7 +44,14 @@ pub fn render_workstation(
         return;
     }
     if area.width < MIN_FULL_WIDTH || area.height < MIN_FULL_HEIGHT {
-        render_compact(frame, area, agent, theatre, selected);
+        render_compact(
+            frame,
+            area,
+            agent,
+            theatre,
+            selected,
+            preferences.character_set,
+        );
         return;
     }
 
@@ -77,7 +86,10 @@ pub fn render_workstation(
     }
 
     let selection = if selected { ">" } else { " " };
-    let name = format!("{selection} {}", agent.name);
+    let name = format!(
+        "{selection} {}",
+        present(&agent.name, preferences.character_set)
+    );
     frame.render_widget(
         Paragraph::new(name).style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
         Rect::new(inner.x, inner.y, inner.width, 1),
@@ -94,12 +106,13 @@ pub fn render_workstation(
         scene,
         agent,
         theatre,
+        selected,
         preferences.character_set,
         palette,
     );
 
     let state_y = inner.y.saturating_add(inner.height.saturating_sub(1));
-    let state = state_line(agent, theatre, inner.width);
+    let state = state_line(agent, theatre, inner.width, preferences.character_set);
     frame.render_widget(
         Paragraph::new(state).style(Style::new().fg(palette.resolve(ColorRole::CrtGlow))),
         Rect::new(inner.x, state_y, inner.width, 1),
@@ -112,18 +125,28 @@ fn render_compact(
     agent: &Agent,
     theatre: TheatreFrame,
     selected: bool,
+    character_set: CharacterSet,
 ) {
     let selection = if selected { ">" } else { " " };
     let live = if theatre.focused { " LIVE" } else { "" };
-    let text = Text::from(vec![
-        Line::from(format!("{selection} {}", agent.name)),
+    let mut lines = vec![
+        Line::from(format!(
+            "{selection} {}",
+            present(&agent.name, character_set)
+        )),
         Line::from(format!(
             "{} {}{live}",
             state_marker(theatre.pose),
             theatre.label
         )),
-    ]);
-    frame.render_widget(Paragraph::new(text), area);
+    ];
+    if let Some(status) = agent.custom_status.as_deref() {
+        lines.push(Line::from(format!(
+            "Status: {}",
+            present(status, character_set)
+        )));
+    }
+    frame.render_widget(Paragraph::new(Text::from(lines)), area);
 }
 
 fn render_scene(
@@ -131,6 +154,7 @@ fn render_scene(
     area: Rect,
     agent: &Agent,
     theatre: TheatreFrame,
+    selected: bool,
     character_set: CharacterSet,
     palette: Palette,
 ) {
@@ -141,7 +165,7 @@ fn render_scene(
         .fg(palette.resolve(ColorRole::Desk))
         .bg(palette.resolve(ColorRole::PanelBackground));
     frame.render_widget(
-        Paragraph::new(Text::from(scene_lines(theatre))).style(background),
+        Paragraph::new(Text::from(scene_lines(theatre, selected))).style(background),
         area,
     );
 
@@ -153,7 +177,7 @@ fn render_scene(
     );
     match character_set {
         CharacterSet::Unicode => {
-            let canvas = compose_seated_for_palette(&agent.persona.appearance, theatre, palette);
+            let canvas = compose_station_figure(&agent.persona.appearance, theatre, palette);
             frame.render_widget(
                 Paragraph::new(pack(&canvas, &palette, ColorRole::PanelBackground)),
                 persona_area,
@@ -166,8 +190,57 @@ fn render_scene(
     }
 }
 
-fn scene_lines(theatre: TheatreFrame) -> Vec<Line<'static>> {
-    let lamp = if theatre.focused { "(*)" } else { "(.)" };
+fn compose_station_figure(
+    appearance: &PersonaAppearance,
+    theatre: TheatreFrame,
+    palette: Palette,
+) -> Canvas {
+    let mut station = chair_for_pose(theatre.pose);
+    let persona = compose_seated_for_palette(appearance, theatre, palette);
+    overlay(&mut station, &persona);
+    station
+}
+
+fn chair_for_pose(pose: TheatrePose) -> Canvas {
+    let mut chair = Canvas::new(10, 12);
+    match pose {
+        TheatrePose::DoneUnseen | TheatrePose::DoneSeen | TheatrePose::Idle => {
+            chair.fill_rect(1, 5, 2, 5, ColorRole::Chair);
+            chair.fill_rect(2, 9, 7, 2, ColorRole::Chair);
+            chair.set(1, 10, ColorRole::Chair);
+            chair.set(8, 11, ColorRole::Chair);
+        }
+        TheatrePose::Working
+        | TheatrePose::Blocked
+        | TheatrePose::Exited
+        | TheatrePose::Unknown => {
+            chair.fill_rect(0, 4, 2, 6, ColorRole::Chair);
+            chair.fill_rect(1, 8, 7, 2, ColorRole::Chair);
+            chair.fill_rect(2, 10, 1, 2, ColorRole::Chair);
+            chair.fill_rect(7, 10, 1, 2, ColorRole::Chair);
+        }
+    }
+    chair
+}
+
+fn overlay(target: &mut Canvas, source: &Canvas) {
+    let width = usize::from(source.width());
+    for y in 0..source.height() {
+        for x in 0..source.width() {
+            let index = usize::from(y) * width + usize::from(x);
+            if let Some(role) = source.pixels()[index] {
+                target.set(x, y, role);
+            }
+        }
+    }
+}
+
+fn scene_lines(theatre: TheatreFrame, selected: bool) -> Vec<Line<'static>> {
+    let lamp = if theatre.focused || selected {
+        "(*)"
+    } else {
+        "(.)"
+    };
     let modem = if theatre.animation_frame.is_multiple_of(2) {
         "o*o"
     } else {
@@ -283,13 +356,18 @@ fn ascii_pose(pose: TheatrePose) -> Vec<Line<'static>> {
     rows.into_iter().map(Line::from).collect()
 }
 
-fn state_line(agent: &Agent, theatre: TheatreFrame, width: u16) -> String {
+fn state_line(
+    agent: &Agent,
+    theatre: TheatreFrame,
+    width: u16,
+    character_set: CharacterSet,
+) -> String {
     let mut state = format!("{} {}", state_marker(theatre.pose), theatre.label);
     if theatre.focused {
         state.push_str(" | LIVE");
     }
     if let Some(status) = agent.custom_status.as_deref() {
-        let suffix = format!(" | {status}");
+        let suffix = format!(" | {}", present(status, character_set));
         if state.chars().count() + suffix.chars().count() <= usize::from(width) {
             state.push_str(&suffix);
         }

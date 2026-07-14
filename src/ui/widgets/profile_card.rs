@@ -28,6 +28,8 @@ use crate::{
     },
 };
 
+use super::presentation::present;
+
 pub fn render_profile_card(
     frame: &mut Frame<'_>,
     area: Rect,
@@ -39,7 +41,7 @@ pub fn render_profile_card(
         return;
     }
     if area.width < 34 || area.height < 19 {
-        render_compact(frame, area, agent, theatre);
+        render_compact(frame, area, agent, theatre, preferences.character_set);
         return;
     }
 
@@ -88,38 +90,22 @@ pub fn render_profile_card(
         .x
         .saturating_add(inner.width.min(16).saturating_add(1));
     let details_width = inner.width.saturating_sub(17);
-    if details_width > 0 {
-        let mut details = vec![
-            Line::from(agent.name.clone()),
-            Line::from(format!("Site: {}", agent.workspace_id)),
-            Line::from(format!("Pane: {}", agent.pane_id)),
-            Line::from(format!("{} {}", state_marker(theatre.pose), theatre.label)),
-        ];
-        if theatre.focused {
-            details.push(Line::from("(*) LIVE"));
-        }
-        details.push(Line::from(format!(
-            "Accessory: {}",
-            accessory_label(agent.persona.appearance.accessory)
-        )));
-        details.push(Line::from(format!(
-            "Desk prop: {}",
-            desk_prop_label(agent.persona.appearance.desk_prop)
-        )));
-        if let Some(status) = agent.custom_status.as_deref() {
-            details.push(Line::from(format!("Status: {status}")));
-        }
-        frame.render_widget(
-            Paragraph::new(Text::from(details))
-                .style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
-            Rect::new(details_x, inner.y, details_width, inner.height),
-        );
-    }
+    render_details(
+        frame,
+        Rect::new(details_x, inner.y, details_width, inner.height),
+        agent,
+        theatre,
+        preferences.character_set,
+        palette,
+    );
 
     if inner.height > 16 {
         frame.render_widget(
-            Paragraph::new(format!("@{}", agent.persona.handle))
-                .style(Style::new().fg(palette.resolve(ColorRole::CrtGlow))),
+            Paragraph::new(format!(
+                "@{}",
+                present(&agent.persona.handle, preferences.character_set)
+            ))
+            .style(Style::new().fg(palette.resolve(ColorRole::CrtGlow))),
             Rect::new(
                 inner.x,
                 inner.y.saturating_add(inner.height - 1),
@@ -130,24 +116,93 @@ pub fn render_profile_card(
     }
 }
 
-fn render_compact(frame: &mut Frame<'_>, area: Rect, agent: &Agent, theatre: TheatreFrame) {
-    let live = if theatre.focused { " LIVE" } else { "" };
+fn render_details(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    agent: &Agent,
+    theatre: TheatreFrame,
+    character_set: CharacterSet,
+    palette: Palette,
+) {
+    if area.is_empty() {
+        return;
+    }
+    let mut details = vec![
+        Line::from(present(&agent.name, character_set).into_owned()),
+        Line::from(format!(
+            "Site: {}",
+            present(agent.workspace_id.as_str(), character_set)
+        )),
+        Line::from(format!(
+            "Pane: {}",
+            present(agent.pane_id.as_str(), character_set)
+        )),
+        Line::from(format!("{} {}", state_marker(theatre.pose), theatre.label)),
+    ];
+    if theatre.focused {
+        details.push(Line::from("(*) LIVE"));
+    }
+    details.push(Line::from(format!(
+        "Accessory: {}",
+        accessory_label(agent.persona.appearance.accessory)
+    )));
+    details.push(Line::from(format!(
+        "Desk prop: {}",
+        desk_prop_label(agent.persona.appearance.desk_prop)
+    )));
+    if let Some(status) = agent.custom_status.as_deref() {
+        details.push(Line::from(format!(
+            "Status: {}",
+            present(status, character_set)
+        )));
+    }
     frame.render_widget(
-        Paragraph::new(Text::from(vec![
-            Line::from(agent.name.clone()),
-            Line::from(format!("@{}", agent.persona.handle)),
-            Line::from(format!(
-                "{} {}{live}",
-                state_marker(theatre.pose),
-                theatre.label
-            )),
-            Line::from(format!(
-                "Accessory: {}",
-                accessory_label(agent.persona.appearance.accessory)
-            )),
-        ])),
+        Paragraph::new(Text::from(details))
+            .style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
         area,
     );
+}
+
+fn render_compact(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    agent: &Agent,
+    theatre: TheatreFrame,
+    character_set: CharacterSet,
+) {
+    let live = if theatre.focused { " LIVE" } else { "" };
+    let mut lines = vec![
+        Line::from(present(&agent.name, character_set).into_owned()),
+        Line::from(format!(
+            "@{}",
+            present(&agent.persona.handle, character_set)
+        )),
+        Line::from(format!(
+            "{} {}{live}",
+            state_marker(theatre.pose),
+            theatre.label
+        )),
+        Line::from(format!(
+            "Site: {}",
+            present(agent.workspace_id.as_str(), character_set)
+        )),
+        Line::from(format!(
+            "Pane: {}",
+            present(agent.pane_id.as_str(), character_set)
+        )),
+    ];
+    if let Some(status) = agent.custom_status.as_deref() {
+        lines.push(Line::from(format!(
+            "Status: {}",
+            present(status, character_set)
+        )));
+    } else {
+        lines.push(Line::from(format!(
+            "Accessory: {}",
+            accessory_label(agent.persona.appearance.accessory)
+        )));
+    }
+    frame.render_widget(Paragraph::new(Text::from(lines)), area);
 }
 
 fn ascii_profile() -> Vec<Line<'static>> {

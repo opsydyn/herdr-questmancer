@@ -1,6 +1,6 @@
 use herdr_webmaster::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion},
-    domain::{Accessory, Agent, DomainState, Presence, Timestamp},
+    domain::{Accessory, Agent, DomainState, PaneId, Presence, Timestamp, WorkspaceId},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::{
         persona::compose_profile_for_palette,
@@ -51,6 +51,34 @@ fn render_workstation_colours(preferences: DisplayPreferences) -> Vec<Color> {
         .content()
         .iter()
         .map(|cell| cell.fg)
+        .collect()
+}
+
+fn render_workstation_styles(
+    agent: &Agent,
+    theatre: TheatreFrame,
+    preferences: DisplayPreferences,
+) -> Vec<(Color, Color)> {
+    let backend = TestBackend::new(28, 10);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal
+        .draw(|frame| {
+            render_workstation(
+                frame,
+                Rect::new(0, 0, 28, 10),
+                agent,
+                theatre,
+                false,
+                &preferences,
+            );
+        })
+        .unwrap();
+    terminal
+        .backend()
+        .buffer()
+        .content()
+        .iter()
+        .map(|cell| (cell.fg, cell.bg))
         .collect()
 }
 
@@ -238,6 +266,23 @@ fn focused_workstation_keeps_state_and_adds_live_lamp() {
 }
 
 #[test]
+fn selection_lights_the_lamp_without_claiming_focus() {
+    let agent = agent();
+    let screen = render_workstation_at(
+        &agent,
+        theatre(TheatrePose::Working, 1, false, "BUILDING"),
+        true,
+        preferences(CharacterSet::Unicode),
+        28,
+        10,
+    );
+
+    assert!(screen.contains("[>] BUILDING"));
+    assert!(screen.contains("(*)"));
+    assert!(!screen.contains("LIVE"));
+}
+
+#[test]
 fn unicode_workstation_places_the_packed_seated_figure_in_six_scene_rows() {
     let agent = agent();
     let screen = render_workstation_at(
@@ -260,6 +305,58 @@ fn unicode_workstation_places_the_packed_seated_figure_in_six_scene_rows() {
             > 15,
         "six-row workstation scene did not contain the packed seated figure:\n{screen}"
     );
+}
+
+#[test]
+fn unicode_scene_composes_a_semantic_chair_behind_done_and_exited_poses() {
+    let agent = agent();
+    let preferences = preferences(CharacterSet::Unicode);
+    let chair_colour = Color::Indexed(88);
+    let done = theatre(TheatrePose::DoneSeen, 0, false, "DONE");
+    let exited = theatre(TheatrePose::Exited, 0, false, "BROKEN LINK");
+
+    let chair_mask = |pose| {
+        let styles = render_workstation_styles(&agent, pose, preferences);
+        assert!(
+            styles
+                .iter()
+                .any(|(foreground, background)| *foreground == chair_colour
+                    || *background == chair_colour),
+            "pose {:?} did not render any ColorRole::Chair pixels",
+            pose.pose
+        );
+        styles
+            .into_iter()
+            .map(|(foreground, background)| {
+                foreground == chair_colour || background == chair_colour
+            })
+            .collect::<Vec<_>>()
+    };
+    let done_chair = chair_mask(done);
+    let exited_chair = chair_mask(exited);
+    assert_ne!(
+        done_chair, exited_chair,
+        "done chair did not use its shifted/kicked-back geometry"
+    );
+
+    let figure = |pose| {
+        render_workstation_at(&agent, pose, false, preferences, 28, 10)
+            .lines()
+            .skip(2)
+            .take(6)
+            .map(|row| row.chars().skip(17).take(10).collect::<String>())
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let done_figure = figure(done);
+    let exited_figure = figure(exited);
+    assert!(
+        exited_figure
+            .chars()
+            .any(|glyph| matches!(glyph, '▀' | '▄' | '█')),
+        "exited workstation did not leave a visible empty chair"
+    );
+    assert_ne!(done_figure, exited_figure);
 }
 
 #[test]
@@ -368,6 +465,73 @@ fn ascii_widgets_use_labelled_silhouettes_and_no_block_glyphs() {
             "ASCII projection emitted a non-ASCII glyph:\n{screen}"
         );
     }
+}
+
+#[test]
+fn ascii_presentation_sanitizes_domain_text_in_full_and_compact_widgets() {
+    let mut agent = agent();
+    agent.name = "Café\n主机\t\u{7}".to_owned();
+    agent.persona.handle = "héllø\nroot".to_owned();
+    agent.workspace_id = WorkspaceId::new("sité\n一");
+    agent.pane_id = PaneId::new("pane\tß");
+    agent.custom_status = Some("naïve\n状态\u{1b}".to_owned());
+    let preferences = preferences(CharacterSet::Ascii);
+    let working = theatre(TheatrePose::Working, 0, false, "BUILDING");
+
+    let screens = [
+        render_workstation_at(&agent, working, false, preferences, 60, 10),
+        render_workstation_at(&agent, working, false, preferences, 24, 4),
+        render_profile_at(&agent, working, preferences, 60, 20),
+        render_profile_at(&agent, working, preferences, 30, 6),
+    ];
+
+    for screen in &screens {
+        assert!(screen.is_ascii(), "ASCII widget leaked Unicode:\n{screen}");
+        assert!(
+            screen
+                .lines()
+                .flat_map(str::chars)
+                .all(|glyph| glyph == ' ' || glyph.is_ascii_graphic()),
+            "ASCII widget leaked a control character:\n{screen}"
+        );
+        assert!(
+            screen.contains("Caf?"),
+            "name lost readable placeholder:\n{screen}"
+        );
+    }
+    assert!(screens[0].contains("na?ve ???"));
+    assert!(screens[1].contains("na?ve ???"));
+    assert!(screens[2].contains("@h?ll? root"));
+    assert!(screens[2].contains("Site: sit? ?"));
+    assert!(screens[2].contains("Pane: pane ?"));
+    assert!(screens[2].contains("Status: na?ve ???"));
+    assert!(screens[3].contains("@h?ll? root"));
+    assert!(screens[3].contains("Site: sit? ?"));
+    assert!(screens[3].contains("Pane: pane ?"));
+    assert!(screens[3].contains("Status: na?ve ???"));
+}
+
+#[test]
+fn unicode_presentation_preserves_printable_text_but_neutralizes_controls() {
+    let mut agent = agent();
+    agent.name = "Café\nMüller\u{1b}".to_owned();
+    agent.persona.handle = "héllø-root".to_owned();
+    agent.workspace_id = WorkspaceId::new("sité-é");
+    agent.pane_id = PaneId::new("pane-ß");
+    agent.custom_status = Some("naïve\trésumé".to_owned());
+    let preferences = preferences(CharacterSet::Unicode);
+    let working = theatre(TheatrePose::Working, 0, false, "BUILDING");
+
+    let workstation = render_workstation_at(&agent, working, false, preferences, 60, 10);
+    assert!(workstation.contains("Café Müller?"));
+    assert!(workstation.contains("naïve résumé"));
+
+    let profile = render_profile_at(&agent, working, preferences, 60, 20);
+    assert!(profile.contains("Café Müller?"));
+    assert!(profile.contains("@héllø-root"));
+    assert!(profile.contains("Site: sité-é"));
+    assert!(profile.contains("Pane: pane-ß"));
+    assert!(profile.contains("Status: naïve résumé"));
 }
 
 #[test]
