@@ -1,0 +1,3 @@
+{"event":"workspace_created","data":{"type":"workspace_created","workspace":{"workspace_id":"w2","number":2,"label":"new-site","focused":false,"pane_count":1,"tab_count":1,"active_tab_id":"w2:t1","agent_status":"idle"}},"future":"ignored"}
+{"event":"pane.agent_status_changed","data":{"pane_id":"w1:p1","workspace_id":"w1","agent_status":"done","agent":"codex","display_agent":"Codex","custom_status":"published","title":"Codex","state_labels":{"done":"update ready"},"future":"ignored"}}
+{"event":"future.event","data":{"type":"future_event","payload":true}}

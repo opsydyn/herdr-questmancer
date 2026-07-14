@@ -1,0 +1,109 @@
+{
+  "id": "req-2",
+  "result": {
+    "type": "session_snapshot",
+    "snapshot": {
+      "version": "0.7.3",
+      "protocol": 16,
+      "focused_workspace_id": "w1",
+      "focused_tab_id": "w1:t1",
+      "focused_pane_id": "w1:p1",
+      "workspaces": [
+        {
+          "workspace_id": "w1",
+          "number": 1,
+          "label": "webmaster",
+          "focused": true,
+          "pane_count": 1,
+          "tab_count": 1,
+          "active_tab_id": "w1:t1",
+          "agent_status": "blocked",
+          "worktree": {
+            "repo_key": "herdr-webmaster",
+            "repo_name": "herdr-webmaster",
+            "repo_root": "/tmp/herdr-webmaster",
+            "checkout_path": "/tmp/herdr-webmaster",
+            "is_linked_worktree": false
+          },
+          "future_workspace_field": 42
+        }
+      ],
+      "tabs": [
+        {
+          "tab_id": "w1:t1",
+          "workspace_id": "w1",
+          "number": 1,
+          "label": "agents",
+          "focused": true,
+          "pane_count": 1,
+          "agent_status": "blocked"
+        }
+      ],
+      "panes": [
+        {
+          "pane_id": "w1:p1",
+          "terminal_id": "terminal-1",
+          "workspace_id": "w1",
+          "tab_id": "w1:t1",
+          "focused": true,
+          "agent_status": "blocked",
+          "revision": 7,
+          "agent": "codex",
+          "display_agent": "Codex",
+          "custom_status": "which schema?",
+          "cwd": "/tmp/herdr-webmaster",
+          "foreground_cwd": "/tmp/herdr-webmaster",
+          "label": "codex",
+          "title": "Codex",
+          "state_labels": {"blocked": "needs webmaster"},
+          "scroll": null
+        }
+      ],
+      "layouts": [
+        {
+          "workspace_id": "w1",
+          "tab_id": "w1:t1",
+          "zoomed": false,
+          "area": {"x": 0, "y": 0, "width": 120, "height": 40},
+          "focused_pane_id": "w1:p1",
+          "panes": [
+            {
+              "pane_id": "w1:p1",
+              "focused": true,
+              "rect": {"x": 0, "y": 0, "width": 120, "height": 40}
+            }
+          ],
+          "splits": []
+        }
+      ],
+      "agents": [
+        {
+          "terminal_id": "terminal-1",
+          "agent_status": "blocked",
+          "workspace_id": "w1",
+          "tab_id": "w1:t1",
+          "pane_id": "w1:p1",
+          "focused": true,
+          "revision": 7,
+          "agent": "codex",
+          "display_agent": "Codex",
+          "custom_status": "which schema?",
+          "cwd": "/tmp/herdr-webmaster",
+          "foreground_cwd": "/tmp/herdr-webmaster",
+          "name": "codex",
+          "screen_detection_skipped": false,
+          "state_labels": {"blocked": "needs webmaster"},
+          "title": "Codex",
+          "agent_session": {
+            "source": "codex",
+            "agent": "codex",
+            "kind": "id",
+            "value": "session-123"
+          },
+          "future_agent_field": true
+        }
+      ],
+      "future_snapshot_field": {"ignored": true}
+    }
+  }
+}

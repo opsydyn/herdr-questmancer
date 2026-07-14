@@ -1,0 +1,8 @@
+{
+  "id": "req-3",
+  "error": {
+    "code": "pane_not_found",
+    "message": "pane w9:p9 does not exist",
+    "future_error_field": "ignored"
+  }
+}
