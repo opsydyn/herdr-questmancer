@@ -114,12 +114,7 @@ fn render_mail(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     let mut lines = Vec::new();
     for agent in model.domain().agents.values() {
         if agent.attention.is_unseen() || agent.presence == Presence::Blocked {
-            let subject = match agent.attention.reason() {
-                Some(AttentionReason::NeedsInput) => "NEEDS WEBMASTER",
-                Some(AttentionReason::WorkCompleted) => "UPDATE READY",
-                Some(AttentionReason::PaneExited) => "BROKEN LINK",
-                None => presence_label(agent.presence),
-            };
+            let subject = attention_label(agent).unwrap_or_else(|| presence_label(agent.presence));
             lines.push(Line::styled(
                 format!("NEW {} - {subject}", agent.name),
                 ACCENT,
@@ -156,15 +151,18 @@ fn render_agent(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         Line::from(format!("{site} / {}", agent.persona.handle)),
         Line::from(format!("{} {elapsed}", presence_label(agent.presence))),
     ];
-    if agent.presence == Presence::Blocked {
-        lines.push(Line::styled("NEEDS WEBMASTER", ACCENT));
+    if let Some(label) = attention_label(agent) {
+        lines.push(Line::styled(label, ACCENT));
     }
     if let Some(status) = &agent.custom_status {
         lines.push(Line::from(format!("status: {status}")));
     }
     lines.push(Line::from(""));
     lines.push(Line::styled("RECENT OUTPUT", ACCENT));
-    if let Some(preview) = model.output_preview() {
+    if let Some(preview) = model
+        .output_preview()
+        .filter(|preview| preview.pane_id == agent.pane_id)
+    {
         lines.extend(preview.text.lines().map(|line| Line::from(line.to_owned())));
     } else {
         lines.push(Line::styled("loading selected page...", MUTED));
@@ -174,6 +172,21 @@ fn render_agent(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         lines.push(Line::styled(status.to_owned(), MUTED));
     }
     render_panel(frame, area, " LIVE PAGE ", Text::from(lines));
+}
+
+fn attention_label(agent: &Agent) -> Option<&'static str> {
+    if agent.presence == Presence::Exited {
+        return Some("BROKEN LINK");
+    }
+    if agent.attention.is_unseen() {
+        return match agent.attention.reason() {
+            Some(AttentionReason::NeedsInput) => Some("NEEDS WEBMASTER"),
+            Some(AttentionReason::WorkCompleted) => Some("UPDATE READY - AWAITING WEBMASTER"),
+            Some(AttentionReason::PaneExited) => Some("BROKEN LINK"),
+            None => None,
+        };
+    }
+    (agent.presence == Presence::Blocked).then_some("NEEDS WEBMASTER")
 }
 
 fn render_panel(frame: &mut Frame<'_>, area: Rect, title: &str, text: Text<'_>) {

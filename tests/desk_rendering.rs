@@ -1,6 +1,6 @@
 use herdr_webmaster::{
     app::{ConnectionState, Model, OutputPreview, View},
-    domain::{DomainState, PaneId, Timestamp},
+    domain::{Attention, AttentionReason, DomainState, PaneId, Presence, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::reduce_action,
     ui,
@@ -25,6 +25,15 @@ fn live_model() -> Model {
         loading: false,
         error: None,
     }));
+    model
+}
+
+fn model_with_presence(presence: Presence, attention: Attention) -> Model {
+    let mut model = live_model();
+    let agent = model.domain_mut().agents.values_mut().next().unwrap();
+    agent.presence = presence;
+    agent.presence_since = Timestamp::from_millis(1_000);
+    agent.attention = attention;
     model
 }
 
@@ -58,6 +67,53 @@ fn wide_desk_renders_sites_mail_and_live_agent_details() {
 }
 
 #[test]
+fn empty_desk_explains_how_to_put_a_site_under_construction() {
+    let mut model = Model::new(View::Desk);
+    model.set_now(Timestamp::from_millis(121_000));
+
+    let screen = render(&model, 80, 24);
+
+    assert!(screen.contains("No agents online"));
+    assert!(screen.contains("Start an agent to put a site under construction"));
+}
+
+#[test]
+fn working_desk_uses_the_injected_clock_for_elapsed_time() {
+    let model = model_with_presence(Presence::Working, Attention::Clear);
+
+    let screen = render(&model, 130, 32);
+
+    assert!(screen.contains("working 2m"));
+}
+
+#[test]
+fn done_unseen_is_an_update_awaiting_the_webmaster_in_the_narrow_projection() {
+    let model = model_with_presence(
+        Presence::Done,
+        Attention::unseen(
+            AttentionReason::WorkCompleted,
+            Timestamp::from_millis(61_000),
+        ),
+    );
+
+    let screen = render(&model, 60, 18);
+
+    assert!(screen.contains("UPDATE READY - AWAITING WEBMASTER"));
+}
+
+#[test]
+fn exited_is_a_broken_link_in_the_narrow_projection() {
+    let model = model_with_presence(
+        Presence::Exited,
+        Attention::unseen(AttentionReason::PaneExited, Timestamp::from_millis(61_000)),
+    );
+
+    let screen = render(&model, 60, 18);
+
+    assert!(screen.contains("BROKEN LINK"));
+}
+
+#[test]
 fn eighty_column_desk_keeps_attention_and_selected_agent_visible() {
     let screen = render(&live_model(), 80, 24);
 
@@ -85,6 +141,32 @@ fn disconnected_desk_preserves_data_and_shows_connection_state() {
 
     assert!(screen.contains("reconnecting #3"));
     assert!(screen.contains("Codex"));
+}
+
+#[test]
+fn live_page_hides_output_cached_for_a_different_pane() {
+    let mut model = live_model();
+    model.set_output_preview(Some(OutputPreview {
+        pane_id: PaneId::new("w9:p9"),
+        revision: 99,
+        text: "stale output from another page".into(),
+        loading: false,
+        error: None,
+    }));
+
+    let screen = render(&model, 60, 18);
+
+    assert!(!screen.contains("stale output from another page"));
+    assert!(screen.contains("loading selected page..."));
+}
+
+#[test]
+fn zero_and_tiny_desk_areas_are_panic_free() {
+    let model = live_model();
+
+    for (width, height) in [(0, 0), (0, 1), (1, 0), (1, 1), (2, 2), (3, 2), (3, 3)] {
+        let _ = render(&model, width, height);
+    }
 }
 
 #[test]
