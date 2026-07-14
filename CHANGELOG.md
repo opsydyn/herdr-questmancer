@@ -56,6 +56,9 @@ All notable changes to this project will be documented here.
 - Animation scheduling follows presence and attention timestamps rather than a
   nominal maximum FPS, preventing drift, skipped mixed-rate frames, and
   completion confetti extending past its exact one-second boundary.
+- Runtime time samples the wall epoch once and advances with Tokio's monotonic
+  clock; animation sleeps use absolute deadlines on that same origin so render
+  latency and later wall-clock adjustments cannot move semantic boundaries.
 - Topology-event replay no longer causes a tight resubscription loop; the
   supervisor refreshes pane membership and rebuilds subscriptions only when
   the subscribed pane set actually changes.

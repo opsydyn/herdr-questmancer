@@ -1,7 +1,7 @@
 use std::{
     io::{self, Stdout},
     panic,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, Result};
@@ -29,6 +29,41 @@ use crate::{
 
 type Tui = Terminal<CrosstermBackend<Stdout>>;
 
+/// Maps one startup wall-clock sample onto Tokio's monotonic clock.
+///
+/// Domain timestamps remain epoch-shaped for protocol and persistence
+/// boundaries, while runtime ordering and animation cannot jump with later wall
+/// clock adjustments.
+#[derive(Clone, Debug)]
+pub struct RuntimeClock {
+    epoch: Timestamp,
+    origin: tokio::time::Instant,
+}
+
+impl RuntimeClock {
+    pub fn new(epoch: Timestamp) -> Self {
+        Self {
+            epoch,
+            origin: tokio::time::Instant::now(),
+        }
+    }
+
+    pub fn now(&self) -> Timestamp {
+        timestamp_after(self.epoch, self.origin.elapsed())
+    }
+
+    fn deadline_after(&self, sampled_at: Timestamp, delay: Duration) -> tokio::time::Instant {
+        let target = timestamp_after(sampled_at, delay);
+        let offset = target.as_millis().saturating_sub(self.epoch.as_millis());
+        self.origin + Duration::from_millis(offset.max(0).cast_unsigned())
+    }
+}
+
+fn timestamp_after(timestamp: Timestamp, duration: Duration) -> Timestamp {
+    let milliseconds = i64::try_from(duration.as_millis()).unwrap_or(i64::MAX);
+    Timestamp::from_millis(timestamp.as_millis().saturating_add(milliseconds))
+}
+
 /// Owns the single resettable timer used to invalidate animated cafe frames.
 ///
 /// Event-driven rendering deliberately stores no timer, so an unchanged desk
@@ -44,12 +79,12 @@ impl AnimationScheduler {
         Self { sleep: None }
     }
 
-    pub fn reset_for(&mut self, model: &Model) {
+    pub fn reset_for(&mut self, model: &Model, clock: &RuntimeClock) {
         let Some(period) = next_visible_frame_in(model) else {
             self.sleep = None;
             return;
         };
-        let deadline = tokio::time::Instant::now() + period;
+        let deadline = clock.deadline_after(model.now(), period);
         if let Some(sleep) = &mut self.sleep {
             sleep.as_mut().reset(deadline);
         } else {
@@ -99,18 +134,26 @@ pub async fn run(initial_view: View) -> Result<()> {
     let (_guard, mut terminal) = TerminalGuard::enter()?;
     let environment = HerdrEnvironment::from_env().ok();
     let mut model = bootstrap_model(initial_view, environment.as_ref());
-    model.set_now(now());
+    let clock = RuntimeClock::new(sample_wall_time());
+    model.set_now(clock.now());
 
     if let Some(environment) = environment.as_ref() {
         let mut connection = RuntimeConnection::start(environment);
-        let result = run_live_loop(&mut terminal, &mut model, &mut connection, &mut shutdown).await;
+        let result = run_live_loop(
+            &mut terminal,
+            &mut model,
+            &mut connection,
+            &mut shutdown,
+            &clock,
+        )
+        .await;
         let shutdown_result = connection
             .shutdown()
             .await
             .context("shut down terminal runtime tasks");
         result.and(shutdown_result)
     } else {
-        run_offline_loop(&mut terminal, &mut model, &mut shutdown).await
+        run_offline_loop(&mut terminal, &mut model, &mut shutdown, &clock).await
     }
 }
 
@@ -119,13 +162,14 @@ async fn run_live_loop(
     model: &mut Model,
     connection: &mut RuntimeConnection,
     shutdown: &mut Shutdown,
+    clock: &RuntimeClock,
 ) -> Result<()> {
     let mut input = EventStream::new();
     let mut render_invalidation = AnimationScheduler::new();
 
     loop {
         terminal.draw(|frame| ui::render(frame, model))?;
-        render_invalidation.reset_for(model);
+        render_invalidation.reset_for(model, clock);
 
         tokio::select! {
             event = input.next() => {
@@ -133,7 +177,7 @@ async fn run_live_loop(
                     break;
                 };
                 let event = event.context("read terminal input")?;
-                model.set_now(now());
+                model.set_now(clock.now());
                 let reduction = reduce_action(
                     model,
                     ui::input::action_for_event_in(&event, model.modal()),
@@ -144,7 +188,7 @@ async fn run_live_loop(
                 }
             }
             runtime_event = connection.next_event() => {
-                let observed_at = now();
+                let observed_at = clock.now();
                 model.set_now(observed_at);
                 match runtime_event {
                     RuntimeEvent::Connection(update) => {
@@ -161,7 +205,7 @@ async fn run_live_loop(
             }
             () = shutdown.requested() => break,
             () = render_invalidation.wait() => {
-                model.set_now(now());
+                model.set_now(clock.now());
             }
         }
     }
@@ -173,13 +217,14 @@ async fn run_offline_loop(
     terminal: &mut Tui,
     model: &mut Model,
     shutdown: &mut Shutdown,
+    clock: &RuntimeClock,
 ) -> Result<()> {
     let mut input = EventStream::new();
     let mut render_invalidation = AnimationScheduler::new();
 
     loop {
         terminal.draw(|frame| ui::render(frame, model))?;
-        render_invalidation.reset_for(model);
+        render_invalidation.reset_for(model, clock);
 
         tokio::select! {
             event = input.next() => {
@@ -187,7 +232,7 @@ async fn run_offline_loop(
                     break;
                 };
                 let event = event.context("read terminal input")?;
-                model.set_now(now());
+                model.set_now(clock.now());
                 let reduction = reduce_action(
                     model,
                     ui::input::action_for_event_in(&event, model.modal()),
@@ -203,7 +248,7 @@ async fn run_offline_loop(
             }
             () = shutdown.requested() => break,
             () = render_invalidation.wait() => {
-                model.set_now(now());
+                model.set_now(clock.now());
             }
         }
     }
@@ -211,7 +256,7 @@ async fn run_offline_loop(
     Ok(())
 }
 
-fn now() -> Timestamp {
+fn sample_wall_time() -> Timestamp {
     let milliseconds = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0_u128, |duration| duration.as_millis());

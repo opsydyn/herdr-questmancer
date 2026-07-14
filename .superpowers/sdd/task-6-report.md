@@ -10,6 +10,12 @@
 - Cadence is re-derived after every draw following input, runtime, or clock
   events. Runtime and input handling synchronize `Model::now` before reduction,
   so a newly observed done transition schedules immediately.
+- A single injected `RuntimeClock` maps one startup wall-epoch sample onto a
+  Tokio monotonic origin. `Model::now`, event `observed_at`, and scheduler
+  deadlines all use that mapping; the runtime never resamples wall time.
+- Scheduler sleeps use absolute deadlines derived from the sampled model
+  timestamp. Time spent rendering cannot shift animation phase, and a deadline
+  that passed during rendering wakes immediately.
 - Replaced the separate 50 ms shutdown flag poll with event-driven Tokio Unix
   signal streams for `SIGINT`, `SIGTERM`, and `SIGHUP`. Static desks and
   no-motion cafes now retain no periodic application timer.
@@ -46,6 +52,30 @@ through all of these cases:
 - mixed 6/8 fps work follows every interleaved earliest boundary, including the
   shared 500 and 1,000 ms boundaries;
 - no-motion remains pending after 24 hours.
+
+### Re-review regression: one monotonic clock and absolute deadlines
+
+The second independent review identified two remaining clock-boundary issues:
+production phase timestamps were resampled from `SystemTime`, and
+`AnimationScheduler::reset_for` used `Instant::now() + delay` after rendering.
+That allowed wall adjustments and render latency to shift semantic frames.
+
+Tests were changed first and produced the expected RED errors:
+
+```text
+error[E0432]: unresolved import `herdr_webmaster::terminal::RuntimeClock`
+error[E0061]: this method takes 1 argument but 2 arguments were supplied
+```
+
+The GREEN implementation proves:
+
+- `RuntimeClock` begins at an injected epoch timestamp and advances exactly
+  with paused Tokio time without any wall-clock resampling API;
+- after sampling a done model at +999 ms and advancing Tokio by 20 ms to model a
+  slow render, reset maps the semantic +1,000 ms target to the original monotonic
+  origin and is immediately ready rather than waiting until +1,020 ms;
+- the prolonged 6 fps, mixed 6/8 fps, exact completion, and 24-hour
+  event-driven regressions still pass through the same clock mapping.
 
 ### RED 1: scheduler API
 
@@ -114,10 +144,10 @@ git diff --check
 The post-refactor full Rust test run passed all targets, including the real
 event-driven `SIGHUP` shutdown test. The release binary built successfully.
 
-After the phase-aware scheduling fix, the same complete gate was rerun and
-passed again. The focused runtime-loop suite now contains 14 tests, including
-the done +999 ms, prolonged 6 fps, mixed 6/8 fps, and 24-hour event-driven
-regressions.
+After each scheduling fix, the same complete gate was rerun and passed again.
+The focused runtime-loop suite now contains 15 tests, including the injected
+monotonic clock, slow-render done +999 ms, prolonged 6 fps, mixed 6/8 fps, and
+24-hour event-driven regressions.
 
 `just milestone5-verify` could not run because `just` is not installed in this
 environment (`zsh: command not found: just`); every command in that recipe was

@@ -32,9 +32,11 @@ Selected output is loaded lazily: when the selection or that pane's revision
 changes, or when the webmaster explicitly presses `o`. It is never polled on
 render ticks.
 
-Cafe animation is derived from the injected model clock. A single resettable
-sleep schedules only the next visible frame; the desk, static cafe states, and
-no-motion cafe are event-driven and do not redraw just because time passed.
+Cafe animation is derived from an injected runtime clock. It samples wall time
+once to retain epoch-shaped domain timestamps, then advances exclusively from a
+Tokio monotonic origin. A single resettable sleep schedules only the next visible
+frame; the desk, static cafe states, and no-motion cafe are event-driven and do
+not redraw just because time passed.
 
 The compatibility baseline is Herdr `0.7.3` / protocol `16` because the runtime
 depends on `session.snapshot`, the protocol schema command, and the current
@@ -224,10 +226,12 @@ The theatre layer derives poses, deterministic frames, and the earliest next
 phase boundary across the complete cafe model. This matters when 6 fps typing
 and 8 fps completion effects interleave, and ensures completion stops at exactly
 one second even if input arrives just before that boundary. The terminal owns
-one cancellation-safe resettable sleep. It drops that timer in event-driven
-modes, creates no per-frame tasks, performs no output reads or persistence on
-animation wakes, and re-derives the deadline after input, runtime, and clock
-events.
+one cancellation-safe resettable sleep. Deadlines map the sampled model
+timestamp back onto that same monotonic origin, so time spent rendering cannot
+shift a semantic frame boundary; an already-past boundary wakes immediately. It
+drops the timer in event-driven modes, creates no per-frame tasks, performs no
+output reads or persistence on animation wakes, and re-derives the deadline
+after input, runtime, and clock events.
 
 See the [design](docs/superpowers/specs/2026-07-14-herdr-webmaster-design.md),
 [pixel-art bible](docs/superpowers/specs/2026-07-14-pixel-art-design.md), and

@@ -33,7 +33,9 @@ Herdr snapshot + events
 Presence and attention remain separate. Widgets render derived state and never
 own domain truth. Pane output is loaded only for the selected agent. Animation
 uses a clock-derived frame so rendering remains deterministic in tests, and one
-resettable sleep is armed only when the visible cafe needs another frame.
+resettable sleep is armed only when the visible cafe needs another frame. One
+injected runtime clock maps a startup epoch sample onto Tokio monotonic time for
+both domain timestamps and absolute render deadlines.
 
 ## Milestones
 
@@ -96,6 +98,8 @@ delivery, and pane focus on 2026-07-14.
   no-motion, empty-cafe, and desk views remain event-driven.
 - Derive the timer from the earliest phase-aware boundary across all cafe
   agents, including the exact one-second end of a completion transition.
+- Anchor deadlines to the injected monotonic origin so wall-clock changes and
+  render latency cannot shift animation phase.
 
 Exit: every agent state is legible without colour and remains actionable;
 responsive, interaction-parity, palette, motion, exact transition, and scheduler
