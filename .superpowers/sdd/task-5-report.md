@@ -35,6 +35,17 @@ The change was developed through observed RED/GREEN cycles.
    clipped after Reply.
 8. Narrow-footer GREEN: a two-row sub-80 legend keeps visit, reply, refresh,
    seen, and search visible while preserving all three compact workstations.
+9. Exact-80 review RED: the 80x24 test failed with
+   `missing [space] seen` because the two-row footer boundary excluded exactly
+   80 columns. A new floor assertion also failed because the full grid
+   overwrote the room's inner floor line.
+10. Dense-selection review RED: a 60-agent model selected on its final
+    BTreeMap entry failed with `late selection hidden`; the renderer consumed
+    the map prefix and compressed workstations to one row.
+11. Review GREEN: exact 80 now uses the complete two-row footer, the outer room
+    border retains a dedicated `FLOOR / CABLE RUN / COUNTER` cue, and the grid
+    deterministically pages whole 28x10 workstations to the page containing the
+    current selection.
 
 The Cafe interaction additions characterize a deliberately pre-existing
 view-neutral boundary and passed on their first run. A fabricated reducer
@@ -52,6 +63,9 @@ typed `DeskCommand` values as Desk.
 - Added a maximum-useful full workstation grid with the widget's 28x10 minimum:
   160x50 uses three row-major columns, while 120x30 and 80x24 use two columns
   and two rows for the fixed three-agent model.
+- Dense grids compute a deterministic fixed-capacity BTreeMap page containing
+  the current selection, so navigation keeps late selected agents visible
+  without shrinking workstation cells below 28x10.
 - Added the separately composed selected profile beside the grid at terminal
   widths of 120 columns and above. The 80-column layout retains full
   workstations without the profile.
@@ -66,8 +80,8 @@ typed `DeskCommand` values as Desk.
   and `BROKEN LINK` without relying on colour.
 - Added contextual Cafe actions for view switching, navigation, search, visit,
   reply, refresh, seen, and optional Reviewr. Agent-only actions are omitted
-  when unavailable; sub-80 layouts use two rows so the complete valid set
-  remains visible.
+  when unavailable; layouts at 80 columns and below use two rows so the
+  complete valid set remains visible.
 - Added Offline, Reconnecting, and Incompatible room overlays while retaining
   the last visible agent poses beneath them.
 - Kept the empty Cafe helpful and actionable without advertising invalid agent
@@ -79,7 +93,7 @@ typed `DeskCommand` values as Desk.
 
 Verification run from `/Users/alancurrie/Projects/herdr-web-master`:
 
-- `cargo test --test cafe_rendering` - passed, 13 tests.
+- `cargo test --test cafe_rendering` - passed, 14 tests.
 - `cargo test --test interaction` - passed, 19 tests.
 - `cargo test --all-targets` - passed, full Rust suite.
 - `cargo fmt --all --check` - passed.
@@ -104,6 +118,8 @@ connection overlays; ASCII; ANSI-16; reduced motion; and no motion.
   explicit blocked/exited markers.
 - The Cafe adds no duplicate action reducer or Cafe-specific Herdr command.
 - Sub-80 layouts trade one room row for a second footer row so no valid Cafe
-  action is silently clipped.
+  action is silently clipped; exact 80 uses the same complete two-row legend.
+- A floor/cable/counter title on the room's bottom border survives even when an
+  exact-height full grid occupies every inner row.
 - No terminal timers, persistence behavior, output reads, raster assets, or
   supplied reference artwork were introduced.

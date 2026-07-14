@@ -17,6 +17,8 @@ use crate::{
 };
 
 const PROFILE_WIDTH: u16 = 43;
+const MIN_WORKSTATION_WIDTH: u16 = 28;
+const MIN_WORKSTATION_HEIGHT: u16 = 10;
 const MAX_WORKSTATION_HEIGHT: u16 = 12;
 const ASCII_BORDER: border::Set<'static> = border::Set {
     top_left: "+",
@@ -70,7 +72,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         return;
     }
 
-    let footer_height = if area.width < 80 { 2 } else { 1 };
+    let footer_height = if area.width <= 80 { 2 } else { 1 };
     let [body, footer] =
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(area);
@@ -80,6 +82,9 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     );
     let mut block = Block::default()
         .title(title)
+        .title_bottom(
+            Line::styled(" FLOOR / CABLE RUN / COUNTER ", styles.floor).alignment(Alignment::Right),
+        )
         .title_alignment(Alignment::Center)
         .borders(Borders::ALL)
         .border_style(styles.accent)
@@ -145,21 +150,43 @@ fn paint_room(frame: &mut Frame<'_>, area: Rect, styles: CafeStyles) {
 
 fn render_grid(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     let count = model.domain().agents.len();
-    if count == 0 || area.width < 28 || area.height <= 1 {
+    if count == 0 || area.width < MIN_WORKSTATION_WIDTH {
         return;
     }
-    let columns = usize::from(area.width / 28).max(1).min(count);
-    let rows = count.div_ceil(columns);
+    let columns = usize::from(area.width / MIN_WORKSTATION_WIDTH)
+        .max(1)
+        .min(count);
+    let max_rows = usize::from(area.height / MIN_WORKSTATION_HEIGHT);
+    if max_rows == 0 {
+        return;
+    }
+    let capacity = columns.saturating_mul(max_rows);
+    let selected_index = model
+        .selected_agent_key()
+        .and_then(|selected| model.domain().agents.keys().position(|key| key == selected))
+        .unwrap_or_default();
+    let page_start = selected_index / capacity * capacity;
+    let visible_count = count.saturating_sub(page_start).min(capacity);
+    let rows = visible_count.div_ceil(columns);
+    let row_count = u16::try_from(rows).unwrap_or(1);
+    let top_inset = u16::from(area.height.saturating_sub(1) / row_count >= MIN_WORKSTATION_HEIGHT);
     let grid = Rect::new(
         area.x,
-        area.y.saturating_add(1),
+        area.y.saturating_add(top_inset),
         area.width,
-        area.height.saturating_sub(1),
+        area.height.saturating_sub(top_inset),
     );
     let row_height =
-        (grid.height / u16::try_from(rows).unwrap_or(1)).clamp(1, MAX_WORKSTATION_HEIGHT);
+        (grid.height / row_count).clamp(MIN_WORKSTATION_HEIGHT, MAX_WORKSTATION_HEIGHT);
 
-    for (index, (key, agent)) in model.domain().agents.iter().enumerate() {
+    for (index, (key, agent)) in model
+        .domain()
+        .agents
+        .iter()
+        .skip(page_start)
+        .take(capacity)
+        .enumerate()
+    {
         let column = index % columns;
         let row = index / columns;
         let x0 = u32::from(grid.x)

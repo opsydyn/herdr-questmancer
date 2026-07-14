@@ -97,6 +97,10 @@ fn one_hundred_twenty_columns_show_the_room_grid_and_selected_profile() {
         screen.contains("CABLE RUN"),
         "missing shared room:\n{screen}"
     );
+    assert!(
+        screen.contains("FLOOR / CABLE RUN / COUNTER"),
+        "grid overwrote the shared floor/cable cue:\n{screen}"
+    );
     assert!(screen.contains("> Beta"), "missing selection:\n{screen}");
     assert!(
         screen.contains("HELP!"),
@@ -129,12 +133,17 @@ fn one_hundred_sixty_columns_keep_three_agents_and_the_full_profile_in_one_room(
 
 #[test]
 fn eighty_columns_keep_the_full_grid_without_a_side_profile() {
-    let screen = render(&three_agent_model(), 80, 24);
+    let mut model = three_agent_model();
+    let screen = render(&model, 80, 24);
 
     assert_every_agent_is_visible(&screen);
     assert!(
         screen.contains("CABLE RUN"),
         "missing shared room:\n{screen}"
+    );
+    assert!(
+        screen.contains("FLOOR / CABLE RUN / COUNTER"),
+        "grid overwrote the shared floor/cable cue:\n{screen}"
     );
     assert!(!screen.contains("PROFILE"), "unexpected profile:\n{screen}");
     assert!(screen.contains("HELP!"), "missing blocked state:\n{screen}");
@@ -142,6 +151,23 @@ fn eighty_columns_keep_the_full_grid_without_a_side_profile() {
         screen.contains("BROKEN LINK"),
         "missing exited state:\n{screen}"
     );
+    for action in [
+        "[1] desk",
+        "[2] cafe",
+        "[j/k] navigate",
+        "[enter] visit",
+        "[r] reply",
+        "[o] refresh",
+        "[space] seen",
+        "[/] search",
+    ] {
+        assert!(screen.contains(action), "missing {action}:\n{screen}");
+    }
+    assert!(!screen.contains("[v] reviewr"));
+
+    model.set_reviewr_available(true);
+    let with_reviewr = render(&model, 80, 24);
+    assert!(with_reviewr.contains("[v] reviewr"));
 }
 
 #[test]
@@ -203,6 +229,28 @@ fn a_dense_agent_map_never_renders_cells_below_the_small_grid() {
 
     assert!(screen.contains("Alpha"));
     assert!(screen.contains("Beta"));
+}
+
+#[test]
+fn dense_grid_pages_to_keep_a_late_selection_visible() {
+    let mut model = three_agent_model();
+    let source = model.domain().agents.values().next().unwrap().clone();
+    for index in 4..=60 {
+        let mut agent = source.clone();
+        agent.key = AgentKey::new(format!("agent-z-{index:02}"));
+        agent.pane_id = PaneId::new(format!("w1:p{index}"));
+        agent.name = format!("Agent {index:02}");
+        model.domain_mut().agents.insert(agent.key.clone(), agent);
+    }
+    model.domain_mut().selected_agent = Some(AgentKey::new("agent-z-60"));
+
+    let screen = render(&model, 80, 24);
+
+    assert!(
+        screen.contains("> Agent 60"),
+        "late selection hidden:\n{screen}"
+    );
+    assert!(screen.contains("[>] BUILDING"), "state hidden:\n{screen}");
 }
 
 #[test]
