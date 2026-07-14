@@ -9,7 +9,7 @@ use crate::app::{Model, View};
 
 pub fn render(frame: &mut Frame<'_>, model: &Model) {
     match model.view() {
-        View::Desk => views::desk::render(frame),
+        View::Desk => views::desk::render(frame, model),
         View::Cafe => views::cafe::render(frame),
     }
 }

@@ -1,6 +1,6 @@
 use clap::ValueEnum;
 
-use crate::domain::{Agent, AgentKey, DomainState, PaneId};
+use crate::domain::{Agent, AgentKey, DomainState, PaneId, Timestamp};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
 pub enum View {
@@ -65,6 +65,7 @@ pub struct Model {
     output_preview: Option<OutputPreview>,
     status_message: Option<String>,
     reviewr_available: bool,
+    now: Timestamp,
 }
 
 impl Model {
@@ -78,6 +79,7 @@ impl Model {
             output_preview: None,
             status_message: None,
             reviewr_available: false,
+            now: Timestamp::from_millis(0),
         }
     }
 
@@ -220,5 +222,13 @@ impl Model {
 
     pub const fn set_reviewr_available(&mut self, available: bool) {
         self.reviewr_available = available;
+    }
+
+    pub const fn now(&self) -> Timestamp {
+        self.now
+    }
+
+    pub const fn set_now(&mut self, now: Timestamp) {
+        self.now = now;
     }
 }
