@@ -1,0 +1,5 @@
+/target/
+/.worktrees/
+*.swp
+.DS_Store
+
