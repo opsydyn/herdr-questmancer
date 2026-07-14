@@ -3,6 +3,7 @@ mod views;
 
 pub mod input;
 pub mod pixel;
+pub mod theatre;
 
 use ratatui::Frame;
 

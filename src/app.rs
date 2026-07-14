@@ -9,6 +9,27 @@ pub enum View {
     Cafe,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum Motion {
+    #[default]
+    Full,
+    Reduced,
+    None,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum CharacterSet {
+    #[default]
+    Unicode,
+    Ascii,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct DisplayPreferences {
+    pub motion: Motion,
+    pub character_set: CharacterSet,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum ConnectionState {
     #[default]
@@ -66,6 +87,7 @@ pub struct Model {
     status_message: Option<String>,
     reviewr_available: bool,
     now: Timestamp,
+    preferences: DisplayPreferences,
 }
 
 impl Model {
@@ -80,6 +102,7 @@ impl Model {
             status_message: None,
             reviewr_available: false,
             now: Timestamp::from_millis(0),
+            preferences: DisplayPreferences::default(),
         }
     }
 
@@ -294,5 +317,13 @@ impl Model {
 
     pub const fn set_now(&mut self, now: Timestamp) {
         self.now = now;
+    }
+
+    pub const fn preferences(&self) -> &DisplayPreferences {
+        &self.preferences
+    }
+
+    pub const fn set_preferences(&mut self, preferences: DisplayPreferences) {
+        self.preferences = preferences;
     }
 }
