@@ -35,6 +35,11 @@ invariant test could not compile without `Palette::roles_contrast`; the minimal
 palette comparison API then made all 737,280 appearance/palette combinations
 GREEN.
 
+The final transparent-edge correction was test-first as well. A focused ANSI
+regression failed because black hair remained `HairTone(Black)` against the
+black `PanelBackground`; adding the exterior hair/background and
+shoes/background edges made that regression and the exhaustive invariant GREEN.
+
 ## Changes
 
 - Added public `AppearanceRoles` and a palette-independent `appearance_roles`
@@ -48,9 +53,10 @@ GREEN.
   roles, and removed the redundant untyped persona slots. Xterm-256 and ANSI-16
   each select deterministic fallback roles only when their actual resolved
   colours collide.
-- Modelled the complete declared adjacency graph: hair-skin; top-skin/hair;
-  bottom-top; shoes-bottom; accessory-top/skin/hair; and
-  accent-top/skin/hair/accessory.
+- Modelled the complete adjacency graph: hair-skin/background; top-skin/hair;
+  bottom-top; shoes-bottom/background; accessory-top/skin/hair; and
+  accent-top/skin/hair/accessory. The background edges keep black hair and
+  loafers visible where the canvas is transparent.
 - Added a dedicated 10x12 seated compositor with typed CRT-facing, raised-hand,
   relaxed, and absent poses. Working frames alternate a hand position from the
   injected `animation_frame`; blocked keeps a stable raised-hand silhouette;
@@ -69,7 +75,7 @@ GREEN.
 
 ## Verification
 
-- `cargo test --test persona_art` — 10 passed.
+- `cargo test --test persona_art` — 11 passed.
 - `cargo test --test pixel` — 11 passed.
 - `cargo test` — full Rust suite passed.
 - `cargo fmt --all --check` — passed.

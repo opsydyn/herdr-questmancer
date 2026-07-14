@@ -49,10 +49,20 @@ pub fn appearance_roles_for_palette(
 ) -> AppearanceRoles {
     let canonical = appearance_roles(appearance);
     let skin = canonical.skin;
-    let hair = contrasting(canonical.hair, &[skin], &HAIR_FALLBACKS, palette);
+    let hair = contrasting(
+        canonical.hair,
+        &[skin, ColorRole::PanelBackground],
+        &HAIR_FALLBACKS,
+        palette,
+    );
     let top = contrasting(canonical.top, &[skin, hair], &FABRIC_FALLBACKS, palette);
     let bottom = contrasting(canonical.bottom, &[top], &FABRIC_FALLBACKS, palette);
-    let shoes = contrasting(canonical.shoes, &[bottom], &FOOTWEAR_FALLBACKS, palette);
+    let shoes = contrasting(
+        canonical.shoes,
+        &[bottom, ColorRole::PanelBackground],
+        &FOOTWEAR_FALLBACKS,
+        palette,
+    );
     let accessory = contrasting(
         canonical.accessory,
         &[top, skin, hair],

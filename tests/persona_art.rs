@@ -131,10 +131,12 @@ fn logical_role_map(canvas: &Canvas, roles: AppearanceRoles) -> String {
 fn assert_adjacency_contrast(roles: AppearanceRoles, palette: Palette) {
     for (upper, lower) in [
         (roles.hair, roles.skin),
+        (roles.hair, ColorRole::PanelBackground),
         (roles.top, roles.skin),
         (roles.top, roles.hair),
         (roles.bottom, roles.top),
         (roles.shoes, roles.bottom),
+        (roles.shoes, ColorRole::PanelBackground),
         (roles.accessory, roles.top),
         (roles.accessory, roles.skin),
         (roles.accessory, roles.hair),
@@ -227,6 +229,19 @@ fn xterm_safe_roles_preserve_non_colliding_black_hair_and_loafers() {
     assert_eq!(safe.hair, canonical.hair);
     assert_eq!(safe.shoes, canonical.shoes);
     assert_adjacency_contrast(safe, Palette::Xterm256);
+}
+
+#[test]
+fn ansi_safe_roles_keep_black_hair_and_loafers_visible_against_transparency() {
+    let appearance = broad();
+    let canonical = appearance_roles(&appearance);
+    assert_eq!(canonical.hair, ColorRole::HairTone(HairShade::Black));
+    assert_eq!(canonical.shoes, ColorRole::Footwear(FootwearShade::Black));
+
+    let safe = appearance_roles_for_palette(&appearance, Palette::Ansi16);
+    assert_ne!(safe.hair, canonical.hair);
+    assert_ne!(safe.shoes, canonical.shoes);
+    assert_adjacency_contrast(safe, Palette::Ansi16);
 }
 
 #[test]
