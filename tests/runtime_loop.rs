@@ -1,8 +1,10 @@
 use futures_util::FutureExt;
 use herdr_webmaster::{
-    app::{ConnectionState, Model, View},
+    app::{ConnectionState, DisplayPreferences, Model, Motion, View},
     command::{CommandResult, DeskCommand},
-    domain::{PaneId, Timestamp},
+    domain::{
+        Agent, AgentKey, Attention, AttentionReason, DomainState, PaneId, Presence, Timestamp,
+    },
     herdr::{
         environment::HerdrEnvironment,
         protocol::{SessionSnapshot, SessionSnapshotResult, SuccessResponse, WireEvent},
@@ -13,7 +15,7 @@ use herdr_webmaster::{
         bootstrap_model,
     },
     terminal::AnimationScheduler,
-    ui::theatre::RenderCadence,
+    ui::theatre::{TheatrePose, frame_for},
 };
 use serde_json::json;
 use std::future::Future;
@@ -24,6 +26,34 @@ fn snapshot() -> SessionSnapshot {
     let response: SuccessResponse<SessionSnapshotResult> =
         serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
     response.result.snapshot
+}
+
+fn animated_agent(key: &str, presence: Presence, since: i64) -> Agent {
+    let mut agent = DomainState::from_snapshot(&snapshot(), Timestamp::from_millis(0))
+        .agents
+        .into_values()
+        .next()
+        .unwrap();
+    agent.key = AgentKey::new(key);
+    agent.presence = presence;
+    agent.presence_since = Timestamp::from_millis(since);
+    agent.attention = Attention::Clear;
+    agent
+}
+
+fn animated_model(agents: impl IntoIterator<Item = Agent>, now: i64, motion: Motion) -> Model {
+    let mut domain = DomainState::default();
+    for agent in agents {
+        domain.agents.insert(agent.key.clone(), agent);
+    }
+    let mut model = Model::new(View::Cafe);
+    model.replace_domain(domain);
+    model.set_now(Timestamp::from_millis(now));
+    model.set_preferences(DisplayPreferences {
+        motion,
+        ..DisplayPreferences::default()
+    });
+    model
 }
 
 #[test]
@@ -208,56 +238,92 @@ fn terminal_runtime_is_async() {
 }
 
 #[tokio::test(start_paused = true)]
-async fn animation_scheduler_wakes_once_at_the_next_visible_frame() {
-    let cases = [
-        (RenderCadence::Fps(8), 125),
-        (RenderCadence::Fps(6), 167),
-        (RenderCadence::Fps(2), 500),
-        (RenderCadence::Fps(1), 1_000),
-    ];
+async fn done_transition_reset_at_999ms_wakes_at_the_exact_end_boundary() {
+    let mut done = animated_agent("done", Presence::Done, 0);
+    done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+    let mut model = animated_model([done], 999, Motion::Full);
+    let mut scheduler = AnimationScheduler::new();
+    scheduler.reset_for(&model);
 
-    for (cadence, milliseconds) in cases {
-        let mut scheduler = AnimationScheduler::new();
-        scheduler.reset(cadence);
+    assert!(scheduler.wait().now_or_never().is_none());
+    tokio::time::advance(std::time::Duration::from_millis(1)).await;
+    assert!(scheduler.wait().now_or_never().is_some());
 
-        tokio::time::advance(std::time::Duration::from_millis(milliseconds - 1)).await;
-        assert!(
-            scheduler.wait().now_or_never().is_none(),
-            "{cadence:?} woke before its next visible frame"
+    model.set_now(Timestamp::from_millis(1_000));
+    let done = model.domain().agents.values().next().unwrap();
+    let frame = frame_for(done, model.now(), model.preferences());
+    assert_eq!(frame.pose, TheatrePose::DoneUnseen);
+    assert_eq!(frame.animation_frame, 0);
+
+    scheduler.reset_for(&model);
+    tokio::time::advance(std::time::Duration::from_secs(24 * 60 * 60)).await;
+    assert!(scheduler.wait().now_or_never().is_none());
+}
+
+#[tokio::test(start_paused = true)]
+async fn prolonged_six_fps_animation_tracks_phase_without_drift_or_skips() {
+    let working = animated_agent("working", Presence::Working, 0);
+    let mut model = animated_model([working], 0, Motion::Full);
+    let mut scheduler = AnimationScheduler::new();
+    let boundaries = [167, 334, 500, 667, 834, 1_000, 1_167, 1_334, 1_500];
+    let expected_frames = [1, 2, 3, 0, 1, 2, 3, 0, 1];
+    let mut previous = 0;
+
+    for (boundary, expected_frame) in boundaries.into_iter().zip(expected_frames) {
+        scheduler.reset_for(&model);
+        tokio::time::advance(std::time::Duration::from_millis(
+            u64::try_from(boundary - previous).unwrap(),
+        ))
+        .await;
+        assert!(scheduler.wait().now_or_never().is_some());
+        model.set_now(Timestamp::from_millis(boundary));
+        let agent = model.domain().agents.values().next().unwrap();
+        assert_eq!(
+            frame_for(agent, model.now(), model.preferences()).animation_frame,
+            expected_frame
         );
-
-        tokio::time::advance(std::time::Duration::from_millis(1)).await;
-        assert!(
-            scheduler.wait().now_or_never().is_some(),
-            "{cadence:?} did not wake at its next visible frame"
-        );
+        previous = boundary;
     }
 }
 
 #[tokio::test(start_paused = true)]
-async fn event_driven_animation_scheduler_never_wakes_on_time_alone() {
+async fn mixed_six_and_eight_fps_agents_choose_each_earliest_boundary() {
+    let working = animated_agent("working", Presence::Working, 0);
+    let mut done = animated_agent("done", Presence::Done, 0);
+    done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+    let mut model = animated_model([working, done], 0, Motion::Full);
     let mut scheduler = AnimationScheduler::new();
-    scheduler.reset(RenderCadence::EventDriven);
+    let boundaries = [125, 167, 250, 334, 375, 500, 625, 667, 750, 834, 875, 1_000];
+    let mut previous = 0;
 
-    tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
+    for boundary in boundaries {
+        scheduler.reset_for(&model);
+        tokio::time::advance(std::time::Duration::from_millis(
+            u64::try_from(boundary - previous).unwrap(),
+        ))
+        .await;
+        assert!(
+            scheduler.wait().now_or_never().is_some(),
+            "missed mixed-agent boundary at {boundary}ms"
+        );
+        model.set_now(Timestamp::from_millis(boundary));
+        previous = boundary;
+    }
 
+    scheduler.reset_for(&model);
+    tokio::time::advance(std::time::Duration::from_millis(166)).await;
     assert!(scheduler.wait().now_or_never().is_none());
+    tokio::time::advance(std::time::Duration::from_millis(1)).await;
+    assert!(scheduler.wait().now_or_never().is_some());
 }
 
 #[tokio::test(start_paused = true)]
-async fn resetting_animation_scheduler_replaces_the_previous_deadline() {
+async fn event_driven_animation_scheduler_never_wakes_on_time_alone() {
+    let working = animated_agent("working", Presence::Working, 0);
+    let model = animated_model([working], 0, Motion::None);
     let mut scheduler = AnimationScheduler::new();
-    scheduler.reset(RenderCadence::Fps(8));
-    tokio::time::advance(std::time::Duration::from_millis(100)).await;
+    scheduler.reset_for(&model);
 
-    scheduler.reset(RenderCadence::Fps(2));
-    tokio::time::advance(std::time::Duration::from_millis(400)).await;
-    assert!(scheduler.wait().now_or_never().is_none());
-
-    tokio::time::advance(std::time::Duration::from_millis(100)).await;
-    assert!(scheduler.wait().now_or_never().is_some());
-
-    scheduler.reset(RenderCadence::EventDriven);
-    tokio::time::advance(std::time::Duration::from_secs(1)).await;
+    tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
     assert!(scheduler.wait().now_or_never().is_none());
 }

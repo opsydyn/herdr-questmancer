@@ -4,9 +4,9 @@
 
 - Replaced both fixed one-second render intervals with one
   `AnimationScheduler` backed by a resettable Tokio sleep.
-- `RenderCadence::EventDriven` stores no sleep and therefore cannot wake on
-  elapsed time. `Fps` arms only the next visible frame and rounds fractional
-  millisecond periods upward so it never redraws an unchanged frame early.
+- The scheduler stores no sleep when the complete visible model has no future
+  frame boundary and therefore cannot wake on elapsed time. Animated cafes arm
+  only the earliest phase-aware boundary across all agents.
 - Cadence is re-derived after every draw following input, runtime, or clock
   events. Runtime and input handling synchronize `Model::now` before reduction,
   so a newly observed done transition schedules immediately.
@@ -20,6 +20,32 @@
   Documentation explicitly says preference persistence is Milestone 6 work.
 
 ## TDD evidence
+
+### Reviewer regression: phase-aware deadlines
+
+An independent review found that the initial nominal-period reset could drift
+from presence/attention phases. For example, resetting at completion +999 ms
+would schedule another 125 ms instead of the exact +1 ms transition end, and a
+mixed 6/8 fps room could miss interleaved boundaries.
+
+The regression tests were written first and produced the expected RED errors:
+
+```text
+error[E0425]: cannot find function `next_visible_frame_in`
+error[E0599]: no method named `reset_for` found for struct `AnimationScheduler`
+```
+
+The GREEN implementation now derives each agent's next semantic frame boundary
+from its presence or attention timestamp and selects the minimum across the
+complete cafe model. Paused-time tests drive scheduler wait/reset and model time
+through all of these cases:
+
+- reset at done +999 ms wakes after 1 ms and is stable at +1,000 ms;
+- prolonged 6 fps work follows 167, 334, 500, 667, 834, and 1,000 ms boundaries
+  without drift or skipped semantic frames;
+- mixed 6/8 fps work follows every interleaved earliest boundary, including the
+  shared 500 and 1,000 ms boundaries;
+- no-motion remains pending after 24 hours.
 
 ### RED 1: scheduler API
 
@@ -45,9 +71,9 @@ The focused suite passed with:
 - 16 cafe-rendering tests;
 - 16 theatre tests at that point.
 
-It proves 8, 6, 2, and 1 fps wake at 125, 167, 500, and 1,000 ms; reset replaces
-the previous deadline; and event-driven mode remains pending after 86,400
-seconds of simulated time. The cafe projection renders exactly one confetti
+It initially proved nominal 8, 6, 2, and 1 fps periods plus event-driven waiting.
+The reviewer regression above supersedes nominal reset behavior with exact
+phase-aware scheduling. The cafe projection still renders exactly one confetti
 marker for each of frames 1 through 8, then no confetti and a stable
 `UPDATE READY` badge at exactly 1,000 ms.
 
@@ -67,9 +93,9 @@ error[E0599]: no method named `frame_period` found for enum `RenderCadence`
 
 ### GREEN 2
 
-The completed focused gate passed 13 runtime-loop, 16 cafe-rendering, and 17
-theatre tests. `RenderCadence` now owns its period semantics and the terminal is
-only the effectful timer owner.
+The original completed focused gate passed 13 runtime-loop, 16 cafe-rendering,
+and 17 theatre tests. After review, `next_visible_frame_in(&Model)` owns the
+phase calculation and the terminal remains only the effectful timer owner.
 
 ## Final verification
 
@@ -87,6 +113,11 @@ git diff --check
 
 The post-refactor full Rust test run passed all targets, including the real
 event-driven `SIGHUP` shutdown test. The release binary built successfully.
+
+After the phase-aware scheduling fix, the same complete gate was rerun and
+passed again. The focused runtime-loop suite now contains 14 tests, including
+the done +999 ms, prolonged 6 fps, mixed 6/8 fps, and 24-hour event-driven
+regressions.
 
 `just milestone5-verify` could not run because `just` is not installed in this
 environment (`zsh: command not found: just`); every command in that recipe was

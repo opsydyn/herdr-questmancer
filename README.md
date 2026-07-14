@@ -220,11 +220,14 @@ derived, guestbook events are deterministic and bounded, and native agent
 session identity keeps original personas stable when panes move. Equal state,
 events, and injected timestamps always produce equal reducer output.
 
-The theatre layer derives poses, deterministic frames, and the fastest visible
-cadence. The terminal owns one cancellation-safe resettable sleep. It drops that
-timer in event-driven modes, creates no per-frame tasks, performs no output reads
-or persistence on animation wakes, and re-derives cadence after input, runtime,
-and clock events.
+The theatre layer derives poses, deterministic frames, and the earliest next
+phase boundary across the complete cafe model. This matters when 6 fps typing
+and 8 fps completion effects interleave, and ensures completion stops at exactly
+one second even if input arrives just before that boundary. The terminal owns
+one cancellation-safe resettable sleep. It drops that timer in event-driven
+modes, creates no per-frame tasks, performs no output reads or persistence on
+animation wakes, and re-derives the deadline after input, runtime, and clock
+events.
 
 See the [design](docs/superpowers/specs/2026-07-14-herdr-webmaster-design.md),
 [pixel-art bible](docs/superpowers/specs/2026-07-14-pixel-art-design.md), and

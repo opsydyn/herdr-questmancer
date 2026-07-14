@@ -24,10 +24,7 @@ use crate::{
         RuntimeConnection, RuntimeEvent, apply_command_result, apply_connection_update,
         bootstrap_model,
     },
-    ui::{
-        self,
-        theatre::{RenderCadence, cadence_for},
-    },
+    ui::{self, theatre::next_visible_frame_in},
 };
 
 type Tui = Terminal<CrosstermBackend<Stdout>>;
@@ -47,8 +44,8 @@ impl AnimationScheduler {
         Self { sleep: None }
     }
 
-    pub fn reset(&mut self, cadence: RenderCadence) {
-        let Some(period) = cadence.frame_period() else {
+    pub fn reset_for(&mut self, model: &Model) {
+        let Some(period) = next_visible_frame_in(model) else {
             self.sleep = None;
             return;
         };
@@ -128,7 +125,7 @@ async fn run_live_loop(
 
     loop {
         terminal.draw(|frame| ui::render(frame, model))?;
-        render_invalidation.reset(cadence_for(model));
+        render_invalidation.reset_for(model);
 
         tokio::select! {
             event = input.next() => {
@@ -182,7 +179,7 @@ async fn run_offline_loop(
 
     loop {
         terminal.draw(|frame| ui::render(frame, model))?;
-        render_invalidation.reset(cadence_for(model));
+        render_invalidation.reset_for(model);
 
         tokio::select! {
             event = input.next() => {

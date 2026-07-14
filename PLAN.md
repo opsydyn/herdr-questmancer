@@ -94,6 +94,8 @@ delivery, and pane focus on 2026-07-14.
 - Page dense grids and compact lists so the selected agent remains actionable.
 - Schedule 8/6/2/1 fps effects with one cancellation-safe timer, while static,
   no-motion, empty-cafe, and desk views remain event-driven.
+- Derive the timer from the earliest phase-aware boundary across all cafe
+  agents, including the exact one-second end of a completion transition.
 
 Exit: every agent state is legible without colour and remains actionable;
 responsive, interaction-parity, palette, motion, exact transition, and scheduler

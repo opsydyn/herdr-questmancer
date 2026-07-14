@@ -44,7 +44,8 @@ All notable changes to this project will be documented here.
 - Unicode half-block and ASCII projections, xterm-256 and ANSI-16 palettes,
   plus full, reduced, and no-motion display models.
 - A cancellation-safe adaptive animation scheduler that arms one resettable
-  sleep for the next visible frame and stays pending in event-driven modes.
+  sleep for the earliest phase-aware boundary across every cafe agent and stays
+  pending in event-driven modes.
 - Event-driven Unix shutdown signals replace the previous 50 ms polling
   interval, leaving static and no-motion sessions without periodic timers.
 - Exact eight-frame, one-second completion confetti followed by a stable update
@@ -52,6 +53,9 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- Animation scheduling follows presence and attention timestamps rather than a
+  nominal maximum FPS, preventing drift, skipped mixed-rate frames, and
+  completion confetti extending past its exact one-second boundary.
 - Topology-event replay no longer causes a tight resubscription loop; the
   supervisor refreshes pane membership and rebuilds subscriptions only when
   the subscribed pane set actually changes.

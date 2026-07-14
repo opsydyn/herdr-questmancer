@@ -410,19 +410,32 @@ fn display_preferences_are_model_state_with_accessible_defaults() {
 }
 
 #[test]
-fn render_cadence_exposes_only_the_next_visible_frame_delay() {
-    assert_eq!(RenderCadence::EventDriven.frame_period(), None);
-    assert_eq!(RenderCadence::Fps(0).frame_period(), None);
+fn next_visible_frame_delay_is_phase_aware_and_exact() {
+    let mut working = agent();
+    working.presence = Presence::Working;
+    working.presence_since = Timestamp::from_millis(0);
     assert_eq!(
-        RenderCadence::Fps(8).frame_period(),
-        Some(Duration::from_millis(125))
+        herdr_webmaster::ui::theatre::next_visible_frame_in(&model_with(
+            working.clone(),
+            166,
+            Motion::Full
+        )),
+        Some(Duration::from_millis(1))
     );
     assert_eq!(
-        RenderCadence::Fps(6).frame_period(),
+        herdr_webmaster::ui::theatre::next_visible_frame_in(&model_with(
+            working,
+            167,
+            Motion::Full
+        )),
         Some(Duration::from_millis(167))
     );
+
+    let mut done = agent();
+    done.presence = Presence::Done;
+    done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
     assert_eq!(
-        RenderCadence::Fps(1).frame_period(),
-        Some(Duration::from_secs(1))
+        herdr_webmaster::ui::theatre::next_visible_frame_in(&model_with(done, 999, Motion::Full)),
+        Some(Duration::from_millis(1))
     );
 }

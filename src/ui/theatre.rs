@@ -30,19 +30,6 @@ pub enum RenderCadence {
     Fps(u8),
 }
 
-impl RenderCadence {
-    /// Delay until the next frame can be observably different.
-    ///
-    /// Theatre frames use millisecond timestamps, so fractional frame periods
-    /// round up instead of waking early for an unchanged frame.
-    pub fn frame_period(self) -> Option<Duration> {
-        match self {
-            Self::EventDriven | Self::Fps(0) => None,
-            Self::Fps(fps) => Some(Duration::from_millis(1_000_u64.div_ceil(u64::from(fps)))),
-        }
-    }
-}
-
 pub fn frame_for(agent: &Agent, now: Timestamp, preferences: &DisplayPreferences) -> TheatreFrame {
     let (pose, label) = match agent.presence {
         Presence::Working => (TheatrePose::Working, "BUILDING"),
@@ -77,6 +64,24 @@ pub fn cadence_for(model: &Model) -> RenderCadence {
         .max();
 
     fps.map_or(RenderCadence::EventDriven, RenderCadence::Fps)
+}
+
+/// Returns the phase-aware delay until any visible cafe animation changes.
+///
+/// This is deliberately derived from every agent rather than from the highest
+/// nominal FPS. Different agents can have interleaved boundaries, and a done
+/// transition has an exact terminal boundary at one second.
+pub fn next_visible_frame_in(model: &Model) -> Option<Duration> {
+    if model.view() != View::Cafe || model.preferences().motion == Motion::None {
+        return None;
+    }
+
+    model
+        .domain()
+        .agents
+        .values()
+        .filter_map(|agent| next_frame_for_agent(agent, model.now(), model.preferences().motion))
+        .min()
 }
 
 fn animation_frame(agent: &Agent, pose: TheatrePose, now: Timestamp, motion: Motion) -> u8 {
@@ -133,6 +138,50 @@ fn cadence_for_agent(agent: &Agent, now: Timestamp, motion: Motion) -> Option<u8
             Presence::Done | Presence::Exited | Presence::Unknown => None,
         },
     }
+}
+
+fn next_frame_for_agent(agent: &Agent, now: Timestamp, motion: Motion) -> Option<Duration> {
+    match motion {
+        Motion::None => None,
+        Motion::Reduced => (agent.presence == Presence::Idle)
+            .then(|| next_loop_boundary(agent.presence_since, now, 1)),
+        Motion::Full => match agent.presence {
+            Presence::Working => Some(next_loop_boundary(agent.presence_since, now, 6)),
+            Presence::Blocked => Some(next_loop_boundary(agent.presence_since, now, 2)),
+            Presence::Done => next_done_boundary(agent, now),
+            Presence::Idle => Some(next_loop_boundary(agent.presence_since, now, 1)),
+            Presence::Exited | Presence::Unknown => None,
+        },
+    }
+}
+
+fn next_loop_boundary(since: Timestamp, now: Timestamp, fps: u8) -> Duration {
+    if now < since {
+        return now.elapsed_until(since) + first_frame_delay(fps);
+    }
+
+    next_step_delay(since.elapsed_until(now), fps)
+}
+
+fn next_done_boundary(agent: &Agent, now: Timestamp) -> Option<Duration> {
+    let since = unseen_completion_since(&agent.attention)?;
+    if now < since {
+        return None;
+    }
+    let elapsed = since.elapsed_until(now);
+    (elapsed < Duration::from_secs(1)).then(|| next_step_delay(elapsed, 8))
+}
+
+fn first_frame_delay(fps: u8) -> Duration {
+    Duration::from_millis(1_000_u64.div_ceil(u64::from(fps)))
+}
+
+fn next_step_delay(elapsed: Duration, fps: u8) -> Duration {
+    let elapsed_millis = elapsed.as_millis();
+    let completed_steps = elapsed_millis * u128::from(fps) / 1_000;
+    let next_boundary = ((completed_steps + 1) * 1_000).div_ceil(u128::from(fps));
+    let delay = next_boundary.saturating_sub(elapsed_millis).max(1);
+    Duration::from_millis(u64::try_from(delay).unwrap_or(u64::MAX))
 }
 
 fn done_transition_is_active(agent: &Agent, now: Timestamp) -> bool {
