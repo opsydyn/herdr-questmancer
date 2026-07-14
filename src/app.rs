@@ -64,6 +64,7 @@ pub struct Model {
     modal: Modal,
     output_preview: Option<OutputPreview>,
     status_message: Option<String>,
+    reviewr_available: bool,
 }
 
 impl Model {
@@ -76,6 +77,7 @@ impl Model {
             modal: Modal::None,
             output_preview: None,
             status_message: None,
+            reviewr_available: false,
         }
     }
 
@@ -210,5 +212,13 @@ impl Model {
 
     pub fn selected_agent_key(&self) -> Option<&AgentKey> {
         self.domain.selected_agent.as_ref()
+    }
+
+    pub const fn reviewr_available(&self) -> bool {
+        self.reviewr_available
+    }
+
+    pub const fn set_reviewr_available(&mut self, available: bool) {
+        self.reviewr_available = available;
     }
 }
