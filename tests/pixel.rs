@@ -112,7 +112,21 @@ fn pack_uses_a_full_block_for_matching_pixels() {
 
     assert_eq!(span.content, "█");
     assert_eq!(span.style.fg, Some(Color::Indexed(48)));
-    assert_eq!(span.style.bg, Some(Color::Indexed(234)));
+    assert_eq!(span.style.bg, None);
+}
+
+#[test]
+fn pack_uses_a_full_block_when_distinct_roles_resolve_to_the_same_colour() {
+    let mut canvas = Canvas::new(1, 2);
+    canvas.set(0, 0, ColorRole::RoomFloor);
+    canvas.set(0, 1, ColorRole::Hair);
+
+    let text = pack(&canvas, &Palette::Ansi16, ColorRole::PanelBackground);
+    let span = &text.lines[0].spans[0];
+
+    assert_eq!(span.content, "█");
+    assert_eq!(span.style.fg, Some(Color::Red));
+    assert_eq!(span.style.bg, None);
 }
 
 #[test]
@@ -127,4 +141,18 @@ fn pack_uses_foreground_and_background_for_distinct_pixels() {
     assert_eq!(span.content, "▀");
     assert_eq!(span.style.fg, Some(Color::Indexed(48)));
     assert_eq!(span.style.bg, Some(Color::Indexed(236)));
+}
+
+#[test]
+fn ansi_palette_keeps_adjacent_shoes_and_shadow_distinct() {
+    let mut canvas = Canvas::new(1, 2);
+    canvas.set(0, 0, ColorRole::Shoes);
+    canvas.set(0, 1, ColorRole::Shadow);
+
+    let text = pack(&canvas, &Palette::Ansi16, ColorRole::PanelBackground);
+    let span = &text.lines[0].spans[0];
+
+    assert_eq!(span.content, "▀");
+    assert_eq!(span.style.fg, Some(Color::Gray));
+    assert_eq!(span.style.bg, Some(Color::DarkGray));
 }
