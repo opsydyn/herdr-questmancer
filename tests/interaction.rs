@@ -50,6 +50,12 @@ fn searchable_model() -> Model {
     model
 }
 
+fn cafe_twin(model: &Model) -> Model {
+    let mut twin = model.clone();
+    twin.switch_to(View::Cafe);
+    twin
+}
+
 #[test]
 fn quit_is_an_explicit_typed_loop_outcome() {
     let mut model = Model::new(View::Desk);
@@ -385,4 +391,105 @@ fn empty_search_does_not_select_the_first_agent() {
         }
     );
     assert_eq!(model.status_message(), Some("enter a search query"));
+}
+
+#[test]
+fn cafe_selection_reuses_the_desk_commands_and_loads_once_per_change() {
+    let mut desk = live_model_with_two_agents();
+    let mut cafe = cafe_twin(&desk);
+
+    for action in [
+        Action::Next,
+        Action::Next,
+        Action::Previous,
+        Action::First,
+        Action::Last,
+    ] {
+        let desk_reduction = reduce_action(&mut desk, action);
+        let cafe_reduction = reduce_action(&mut cafe, action);
+
+        assert_eq!(cafe_reduction, desk_reduction, "action {action:?}");
+        assert_eq!(
+            cafe.selected_agent_key(),
+            desk.selected_agent_key(),
+            "action {action:?}"
+        );
+        assert!(cafe_reduction.commands.len() <= 1, "action {action:?}");
+    }
+}
+
+#[test]
+fn cafe_visit_refresh_and_optional_reviewr_reuse_typed_desk_commands() {
+    for action in [Action::Visit, Action::Refresh] {
+        let mut desk = live_model_with_two_agents();
+        let mut cafe = cafe_twin(&desk);
+
+        let desk_reduction = reduce_action(&mut desk, action);
+        let cafe_reduction = reduce_action(&mut cafe, action);
+
+        assert_eq!(cafe_reduction, desk_reduction, "action {action:?}");
+    }
+
+    let mut desk = live_model_with_two_agents();
+    desk.set_reviewr_available(true);
+    let mut cafe = cafe_twin(&desk);
+    let desk_reduction = reduce_action(&mut desk, Action::Reviewr);
+    let cafe_reduction = reduce_action(&mut cafe, Action::Reviewr);
+
+    assert_eq!(cafe_reduction, desk_reduction);
+    assert_eq!(
+        cafe_reduction.commands,
+        vec![DeskCommand::OpenReviewr(PaneId::new("w1:p1"))]
+    );
+}
+
+#[test]
+fn cafe_reply_and_mark_seen_reuse_the_existing_local_and_command_boundaries() {
+    let mut desk = live_model_with_two_agents();
+    let mut cafe = cafe_twin(&desk);
+
+    for action in [
+        Action::Reply,
+        Action::TypeCharacter('o'),
+        Action::TypeCharacter('k'),
+        Action::Submit,
+    ] {
+        let desk_reduction = reduce_action(&mut desk, action);
+        let cafe_reduction = reduce_action(&mut cafe, action);
+        assert_eq!(cafe_reduction, desk_reduction, "action {action:?}");
+    }
+
+    let mut desk = live_model_with_two_agents();
+    let mut cafe = cafe_twin(&desk);
+    let desk_seen = reduce_action(&mut desk, Action::MarkSeen);
+    let cafe_seen = reduce_action(&mut cafe, Action::MarkSeen);
+
+    assert_eq!(cafe_seen, desk_seen);
+    assert_eq!(
+        cafe.selected_agent().unwrap().attention,
+        desk.selected_agent().unwrap().attention
+    );
+    assert!(cafe_seen.commands.is_empty());
+}
+
+#[test]
+fn cafe_search_reuses_selection_and_single_output_load_boundary() {
+    let mut desk = searchable_model();
+    let mut cafe = cafe_twin(&desk);
+
+    for action in [
+        Action::Search,
+        Action::TypeCharacter('b'),
+        Action::TypeCharacter('e'),
+        Action::TypeCharacter('t'),
+        Action::TypeCharacter('a'),
+        Action::Submit,
+    ] {
+        let desk_reduction = reduce_action(&mut desk, action);
+        let cafe_reduction = reduce_action(&mut cafe, action);
+        assert_eq!(cafe_reduction, desk_reduction, "action {action:?}");
+    }
+
+    assert_eq!(cafe.selected_agent_key(), desk.selected_agent_key());
+    assert_eq!(cafe.modal(), &Modal::None);
 }
