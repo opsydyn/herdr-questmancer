@@ -10,9 +10,15 @@ fn key(code: KeyCode) -> KeyEvent {
 
 #[test]
 fn number_and_function_keys_switch_views() {
-    assert_eq!(action_for(key(KeyCode::Char('1'))), Action::Switch(View::Desk));
+    assert_eq!(
+        action_for(key(KeyCode::Char('1'))),
+        Action::Switch(View::Desk)
+    );
     assert_eq!(action_for(key(KeyCode::F(1))), Action::Switch(View::Desk));
-    assert_eq!(action_for(key(KeyCode::Char('2'))), Action::Switch(View::Cafe));
+    assert_eq!(
+        action_for(key(KeyCode::Char('2'))),
+        Action::Switch(View::Cafe)
+    );
     assert_eq!(action_for(key(KeyCode::F(2))), Action::Switch(View::Cafe));
 }
 

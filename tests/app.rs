@@ -11,4 +11,3 @@ fn switches_views() {
     model.switch_to(View::Cafe);
     assert_eq!(model.view(), View::Cafe);
 }
-

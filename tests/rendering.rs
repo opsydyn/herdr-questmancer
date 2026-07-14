@@ -49,4 +49,3 @@ fn tiny_terminal_does_not_panic() {
 
     assert_eq!(screen.lines().count(), 1);
 }
-

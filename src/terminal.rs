@@ -88,5 +88,10 @@ pub fn run(initial_view: View) -> Result<()> {
 
 fn restore() {
     let _ = disable_raw_mode();
-    let _ = execute!(io::stdout(), Show, DisableMouseCapture, LeaveAlternateScreen);
+    let _ = execute!(
+        io::stdout(),
+        Show,
+        DisableMouseCapture,
+        LeaveAlternateScreen
+    );
 }
