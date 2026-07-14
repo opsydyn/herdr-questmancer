@@ -91,7 +91,7 @@ fn switches_views() {
 
 - [x] **Step 1: Add input tests for `1`/F1, `2`/F2, `?`, Escape, and `q`**
 - [x] **Step 2: Run `cargo test --test input` and verify unresolved input symbols fail**
-- [x] **Step 3: Implement key mapping, Clap `ui --view desk|cafe`, adaptive 10fps/2fps/event-only redraw, and RAII terminal restoration**
+- [x] **Step 3: Implement key mapping, Clap `ui --view desk|cafe`, event-driven redraw, resize handling, signal-aware shutdown, and RAII terminal restoration; adaptive animation rates remain milestone 5 work because milestone 1 has no animated state**
 - [x] **Step 4: Run `cargo test` and verify all model, rendering, and input tests pass**
 - [x] **Step 5: Run `cargo run -- ui --view desk` manually, switch views, quit, and verify the cursor and canonical mode are restored**
 - [x] **Step 6: Commit with `git commit -m "feat: add safe interactive terminal loop"`**

@@ -52,7 +52,9 @@ set -euo pipefail
 printf '%s\n' "$*" >>"$FAKE_HERDR_LOG"
 case "$*" in
   "pane get live-pane") exit 0 ;;
+  "pane get fail-pane") exit 0 ;;
   "pane get"*) exit 1 ;;
+  "pane close fail-pane") exit 1 ;;
   "plugin pane open"*) printf '{"result":{"plugin_pane":{"pane":{"pane_id":"new-pane"}}}}\n' ;;
 esac
 SH
@@ -91,6 +93,17 @@ test_open_focuses_a_live_existing_pane() {
   fi
 }
 
+test_view_actions_switch_a_live_existing_pane() {
+  mkdir -p "$TMP/state"
+  printf '{"pane_id":"live-pane"}\n' >"$TMP/state/runtime.json"
+  : >"$TMP/herdr.log"
+
+  run_control cafe
+
+  assert_contains "$TMP/herdr.log" "pane send-keys live-pane 2"
+  assert_contains "$TMP/herdr.log" "plugin pane focus live-pane"
+}
+
 test_close_uses_plain_pane_close_and_clears_state() {
   mkdir -p "$TMP/state"
   printf '{"pane_id":"live-pane"}\n' >"$TMP/state/runtime.json"
@@ -100,6 +113,18 @@ test_close_uses_plain_pane_close_and_clears_state() {
 
   assert_contains "$TMP/herdr.log" "pane close live-pane"
   [[ ! -e "$TMP/state/runtime.json" ]] || fail "close left runtime state behind"
+}
+
+test_failed_close_preserves_singleton_state() {
+  mkdir -p "$TMP/state"
+  printf '{"pane_id":"fail-pane"}\n' >"$TMP/state/runtime.json"
+  : >"$TMP/herdr.log"
+
+  if run_control close 2>"$TMP/close.err"; then
+    fail "failed pane close was reported as successful"
+  fi
+
+  [[ -e "$TMP/state/runtime.json" ]] || fail "failed close discarded runtime state"
 }
 
 test_stale_state_is_replaced() {
@@ -132,8 +157,10 @@ test_run_prefers_installed_binary
 test_run_falls_back_to_debug_binary
 test_open_creates_one_cafe_pane
 test_open_focuses_a_live_existing_pane
+test_view_actions_switch_a_live_existing_pane
 test_close_uses_plain_pane_close_and_clears_state
+test_failed_close_preserves_singleton_state
 test_stale_state_is_replaced
 test_busy_control_lock_refuses_a_second_action
 
-echo "scripts: 7 passed"
+echo "scripts: 9 passed"

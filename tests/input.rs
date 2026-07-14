@@ -1,7 +1,7 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use herdr_webmaster::{
     app::View,
-    ui::input::{Action, action_for},
+    ui::input::{Action, action_for, action_for_event},
 };
 
 fn key(code: KeyCode) -> KeyEvent {
@@ -36,4 +36,9 @@ fn global_keys_map_to_explicit_actions() {
 #[test]
 fn unrelated_keys_are_ignored() {
     assert_eq!(action_for(key(KeyCode::Char('x'))), Action::None);
+}
+
+#[test]
+fn resize_requests_a_redraw() {
+    assert_eq!(action_for_event(&Event::Resize(100, 40)), Action::Redraw);
 }

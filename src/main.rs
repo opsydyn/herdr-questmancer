@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::Parser;
 use herdr_webmaster::{
     cli::{Cli, Command},
+    runtime::RuntimeRegistration,
     terminal,
 };
 
@@ -10,6 +11,9 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Ui { view } => terminal::run(view),
+        Command::Ui { view } => {
+            let _runtime = RuntimeRegistration::from_env(view)?;
+            terminal::run(view)
+        }
     }
 }

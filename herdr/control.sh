@@ -52,8 +52,15 @@ write_runtime() {
 
 open_pane() {
   local initial_view=$1
+  local switch_existing=${2:-false}
   local pane_id response
   if pane_id=$(live_pane_id); then
+    if [[ $switch_existing == true ]]; then
+      case $initial_view in
+        desk) "$HERDR" pane send-keys "$pane_id" 1 >/dev/null ;;
+        cafe) "$HERDR" pane send-keys "$pane_id" 2 >/dev/null ;;
+      esac
+    fi
     "$HERDR" plugin pane focus "$pane_id" >/dev/null
     return
   fi
@@ -75,15 +82,19 @@ open_pane() {
 close_pane() {
   local pane_id
   if pane_id=$(runtime_pane_id); then
-    "$HERDR" pane close "$pane_id" >/dev/null 2>&1 || true
+    if ! "$HERDR" pane get "$pane_id" >/dev/null 2>&1; then
+      rm -f "$RUNTIME"
+      return
+    fi
+    "$HERDR" pane close "$pane_id" >/dev/null
   fi
   rm -f "$RUNTIME"
 }
 
 case ${1:-} in
-  open) open_pane desk ;;
-  desk) open_pane desk ;;
-  cafe) open_pane cafe ;;
+  open) open_pane desk false ;;
+  desk) open_pane desk true ;;
+  cafe) open_pane cafe true ;;
   close) close_pane ;;
   toggle)
     if pane_id=$(live_pane_id); then
@@ -93,7 +104,7 @@ case ${1:-} in
         "$HERDR" plugin pane focus "$pane_id" >/dev/null
       fi
     else
-      open_pane desk
+      open_pane desk false
     fi
     ;;
   *)
