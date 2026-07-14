@@ -20,3 +20,8 @@ All notable changes to this project will be documented here.
   fresh snapshots after disconnects or pane-topology changes.
 - Focused protocol verification and live plugin-link acceptance against Herdr
   `0.7.3` / protocol `16`.
+- Typed workspace, pane, agent, persona, event, and timestamp domain values.
+- Separate presence and webmaster-attention state with derived site rollups.
+- Stable original persona handles and appearance traits based on strongest
+  available agent identity.
+- Deterministic bounded guestbook history and a pure, effect-returning reducer.

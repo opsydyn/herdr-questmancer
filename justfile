@@ -19,6 +19,9 @@ protocol-test:
     jq -c . tests/fixtures/herdr/events.jsonl >/dev/null
     cargo test --test environment --test protocol --test framing --test client --test subscription --test supervisor
 
+domain-test:
+    cargo test --test domain_types --test persona --test normalization --test guestbook --test reducer
+
 verify: fmt-check lint test
     bash -n herdr/install.sh herdr/run.sh herdr/control.sh
 

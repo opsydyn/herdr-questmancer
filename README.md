@@ -14,10 +14,10 @@ needs you, reading their output, replying, and jumping back into the work.
 
 ## Project status
 
-Milestones 1 and 2 are implemented: the Rust executable, empty desk/cafe
+Milestones 1 through 3 are implemented: the Rust executable, empty desk/cafe
 projections, safe terminal lifecycle, plugin manifest, singleton actions, and
-the schema-grounded Herdr protocol runtime. Domain normalization and agent
-interactions arrive in the next milestones described in [PLAN.md](PLAN.md).
+the schema-grounded Herdr protocol runtime plus its typed domain core. Desk
+interactions arrive in the next milestone described in [PLAN.md](PLAN.md).
 
 The plugin requires Herdr `0.7.3` because its runtime design depends on
 `session.snapshot`, the protocol schema command, and the current agent event
@@ -91,6 +91,12 @@ snake-case lifecycle names such as `workspace_created`, and dotted scoped
 events such as `pane.agent_status_changed`. Because agent-status subscriptions
 are scoped, webmaster rebuilds one entry per unique pane after each snapshot.
 
+The domain boundary keeps presence (`working`, `blocked`, `done`, `idle`,
+`exited`) separate from the webmaster's seen/unseen attention. Site status is
+derived, guestbook events are deterministic and bounded, and native agent
+session identity keeps original personas stable when panes move. Equal state,
+events, and injected timestamps always produce equal reducer output.
+
 See the [design](docs/superpowers/specs/2026-07-14-herdr-webmaster-design.md),
 [pixel-art bible](docs/superpowers/specs/2026-07-14-pixel-art-design.md), and
 [protocol plan](docs/superpowers/plans/2026-07-14-milestone-2-herdr-protocol.md).
@@ -117,6 +123,9 @@ Run the focused protocol suite and regenerate the installed schema with:
 just protocol-test
 herdr api schema --output /tmp/herdr-api.schema.json
 ```
+
+Run the focused domain suite with `just domain-test` (or the corresponding
+`cargo test --test ...` command in the `justfile`).
 
 The fixture suite does not require a running Herdr server. Live plugin linking
 does: start `herdr server` in another terminal before `herdr plugin link .`.

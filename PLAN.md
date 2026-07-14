@@ -58,7 +58,7 @@ binary can switch between empty desk and cafe views.
 Exit: fixture-driven tests prove bootstrap, subscription, disconnect, and
 resnapshot behavior without a live Herdr server.
 
-### 3. Domain core
+### 3. Domain core — complete
 
 - Add typed IDs, presence, attention, agent, site, guestbook, and persona types.
 - Implement the pure reducer and effect command boundary.
