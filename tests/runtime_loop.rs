@@ -1,3 +1,4 @@
+use futures_util::FutureExt;
 use herdr_webmaster::{
     app::{ConnectionState, Model, View},
     command::{CommandResult, DeskCommand},
@@ -11,6 +12,8 @@ use herdr_webmaster::{
         RuntimeConnection, RuntimeEvent, apply_command_result, apply_connection_update,
         bootstrap_model,
     },
+    terminal::AnimationScheduler,
+    ui::theatre::RenderCadence,
 };
 use serde_json::json;
 use std::future::Future;
@@ -202,4 +205,59 @@ fn terminal_runtime_is_async() {
     fn assert_future(_: impl Future<Output = anyhow::Result<()>>) {}
 
     assert_future(herdr_webmaster::terminal::run(View::Desk));
+}
+
+#[tokio::test(start_paused = true)]
+async fn animation_scheduler_wakes_once_at_the_next_visible_frame() {
+    let cases = [
+        (RenderCadence::Fps(8), 125),
+        (RenderCadence::Fps(6), 167),
+        (RenderCadence::Fps(2), 500),
+        (RenderCadence::Fps(1), 1_000),
+    ];
+
+    for (cadence, milliseconds) in cases {
+        let mut scheduler = AnimationScheduler::new();
+        scheduler.reset(cadence);
+
+        tokio::time::advance(std::time::Duration::from_millis(milliseconds - 1)).await;
+        assert!(
+            scheduler.wait().now_or_never().is_none(),
+            "{cadence:?} woke before its next visible frame"
+        );
+
+        tokio::time::advance(std::time::Duration::from_millis(1)).await;
+        assert!(
+            scheduler.wait().now_or_never().is_some(),
+            "{cadence:?} did not wake at its next visible frame"
+        );
+    }
+}
+
+#[tokio::test(start_paused = true)]
+async fn event_driven_animation_scheduler_never_wakes_on_time_alone() {
+    let mut scheduler = AnimationScheduler::new();
+    scheduler.reset(RenderCadence::EventDriven);
+
+    tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
+
+    assert!(scheduler.wait().now_or_never().is_none());
+}
+
+#[tokio::test(start_paused = true)]
+async fn resetting_animation_scheduler_replaces_the_previous_deadline() {
+    let mut scheduler = AnimationScheduler::new();
+    scheduler.reset(RenderCadence::Fps(8));
+    tokio::time::advance(std::time::Duration::from_millis(100)).await;
+
+    scheduler.reset(RenderCadence::Fps(2));
+    tokio::time::advance(std::time::Duration::from_millis(400)).await;
+    assert!(scheduler.wait().now_or_never().is_none());
+
+    tokio::time::advance(std::time::Duration::from_millis(100)).await;
+    assert!(scheduler.wait().now_or_never().is_some());
+
+    scheduler.reset(RenderCadence::EventDriven);
+    tokio::time::advance(std::time::Duration::from_secs(1)).await;
+    assert!(scheduler.wait().now_or_never().is_none());
 }

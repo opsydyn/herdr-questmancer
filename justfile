@@ -25,8 +25,17 @@ domain-test:
 desk-test:
     cargo test --test app --test actions --test command --test runtime_loop --test desk_rendering --test input --test interaction --test reply
 
+cafe-test:
+    cargo test --test pixel --test persona_art --test cafe_widgets --test theatre --test cafe_rendering --test runtime_loop --test interaction
+
+release-check:
+    cargo build --release
+    git diff --check
+
 verify: fmt-check lint test
     bash -n herdr/install.sh herdr/run.sh herdr/control.sh
+
+milestone5-verify: verify release-check
 
 run view="desk":
     cargo run -- ui --view {{view}}

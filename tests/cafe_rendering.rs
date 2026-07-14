@@ -413,3 +413,31 @@ fn reduced_and_no_motion_cafes_are_stable_across_clock_changes() {
         assert_eq!(first, later, "motion {motion:?} changed with the clock");
     }
 }
+
+#[test]
+fn done_confetti_has_exactly_eight_frames_then_leaves_a_stable_update_badge() {
+    let mut model = three_agent_model();
+    let selected = model.selected_agent_key().unwrap().clone();
+    let agent = model.domain_mut().agents.get_mut(&selected).unwrap();
+    agent.presence = Presence::Done;
+    agent.attention = Attention::unseen(
+        AttentionReason::WorkCompleted,
+        Timestamp::from_millis(2_000),
+    );
+
+    for frame in 1..=8 {
+        model.set_now(Timestamp::from_millis(2_000 + i64::from(frame - 1) * 125));
+        let screen = render(&model, 120, 30);
+        assert_eq!(
+            screen.matches('^').count(),
+            1,
+            "confetti frame {frame} was not rendered exactly once:\n{screen}"
+        );
+        assert!(screen.contains("UPDATE READY"));
+    }
+
+    model.set_now(Timestamp::from_millis(3_000));
+    let stable = render(&model, 120, 30);
+    assert_eq!(stable.matches('^').count(), 0, "{stable}");
+    assert!(stable.contains("UPDATE READY"), "{stable}");
+}

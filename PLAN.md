@@ -32,7 +32,8 @@ Herdr snapshot + events
 
 Presence and attention remain separate. Widgets render derived state and never
 own domain truth. Pane output is loaded only for the selected agent. Animation
-uses a clock-derived frame so rendering remains deterministic in tests.
+uses a clock-derived frame so rendering remains deterministic in tests, and one
+resettable sleep is armed only when the visible cafe needs another frame.
 
 ## Milestones
 
@@ -80,7 +81,7 @@ output, and visit behavior. The manual Herdr `0.7.3` / protocol `16` acceptance
 also verified a stable subscription, blocked transition, search, exact reply
 delivery, and pane focus on 2026-07-14.
 
-### 5. Cybercafe
+### 5. Cybercafe — complete
 
 - Render a responsive workstation grid and tiny-terminal list fallback.
 - Add deterministic personas and semantic working/blocked/done/idle/exited art.
@@ -88,8 +89,15 @@ delivery, and pane focus on 2026-07-14.
   `docs/superpowers/specs/2026-07-14-pixel-art-design.md`.
 - Separate persistent state, transition effects, and frame animation.
 - Support selection, focus, reply, reduced motion, and ASCII mode.
+- Render original dedicated 10x12 seated compositions and separate 16x32
+  full-body profiles without copying the supplied visual reference.
+- Page dense grids and compact lists so the selected agent remains actionable.
+- Schedule 8/6/2/1 fps effects with one cancellation-safe timer, while static,
+  no-motion, empty-cafe, and desk views remain event-driven.
 
-Exit: every agent state is legible without colour and remains actionable.
+Exit: every agent state is legible without colour and remains actionable;
+responsive, interaction-parity, palette, motion, exact transition, and scheduler
+tests pass from full rooms through zero-sized areas.
 
 ### 6. Persistence, integration, and release
 
@@ -97,7 +105,7 @@ Exit: every agent state is legible without colour and remains actionable.
 - Harden singleton open/close/toggle/desk/cafe actions and stale-state recovery.
 - Add install/checksum scripts and macOS/Linux release workflows.
 - Complete README, manual fake-agent guide, recording, and privacy statement.
-- Run live Herdr `0.7.3` acceptance and idle-CPU checks.
+- Run release-candidate live Herdr `0.7.3` acceptance and idle-CPU checks.
 
 Exit: all twenty v0.1 acceptance criteria in the product handoff pass.
 

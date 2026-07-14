@@ -33,6 +33,22 @@ All notable changes to this project will be documented here.
   agent/site search, and optional `persiyanov.reviewr.open` integration.
 - Rendering and interaction coverage for empty, working, blocked, done/unseen,
   exited, disconnected, narrow, modal, and contextual-footer states.
+- Responsive actionable cybercafe with a workstation grid, selected-agent
+  profile, compact sub-80-column list, dense-herd paging, and preserved poses
+  during connection overlays.
+- Original deterministic 10x12 seated pixel characters and independently
+  composed 16x32 full-body profiles with stable silhouette and appearance
+  anchors; the supplied visual reference is not reproduced.
+- Semantic non-colour theatre signals for working, blocked, done-unseen,
+  done-seen, idle, exited, focused, and unknown states.
+- Unicode half-block and ASCII projections, xterm-256 and ANSI-16 palettes,
+  plus full, reduced, and no-motion display models.
+- A cancellation-safe adaptive animation scheduler that arms one resettable
+  sleep for the next visible frame and stays pending in event-driven modes.
+- Event-driven Unix shutdown signals replace the previous 50 ms polling
+  interval, leaving static and no-motion sessions without periodic timers.
+- Exact eight-frame, one-second completion confetti followed by a stable update
+  badge, with no output reads or persistence effects on animation wakes.
 
 ### Fixed
 

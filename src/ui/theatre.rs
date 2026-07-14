@@ -30,6 +30,19 @@ pub enum RenderCadence {
     Fps(u8),
 }
 
+impl RenderCadence {
+    /// Delay until the next frame can be observably different.
+    ///
+    /// Theatre frames use millisecond timestamps, so fractional frame periods
+    /// round up instead of waking early for an unchanged frame.
+    pub fn frame_period(self) -> Option<Duration> {
+        match self {
+            Self::EventDriven | Self::Fps(0) => None,
+            Self::Fps(fps) => Some(Duration::from_millis(1_000_u64.div_ceil(u64::from(fps)))),
+        }
+    }
+}
+
 pub fn frame_for(agent: &Agent, now: Timestamp, preferences: &DisplayPreferences) -> TheatreFrame {
     let (pose, label) = match agent.presence {
         Presence::Working => (TheatrePose::Working, "BUILDING"),

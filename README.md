@@ -14,16 +14,27 @@ needs you, reading their output, replying, and jumping back into the work.
 
 ## Project status
 
-Milestones 1 through 4 are implemented. The live webmaster desk turns Herdr
+Milestones 1 through 5 are implemented. The live webmaster desk turns Herdr
 snapshots and events into sites, webmaster mail, a guestbook, and one selected
 agent's recent output. Its async terminal runtime handles input, connection
 updates, commands, redraws, and structured shutdown without blocking the desk.
+
+The cybercafe projects that same model as an actionable room of original pixel
+characters: seated agents occupy workstations and the selected contributor gets
+a separately composed full-body profile. It remains usable at 80x24, pages dense
+herds to keep the selection visible, and falls back to a compact list below 80
+columns. The IT Crowd reference supplied during design was used only as a
+fidelity reference; no character, outfit, logo, pose, or composition was copied.
 
 If Herdr disconnects, webmaster keeps the last visible state on screen, shows
 its reconnect attempt, and refreshes from a new snapshot after reconnecting.
 Selected output is loaded lazily: when the selection or that pane's revision
 changes, or when the webmaster explicitly presses `o`. It is never polled on
 render ticks.
+
+Cafe animation is derived from the injected model clock. A single resettable
+sleep schedules only the next visible frame; the desk, static cafe states, and
+no-motion cafe are event-driven and do not redraw just because time passed.
 
 The compatibility baseline is Herdr `0.7.3` / protocol `16` because the runtime
 depends on `session.snapshot`, the protocol schema command, and the current
@@ -85,6 +96,42 @@ sending. The footer only advertises actions that apply to the current
 selection. In particular, `v` appears only when the connected Herdr session
 exposes `persiyanov.reviewr.open`.
 
+The desk and cafe use the same typed action path for selection, visit, reply,
+seen, search, refresh, and optional reviewr launch. At 120 columns and above the
+cafe shows a workstation grid plus the selected full-body profile; from 80 to
+119 it uses the full grid; below 80 it uses the compact vertical list.
+
+## Cybercafe state language
+
+| Herdr state | Visible cafe signal | Full-motion cadence |
+|---|---|---|
+| working | `BUILDING`, typing pose, CRT cursor and modem | 6 fps |
+| blocked | `HELP!`, raised hand and help card | 2 fps |
+| done, unseen | `UPDATE READY`, eight-frame confetti transition | 8 fps for 1 second |
+| done, seen | `DONE`, relaxed seated pose | event-driven |
+| idle | `IDLE`, screensaver pose | 1 fps |
+| exited | `BROKEN LINK`, broken CRT and empty chair | event-driven |
+| unknown | `UNKNOWN` and `?` marker | event-driven |
+| focused | `LIVE` and a lit desk lamp, without replacing state | follows state |
+
+Colour is supplementary: every state has a text label and silhouette or marker.
+Unicode half-block art is canonical, with a pure ASCII projection and an
+ANSI-16 palette available to constrained terminals.
+
+The display preference model supports:
+
+```text
+motion: full | reduced | none
+character set: unicode | ascii
+colour mode: xterm-256 | ansi-16
+```
+
+`full` enables semantic state animation; `reduced` freezes rapid effects but
+keeps the slow idle screensaver; `none` is entirely event-driven. The current
+v0.1 runtime uses the accessible defaults (`full`, `unicode`, `xterm-256`).
+Persistent user configuration for these preferences belongs to Milestone 6 and
+is not implemented yet.
+
 ## Plugin actions
 
 ```text
@@ -132,6 +179,13 @@ mail without reopening the TUI. Exercise selection, `Enter`, `r`, `Space`,
 opening reviewr. A temporary transport interruption should retain the visible
 desk under a reconnecting banner and resnapshot after recovery.
 
+Press `2` (or invoke `opsydyn.webmaster.cafe`) and confirm the same blocked
+agent is visible as `HELP!` with a raised-hand workstation pose. Exercise the
+same selection, visit, reply, seen, search, and refresh actions at 80x24. The
+Milestone 5 automated gate covers working, blocked, done, idle, exited, reduced
+motion, no motion, Unicode, ASCII, xterm-256, ANSI-16, dense herds, and tiny
+areas; a fresh live cafe smoke is intentionally part of the release acceptance.
+
 Return the synthetic agent to working and close the desk when finished:
 
 ```bash
@@ -166,6 +220,12 @@ derived, guestbook events are deterministic and bounded, and native agent
 session identity keeps original personas stable when panes move. Equal state,
 events, and injected timestamps always produce equal reducer output.
 
+The theatre layer derives poses, deterministic frames, and the fastest visible
+cadence. The terminal owns one cancellation-safe resettable sleep. It drops that
+timer in event-driven modes, creates no per-frame tasks, performs no output reads
+or persistence on animation wakes, and re-derives cadence after input, runtime,
+and clock events.
+
 See the [design](docs/superpowers/specs/2026-07-14-herdr-webmaster-design.md),
 [pixel-art bible](docs/superpowers/specs/2026-07-14-pixel-art-design.md), and
 [protocol plan](docs/superpowers/plans/2026-07-14-milestone-2-herdr-protocol.md).
@@ -197,6 +257,30 @@ Run the focused domain suite with `just domain-test` (or the corresponding
 `cargo test --test ...` command in the `justfile`).
 
 Run the focused operational desk suite with `just desk-test`.
+
+Run the focused pixel-art, theatre, cafe, and scheduler suite with:
+
+```bash
+just cafe-test
+```
+
+Run the complete Milestone 5 gate, including the release build, with:
+
+```bash
+just milestone5-verify
+```
+
+Equivalent commands are:
+
+```bash
+cargo fmt --all --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+bash tests/scripts.sh
+bash -n herdr/install.sh herdr/run.sh herdr/control.sh
+cargo build --release
+git diff --check
+```
 
 The fixture suite does not require a running Herdr server. Live plugin linking
 does: start `herdr server` in another terminal before `herdr plugin link .`.

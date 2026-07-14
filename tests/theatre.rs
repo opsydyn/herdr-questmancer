@@ -4,6 +4,7 @@ use herdr_webmaster::{
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::theatre::{RenderCadence, TheatrePose, cadence_for, frame_for},
 };
+use std::time::Duration;
 
 fn agent() -> Agent {
     let response: SuccessResponse<SessionSnapshotResult> =
@@ -406,4 +407,22 @@ fn display_preferences_are_model_state_with_accessible_defaults() {
     };
     model.set_preferences(configured);
     assert_eq!(model.preferences(), &configured);
+}
+
+#[test]
+fn render_cadence_exposes_only_the_next_visible_frame_delay() {
+    assert_eq!(RenderCadence::EventDriven.frame_period(), None);
+    assert_eq!(RenderCadence::Fps(0).frame_period(), None);
+    assert_eq!(
+        RenderCadence::Fps(8).frame_period(),
+        Some(Duration::from_millis(125))
+    );
+    assert_eq!(
+        RenderCadence::Fps(6).frame_period(),
+        Some(Duration::from_millis(167))
+    );
+    assert_eq!(
+        RenderCadence::Fps(1).frame_period(),
+        Some(Duration::from_secs(1))
+    );
 }
