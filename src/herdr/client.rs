@@ -14,8 +14,11 @@ use tokio::{io::BufReader, net::UnixStream};
 use super::{
     framing::{FramingError, read_json_line, write_json_line},
     protocol::{
-        EmptyParams, ErrorResponse, Pong, Request, SessionSnapshot, SessionSnapshotResult,
-        SuccessResponse,
+        EmptyParams, ErrorResponse, OkResult, PaneInfo, PaneInfoResult, PaneReadParams,
+        PaneReadResult, PaneReadResultEnvelope, PaneSendTextParams, PaneTarget, PluginActionInfo,
+        PluginActionInvokeParams, PluginActionInvokedResult, PluginActionListParams,
+        PluginActionListResult, PluginInvocationContext, Pong, ReadFormat, ReadSource, Request,
+        SessionSnapshot, SessionSnapshotResult, SuccessResponse,
     },
 };
 
@@ -43,6 +46,93 @@ impl HerdrClient {
             .request("session.snapshot", EmptyParams {}, "session_snapshot")
             .await?;
         Ok(result.snapshot)
+    }
+
+    pub async fn focus_pane(&self, pane_id: impl Into<String>) -> Result<PaneInfo, ClientError> {
+        let result: PaneInfoResult = self
+            .request(
+                "pane.focus",
+                PaneTarget {
+                    pane_id: pane_id.into(),
+                },
+                "pane_info",
+            )
+            .await?;
+        Ok(result.pane)
+    }
+
+    pub async fn send_text(
+        &self,
+        pane_id: impl Into<String>,
+        text: impl Into<String>,
+    ) -> Result<(), ClientError> {
+        let _: OkResult = self
+            .request(
+                "pane.send_text",
+                PaneSendTextParams {
+                    pane_id: pane_id.into(),
+                    text: text.into(),
+                },
+                "ok",
+            )
+            .await?;
+        Ok(())
+    }
+
+    pub async fn read_recent_unwrapped(
+        &self,
+        pane_id: impl Into<String>,
+        lines: u32,
+    ) -> Result<PaneReadResult, ClientError> {
+        let result: PaneReadResultEnvelope = self
+            .request(
+                "pane.read",
+                PaneReadParams {
+                    pane_id: pane_id.into(),
+                    source: ReadSource::RecentUnwrapped,
+                    lines: Some(lines),
+                    format: ReadFormat::Text,
+                    strip_ansi: true,
+                },
+                "pane_read",
+            )
+            .await?;
+        Ok(result.read)
+    }
+
+    pub async fn list_plugin_actions(&self) -> Result<Vec<PluginActionInfo>, ClientError> {
+        let result: PluginActionListResult = self
+            .request(
+                "plugin.action.list",
+                PluginActionListParams::default(),
+                "plugin_action_list",
+            )
+            .await?;
+        Ok(result.actions)
+    }
+
+    pub async fn invoke_plugin_action(
+        &self,
+        plugin_id: impl Into<String>,
+        action_id: impl Into<String>,
+        focused_pane_id: impl Into<String>,
+    ) -> Result<(), ClientError> {
+        let _: PluginActionInvokedResult = self
+            .request(
+                "plugin.action.invoke",
+                PluginActionInvokeParams {
+                    action_id: action_id.into(),
+                    plugin_id: Some(plugin_id.into()),
+                    context: Some(PluginInvocationContext {
+                        focused_pane_id: Some(focused_pane_id.into()),
+                        invocation_source: Some("opsydyn.webmaster".to_owned()),
+                        ..PluginInvocationContext::default()
+                    }),
+                },
+                "plugin_action_invoked",
+            )
+            .await?;
+        Ok(())
     }
 
     async fn request<P, T>(

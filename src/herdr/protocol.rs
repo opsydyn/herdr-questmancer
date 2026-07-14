@@ -241,3 +241,142 @@ pub struct WireEvent {
     pub event: String,
     pub data: Value,
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PaneTarget {
+    pub pane_id: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PaneSendTextParams {
+    pub pane_id: String,
+    pub text: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadSource {
+    Visible,
+    Recent,
+    RecentUnwrapped,
+    Detection,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadFormat {
+    Text,
+    Ansi,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PaneReadParams {
+    pub pane_id: String,
+    pub source: ReadSource,
+    pub lines: Option<u32>,
+    pub format: ReadFormat,
+    pub strip_ansi: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct OkResult {
+    #[serde(rename = "type")]
+    pub kind: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct PaneInfoResult {
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub pane: PaneInfo,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct PaneReadResultEnvelope {
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub read: PaneReadResult,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct PaneReadResult {
+    pub pane_id: String,
+    pub workspace_id: String,
+    pub tab_id: String,
+    pub source: ReadSource,
+    pub format: ReadFormat,
+    pub text: String,
+    pub revision: u64,
+    pub truncated: bool,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum PluginActionContext {
+    Global,
+    Workspace,
+    Tab,
+    Pane,
+    Selection,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct PluginActionInfo {
+    pub plugin_id: String,
+    pub action_id: String,
+    pub title: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub contexts: Vec<PluginActionContext>,
+    #[serde(default)]
+    pub command: Vec<String>,
+}
+
+impl PluginActionInfo {
+    #[must_use]
+    pub fn qualified_id(&self) -> String {
+        format!("{}.{}", self.plugin_id, self.action_id)
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct PluginActionListParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plugin_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct PluginActionListResult {
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub actions: Vec<PluginActionInfo>,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct PluginInvocationContext {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tab_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub focused_pane_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invocation_source: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PluginActionInvokeParams {
+    pub action_id: String,
+    pub plugin_id: Option<String>,
+    pub context: Option<PluginInvocationContext>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct PluginActionInvokedResult {
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub action: PluginActionInfo,
+    pub context: Value,
+    pub log: Value,
+}
