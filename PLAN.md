@@ -67,14 +67,18 @@ resnapshot behavior without a live Herdr server.
 
 Exit: reducer tests cover every required transition and snapshot replacement.
 
-### 4. Webmaster desk
+### 4. Webmaster desk — complete
 
 - Render sites, webmaster mail, guestbook, and selected-agent details.
 - Load selected output lazily.
 - Focus panes, compose/send replies, mark attention seen, and search.
 - Discover and optionally invoke `persiyanov.reviewr.open`.
 
-Exit: the desk supports the complete scan, inspect, reply, and visit loop.
+Exit: focused application, command, runtime, interaction, reply, and rendering
+tests verify the scan, inspect, reply, seen, search, reviewr, reconnect, lazy
+output, and visit behavior. The README carries a separate manual live Herdr
+`0.7.3` acceptance procedure; completing that procedure remains a release
+gate, not a claim made by this milestone.
 
 ### 5. Cybercafe
 

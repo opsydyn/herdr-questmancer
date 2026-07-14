@@ -25,3 +25,11 @@ All notable changes to this project will be documented here.
 - Stable original persona handles and appearance traits based on strongest
   available agent identity.
 - Deterministic bounded guestbook history and a pure, effect-returning reducer.
+- Operational webmaster desk with responsive site, mail, guestbook, selected
+  agent, connection, status, and recent-output views.
+- Async live terminal runtime with reconnect/resnapshot behavior, retained
+  visible state, command completion handling, and structured task shutdown.
+- Lazy selected-pane output, pane focus, reply composition, local seen state,
+  agent/site search, and optional `persiyanov.reviewr.open` integration.
+- Rendering and interaction coverage for empty, working, blocked, done/unseen,
+  exited, disconnected, narrow, modal, and contextual-footer states.

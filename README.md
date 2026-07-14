@@ -14,14 +14,20 @@ needs you, reading their output, replying, and jumping back into the work.
 
 ## Project status
 
-Milestones 1 through 3 are implemented: the Rust executable, empty desk/cafe
-projections, safe terminal lifecycle, plugin manifest, singleton actions, and
-the schema-grounded Herdr protocol runtime plus its typed domain core. Desk
-interactions arrive in the next milestone described in [PLAN.md](PLAN.md).
+Milestones 1 through 4 are implemented. The live webmaster desk turns Herdr
+snapshots and events into sites, webmaster mail, a guestbook, and one selected
+agent's recent output. Its async terminal runtime handles input, connection
+updates, commands, redraws, and structured shutdown without blocking the desk.
 
-The plugin requires Herdr `0.7.3` because its runtime design depends on
-`session.snapshot`, the protocol schema command, and the current agent event
-surface.
+If Herdr disconnects, webmaster keeps the last visible state on screen, shows
+its reconnect attempt, and refreshes from a new snapshot after reconnecting.
+Selected output is loaded lazily: when the selection or that pane's revision
+changes, or when the webmaster explicitly presses `o`. It is never polled on
+render ticks.
+
+The compatibility baseline is Herdr `0.7.3` / protocol `16` because the runtime
+depends on `session.snapshot`, the protocol schema command, and the current
+agent event surface.
 
 ## Local development
 
@@ -32,7 +38,8 @@ Requirements:
 - Herdr `0.7.3` or newer for plugin linking and live integration
 - `just` is optional; every recipe is also a normal shell command
 
-Build and run directly:
+Build and run directly. Without Herdr's plugin environment the TUI starts in a
+useful offline mode, so the layout and keys can be explored without a server:
 
 ```bash
 cargo build
@@ -40,7 +47,8 @@ cargo run -- ui --view desk
 cargo run -- ui --view cafe
 ```
 
-Link a development checkout after building and while Herdr `0.7.3+` is running:
+Link a development checkout after building and while Herdr `0.7.3` / protocol
+`16` is running:
 
 ```bash
 cargo build
@@ -58,11 +66,24 @@ resolves `bin/herdr-webmaster`, then `target/release/herdr-webmaster`, then
 |---|---|
 | `1` / `F1` | webmaster desk |
 | `2` / `F2` | cybercafe |
-| `?` | help (reserved for milestone 4) |
-| `q` / `Ctrl-C` | close the TUI |
+| `Tab` | cycle the active desk region |
+| `j` / `Down` | select the next agent |
+| `k` / `Up` | select the previous agent |
+| `g` / `G` | select the first / last agent |
+| `Enter` | visit (focus) the selected agent's pane |
+| `r` | compose a reply to the selected agent |
+| `Space` | mark the selected agent's attention seen locally |
+| `o` | refresh the selected agent's recent output |
+| `/` | search agent, handle, status, or site |
+| `v` | focus the selected pane, then open reviewr when available |
+| `Esc` | dismiss the active modal |
+| `q` / `Ctrl-C` | close the TUI when no modal is open |
 
-The full v0.1 key map will add selection, focus, reply, seen state, output
-refresh, search, and optional reviewr actions.
+Reply and search modals accept normal text and `Backspace`. `Enter` sends the
+reply or runs the search, `Ctrl-U` clears the input, and `Esc` cancels without
+sending. The footer only advertises actions that apply to the current
+selection. In particular, `v` appears only when the connected Herdr session
+exposes `persiyanov.reviewr.open`.
 
 ## Plugin actions
 
@@ -77,6 +98,52 @@ opsydyn.webmaster.cafe
 The controller uses `$HERDR_BIN_PATH`, an atomic lock directory, and
 `$HERDR_PLUGIN_STATE_DIR/runtime.json` to avoid duplicate panes and recover
 from stale pane state.
+
+## Manual live acceptance
+
+The following is a procedure, not a record of a completed acceptance run. It
+uses the Herdr `0.7.3` CLI syntax; the plugin commands require a running server.
+
+```bash
+herdr status
+cargo build
+herdr plugin link .
+herdr plugin action invoke opsydyn.webmaster.open
+```
+
+From a different Herdr pane, publish a blocked test agent using that pane's
+real ID:
+
+```bash
+PANE_ID="$(herdr pane current | jq -r '.result.pane.pane_id')"
+herdr pane report-agent "$PANE_ID" \
+  --source manual-acceptance \
+  --agent acceptance-agent \
+  --state blocked \
+  --message "Need webmaster input" \
+  --custom-status "waiting for reply"
+```
+
+Back at the desk, confirm the blocked transition appears as unread webmaster
+mail without reopening the TUI. Exercise selection, `Enter`, `r`, `Space`,
+`/`, and `o`; if the footer offers `v`, confirm it focuses this pane before
+opening reviewr. A temporary transport interruption should retain the visible
+desk under a reconnecting banner and resnapshot after recovery.
+
+Return the synthetic agent to working and close the desk when finished:
+
+```bash
+herdr pane report-agent "$PANE_ID" \
+  --source manual-acceptance \
+  --agent acceptance-agent \
+  --state working \
+  --custom-status "implementing reply"
+herdr plugin action invoke opsydyn.webmaster.close
+```
+
+Herdr `0.7.3`'s `report-agent` command accepts `idle`, `working`, `blocked`, or
+`unknown`; it cannot synthesize `done`. Use a real agent completion event when
+accepting the update-ready path.
 
 ## Architecture
 
@@ -126,6 +193,8 @@ herdr api schema --output /tmp/herdr-api.schema.json
 
 Run the focused domain suite with `just domain-test` (or the corresponding
 `cargo test --test ...` command in the `justfile`).
+
+Run the focused operational desk suite with `just desk-test`.
 
 The fixture suite does not require a running Herdr server. Live plugin linking
 does: start `herdr server` in another terminal before `herdr plugin link .`.

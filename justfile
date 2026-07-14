@@ -22,6 +22,9 @@ protocol-test:
 domain-test:
     cargo test --test domain_types --test persona --test normalization --test guestbook --test reducer
 
+desk-test:
+    cargo test --test app --test actions --test command --test runtime_loop --test desk_rendering --test input --test interaction --test reply
+
 verify: fmt-check lint test
     bash -n herdr/install.sh herdr/run.sh herdr/control.sh
 
