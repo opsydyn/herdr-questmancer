@@ -1,7 +1,11 @@
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
-use crate::domain::{Agent, AgentKey, DomainState, PaneId, Timestamp};
+use crate::{
+    domain::{Agent, AgentKey, DomainState, PaneId, Timestamp},
+    persistence::DurableIntent,
+    update::{AppEvent, update},
+};
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, ValueEnum)]
 #[serde(rename_all = "snake_case")]
@@ -102,6 +106,7 @@ pub struct Model {
     reviewr_available: bool,
     now: Timestamp,
     preferences: DisplayPreferences,
+    durable_intent: DurableIntent,
 }
 
 impl Model {
@@ -117,6 +122,7 @@ impl Model {
             reviewr_available: false,
             now: Timestamp::from_millis(0),
             preferences: DisplayPreferences::default(),
+            durable_intent: DurableIntent::default(),
         }
     }
 
@@ -145,6 +151,10 @@ impl Model {
     }
 
     pub fn replace_domain(&mut self, mut domain: DomainState) {
+        let selected_persona = self.selected_agent().map(|agent| agent.persona.key.clone());
+        if selected_persona.is_some() {
+            self.durable_intent.remember_selected(selected_persona);
+        }
         if self
             .domain
             .selected_agent
@@ -161,7 +171,16 @@ impl Model {
         {
             domain.selected_agent = domain.agents.keys().next().cloned();
         }
+        self.durable_intent.overlay(&mut domain);
         self.domain = domain;
+    }
+
+    pub fn mark_selected_attention_seen(&mut self) {
+        let Some(agent_key) = self.selected_agent_key().cloned() else {
+            return;
+        };
+        let (domain, _commands) = update(self.domain.clone(), AppEvent::MarkSeen(agent_key));
+        self.replace_domain(domain);
     }
 
     pub fn selected_agent(&self) -> Option<&Agent> {
@@ -339,5 +358,13 @@ impl Model {
 
     pub const fn set_preferences(&mut self, preferences: DisplayPreferences) {
         self.preferences = preferences;
+    }
+
+    pub const fn durable_intent(&self) -> &DurableIntent {
+        &self.durable_intent
+    }
+
+    pub fn durable_intent_mut(&mut self) -> &mut DurableIntent {
+        &mut self.durable_intent
     }
 }
