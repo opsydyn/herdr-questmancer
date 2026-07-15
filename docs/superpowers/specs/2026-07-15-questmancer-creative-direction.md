@@ -1,5 +1,7 @@
 # Questmancer creative direction
 
+Status: **Approved**
+
 ## Decision
 
 Pivot the product from `webmaster` to **Questmancer**, a cozy adventurers'
