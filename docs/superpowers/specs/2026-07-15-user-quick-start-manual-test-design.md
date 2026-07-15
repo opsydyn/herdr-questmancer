@@ -87,7 +87,10 @@ update-ready path requires a real agent completion event.
 
 The test must not silently choose an arbitrary user pane. It uses
 `HERDR_PANE_ID` only when available and valid; otherwise the operator chooses a
-pane from `herdr pane list`.
+pane from `herdr pane list`. If a webmaster pane already existed before the
+test, close/reopen requires explicit operator permission; without permission,
+the persistence checkpoint is reported as blocked rather than disturbing the
+existing pane.
 
 ### 4. Troubleshooting and removal
 
@@ -125,7 +128,8 @@ Codex agent. The prompt authorizes testing, not implementation. The agent must:
 - use a unique synthetic source ID and explicitly selected pane;
 - collect command output and ask the user for visual confirmations that cannot
   be proven from CLI state;
-- exercise persistence through close/reopen;
+- exercise persistence through close/reopen only for a pane it opened, or
+  after obtaining explicit permission for a pre-existing pane;
 - release its synthetic agent;
 - close or unlink only resources it created;
 - never stop a Herdr server it did not start;
