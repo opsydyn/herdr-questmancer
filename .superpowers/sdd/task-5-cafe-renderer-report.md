@@ -35,3 +35,13 @@ cargo test --test cafe_rendering --test cafe_scene --test cafe_widgets --test pe
 cargo clippy --all-targets --all-features -- -D warnings
 passed.
 ```
+
+## Review follow-up
+
+- `WallRow`, `CornerBooth`, and `BackRoomLab` now alter seat offsets and authored wall, furniture, doorway, aisle, and floor cues. Rendering tests assert distinct output for all three variants.
+- The selected workspace is passed into bay layout and rendered as the active, fully authored bay; neighboring bays use simplified architecture while retaining their seats and labels.
+- Transition columns draw explicit doorway/connection geometry between adjacent bays.
+- The shared arbitrary `CONNECTED BAYS / 56K FLOOR` frame label was removed.
+- The 80x24 contract now tests a compact neighbor-bay strip plus navigation/actions.
+
+Follow-up verification: 19 café rendering + 4 scene + 15 widget + 11 persona-art + 3 general rendering tests passed; Clippy with `-D warnings` passed.

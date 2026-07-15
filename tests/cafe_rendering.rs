@@ -114,7 +114,7 @@ fn one_hundred_sixty_columns_keep_three_agents_in_authored_room() {
 
     assert_every_agent_is_visible(&screen);
     assert!(screen.contains("BAY"), "missing bay signage:\n{screen}");
-    assert!(screen.contains("DESK"), "missing furniture cue:\n{screen}");
+    assert!(screen.contains("CRT"), "missing furniture cue:\n{screen}");
     assert!(screen.contains("> Beta"), "missing selection:\n{screen}");
     assert!(screen.contains("[!] HELP!"), "missing state:\n{screen}");
     let alpha = screen.find("Alpha").unwrap();
@@ -162,6 +162,76 @@ fn multiple_workspaces_render_as_connected_bays_with_deterministic_variant_cues(
         "missing connected-room cue:\n{screen}"
     );
     assert_every_agent_is_visible(&screen);
+}
+
+#[test]
+fn authored_variants_change_rendered_room_geometry() {
+    let mut ids = Vec::new();
+    for index in 0..128 {
+        let id = WorkspaceId::new(format!("variant-{index}"));
+        let variant = herdr_webmaster::ui::cafe_scene::variant_for_workspace(&id);
+        if !ids.iter().any(|(known, _)| *known == variant) {
+            ids.push((variant, id));
+        }
+        if ids.len() == 3 {
+            break;
+        }
+    }
+    let mut screens = Vec::new();
+    for (variant, workspace) in ids {
+        let mut model = three_agent_model();
+        for agent in model.domain_mut().agents.values_mut() {
+            agent.workspace_id = workspace.clone();
+        }
+        model.domain_mut().sites.clear();
+        let keys = model.domain().agents.keys().cloned().collect();
+        model.domain_mut().sites.insert(
+            workspace.clone(),
+            Site {
+                workspace_id: workspace,
+                label: format!("{variant:?}"),
+                cwd: "/tmp".into(),
+                agents: keys,
+            },
+        );
+        screens.push(render(&model, 120, 30));
+    }
+    assert_eq!(screens.len(), 3);
+    assert!(screens.windows(2).all(|pair| pair[0] != pair[1]));
+}
+
+#[test]
+fn eighty_by_twenty_four_keeps_a_compact_bay_strip_and_actions() {
+    let mut model = three_agent_model();
+    model.domain_mut().sites.insert(
+        WorkspaceId::new("w1"),
+        Site {
+            workspace_id: WorkspaceId::new("w1"),
+            label: "w1".into(),
+            cwd: "/tmp/w1".into(),
+            agents: vec![
+                AgentKey::new("agent-a"),
+                AgentKey::new("agent-b"),
+                AgentKey::new("agent-c"),
+            ],
+        },
+    );
+    model.domain_mut().sites.insert(
+        WorkspaceId::new("w2"),
+        Site {
+            workspace_id: WorkspaceId::new("w2"),
+            label: "w2".into(),
+            cwd: "/tmp/w2".into(),
+            agents: vec![],
+        },
+    );
+    let screen = render(&model, 80, 24);
+    assert!(
+        screen.contains("neighbor bay"),
+        "missing compact bay strip:\n{screen}"
+    );
+    assert!(screen.contains("[j/k] navigate"));
+    assert!(screen.contains("[enter] visit"));
 }
 
 #[test]

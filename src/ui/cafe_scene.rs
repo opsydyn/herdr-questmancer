@@ -144,8 +144,25 @@ fn authored_seats(variant: BayVariant, count: usize, bay: Rect) -> Vec<SeatAncho
         } else {
             row
         };
-        let x = u32::from(bay.x) + width * col / columns;
-        let y = u32::from(bay.y) + height * row / rows;
+        let base_x = u32::from(bay.x) + width * col / columns;
+        let base_y = u32::from(bay.y) + height * row / rows;
+        let (x, y) = if width <= 8 || height <= 8 {
+            (base_x, base_y)
+        } else {
+            match variant {
+                BayVariant::WallRow => (base_x, base_y.saturating_add(height / 3)),
+                BayVariant::CornerBooth => (
+                    base_x.saturating_add(width / 8),
+                    base_y.saturating_add(height / 5),
+                ),
+                BayVariant::BackRoomLab => (
+                    base_x.saturating_add(width / 10),
+                    base_y.saturating_sub(height / 8),
+                ),
+            }
+        };
+        let x = x.min(u32::from(bay.right()).saturating_sub(seat_width));
+        let y = y.min(u32::from(bay.bottom()).saturating_sub(seat_height));
         seats.push(SeatAnchor {
             x: u16::try_from(x).unwrap_or(u16::MAX),
             y: u16::try_from(y).unwrap_or(u16::MAX),

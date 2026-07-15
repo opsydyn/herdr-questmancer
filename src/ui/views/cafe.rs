@@ -78,9 +78,6 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     );
     let mut block = Block::default()
         .title(title)
-        .title_bottom(
-            Line::styled(" CONNECTED BAYS / 56K FLOOR ", styles.floor).alignment(Alignment::Right),
-        )
         .title_alignment(Alignment::Center)
         .borders(Borders::ALL)
         .border_style(styles.accent)
@@ -130,9 +127,34 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
     } else {
         model.domain().sites.clone()
     };
-    let bays = layout_bays(&sites, &model.domain().agents, area, None);
-    for bay in bays {
-        render_bay_architecture(frame, bay.rect, &bay.workspace_id, bay.variant, styles);
+    let selected_workspace = model
+        .selected_agent()
+        .map(|agent| agent.workspace_id.clone());
+    let bays = layout_bays(
+        &sites,
+        &model.domain().agents,
+        area,
+        selected_workspace.as_ref(),
+    );
+    for (index, bay) in bays.iter().enumerate() {
+        let active = selected_workspace.as_ref() == Some(&bay.workspace_id);
+        render_bay_architecture(
+            frame,
+            bay.rect,
+            &bay.workspace_id,
+            bay.variant,
+            active,
+            styles,
+        );
+        if index > 0 {
+            let previous = bays[index - 1].rect;
+            let x = previous.right().saturating_sub(1);
+            let transition = Rect::new(x, bay.rect.y, 1, bay.rect.height);
+            frame.render_widget(
+                Paragraph::new("│\n│\n╫\n│\n│").style(styles.accent),
+                transition,
+            );
+        }
         let Some(site) = sites.get(&bay.workspace_id) else {
             continue;
         };
@@ -160,6 +182,7 @@ fn render_bay_architecture(
     area: Rect,
     workspace: &crate::domain::WorkspaceId,
     variant: crate::ui::cafe_scene::BayVariant,
+    active: bool,
     styles: CafeStyles,
 ) {
     if area.is_empty() {
@@ -167,9 +190,9 @@ fn render_bay_architecture(
     }
     let label = format!(" BAY {} ", workspace.as_str());
     let variant_label = match variant {
-        crate::ui::cafe_scene::BayVariant::WallRow => "WALL ROW",
-        crate::ui::cafe_scene::BayVariant::CornerBooth => "CORNER BOOTH",
-        crate::ui::cafe_scene::BayVariant::BackRoomLab => "BACK ROOM LAB",
+        crate::ui::cafe_scene::BayVariant::WallRow => "WALL ROW / DESKS",
+        crate::ui::cafe_scene::BayVariant::CornerBooth => "CORNER BOOTH / BAR",
+        crate::ui::cafe_scene::BayVariant::BackRoomLab => "BACK ROOM LAB / RACKS",
     };
     let mut lines = Vec::with_capacity(usize::from(area.height));
     lines.push(Line::styled(
@@ -186,6 +209,12 @@ fn render_bay_architecture(
                 variant_label,
                 width = usize::from(area.width.saturating_sub(3))
             )
+        } else if !active {
+            format!(
+                "| {:width$}|",
+                "neighbor bay",
+                width = usize::from(area.width.saturating_sub(3))
+            )
         } else if row + 2 >= area.height {
             format!(
                 "| {:width$}|",
@@ -193,15 +222,25 @@ fn render_bay_architecture(
                 width = usize::from(area.width.saturating_sub(3))
             )
         } else if row == area.height / 2 {
+            let cue = match variant {
+                crate::ui::cafe_scene::BayVariant::WallRow => "DOOR LEFT / AISLE",
+                crate::ui::cafe_scene::BayVariant::CornerBooth => "AISLE / DOOR RIGHT",
+                crate::ui::cafe_scene::BayVariant::BackRoomLab => "HATCH / AISLE",
+            };
             format!(
                 "| {:width$}|",
-                "DOOR  /  AISLE",
+                cue,
                 width = usize::from(area.width.saturating_sub(3))
             )
         } else if row == 3 {
+            let furniture = match variant {
+                crate::ui::cafe_scene::BayVariant::WallRow => "WALL DESKS / CRT",
+                crate::ui::cafe_scene::BayVariant::CornerBooth => "BOOTH TABLE / CRT",
+                crate::ui::cafe_scene::BayVariant::BackRoomLab => "RACK DESKS / CRT",
+            };
             format!(
                 "| {:width$}|",
-                "DESK / CRT",
+                furniture,
                 width = usize::from(area.width.saturating_sub(3))
             )
         } else {
