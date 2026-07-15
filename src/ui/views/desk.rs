@@ -170,6 +170,7 @@ fn render_agent(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     if let Some(preview) = model
         .output_preview()
         .filter(|preview| preview.pane_id == agent.pane_id)
+        .filter(|_| model.managed_pane_id() != Some(&agent.pane_id))
     {
         lines.extend(preview.text.lines().map(|line| Line::from(line.to_owned())));
     } else {

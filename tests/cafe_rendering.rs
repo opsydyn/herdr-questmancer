@@ -603,6 +603,9 @@ fn reduced_and_no_motion_cafes_are_stable_across_clock_changes() {
         let later = render(&model, 120, 30);
 
         assert_eq!(first, later, "motion {motion:?} changed with the clock");
+        assert!(first.contains("BUILDING"));
+        assert!(first.contains("HELP!"));
+        assert!(first.contains("BROKEN"));
     }
 }
 

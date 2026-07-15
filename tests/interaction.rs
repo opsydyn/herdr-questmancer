@@ -112,6 +112,19 @@ fn selection_changes_persist_but_noops_and_animation_redraws_do_not() {
 }
 
 #[test]
+fn unchanged_idle_room_emits_no_output_load_or_persistence_effects() {
+    let mut model = live_model_with_two_agents();
+    for agent in model.domain_mut().agents.values_mut() {
+        agent.presence = herdr_webmaster::domain::Presence::Idle;
+    }
+
+    let redraw = reduce_action(&mut model, Action::Redraw);
+
+    assert!(redraw.commands.is_empty());
+    assert!(redraw.persistence.is_empty());
+}
+
+#[test]
 fn region_cycle_is_deterministic_and_wraps() {
     let mut model = Model::new(View::Desk);
 

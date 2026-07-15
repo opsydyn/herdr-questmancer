@@ -43,6 +43,10 @@ The compatibility baseline is Herdr `0.7.3` / protocol `16` because the runtime
 depends on `session.snapshot`, the protocol schema command, and the current
 agent event surface.
 
+The fully completed live acceptance walkthrough dated 2026-07-14 is historical
+evidence for the earlier environment. It is not a claim about the latest
+synthetic-agent run.
+
 ## Local development
 
 Requirements:
@@ -248,6 +252,13 @@ release the synthetic source and close only the pane created by the test. Keep
 the Herdr server and any pre-existing plugin link running. Herdr 0.7.3 does not
 support synthesizing `done`; verify completion with a real agent or a fixture
 test instead.
+
+Latest setup-limited result (2026-07-15): the synthetic `blocked` report exited
+successfully, but the source did not appear in `herdr api snapshot` because the
+report targeted an already-owned Codex pane. The blocked mail, HELP pose, reply,
+seen, search, and selected-output checks were therefore blocked upstream, not
+failed plugin assertions. Repeat the run with a dedicated plain pane before
+calling those interactions verified.
 
 The controller uses `$HERDR_BIN_PATH`, an atomic lock directory, and
 `$HERDR_PLUGIN_STATE_DIR/runtime.json` to avoid duplicate panes and recover

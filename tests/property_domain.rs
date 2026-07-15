@@ -43,16 +43,27 @@ proptest! {
             }).agents.extend(keys);
         }
 
-        let bays = layout_bays(&sites, &agents, Rect::new(0, 0, 240, 120), None);
-        let mut ownership = BTreeMap::<AgentKey, usize>::new();
-        for bay in &bays {
-            let site = &sites[&bay.workspace_id];
-            for (key, _seat) in site.agents.iter().zip(&bay.seats) {
-                *ownership.entry(key.clone()).or_default() += 1;
+        for (width, height) in [(240, 120), (80, 24), (60, 18), (1, 1), (0, 0)] {
+            let bays = layout_bays(&sites, &agents, Rect::new(0, 0, width, height), None);
+            let mut ownership = BTreeMap::<AgentKey, usize>::new();
+            for bay in &bays {
+                let site = &sites[&bay.workspace_id];
+                for key in site.agents.iter().take(bay.seats.len()) {
+                    *ownership.entry(key.clone()).or_default() += 1;
+                }
             }
-        }
-        for key in agents.keys() {
-            prop_assert_eq!(ownership.get(key).copied().unwrap_or_default(), 1);
+            for count in ownership.values() {
+                prop_assert_eq!(*count, 1);
+            }
+            if width == 0 || height == 0 {
+                prop_assert!(bays.is_empty());
+                prop_assert!(ownership.is_empty());
+            }
+            if (width, height) == (240, 120) {
+                prop_assert_eq!(ownership.len(), agents.len());
+            } else {
+                prop_assert!(ownership.len() <= agents.len());
+            }
         }
     }
 

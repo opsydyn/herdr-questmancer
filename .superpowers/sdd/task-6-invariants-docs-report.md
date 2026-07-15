@@ -40,3 +40,30 @@ and 18 theatre/animation tests.
 - No generated regression artifacts or tracked test-run files were created.
 - Herdr 0.7.4 remains a post-fix compatibility/sidebar verification target;
   this task keeps the plugin's current protocol boundary intact.
+
+## Review follow-up evidence
+
+- `tests/desk_rendering.rs::live_page_hides_nested_output_when_the_selected_pane_is_webmaster`
+  injects a selected managed-pane preview containing `THE HERDR CYBERCAFE`,
+  `CAFE WALL / 56K CABLE RUN`, and a nested webmaster header. The desk keeps
+  its own outer title but renders none of the injected nested headers/content.
+- The bay property now exercises 240x120, 80x24, 60x18, 1x1, and 0x0 layouts.
+  It counts only seat-backed visible agents, proves each visible key has one
+  owner, proves zero-sized surfaces expose no bays or seats, and requires all
+  generated agents to be visible in the large reference surface.
+- `tests/interaction.rs::unchanged_idle_room_emits_no_output_load_or_persistence_effects`
+  proves an unchanged idle redraw emits neither `DeskCommand::LoadOutput` nor
+  persistence commands.
+- Reduced and no-motion café renders are asserted stable across clock changes
+  while retaining BUILDING, HELP!, and BROKEN state labels.
+- README now labels the 2026-07-14 live walkthrough historical and records the
+  2026-07-15 setup-limited synthetic report that targeted an already-owned
+  Codex pane and therefore never entered the snapshot.
+
+Follow-up gates rerun after these changes:
+
+```text
+cargo fmt --check                         PASS
+cargo clippy --all-targets --all-features -- -D warnings  PASS
+cargo test --all-targets --all-features    PASS
+```

@@ -175,6 +175,27 @@ fn live_page_hides_output_cached_for_a_different_pane() {
 }
 
 #[test]
+fn live_page_hides_nested_output_when_the_selected_pane_is_webmaster() {
+    let mut model = live_model();
+    model.set_managed_pane_id(Some(PaneId::new("w1:p1")));
+    model.set_output_preview(Some(OutputPreview {
+        pane_id: PaneId::new("w1:p1"),
+        revision: 7,
+        text: "THE HERDR CYBERCAFE\nCAFE WALL / 56K CABLE RUN\nNESTED WEBMASTER CONTROL CENTRE"
+            .into(),
+        loading: false,
+        error: None,
+    }));
+
+    let screen = render(&model, 60, 18);
+
+    assert!(screen.contains("RECENT OUTPUT"));
+    assert!(!screen.contains("CAFE WALL / 56K CABLE RUN"));
+    assert!(!screen.contains("THE HERDR CYBERCAFE"));
+    assert!(!screen.contains("NESTED WEBMASTER CONTROL CENTRE"));
+}
+
+#[test]
 fn zero_and_tiny_desk_areas_are_panic_free() {
     let model = live_model();
 
