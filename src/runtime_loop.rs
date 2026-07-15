@@ -5,7 +5,7 @@ use crate::{
     herdr::{
         client::HerdrClient,
         environment::HerdrEnvironment,
-        event_adapter::{AdapterAction, adapt_update},
+        event_adapter::{AdapterAction, adapt_update_excluding},
         supervisor::{Backoff, ConnectionSupervisor, ConnectionUpdate},
     },
     interaction::ActionReduction,
@@ -199,7 +199,12 @@ pub fn apply_connection_update(
 ) -> RuntimeEffects {
     let discover_reviewr = matches!(connection_update, ConnectionUpdate::Connected(_));
     let before = selected_revision(model);
-    let actions = adapt_update(connection_update, model.domain(), observed_at);
+    let actions = adapt_update_excluding(
+        connection_update,
+        model.domain(),
+        observed_at,
+        model.managed_pane_id(),
+    );
     let mut effects = RuntimeEffects::default();
 
     for action in actions {
@@ -277,6 +282,7 @@ pub fn apply_command_result(
                 AppEvent::SnapshotReplaced {
                     snapshot: *snapshot,
                     observed_at,
+                    excluded_pane: model.managed_pane_id().cloned(),
                 },
                 &mut effects,
             );

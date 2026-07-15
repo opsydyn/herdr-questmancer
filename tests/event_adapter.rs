@@ -2,7 +2,7 @@ use herdr_webmaster::{
     app::ConnectionState,
     domain::{DomainState, PaneId, Timestamp, WorkspaceId},
     herdr::{
-        event_adapter::{AdapterAction, adapt_update},
+        event_adapter::{AdapterAction, adapt_update, adapt_update_excluding},
         protocol::{
             AgentStatus, SessionSnapshot, SessionSnapshotResult, SuccessResponse, WireEvent,
         },
@@ -39,6 +39,24 @@ fn connected_update_sets_connection_and_replaces_snapshot() {
         AdapterAction::Apply(event)
             if matches!(event.as_ref(), AppEvent::SnapshotReplaced { observed_at, .. }
                 if *observed_at == Timestamp::from_millis(2_000))
+    ));
+}
+
+#[test]
+fn connected_update_carries_managed_pane_exclusion() {
+    let managed = PaneId::new("w2:p3");
+    let actions = adapt_update_excluding(
+        ConnectionUpdate::Connected(snapshot()),
+        &DomainState::default(),
+        Timestamp::from_millis(2_000),
+        Some(&managed),
+    );
+    assert!(matches!(
+        &actions[1],
+        AdapterAction::Apply(event)
+            if matches!(event.as_ref(), AppEvent::SnapshotReplaced {
+                excluded_pane: Some(pane), ..
+            } if pane == &managed)
     ));
 }
 
@@ -203,4 +221,44 @@ fn reconnect_updates_remain_app_state_not_domain_state() {
             ConnectionState::Reconnecting { attempt: 3 }
         )]
     );
+}
+
+#[test]
+fn managed_status_and_exit_events_are_ignored() {
+    let managed = PaneId::new("w2:p3");
+    for event in [
+        WireEvent {
+            event: "pane.agent_status_changed".into(),
+            data: json!({"pane_id": "w2:p3", "agent_status": "blocked"}),
+        },
+        WireEvent {
+            event: "pane_exited".into(),
+            data: json!({"pane_id": "w2:p3"}),
+        },
+    ] {
+        assert!(
+            adapt_update_excluding(
+                ConnectionUpdate::Event(event),
+                &state(),
+                Timestamp::from_millis(2_000),
+                Some(&managed),
+            )
+            .is_empty()
+        );
+    }
+}
+
+#[test]
+fn unknown_non_managed_pane_still_requests_snapshot() {
+    let managed = PaneId::new("w2:p3");
+    let actions = adapt_update_excluding(
+        ConnectionUpdate::Event(WireEvent {
+            event: "pane.agent_status_changed".into(),
+            data: json!({"pane_id": "w9:p9", "agent_status": "blocked"}),
+        }),
+        &state(),
+        Timestamp::from_millis(2_000),
+        Some(&managed),
+    );
+    assert_eq!(actions, vec![AdapterAction::RequestSnapshot]);
 }

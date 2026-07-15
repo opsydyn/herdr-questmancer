@@ -14,7 +14,8 @@ pub fn update(mut state: DomainState, event: AppEvent) -> (DomainState, Vec<Comm
         AppEvent::SnapshotReplaced {
             snapshot,
             observed_at,
-        } => replace_snapshot(&mut state, &snapshot, observed_at),
+            excluded_pane,
+        } => replace_snapshot(&mut state, &snapshot, observed_at, excluded_pane.as_ref()),
         AppEvent::AgentStatusChanged {
             pane_id,
             status,
@@ -44,8 +45,10 @@ fn replace_snapshot(
     state: &mut DomainState,
     snapshot: &crate::herdr::protocol::SessionSnapshot,
     observed_at: Timestamp,
+    excluded_pane: Option<&PaneId>,
 ) -> Vec<Command> {
-    let mut replacement = DomainState::from_snapshot(snapshot, observed_at);
+    let mut replacement =
+        DomainState::from_snapshot_excluding(snapshot, observed_at, excluded_pane);
     for (key, agent) in &mut replacement.agents {
         if let Some(previous) = state.agents.get(key) {
             agent.persona = previous.persona.clone();

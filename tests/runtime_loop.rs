@@ -189,6 +189,26 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
 }
 
 #[test]
+fn connection_snapshot_excludes_the_managed_webmaster_pane() {
+    let mut model = Model::new(View::Desk);
+    let managed = PaneId::new("w2:p3");
+    model.set_managed_pane_id(Some(managed.clone()));
+    let mut snapshot = snapshot();
+    let mut managed_agent = snapshot.agents[0].clone();
+    managed_agent.pane_id = managed.as_str().to_owned();
+    managed_agent.workspace_id = "w2".to_owned();
+    snapshot.agents.push(managed_agent);
+
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(snapshot),
+        Timestamp::from_millis(1_000),
+    );
+
+    assert!(model.domain().agent_key_for_pane(&managed).is_none());
+}
+
+#[test]
 fn selected_status_change_refreshes_only_that_output() {
     let mut model = Model::new(View::Desk);
     apply_connection_update(

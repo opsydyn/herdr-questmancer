@@ -1,6 +1,7 @@
 use herdr_webmaster::{
     domain::{
-        Attention, AttentionReason, DomainState, Presence, SiteStatus, Timestamp, WorkspaceId,
+        Attention, AttentionReason, DomainState, PaneId, Presence, SiteStatus, Timestamp,
+        WorkspaceId,
     },
     herdr::protocol::{SessionSnapshot, SessionSnapshotResult, SuccessResponse},
 };
@@ -29,6 +30,36 @@ fn snapshot_normalizes_sites_agents_attention_and_personas() {
         Attention::unseen(AttentionReason::NeedsInput, Timestamp::from_millis(10_000))
     );
     assert!(agent.persona.key.as_str().starts_with("persona-"));
+}
+
+#[test]
+fn managed_pane_is_excluded_from_snapshot_normalization() {
+    let mut snapshot = snapshot();
+    let mut managed = snapshot.agents[0].clone();
+    managed.pane_id = "w2:p3".to_owned();
+    managed.workspace_id = "w2".to_owned();
+    snapshot.agents.push(managed);
+
+    let state = DomainState::from_snapshot_excluding(
+        &snapshot,
+        Timestamp::from_millis(10_000),
+        Some(&PaneId::new("w2:p3")),
+    );
+
+    assert!(state.agent_key_for_pane(&PaneId::new("w2:p3")).is_none());
+    assert!(state.sites.values().all(|site| {
+        !site
+            .agents
+            .iter()
+            .any(|key| state.agents[key].pane_id == PaneId::new("w2:p3"))
+    }));
+    assert_ne!(
+        state
+            .selected_agent
+            .as_ref()
+            .map(|key| &state.agents[key].pane_id),
+        Some(&PaneId::new("w2:p3"))
+    );
 }
 
 #[test]

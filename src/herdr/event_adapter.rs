@@ -25,15 +25,28 @@ pub fn adapt_update(
     state: &DomainState,
     observed_at: Timestamp,
 ) -> Vec<AdapterAction> {
+    adapt_update_excluding(update, state, observed_at, None)
+}
+
+#[must_use]
+pub fn adapt_update_excluding(
+    update: ConnectionUpdate,
+    state: &DomainState,
+    observed_at: Timestamp,
+    excluded_pane: Option<&PaneId>,
+) -> Vec<AdapterAction> {
     match update {
         ConnectionUpdate::Connected(snapshot) => vec![
             AdapterAction::SetConnection(ConnectionState::Connected),
             AdapterAction::Apply(Box::new(AppEvent::SnapshotReplaced {
                 snapshot,
                 observed_at,
+                excluded_pane: excluded_pane.cloned(),
             })),
         ],
-        ConnectionUpdate::Event(event) => adapt_wire_event(event, state, observed_at),
+        ConnectionUpdate::Event(event) => {
+            adapt_wire_event(event, state, observed_at, excluded_pane)
+        }
         ConnectionUpdate::Disconnected(message) => vec![
             AdapterAction::SetConnection(ConnectionState::Offline),
             AdapterAction::Diagnostic(message),
@@ -55,13 +68,16 @@ fn adapt_wire_event(
     event: WireEvent,
     state: &DomainState,
     observed_at: Timestamp,
+    excluded_pane: Option<&PaneId>,
 ) -> Vec<AdapterAction> {
     match event.event.as_str() {
         "pane.agent_status_changed" | "pane_agent_status_changed" => {
-            adapt_agent_status(event, state, observed_at)
+            adapt_agent_status(event, state, observed_at, excluded_pane)
         }
         "workspace_closed" | "workspace.closed" => adapt_workspace_closed(event),
-        "pane_exited" | "pane.exited" => adapt_pane_exited(event, state, observed_at),
+        "pane_exited" | "pane.exited" => {
+            adapt_pane_exited(event, state, observed_at, excluded_pane)
+        }
         "workspace_created"
         | "workspace_updated"
         | "workspace_renamed"
@@ -89,11 +105,15 @@ fn adapt_agent_status(
     event: WireEvent,
     state: &DomainState,
     observed_at: Timestamp,
+    excluded_pane: Option<&PaneId>,
 ) -> Vec<AdapterAction> {
     let Ok(data) = serde_json::from_value::<AgentStatusData>(event.data) else {
         return vec![AdapterAction::RequestSnapshot];
     };
     let pane_id = PaneId::new(data.pane_id);
+    if excluded_pane.is_some_and(|excluded| excluded == &pane_id) {
+        return Vec::new();
+    }
     let Some(agent_key) = state.agent_key_for_pane(&pane_id) else {
         return vec![AdapterAction::RequestSnapshot];
     };
@@ -131,11 +151,15 @@ fn adapt_pane_exited(
     event: WireEvent,
     state: &DomainState,
     observed_at: Timestamp,
+    excluded_pane: Option<&PaneId>,
 ) -> Vec<AdapterAction> {
     let Ok(data) = serde_json::from_value::<PaneData>(event.data) else {
         return vec![AdapterAction::RequestSnapshot];
     };
     let pane_id = PaneId::new(data.pane_id);
+    if excluded_pane.is_some_and(|excluded| excluded == &pane_id) {
+        return Vec::new();
+    }
     let Some(agent_key) = state.agent_key_for_pane(&pane_id) else {
         return vec![AdapterAction::RequestSnapshot];
     };

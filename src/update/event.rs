@@ -8,6 +8,7 @@ pub enum AppEvent {
     SnapshotReplaced {
         snapshot: SessionSnapshot,
         observed_at: Timestamp,
+        excluded_pane: Option<PaneId>,
     },
     AgentStatusChanged {
         pane_id: PaneId,

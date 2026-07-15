@@ -147,6 +147,7 @@ fn snapshot_replacement_preserves_seen_attention_and_persona() {
         AppEvent::SnapshotReplaced {
             snapshot: replacement,
             observed_at: Timestamp::from_millis(5_000),
+            excluded_pane: None,
         },
     );
 
@@ -157,4 +158,29 @@ fn snapshot_replacement_preserves_seen_attention_and_persona() {
     assert_eq!(replaced.agents[&key].persona, persona);
     assert_eq!(replaced.agents[&key].pane_id, PaneId::new("w1:p9"));
     assert_eq!(commands, vec![Command::PersistState]);
+}
+
+#[test]
+fn snapshot_replacement_excludes_managed_pane_and_preserves_selection() {
+    let initial = state();
+    let key = initial.agents.keys().next().unwrap().clone();
+    let mut replacement = snapshot();
+    replacement.agents.push({
+        let mut managed = replacement.agents[0].clone();
+        managed.pane_id = "w2:p3".to_owned();
+        managed.workspace_id = "w2".to_owned();
+        managed
+    });
+
+    let (replaced, _) = update(
+        initial,
+        AppEvent::SnapshotReplaced {
+            snapshot: replacement,
+            observed_at: Timestamp::from_millis(5_000),
+            excluded_pane: Some(PaneId::new("w2:p3")),
+        },
+    );
+
+    assert_eq!(replaced.selected_agent, Some(key));
+    assert!(replaced.agent_key_for_pane(&PaneId::new("w2:p3")).is_none());
 }

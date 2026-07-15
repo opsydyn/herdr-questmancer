@@ -17,6 +17,15 @@ pub struct DomainState {
 impl DomainState {
     #[must_use]
     pub fn from_snapshot(snapshot: &SessionSnapshot, observed_at: Timestamp) -> Self {
+        Self::from_snapshot_excluding(snapshot, observed_at, None)
+    }
+
+    #[must_use]
+    pub fn from_snapshot_excluding(
+        snapshot: &SessionSnapshot,
+        observed_at: Timestamp,
+        excluded_pane: Option<&PaneId>,
+    ) -> Self {
         let mut state = Self::default();
         let workspace_by_id = snapshot
             .workspaces
@@ -25,6 +34,9 @@ impl DomainState {
             .collect::<BTreeMap<_, _>>();
 
         for source in &snapshot.agents {
+            if excluded_pane.is_some_and(|pane_id| pane_id.as_str() == source.pane_id) {
+                continue;
+            }
             let workspace = workspace_by_id.get(source.workspace_id.as_str()).copied();
             let root = workspace.and_then(workspace_root);
             let agent = Agent::from_snapshot(source, root, observed_at);

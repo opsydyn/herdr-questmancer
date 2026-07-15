@@ -277,6 +277,7 @@ pub(crate) fn topology_events() -> impl Strategy<Value = Vec<AppEvent>> {
                 let mut events = vec![AppEvent::SnapshotReplaced {
                     snapshot: snapshot.clone(),
                     observed_at: Timestamp::from_millis(1_000),
+                    excluded_pane: None,
                 }];
                 if let Some(agent) = snapshot.agents.first() {
                     let pane_exit = AppEvent::PaneExited {
