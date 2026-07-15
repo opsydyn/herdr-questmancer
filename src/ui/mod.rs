@@ -1,6 +1,7 @@
 mod theme;
 mod views;
 
+pub mod cafe_scene;
 pub mod input;
 pub mod persona;
 pub mod pixel;
