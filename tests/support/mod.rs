@@ -11,7 +11,11 @@ use herdr_webmaster::{
 
 pub(crate) mod strategies;
 
-pub(crate) use strategies::{domain_state, persisted_state};
+#[allow(unused_imports)]
+pub(crate) use strategies::{
+    agent, agent_identity, agent_status, attention, domain_state, domain_with_one_agent,
+    guestbook_event, pane_id, persisted_state, status_event, timestamp, topology_events,
+};
 
 pub(crate) fn fixture_domain() -> DomainState {
     let response: SuccessResponse<SessionSnapshotResult> =

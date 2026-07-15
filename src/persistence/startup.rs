@@ -18,17 +18,26 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
     let config_path = paths.config_path();
     let state_path = paths.state_path();
     let guestbook_path = paths.guestbook_path();
-    let worker_paths = WorkerPaths::new(state_path.clone(), guestbook_path.clone());
 
     let (config_read, state_read, guestbook_read) = tokio::join!(
         read_optional(config_path, "read config"),
-        read_optional(state_path, "read state"),
-        read_optional(guestbook_path, "read guestbook"),
+        read_optional(state_path.clone(), "read state"),
+        read_optional(guestbook_path.clone(), "read guestbook"),
     );
 
     let mut diagnostics = Vec::new();
     let config = interpret_config(config_read, &mut diagnostics);
-    let persisted = interpret_state(state_read, &mut diagnostics);
+    let state_load = interpret_state(state_read, &mut diagnostics);
+    let worker_state_path = if matches!(state_load, StateLoad::Protected) {
+        None
+    } else {
+        state_path
+    };
+    let persisted = match state_load {
+        StateLoad::Loaded(state) => Some(state),
+        StateLoad::Missing | StateLoad::Protected => None,
+    };
+    let worker_paths = WorkerPaths::new(worker_state_path, guestbook_path);
     let replay = interpret_guestbook(
         guestbook_read,
         config.guestbook_max_entries,
@@ -136,22 +145,25 @@ fn interpret_config(
     }
 }
 
-fn interpret_state(
-    read: RawRead,
-    diagnostics: &mut Vec<PersistenceDiagnostic>,
-) -> Option<super::PersistedStateV1> {
+enum StateLoad {
+    Missing,
+    Loaded(super::PersistedStateV1),
+    Protected,
+}
+
+fn interpret_state(read: RawRead, diagnostics: &mut Vec<PersistenceDiagnostic>) -> StateLoad {
     if let Some(diagnostic) = read.diagnostic {
         diagnostics.push(diagnostic);
-        return None;
+        return StateLoad::Protected;
     }
     let (Some(path), Some(bytes)) = (read.path, read.bytes) else {
-        return None;
+        return StateLoad::Missing;
     };
     match parse_state(&path, &bytes) {
-        Ok(state) => Some(state),
+        Ok(state) => StateLoad::Loaded(state),
         Err(diagnostic) => {
             diagnostics.push(diagnostic);
-            None
+            StateLoad::Protected
         }
     }
 }

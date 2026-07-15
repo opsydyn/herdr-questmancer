@@ -14,7 +14,8 @@ needs you, reading their output, replying, and jumping back into the work.
 
 ## Project status
 
-Milestones 1 through 5 are implemented. The live webmaster desk turns Herdr
+Milestones 1 through 5 and the Milestone 6.1 local-persistence slice are
+implemented. The live webmaster desk turns Herdr
 snapshots and events into sites, webmaster mail, a guestbook, and one selected
 agent's recent output. Its async terminal runtime handles input, connection
 updates, commands, redraws, and structured shutdown without blocking the desk.
@@ -73,6 +74,80 @@ herdr plugin action invoke opsydyn.webmaster.open
 resolves `bin/herdr-webmaster`, then `target/release/herdr-webmaster`, then
 `target/debug/herdr-webmaster`.
 
+## Local persistence and configuration
+
+Webmaster uses Herdr's plugin directories when they are available. The files
+have deliberately separate owners:
+
+| Path | Owner | Purpose |
+|---|---|---|
+| `$HERDR_PLUGIN_CONFIG_DIR/config.toml` | user | read-only configuration; webmaster never creates or rewrites it |
+| `$HERDR_PLUGIN_STATE_DIR/runtime.json` | lifecycle controller | ephemeral singleton-pane registration |
+| `$HERDR_PLUGIN_STATE_DIR/state.json` | webmaster persistence worker | atomically replaced, versioned durable user intent |
+| `$HERDR_PLUGIN_STATE_DIR/guestbook.jsonl` | webmaster persistence worker | append-only semantic event history |
+
+If a directory variable is absent, its store is disabled. The TUI still starts
+with safe defaults and in-memory guestbook history; persistence never becomes a
+requirement for using the desk or cafe.
+
+A complete `config.toml` is:
+
+```toml
+default_view = "desk"             # desk | cafe
+motion = "full"                   # full | reduced | none
+character_set = "unicode"         # unicode | ascii
+color_mode = "xterm256"           # xterm256 | ansi16
+output_preview_lines = 80          # 10..=500
+guestbook_max_entries = 500        # 50..=10000, in-memory display bound
+reviewr_action = "persiyanov.reviewr.open"
+show_elapsed_time = true
+```
+
+Missing fields use these defaults and unknown fields are accepted. An invalid
+TOML document, enum, bound, or blank `reviewr_action` rejects the complete file
+instead of partially applying it. Webmaster reports the path and error, then
+uses defaults.
+
+The initial view precedence is explicit `ui --view desk|cafe`, saved
+`last_view`, configured `default_view`, then the built-in desk. The `desk` and
+`cafe` plugin actions are explicit; ordinary `open`, a closed `toggle`, and bare
+`ui` allow the saved/configured view to win. Saved display preferences override
+configuration because they represent the most recent accepted runtime state.
+Configuration-only output limits, elapsed-time display, and reviewr action are
+never written to `state.json`.
+
+`state.json` stores schema version 1, the last view, display preferences,
+selected persona, the authored persona catalog, and exact seen-attention
+episodes. Herdr remains authoritative for workspaces, panes, live agents,
+presence, focus, revisions, and output. The guestbook log stores one compact
+JSON record per newline. Replay keeps valid complete records in chronological,
+deduplicated, bounded in-memory history even when another line is malformed or
+the final line is truncated; the JSONL file itself is not compacted.
+
+All persistence is local. Webmaster sends no telemetry, performs no cloud sync,
+and adds no network service. The only network access in this repository is the
+install script downloading an explicitly requested release from GitHub.
+
+### Corruption and recovery
+
+Persistence errors are non-fatal and appear in the TUI status surface and on
+stderr after terminal restoration. If an existing `state.json` cannot be read,
+parsed, or validated, it is rejected as a whole and state publication is
+disabled for that process lifetime; guestbook appends remain enabled. This
+prevents the first live snapshot from overwriting evidence needed for recovery.
+Guestbook damage is isolated per record and reports one-based line numbers,
+with repeated diagnostics folded after five records.
+
+To recover, close webmaster first, copy the affected files somewhere safe, and
+then fix or remove only the damaged file. Removing `state.json` resets saved
+view, preferences, selection, personas, and seen markers. Removing
+`guestbook.jsonl` clears history. Fix `config.toml` in place or remove it to use
+defaults. Restart webmaster after correcting or removing `state.json` to
+re-enable durable snapshot writes. If singleton control points to a pane that no
+longer exists, remove only `runtime.json`; the next `open` recreates it. Do not
+edit a file while the TUI is running because the persistence worker owns state
+and guestbook writes.
+
 ## Keys
 
 | Key | Action |
@@ -129,10 +204,9 @@ colour mode: xterm-256 | ansi-16
 ```
 
 `full` enables semantic state animation; `reduced` freezes rapid effects but
-keeps the slow idle screensaver; `none` is entirely event-driven. The current
-v0.1 runtime uses the accessible defaults (`full`, `unicode`, `xterm-256`).
-Persistent user configuration for these preferences belongs to Milestone 6 and
-is not implemented yet.
+keeps the slow idle screensaver; `none` is entirely event-driven. The defaults
+are `full`, `unicode`, and `xterm-256`; the local configuration and durable state
+described above can override and restore them.
 
 ## Plugin actions
 
@@ -150,7 +224,7 @@ from stale pane state.
 
 ## Manual live acceptance
 
-This procedure was last completed against Herdr `0.7.3` / protocol `16` on
+The last fully completed live run was against Herdr `0.7.3` / protocol `16` on
 2026-07-14, including the Milestone 5 cafe on final commit `9d5d257`. It
 verified a stable live subscription, a blocked `HELP!` transition without a
 restart, search, refresh, local seen state, exact isolated reply delivery, and
@@ -179,8 +253,23 @@ herdr pane report-agent "$PANE_ID" \
 Back at the desk, confirm the blocked transition appears as unread webmaster
 mail without reopening the TUI. Exercise selection, `Enter`, `r`, `Space`,
 `/`, and `o`; if the footer offers `v`, confirm it focuses this pane before
-opening reviewr. A temporary transport interruption should retain the visible
-desk under a reconnecting banner and resnapshot after recovery.
+opening reviewr. Note the selected persona handle, switch view with `1`/`2`, and
+press `Space` so the exact blocked episode is seen.
+
+Close and reopen the webmaster pane to exercise a restarted plugin pane:
+
+```bash
+herdr plugin action invoke opsydyn.webmaster.close
+herdr plugin action invoke opsydyn.webmaster.open
+```
+
+Confirm the chosen view and configured preferences return, the same persona is
+selected with the same handle, the blocked episode remains seen, and prior
+guestbook entries replay exactly once. A temporary transport interruption
+should retain the visible desk under a reconnecting banner, resnapshot after
+recovery, and not duplicate replayed history. Recheck `Enter`, `r`, and `o`
+after the reconnect to cover focus, exact reply delivery, and selected-output
+reads.
 
 Press `2` (or invoke `opsydyn.webmaster.cafe`) and confirm the same blocked
 agent is visible as `HELP!` with a raised-hand workstation pose. Exercise the
@@ -201,8 +290,9 @@ herdr plugin action invoke opsydyn.webmaster.close
 ```
 
 Herdr `0.7.3`'s `report-agent` command accepts `idle`, `working`, `blocked`, or
-`unknown`; it cannot synthesize `done`. Use a real agent completion event when
-accepting the update-ready path.
+`unknown`; it cannot synthesize `done`. Use a real agent completion event for
+the update-ready path, mark it seen, restart webmaster again, and confirm that
+the exact completion episode restores while a later pane revision is unseen.
 
 ## Architecture
 
@@ -263,6 +353,31 @@ herdr api schema --output /tmp/herdr-api.schema.json
 
 Run the focused domain suite with `just domain-test` (or the corresponding
 `cargo test --test ...` command in the `justfile`).
+
+Run persistence examples and property suites with:
+
+```bash
+just persistence-test
+just property-test
+```
+
+The direct high-case-count property command used by the Milestone 6.1 gate is:
+
+```bash
+PROPTEST_CASES=1024 cargo test --test property_domain --test persisted_state
+```
+
+`PROPTEST_CASES` overrides Proptest's normal case count. When Proptest finds a
+failure, it shrinks the input and writes a source-parallel regression seed such
+as `tests/property_domain.proptest-regressions` (or a file below a
+`proptest-regressions` directory). These files are intentionally tracked and
+must not be deleted or ignored after the assertion is fixed.
+
+Focused persistence coverage includes configuration and path discovery,
+versioned state validation/overlay, atomic JSON publication, tolerant guestbook
+replay/append, worker debounce and shutdown, and startup precedence. Tests use
+temporary directories; they must not create `config.toml`, `state.json`,
+`guestbook.jsonl`, or `runtime.json` in the checkout.
 
 Run the focused operational desk suite with `just desk-test`.
 

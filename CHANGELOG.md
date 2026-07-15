@@ -50,6 +50,17 @@ All notable changes to this project will be documented here.
   interval, leaving static and no-motion sessions without periodic timers.
 - Exact eight-frame, one-second completion confetti followed by a stable update
   badge, with no output reads or persistence effects on animation wakes.
+- Local typed `config.toml` settings with explicit CLI/saved/configured view
+  precedence and persisted display preferences.
+- Versioned durable intent in atomically replaced `state.json`, including stable
+  personas, valid selection, and exact seen-attention episodes without copying
+  Herdr-owned live topology or output.
+- Append-only `guestbook.jsonl` history with ordered, deduplicated, bounded
+  replay that preserves valid records around malformed or truncated input.
+- One debounced persistence worker with unchanged-state suppression, acknowledged
+  guestbook writes, non-fatal bounded diagnostics, and shutdown flush.
+- Named persistence and core-domain Proptest invariants with tracked shrinking
+  regression seeds and focused contributor recipes.
 
 ### Fixed
 
@@ -62,3 +73,9 @@ All notable changes to this project will be documented here.
 - Topology-event replay no longer causes a tight resubscription loop; the
   supervisor refreshes pane membership and rebuilds subscriptions only when
   the subscribed pane set actually changes.
+- Invalid local configuration and durable state fail closed with visible
+  diagnostics; atomic publication retains the last complete state on write
+  failure, and damaged guestbook records no longer hide valid history.
+- An unreadable, malformed, unsupported, or relationship-invalid `state.json`
+  now disables state publication until restart, preventing the initial live
+  snapshot from overwriting the file while guestbook persistence remains live.

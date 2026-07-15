@@ -3,3 +3,7 @@
 *.swp
 .DS_Store
 
+# Proptest counterexamples are part of the regression corpus.
+!**/proptest-regressions/
+!**/proptest-regressions/**
+!**/*.proptest-regressions

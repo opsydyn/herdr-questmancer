@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 85b96fea9ed599ed108a4a72b361d3d4b32b58bf7fa4a339bbbfd930b5fa6889 # shrinks to generated_agents = [Agent { key: AgentKey("a-"), pane_id: PaneId("a"), workspace_id: WorkspaceId("a"), tab_id: TabId("a"), name: " ", custom_status: None, presence: Working, presence_since: Timestamp(0), attention: Clear, focused: false, pane_revision: 0, persona: AgentPersona { key: PersonaKey("a"), handle: "A", appearance: PersonaAppearance { proportions: Broad, head_shape: Long, skin_tone: Ebony, hair: Bob, hair_tone: Espresso, face_detail: Freckles, top: StripeJumper, bottom: Jeans, shoes: Loafers, accessory: Lanyard, desk_prop: Phone, accent: Teal } } }, Agent { key: AgentKey("a-"), pane_id: PaneId("a"), workspace_id: WorkspaceId("a"), tab_id: TabId("a"), name: "-", custom_status: None, presence: Working, presence_since: Timestamp(0), attention: Unseen { reason: WorkCompleted, since: Timestamp(0) }, focused: false, pane_revision: 0, persona: AgentPersona { key: PersonaKey("a"), handle: "-", appearance: PersonaAppearance { proportions: Broad, head_shape: Long, skin_tone: Ebony, hair: Bob, hair_tone: Espresso, face_detail: Freckles, top: StripeJumper, bottom: Jeans, shoes: Loafers, accessory: Lanyard, desk_prop: Phone, accent: Teal } } }]

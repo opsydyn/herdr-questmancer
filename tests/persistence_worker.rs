@@ -7,11 +7,17 @@ use herdr_webmaster::{
     config::PersistencePaths,
     domain::{AgentPersona, EventId, GuestbookEntry, GuestbookEvent, PersonaKey, Timestamp},
     herdr::environment::HerdrEnvironment,
+    herdr::{
+        protocol::{SessionSnapshot, SessionSnapshotResult, SuccessResponse},
+        supervisor::ConnectionUpdate,
+    },
     interaction::reduce_action,
     persistence::{
         PersistenceWorker, WorkerPaths, load_guestbook, load_startup, load_state, publish_state,
     },
-    runtime_loop::{RuntimeExit, dispatch_action_effects, dispatch_persistence_effects},
+    runtime_loop::{
+        RuntimeExit, apply_connection_update, dispatch_action_effects, dispatch_persistence_effects,
+    },
     terminal::{RuntimeLifecycle, shutdown_persistence},
     ui::input::Action,
     update::Command,
@@ -19,6 +25,12 @@ use herdr_webmaster::{
 
 fn fixed_persisted_state(view: View) -> herdr_webmaster::persistence::PersistedStateV1 {
     herdr_webmaster::persistence::PersistedStateV1::capture(&herdr_webmaster::app::Model::new(view))
+}
+
+fn snapshot() -> SessionSnapshot {
+    let response: SuccessResponse<SessionSnapshotResult> =
+        serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
+    response.result.snapshot
 }
 
 async fn wait_for_path(path: &std::path::Path) {
@@ -162,6 +174,54 @@ async fn bounded_runtime_shutdown_returns_filesystem_failure_after_worker_exit()
     assert_eq!(
         diagnostics.recv().await.unwrap().operation,
         "create state directory"
+    );
+}
+
+#[tokio::test]
+async fn malformed_state_survives_initial_snapshot_flush_while_guestbook_stays_writable() {
+    let directory = tempfile::tempdir().unwrap();
+    let state_path = directory.path().join("state.json");
+    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let malformed = b"{not valid state json}";
+    tokio::fs::write(&state_path, malformed).await.unwrap();
+    let startup = load_startup(
+        PersistencePaths::from_lookup(|name| {
+            (name == "HERDR_PLUGIN_STATE_DIR").then(|| directory.path().display().to_string())
+        }),
+        None,
+    )
+    .await;
+    assert_eq!(startup.diagnostics.len(), 1);
+    assert_eq!(startup.diagnostics[0].operation, "parse state");
+
+    let mut model = startup.model;
+    let snapshot_effects = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(snapshot()),
+        Timestamp::from_millis(2_000),
+    );
+    assert!(
+        snapshot_effects
+            .persistence
+            .contains(&Command::PersistState)
+    );
+    let entry = guestbook_entry("protected-state");
+    let (mut client, _diagnostics, worker) = PersistenceWorker::start(startup.paths);
+
+    assert!(
+        dispatch_persistence_effects(&mut client, &model, snapshot_effects.persistence)
+            .await
+            .is_empty()
+    );
+    client.append_guestbook(entry.clone()).await.unwrap();
+    shutdown_persistence(&client, worker).await.unwrap();
+
+    assert_eq!(tokio::fs::read(&state_path).await.unwrap(), malformed);
+    let replay = load_guestbook(&guestbook_path, 10).await;
+    assert!(replay.diagnostics.is_empty());
+    assert_eq!(
+        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        vec![&entry]
     );
 }
 

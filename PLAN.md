@@ -107,10 +107,23 @@ tests pass from full rooms through zero-sized areas.
 
 ### 6. Persistence, integration, and release
 
-- Persist configuration, personas, selection/view, and bounded guestbook state.
-- Harden singleton open/close/toggle/desk/cafe actions and stale-state recovery.
-- Add install/checksum scripts and macOS/Linux release workflows.
-- Complete README, manual fake-agent guide, recording, and privacy statement.
+#### 6.1 Local persistence and property testing — complete
+
+- Persist local configuration, personas, selection/view/preferences, exact seen
+  episodes, and bounded in-memory guestbook history.
+- Atomically replace versioned state and append tolerant semantic JSONL history
+  through one debounced writer with bounded shutdown flush.
+- Harden singleton open/close/toggle/desk/cafe actions and stale runtime-state
+  recovery without changing Herdr-owned live topology.
+- Add named persistence and core-domain Proptest properties with tracked,
+  shrinking regression seeds.
+- Document local file ownership, precedence, corruption recovery, contributor
+  checks, fake-agent acceptance, and the no-telemetry posture.
+
+#### 6.2 Release completion — open
+
+- Add macOS/Linux release automation around the existing install/checksum path.
+- Record the desk/cafe release walkthrough and final fake-agent guide.
 - Run release-candidate live Herdr `0.7.3` acceptance and idle-CPU checks.
 
 Exit: all twenty v0.1 acceptance criteria in the product handoff pass.

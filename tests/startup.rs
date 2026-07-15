@@ -165,6 +165,10 @@ show_elapsed_time = false
     assert!(!state_json.contains("output_preview_lines"));
     assert!(!state_json.contains("reviewr_action"));
     assert!(!state_json.contains("show_elapsed_time"));
+    assert_eq!(
+        startup.paths.state,
+        Some(state_dir.path().join("state.json"))
+    );
     assert!(startup.diagnostics.is_empty());
 }
 
@@ -219,6 +223,29 @@ async fn future_state_is_ignored_without_hiding_valid_guestbook_history() {
     assert_eq!(startup.model.domain().guestbook.entries().len(), 1);
     assert_eq!(startup.diagnostics.len(), 1);
     assert_eq!(startup.diagnostics[0].operation, "validate state");
+    assert_eq!(startup.paths.state, None);
+    assert_eq!(
+        startup.paths.guestbook,
+        Some(state_dir.path().join("guestbook.jsonl"))
+    );
+}
+
+#[tokio::test]
+async fn unreadable_state_disables_only_state_publication() {
+    let state_dir = tempfile::tempdir().unwrap();
+    tokio::fs::create_dir(state_dir.path().join("state.json"))
+        .await
+        .unwrap();
+
+    let startup = load_startup(paths(None, Some(state_dir.path())), None).await;
+
+    assert_eq!(startup.paths.state, None);
+    assert_eq!(
+        startup.paths.guestbook,
+        Some(state_dir.path().join("guestbook.jsonl"))
+    );
+    assert_eq!(startup.diagnostics.len(), 1);
+    assert_eq!(startup.diagnostics[0].operation, "read state");
 }
 
 #[tokio::test]

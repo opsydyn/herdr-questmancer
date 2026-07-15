@@ -80,7 +80,7 @@ fn replay_preserves_guestbook_order_deduplication_and_bound() {
 }
 
 #[test]
-fn malformed_records_do_not_hide_valid_history() {
+fn schema_invalid_json_and_malformed_utf8_do_not_hide_valid_history() {
     let first = entry("first", 100);
     let second = entry("second", 200);
     let mut bytes = jsonl(std::slice::from_ref(&first));
@@ -100,14 +100,19 @@ fn malformed_records_do_not_hide_valid_history() {
 
 #[test]
 fn non_newline_terminated_final_record_is_rejected_as_truncated() {
+    let complete_entry = entry("complete", 50);
     let final_entry = entry("final", 100);
-    let bytes = serde_json::to_vec(&final_entry).unwrap();
+    let mut bytes = jsonl(std::slice::from_ref(&complete_entry));
+    bytes.extend(serde_json::to_vec(&final_entry).unwrap());
 
     let replay = replay_guestbook(Path::new("guestbook.jsonl"), &bytes, 500);
 
-    assert!(replay.guestbook.entries().is_empty());
+    assert_eq!(
+        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        vec![&complete_entry]
+    );
     assert_eq!(replay.diagnostics.len(), 1);
-    assert_eq!(replay.diagnostics[0].line, Some(1));
+    assert_eq!(replay.diagnostics[0].line, Some(2));
     assert!(replay.diagnostics[0].source_message.contains("truncated"));
 }
 

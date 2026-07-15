@@ -28,6 +28,14 @@ desk-test:
 cafe-test:
     cargo test --test pixel --test persona_art --test cafe_widgets --test theatre --test cafe_rendering --test runtime_loop --test interaction
 
+persistence-test:
+    cargo test --test config --test persisted_state --test atomic_state --test guestbook_persistence --test persistence_worker --test startup
+
+property-test cases="1024":
+    PROPTEST_CASES={{cases}} cargo test --test property_domain --test persisted_state
+
+persistence-verify: verify persistence-test property-test release-check
+
 release-check:
     cargo build --release
     git diff --check
