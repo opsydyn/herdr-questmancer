@@ -189,13 +189,19 @@ fn render_bay_architecture(
         } else if row + 2 >= area.height {
             format!(
                 "| {:width$}|",
-                "== FLOOR ==",
+                format!("== FLOOR {} ==", workspace.as_str()),
                 width = usize::from(area.width.saturating_sub(3))
             )
         } else if row == area.height / 2 {
             format!(
                 "| {:width$}|",
                 "DOOR  /  AISLE",
+                width = usize::from(area.width.saturating_sub(3))
+            )
+        } else if row == 3 {
+            format!(
+                "| {:width$}|",
+                "DESK / CRT",
                 width = usize::from(area.width.saturating_sub(3))
             )
         } else {
