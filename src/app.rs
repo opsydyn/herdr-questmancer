@@ -48,6 +48,23 @@ pub struct DisplayPreferences {
     pub color_mode: ColorMode,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RuntimeSettings {
+    pub output_preview_lines: u32,
+    pub reviewr_action: String,
+    pub show_elapsed_time: bool,
+}
+
+impl Default for RuntimeSettings {
+    fn default() -> Self {
+        Self {
+            output_preview_lines: 80,
+            reviewr_action: "persiyanov.reviewr.open".to_owned(),
+            show_elapsed_time: true,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum ConnectionState {
     #[default]
@@ -106,6 +123,7 @@ pub struct Model {
     reviewr_available: bool,
     now: Timestamp,
     preferences: DisplayPreferences,
+    settings: RuntimeSettings,
     durable_intent: DurableIntent,
 }
 
@@ -122,6 +140,7 @@ impl Model {
             reviewr_available: false,
             now: Timestamp::from_millis(0),
             preferences: DisplayPreferences::default(),
+            settings: RuntimeSettings::default(),
             durable_intent: DurableIntent::default(),
         }
     }
@@ -368,6 +387,14 @@ impl Model {
 
     pub const fn set_preferences(&mut self, preferences: DisplayPreferences) {
         self.preferences = preferences;
+    }
+
+    pub const fn settings(&self) -> &RuntimeSettings {
+        &self.settings
+    }
+
+    pub fn set_settings(&mut self, settings: RuntimeSettings) {
+        self.settings = settings;
     }
 
     pub const fn durable_intent(&self) -> &DurableIntent {

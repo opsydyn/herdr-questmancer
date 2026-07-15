@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use herdr_webmaster::{
-    app::{Modal, Model, Region, View},
+    app::{Modal, Model, Region, RuntimeSettings, View},
     command::DeskCommand,
     domain::{AgentKey, AgentPersona, DomainState, PaneId, PersonaKey, Timestamp, WorkspaceId},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
@@ -199,13 +199,45 @@ fn refresh_loads_only_the_selected_output() {
 }
 
 #[test]
+fn configured_runtime_settings_drive_output_and_reviewr_commands() {
+    let mut model = live_model_with_two_agents();
+    model.set_settings(RuntimeSettings {
+        output_preview_lines: 123,
+        reviewr_action: "acme.diff.inspect".to_owned(),
+        show_elapsed_time: true,
+    });
+
+    let refresh = reduce_action(&mut model, Action::Refresh);
+    assert_eq!(
+        refresh.commands,
+        vec![DeskCommand::LoadOutput {
+            pane_id: PaneId::new("w1:p1"),
+            lines: 123,
+        }]
+    );
+
+    model.set_reviewr_available(true);
+    let reviewr = reduce_action(&mut model, Action::Reviewr);
+    assert_eq!(
+        reviewr.commands,
+        vec![DeskCommand::OpenReviewr {
+            pane_id: PaneId::new("w1:p1"),
+            qualified_id: "acme.diff.inspect".to_owned(),
+        }]
+    );
+}
+
+#[test]
 fn reviewr_opens_only_when_available_for_a_selection() {
     let mut available = live_model_with_two_agents();
     available.set_reviewr_available(true);
     let open = reduce_action(&mut available, Action::Reviewr);
     assert_eq!(
         open.commands,
-        vec![DeskCommand::OpenReviewr(PaneId::new("w1:p1"))]
+        vec![DeskCommand::OpenReviewr {
+            pane_id: PaneId::new("w1:p1"),
+            qualified_id: "persiyanov.reviewr.open".to_owned(),
+        }]
     );
 
     let mut unavailable = live_model_with_two_agents();
@@ -466,7 +498,10 @@ fn cafe_visit_refresh_and_optional_reviewr_reuse_typed_desk_commands() {
     assert_eq!(cafe_reduction, desk_reduction);
     assert_eq!(
         cafe_reduction.commands,
-        vec![DeskCommand::OpenReviewr(PaneId::new("w1:p1"))]
+        vec![DeskCommand::OpenReviewr {
+            pane_id: PaneId::new("w1:p1"),
+            qualified_id: "persiyanov.reviewr.open".to_owned(),
+        }]
     );
 }
 

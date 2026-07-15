@@ -107,14 +107,18 @@ async fn reviewr_discovery_checks_the_exact_qualified_action() {
             &mut stream,
             &request,
             json!({"type": "plugin_action_list", "actions": [
-                {"plugin_id": "persiyanov.reviewr", "action_id": "open", "title": "open", "command": []}
+                {"plugin_id": "acme.diff", "action_id": "inspect", "title": "inspect", "command": []}
             ]}),
         )
         .await;
     });
     let executor = CommandExecutor::new(HerdrClient::new(path));
 
-    let result = executor.execute(DeskCommand::DiscoverReviewr).await;
+    let result = executor
+        .execute(DeskCommand::DiscoverReviewr {
+            qualified_id: "acme.diff.inspect".to_owned(),
+        })
+        .await;
 
     assert_eq!(result, CommandResult::ReviewrAvailable(true));
     server.await.unwrap();
@@ -141,12 +145,14 @@ async fn opening_reviewr_focuses_the_agent_before_invocation() {
         let (mut invoke_stream, _) = listener.accept().await.unwrap();
         let invoke = request(&mut invoke_stream).await;
         assert_eq!(invoke["method"], "plugin.action.invoke");
+        assert_eq!(invoke["params"]["plugin_id"], "acme.diff");
+        assert_eq!(invoke["params"]["action_id"], "inspect");
         respond(
             &mut invoke_stream,
             &invoke,
             json!({
                 "type": "plugin_action_invoked",
-                "action": {"plugin_id": "persiyanov.reviewr", "action_id": "open", "title": "open", "command": []},
+                "action": {"plugin_id": "acme.diff", "action_id": "inspect", "title": "inspect", "command": []},
                 "context": {"focused_pane_id": "w1:p1"}, "log": {"log_id": "l1"}
             }),
         )
@@ -155,10 +161,49 @@ async fn opening_reviewr_focuses_the_agent_before_invocation() {
     let executor = CommandExecutor::new(HerdrClient::new(path));
 
     let result = executor
-        .execute(DeskCommand::OpenReviewr(PaneId::new("w1:p1")))
+        .execute(DeskCommand::OpenReviewr {
+            pane_id: PaneId::new("w1:p1"),
+            qualified_id: "acme.diff.inspect".to_owned(),
+        })
         .await;
 
     assert_eq!(result, CommandResult::ReviewrOpened);
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn non_splittable_reviewr_action_is_unavailable_and_invocation_fails_non_fatally() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let request = request(&mut stream).await;
+        respond(
+            &mut stream,
+            &request,
+            json!({"type": "plugin_action_list", "actions": []}),
+        )
+        .await;
+    });
+    let executor = CommandExecutor::new(HerdrClient::new(path));
+
+    let discovery = executor
+        .execute(DeskCommand::DiscoverReviewr {
+            qualified_id: "inspect".to_owned(),
+        })
+        .await;
+    let invocation = executor
+        .execute(DeskCommand::OpenReviewr {
+            pane_id: PaneId::new("w1:p1"),
+            qualified_id: "inspect".to_owned(),
+        })
+        .await;
+
+    assert_eq!(discovery, CommandResult::ReviewrAvailable(false));
+    assert!(matches!(
+        invocation,
+        CommandResult::Failed { operation: "open reviewr", message }
+            if message.contains("qualified")
+    ));
     server.await.unwrap();
 }
 

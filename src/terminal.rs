@@ -133,7 +133,7 @@ pub async fn run(initial_view: View) -> Result<()> {
     let mut shutdown = Shutdown::install()?;
     let (_guard, mut terminal) = TerminalGuard::enter()?;
     let environment = HerdrEnvironment::from_env().ok();
-    let mut model = bootstrap_model(initial_view, environment.as_ref());
+    let mut model = bootstrap_model(Model::new(initial_view), environment.as_ref());
     let clock = RuntimeClock::new(sample_wall_time());
     model.set_now(clock.now());
 

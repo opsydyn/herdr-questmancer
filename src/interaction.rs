@@ -51,7 +51,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         }
         Action::Refresh => {
             if let Some(pane_id) = selected_pane(model) {
-                commands.push(DeskCommand::LoadOutput { pane_id, lines: 80 });
+                commands.push(load_output(model, pane_id));
             } else {
                 model.set_status_message(Some("no agent selected to refresh".to_owned()));
             }
@@ -61,7 +61,10 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             if !model.reviewr_available() {
                 model.set_status_message(Some("reviewr is unavailable".to_owned()));
             } else if let Some(pane_id) = selected_pane(model) {
-                commands.push(DeskCommand::OpenReviewr(pane_id));
+                commands.push(DeskCommand::OpenReviewr {
+                    pane_id,
+                    qualified_id: model.settings().reviewr_action.clone(),
+                });
             } else {
                 model.set_status_message(Some("no agent selected for reviewr".to_owned()));
             }
@@ -180,7 +183,7 @@ fn submit_search(model: &mut Model, commands: &mut Vec<DeskCommand>) {
     if after != before
         && let Some(pane_id) = after
     {
-        commands.push(DeskCommand::LoadOutput { pane_id, lines: 80 });
+        commands.push(load_output(model, pane_id));
     }
 }
 
@@ -191,6 +194,13 @@ fn select_agent(model: &mut Model, select: fn(&mut Model), commands: &mut Vec<De
     if after != before
         && let Some(pane_id) = after
     {
-        commands.push(DeskCommand::LoadOutput { pane_id, lines: 80 });
+        commands.push(load_output(model, pane_id));
+    }
+}
+
+fn load_output(model: &Model, pane_id: crate::domain::PaneId) -> DeskCommand {
+    DeskCommand::LoadOutput {
+        pane_id,
+        lines: model.settings().output_preview_lines,
     }
 }

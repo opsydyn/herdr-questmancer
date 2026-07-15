@@ -140,7 +140,15 @@ fn render_agent(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         render_panel(frame, area, " LIVE PAGE ", Text::from("No agent selected"));
         return;
     };
-    let elapsed = elapsed_label(agent, model);
+    let presence = if model.settings().show_elapsed_time {
+        format!(
+            "{} {}",
+            presence_label(agent.presence),
+            elapsed_label(agent, model)
+        )
+    } else {
+        presence_label(agent.presence).to_owned()
+    };
     let site = model
         .domain()
         .sites
@@ -149,7 +157,7 @@ fn render_agent(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     let mut lines = vec![
         Line::styled(agent.name.clone(), ACCENT),
         Line::from(format!("{site} / {}", agent.persona.handle)),
-        Line::from(format!("{} {elapsed}", presence_label(agent.presence))),
+        Line::from(presence),
     ];
     if let Some(label) = attention_label(agent) {
         lines.push(Line::styled(label, ACCENT));

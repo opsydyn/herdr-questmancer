@@ -1,5 +1,5 @@
 use crate::{
-    app::{ConnectionState, Model, OutputPreview, View},
+    app::{ConnectionState, Model, OutputPreview},
     command::{CommandExecutor, CommandResult, DeskCommand},
     domain::{PaneId, Timestamp},
     herdr::{
@@ -123,8 +123,7 @@ impl Drop for RuntimeConnection {
     }
 }
 
-pub fn bootstrap_model(view: View, environment: Option<&HerdrEnvironment>) -> Model {
-    let mut model = Model::new(view);
+pub fn bootstrap_model(mut model: Model, environment: Option<&HerdrEnvironment>) -> Model {
     if environment.is_some() {
         model.set_connection(ConnectionState::Connecting);
         model.set_status_message(Some("connecting to Herdr".to_owned()));
@@ -161,10 +160,15 @@ pub fn apply_connection_update(
     if after != before
         && let Some((pane_id, _)) = after
     {
-        commands.push(DeskCommand::LoadOutput { pane_id, lines: 80 });
+        commands.push(DeskCommand::LoadOutput {
+            pane_id,
+            lines: model.settings().output_preview_lines,
+        });
     }
     if discover_reviewr {
-        commands.push(DeskCommand::DiscoverReviewr);
+        commands.push(DeskCommand::DiscoverReviewr {
+            qualified_id: model.settings().reviewr_action.clone(),
+        });
     }
     commands
 }

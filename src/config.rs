@@ -3,7 +3,7 @@ use std::{env, path::PathBuf};
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View};
+use crate::app::{CharacterSet, ColorMode, DisplayPreferences, Motion, RuntimeSettings, View};
 
 const OUTPUT_PREVIEW_LINES_RANGE: std::ops::RangeInclusive<u32> = 10..=500;
 const GUESTBOOK_MAX_ENTRIES_RANGE: std::ops::RangeInclusive<usize> = 50..=10_000;
@@ -34,6 +34,14 @@ impl Default for WebmasterConfig {
 impl WebmasterConfig {
     pub fn parse(bytes: &[u8]) -> Result<Self, ConfigError> {
         toml::from_slice::<ConfigFile>(bytes)?.try_into()
+    }
+
+    pub fn runtime_settings(&self) -> RuntimeSettings {
+        RuntimeSettings {
+            output_preview_lines: self.output_preview_lines,
+            reviewr_action: self.reviewr_action.clone(),
+            show_elapsed_time: self.show_elapsed_time,
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 use futures_util::FutureExt;
 use herdr_webmaster::{
-    app::{ConnectionState, DisplayPreferences, Model, Motion, View},
+    app::{ConnectionState, DisplayPreferences, Model, Motion, RuntimeSettings, View},
     command::{CommandResult, DeskCommand},
     domain::{
         Agent, AgentKey, AgentPersona, Attention, AttentionReason, DomainState, PaneId, PersonaKey,
@@ -77,6 +77,11 @@ fn model_with_two_distinct_personas() -> Model {
 #[test]
 fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
     let mut model = Model::new(View::Desk);
+    model.set_settings(RuntimeSettings {
+        output_preview_lines: 123,
+        reviewr_action: "acme.diff.inspect".to_owned(),
+        show_elapsed_time: true,
+    });
 
     let commands = apply_connection_update(
         &mut model,
@@ -88,10 +93,12 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
     assert_eq!(model.domain().agents.len(), 1);
     assert!(commands.iter().any(|command| matches!(
         command,
-        DeskCommand::LoadOutput { pane_id, lines: 80 }
+        DeskCommand::LoadOutput { pane_id, lines: 123 }
             if pane_id.as_str() == "w1:p1"
     )));
-    assert!(commands.contains(&DeskCommand::DiscoverReviewr));
+    assert!(commands.contains(&DeskCommand::DiscoverReviewr {
+        qualified_id: "acme.diff.inspect".to_owned(),
+    }));
 }
 
 #[test]
@@ -189,9 +196,17 @@ fn command_failure_is_visible_without_replacing_domain_state() {
 
 #[test]
 fn startup_without_plugin_environment_is_usefully_offline() {
-    let model = bootstrap_model(View::Desk, None);
+    let mut restored = Model::new(View::Cafe);
+    restored.set_preferences(DisplayPreferences {
+        motion: Motion::None,
+        ..DisplayPreferences::default()
+    });
+
+    let model = bootstrap_model(restored, None);
 
     assert_eq!(model.connection(), &ConnectionState::Offline);
+    assert_eq!(model.view(), View::Cafe);
+    assert_eq!(model.preferences().motion, Motion::None);
     assert_eq!(
         model.status_message(),
         Some("offline: launch from Herdr to connect to the live session")
@@ -201,10 +216,12 @@ fn startup_without_plugin_environment_is_usefully_offline() {
 #[test]
 fn startup_with_plugin_environment_begins_connecting() {
     let environment = HerdrEnvironment::new("/tmp/herdr.sock", "/usr/bin/herdr");
+    let restored = Model::new(View::Cafe);
 
-    let model = bootstrap_model(View::Desk, Some(&environment));
+    let model = bootstrap_model(restored, Some(&environment));
 
     assert_eq!(model.connection(), &ConnectionState::Connecting);
+    assert_eq!(model.view(), View::Cafe);
     assert_eq!(model.status_message(), Some("connecting to Herdr"));
 }
 

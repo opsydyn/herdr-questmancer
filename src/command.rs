@@ -3,18 +3,25 @@ use crate::{
     herdr::{client::HerdrClient, protocol::SessionSnapshot},
 };
 
-const REVIEWR_PLUGIN_ID: &str = "persiyanov.reviewr";
-const REVIEWR_ACTION_ID: &str = "open";
-const REVIEWR_QUALIFIED_ID: &str = "persiyanov.reviewr.open";
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeskCommand {
     FocusPane(PaneId),
-    SendReply { pane_id: PaneId, text: String },
-    LoadOutput { pane_id: PaneId, lines: u32 },
+    SendReply {
+        pane_id: PaneId,
+        text: String,
+    },
+    LoadOutput {
+        pane_id: PaneId,
+        lines: u32,
+    },
     RefreshSnapshot,
-    DiscoverReviewr,
-    OpenReviewr(PaneId),
+    DiscoverReviewr {
+        qualified_id: String,
+    },
+    OpenReviewr {
+        pane_id: PaneId,
+        qualified_id: String,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -76,25 +83,38 @@ impl CommandExecutor {
                     Err(error) => failed("load output", error),
                 }
             }
-            DeskCommand::DiscoverReviewr => match self.client.list_plugin_actions().await {
-                Ok(actions) => CommandResult::ReviewrAvailable(
-                    actions
-                        .iter()
-                        .any(|action| action.qualified_id() == REVIEWR_QUALIFIED_ID),
-                ),
-                Err(error) => failed("discover reviewr", error),
-            },
+            DeskCommand::DiscoverReviewr { qualified_id } => {
+                match self.client.list_plugin_actions().await {
+                    Ok(actions) => CommandResult::ReviewrAvailable(
+                        actions
+                            .iter()
+                            .any(|action| action.qualified_id() == qualified_id),
+                    ),
+                    Err(error) => failed("discover reviewr", error),
+                }
+            }
             DeskCommand::RefreshSnapshot => match self.client.snapshot().await {
                 Ok(snapshot) => CommandResult::SnapshotLoaded(Box::new(snapshot)),
                 Err(error) => failed("refresh snapshot", error),
             },
-            DeskCommand::OpenReviewr(pane_id) => {
+            DeskCommand::OpenReviewr {
+                pane_id,
+                qualified_id,
+            } => {
+                let Some((plugin_id, action_id)) = split_qualified_action(&qualified_id) else {
+                    return CommandResult::Failed {
+                        operation: "open reviewr",
+                        message: format!(
+                            "reviewr action {qualified_id:?} must be qualified as <plugin>.<action>"
+                        ),
+                    };
+                };
                 if let Err(error) = self.client.focus_pane(pane_id.as_str()).await {
                     return failed("open reviewr", error);
                 }
                 match self
                     .client
-                    .invoke_plugin_action(REVIEWR_PLUGIN_ID, REVIEWR_ACTION_ID, pane_id.as_str())
+                    .invoke_plugin_action(plugin_id, action_id, pane_id.as_str())
                     .await
                 {
                     Ok(()) => CommandResult::ReviewrOpened,
@@ -103,6 +123,11 @@ impl CommandExecutor {
             }
         }
     }
+}
+
+fn split_qualified_action(qualified_id: &str) -> Option<(&str, &str)> {
+    let (plugin_id, action_id) = qualified_id.rsplit_once('.')?;
+    (!plugin_id.is_empty() && !action_id.is_empty()).then_some((plugin_id, action_id))
 }
 
 fn failed(operation: &'static str, error: impl std::fmt::Display) -> CommandResult {

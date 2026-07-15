@@ -1,5 +1,5 @@
 use herdr_webmaster::{
-    app::{ConnectionState, Model, OutputPreview, View},
+    app::{ConnectionState, Model, OutputPreview, RuntimeSettings, View},
     domain::{Attention, AttentionReason, DomainState, PaneId, Presence, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::reduce_action,
@@ -84,6 +84,20 @@ fn working_desk_uses_the_injected_clock_for_elapsed_time() {
     let screen = render(&model, 130, 32);
 
     assert!(screen.contains("working 2m"));
+}
+
+#[test]
+fn elapsed_time_can_be_hidden_without_leaving_extra_spacing() {
+    let mut model = model_with_presence(Presence::Working, Attention::Clear);
+    model.set_settings(RuntimeSettings {
+        show_elapsed_time: false,
+        ..RuntimeSettings::default()
+    });
+
+    let screen = render(&model, 130, 32);
+
+    assert!(screen.contains("working"));
+    assert!(!screen.contains("working 2m"));
 }
 
 #[test]
