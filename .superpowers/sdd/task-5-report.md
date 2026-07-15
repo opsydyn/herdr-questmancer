@@ -255,3 +255,35 @@ Commands and results:
   semantics.
 - The actor remains timer-free while clean.
 - No unresolved concern remains in the Task 5 review-fix scope.
+
+## Re-review fix: causal FIFO acknowledgement regression
+
+The re-review correctly found that the first FIFO characterization used
+`tokio::join!` and inspected disk only after both append and flush futures had
+completed. That ordering could not prove the flush acknowledgement waited for
+the earlier append.
+
+The test now pins the append future and manually polls it exactly once. That
+poll enqueues `AppendGuestbook` and leaves its acknowledgement pending. The
+test then awaits `flush` alone, immediately verifies both `state.json` and the
+guestbook JSONL record, and only afterward awaits the append future for cleanup
+and result checking. No production code changed.
+
+Focused command:
+
+```text
+cargo test --test persistence_worker \
+  flush_acknowledges_after_an_earlier_append_and_dirty_state_are_durable \
+  -- --exact
+```
+
+Result: exit `0`; 1 passed, 0 failed.
+
+Final re-review gates:
+
+- `cargo fmt --all` - exit `0`.
+- `cargo test --test persistence_worker` - exit `0`; 11 passed, 0 failed.
+- `cargo clippy --all-targets --all-features -- -D warnings` - exit `0`.
+- `git diff --check` - exit `0`.
+
+No concern remains in the Task 5 re-review scope.

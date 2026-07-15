@@ -266,13 +266,10 @@ async fn flush_acknowledges_after_an_earlier_append_and_dirty_state_are_durable(
     let entry = guestbook_entry("before-flush");
     assert!(client.stage_state(state.clone()).unwrap());
 
-    let (append_result, flush_result) = tokio::join!(
-        biased;
-        client.append_guestbook(entry.clone()),
-        client.flush(),
-    );
-    append_result.unwrap();
-    flush_result.unwrap();
+    let mut append = Box::pin(client.append_guestbook(entry.clone()));
+    assert!(matches!(futures_util::poll!(&mut append), Poll::Pending));
+
+    client.flush().await.unwrap();
 
     assert_eq!(load_state(&state_path).await.unwrap(), Some(state));
     let replay = load_guestbook(&guestbook_path, 10).await;
@@ -281,6 +278,8 @@ async fn flush_acknowledges_after_an_earlier_append_and_dirty_state_are_durable(
         replay.guestbook.entries().iter().collect::<Vec<_>>(),
         vec![&entry]
     );
+
+    append.await.unwrap();
 
     client.shutdown().await.unwrap();
     worker.await.unwrap();
