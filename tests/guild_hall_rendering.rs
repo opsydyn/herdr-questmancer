@@ -279,13 +279,32 @@ fn footer_navigation_and_contextual_actions_are_truthful_at_layout_boundaries() 
     let mut model = live_model();
     model.set_reviewr_available(true);
 
-    let narrow = render(&model, 79, 24);
-    assert!(narrow.contains("[tab] Next region"));
-    assert!(!narrow.contains("[tab] Open Chronicle"));
+    for (current, expected, refused) in [
+        ("QUEST BOARD", "[tab] Next region", "[tab] Open Chronicle"),
+        ("PARTY ROSTER", "[tab] Next region", "[tab] Open Chronicle"),
+        (
+            "CALLS FOR COUNSEL",
+            "[tab] Open Chronicle",
+            "[tab] Next region",
+        ),
+        ("CHRONICLE", "[tab] Next region", "[tab] Open Chronicle"),
+        ("ADVENTURER", "[tab] Next region", "[tab] Open Chronicle"),
+    ] {
+        let narrow = render(&model, 79, 24);
+        assert!(narrow.contains(current), "{narrow}");
+        assert!(narrow.contains(expected), "{narrow}");
+        assert!(!narrow.contains(refused), "{narrow}");
+
+        for width in [80, 119, 120] {
+            let screen = render(&model, width, 24);
+            assert!(!screen.contains("[tab]"), "width {width}\n{screen}");
+        }
+
+        model.cycle_region();
+    }
 
     for width in [80, 119, 120] {
         let screen = render(&model, width, 24);
-        assert!(!screen.contains("[tab]"), "width {width}\n{screen}");
         for action in [
             "Observe",
             "Issue counsel",
@@ -340,6 +359,13 @@ fn narrow_diagnostics_remain_visible_in_every_focused_region() {
             unavailable.contains("The spoils cannot be inspected here"),
             "missing Reviewr diagnostic in {title}\n{unavailable}"
         );
+        assert_eq!(
+            unavailable
+                .matches("The spoils cannot be inspected here")
+                .count(),
+            1,
+            "duplicate Reviewr diagnostic in {title}\n{unavailable}"
+        );
 
         apply_command_result(
             &mut model,
@@ -354,6 +380,11 @@ fn narrow_diagnostics_remain_visible_in_every_focused_region() {
         assert!(
             failed.contains("load output failed: pane vanished"),
             "missing command failure in {title}\n{failed}"
+        );
+        assert_eq!(
+            failed.matches("load output failed: pane vanished").count(),
+            1,
+            "duplicate command failure in {title}\n{failed}"
         );
 
         model.cycle_region();

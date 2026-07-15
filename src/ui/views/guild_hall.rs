@@ -146,7 +146,7 @@ fn render_wide(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     ])
     .areas(selected);
     render_adventurer(frame, adventurer, model, true);
-    render_scrying(frame, scrying, model);
+    render_scrying(frame, scrying, model, true);
     render_spoils(frame, spoils, model);
 }
 
@@ -166,7 +166,7 @@ fn render_medium(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     ])
     .areas(selected);
     render_adventurer(frame, adventurer, model, true);
-    render_scrying(frame, scrying, model);
+    render_scrying(frame, scrying, model, true);
 }
 
 fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) {
@@ -188,7 +188,7 @@ fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) {
             ])
             .areas(primary);
             render_adventurer(frame, adventurer, model, false);
-            render_scrying(frame, scrying, model);
+            render_scrying(frame, scrying, model, false);
         }
     }
     if let Some(status) = model.status_message() {
@@ -371,7 +371,7 @@ fn render_adventurer(frame: &mut Frame<'_>, area: Rect, model: &Model, include_s
     );
 }
 
-fn render_scrying(frame: &mut Frame<'_>, area: Rect, model: &Model) {
+fn render_scrying(frame: &mut Frame<'_>, area: Rect, model: &Model, include_status: bool) {
     let Some(agent) = model.selected_agent() else {
         render_panel(
             frame,
@@ -412,7 +412,7 @@ fn render_scrying(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         lines.push(Line::styled(SCRYING_STILL, MUTED));
         lines.push(Line::styled("Select refresh to trace recent deeds.", MUTED));
     }
-    if let Some(status) = model.status_message() {
+    if include_status && let Some(status) = model.status_message() {
         lines.push(Line::from(""));
         lines.push(Line::styled(
             present(status, model.preferences().character_set).into_owned(),
@@ -455,7 +455,12 @@ fn render_spoils(frame: &mut Frame<'_>, area: Rect, model: &Model) {
 fn footer_lines(model: &Model, width: u16) -> Vec<String> {
     let mut actions = vec!["[1] Guild Hall", "[2] Delve"];
     if width < 80 {
-        actions.push("[tab] Next region");
+        actions.push(match model.region() {
+            Region::Summons => "[tab] Open Chronicle",
+            Region::QuestBoard | Region::Party | Region::Chronicle | Region::Adventurer => {
+                "[tab] Next region"
+            }
+        });
     }
     if !model.domain().agents.is_empty() {
         actions.extend(["[j/k] Choose", "[/] Search"]);
