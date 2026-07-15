@@ -1,139 +1,167 @@
-# Task 5 Report: Responsive actionable cybercafe
+# Task 5 Report: Debounced single-writer persistence worker
 
-## Outcome
+## Status
 
-Replaced the empty Cafe projection with one responsive room driven entirely by
-the shared `Model`. The Cafe now renders deterministic BTreeMap-ordered agent
-workstations, a wide selected-agent profile, compact narrow-terminal rows,
-contextual actions, and explicit connection overlays without adding a second
-interaction or Herdr effect path.
+Implemented the single Tokio persistence actor and its typed client protocol.
+State writes are deduplicated and debounced from the latest distinct stage by
+exactly 250 milliseconds; guestbook append, flush, and shutdown calls
+acknowledge completion; filesystem failures emit bounded diagnostics without
+terminating the worker.
 
-## TDD evidence
+## RED evidence
 
-The change was developed through observed RED/GREEN cycles.
+### Missing worker boundary
 
-1. Initial responsive RED: `cargo test --test cafe_rendering` ran four tests.
-   The 120x30, 80x24, and 60x18 tests failed with `missing Alpha` because
-   `views::cafe::render` did not receive or project the model. The existing
-   1x1 safety behavior passed.
-2. Initial layout GREEN: after passing `&Model` into the Cafe and adding the
-   responsive room/grid/list boundaries, the same target passed 4/4.
-3. Fallback/connection RED: the expanded 12-test target failed three focused
-   cases. The empty-state copy advertised `[/] search` without any agents,
-   ASCII mode retained the Unicode outer border, and Offline lacked the
-   required `DISCONNECTED` / `LAST POSES PRESERVED` overlay.
-4. Fallback/connection GREEN: the contextual empty copy, ASCII Cafe border,
-   and state-specific room overlay made the target pass 12/12.
-5. Whole-Cafe ANSI RED: tightening the ANSI-16 assertion to reject both
-   `Color::Indexed` and `Color::Rgb` failed because the Cafe frame, room,
-   footer, overlay, and tiny fallback still used RGB theme styles.
-6. Whole-Cafe ANSI GREEN: local semantic `CafeStyles` derived from
-   `Palette`/`ColorRole` made every Cafe cell use the selected palette; the
-   exact ANSI test then passed.
-7. Narrow-footer RED: the 60x18 test was tightened to require every valid
-   action and failed with `missing [o] refresh` because the one-line legend
-   clipped after Reply.
-8. Narrow-footer GREEN: a two-row sub-80 legend keeps visit, reply, refresh,
-   seen, and search visible while preserving all three compact workstations.
-9. Exact-80 review RED: the 80x24 test failed with
-   `missing [space] seen` because the two-row footer boundary excluded exactly
-   80 columns. A new floor assertion also failed because the full grid
-   overwrote the room's inner floor line.
-10. Dense-selection review RED: a 60-agent model selected on its final
-    BTreeMap entry failed with `late selection hidden`; the renderer consumed
-    the map prefix and compressed workstations to one row.
-11. Review GREEN: exact 80 now uses the complete two-row footer, the outer room
-    border retains a dedicated `FLOOR / CABLE RUN / COUNTER` cue, and the grid
-    deterministically pages whole 28x10 workstations to the page containing the
-    current selection.
-12. Compact-selection re-review RED: a 60-agent 60x18 model failed with
-    `late selection hidden` because compact rendering still consumed the
-    BTreeMap prefix.
-13. Exact-80 wall re-review RED: the tightened 80x24 assertion failed with
-    `full grid overwrote the shared wall cue`; the full 20-row workstation grid
-    covered the inner wall caption.
-14. Re-review GREEN: full and compact layouts now share deterministic selected
-    page calculation, compact pages retain complete identity/state rows, and a
-    semantic top-border `CAFE WALL` survives exact-height grids.
+Command:
 
-The Cafe interaction additions characterize a deliberately pre-existing
-view-neutral boundary and passed on their first run. A fabricated reducer
-failure would have required adding a Cafe-specific path contrary to the task.
-The passing parity tests prove Cafe selection, search, visit, reply, seen,
-refresh, and optional Reviewr produce exactly the same `ActionReduction` and
-typed `DeskCommand` values as Desk.
+```text
+cargo test --test persistence_worker
+```
 
-## Changes
+Exit `101` with the expected missing-feature error:
 
-- Changed the Cafe render boundary to receive the shared `&Model`.
-- Added a semantic Cafe palette for xterm-256 and ANSI-16 covering the outer
-  room as well as workstation/profile widgets.
-- Painted shared wall, floor/cable-run, and counter cues before child widgets.
-- Added a maximum-useful full workstation grid with the widget's 28x10 minimum:
-  160x50 uses three row-major columns, while 120x30 and 80x24 use two columns
-  and two rows for the fixed three-agent model.
-- Dense grids compute a deterministic fixed-capacity BTreeMap page containing
-  the current selection, so navigation keeps late selected agents visible
-  without shrinking workstation cells below 28x10.
-- Added the separately composed selected profile beside the grid at terminal
-  widths of 120 columns and above. The 80-column layout retains full
-  workstations without the profile.
-- Added a compact vertical actionable workstation list below 80 columns.
-- Compact dense lists page deterministic complete two-line rows around the
-  current selection, keeping late selected identity and state visible at
-  60x18.
-- Bounded dense-grid rows to the drawable rectangle and clamped every cell to
-  the remaining grid height, so large agent maps never create off-grid cells.
-- Derived every workstation and profile frame with
-  `frame_for(agent, model.now(), model.preferences())`.
-- Passed selection separately from actual focus so the selected desk gains its
-  cursor, double border, and lamp while only domain focus renders `LIVE`.
-- Kept explicit state labels visible alongside selection, including `HELP!`
-  and `BROKEN LINK` without relying on colour.
-- Added contextual Cafe actions for view switching, navigation, search, visit,
-  reply, refresh, seen, and optional Reviewr. Agent-only actions are omitted
-  when unavailable; layouts at 80 columns and below use two rows so the
-  complete valid set remains visible.
-- Added Offline, Reconnecting, and Incompatible room overlays while retaining
-  the last visible agent poses beneath them.
-- Kept the empty Cafe helpful and actionable without advertising invalid agent
-  commands.
-- Left `src/interaction.rs` unchanged: Cafe reuses the existing reducer,
-  selection-driven single output load, and typed command boundary.
+```text
+error[E0432]: unresolved imports `herdr_webmaster::persistence::PersistenceWorker`,
+`herdr_webmaster::persistence::WorkerPaths`
+```
+
+The test target contained only debounce and unchanged-projection examples at
+this boundary. A prior run also exposed an invalid test assertion comparing
+`io::Result<SystemTime>` directly; that test defect was corrected and RED was
+rerun until the only failure was the missing worker API above.
+
+### Missing acknowledgement operations
+
+After debounce and deduplication were GREEN, the shutdown, disabled-path,
+append, flush, and error examples were added. The next command:
+
+```text
+cargo test --test persistence_worker
+```
+
+exited `101` with seven `E0599` errors because `PersistenceClient::flush` and
+`PersistenceClient::append_guestbook` did not exist. This was the expected
+second RED boundary before implementing acknowledged operations.
+
+### Resettable deadline proof
+
+Self-review found that staging three values at the same virtual instant did
+not prove that a later distinct stage resets the deadline. The unproven reset
+branch was removed, and a spaced-stage example was added. This command:
+
+```text
+cargo test --test persistence_worker \
+  a_later_distinct_state_resets_the_debounce_deadline -- --exact
+```
+
+exited `101` with:
+
+```text
+state.json was published too early
+```
+
+Restoring `Sleep::reset` to 250 milliseconds from the latest distinct message
+made the same exact test GREEN.
+
+Paused-time setup is deliberate: each worker is yielded once immediately after
+`start` so it reaches a pending receive, and once after staging so it drains
+the ready messages and arms the timer before `advance`. The test asserts no
+destination at 249 milliseconds of virtual time. After the exact one
+millisecond boundary, one bounded `spawn_blocking` observer waits up to one
+second of wall time only for real tempfile I/O to complete. The spaced-stage
+test uses the same bounded observer while virtual time remains paused to prove
+the earlier deadline did not publish. No flush or test-only production hook is
+used in either debounce assertion path.
+
+## GREEN evidence
+
+The first production slice made the two debounce/deduplication examples pass.
+The second slice made all eight acknowledgement, disabled-path, error, and
+bounded-diagnostic examples pass. After the explicit reset RED/GREEN cycle,
+the final focused command was:
+
+```text
+cargo test --test persistence_worker
+```
+
+Result: exit `0`; 9 passed, 0 failed.
+
+Clippy initially identified two `manual_inspect` warnings in diagnostic side
+effects. Replacing behavior-preserving `map_err` calls with `inspect_err` made
+the required lint command clean.
+
+## Implementation
+
+- Added the exact `PersistenceMessage` variants for staging state, appending a
+  guestbook entry, flushing, and shutting down with oneshot acknowledgements.
+- Added public `WorkerPaths`, `PersistenceWorker`, and `PersistenceClient`
+  exports from `persistence`.
+- Used one unbounded command channel for infallible synchronous state staging
+  and one bounded diagnostic channel with capacity 16. Diagnostic emission is
+  non-blocking, so a saturated UI queue cannot stall persistence or shutdown.
+- Kept deduplication at the client boundary through `last_staged`; unchanged
+  projections return `false` and send no actor message.
+- Kept one optional dirty projection and one optional resettable Tokio sleep.
+  Every distinct staged state replaces the dirty projection and resets the
+  deadline to 250 milliseconds from that message. Successful or failed
+  publication clears the attempted projection and disarms the timer.
+- Serialized state publication and guestbook append effects in actor message
+  order. Guestbook acknowledgement occurs after the existing `sync_data` call.
+- Made `flush` publish dirty state immediately, cancel its pending debounce,
+  and acknowledge the actual result.
+- Made `shutdown` process after earlier FIFO messages, publish the latest dirty
+  state, acknowledge once, and terminate even when publication returns an
+  error.
+- Made `None` state and guestbook paths successful no-ops.
+- Converted every persistence error into the existing diagnostic shape with
+  the same operation, path, optional line, and source message. Failures are
+  reported without terminating the actor.
+- Cleared failed dirty state while retaining the client's last staged
+  projection, so the same failed projection is deduplicated and only a later
+  distinct state triggers another attempt.
+
+## Files
+
+- `.superpowers/sdd/task-5-report.md`
+- `src/persistence/mod.rs`
+- `src/persistence/worker.rs`
+- `tests/persistence_worker.rs`
 
 ## Verification
 
-Verification run from `/Users/alancurrie/Projects/herdr-web-master`:
+Run from
+`/Users/alancurrie/Projects/herdr-web-master/.worktrees/persistence`:
 
-- `cargo test --test cafe_rendering` - passed, 15 tests.
-- `cargo test --test interaction` - passed, 19 tests.
-- `cargo test --all-targets` - passed, full Rust suite.
-- `cargo fmt --all --check` - passed.
-- `cargo clippy --all-targets --all-features -- -D warnings` - passed.
-- `git diff --check` - passed.
+- `cargo fmt --all` - exit `0`.
+- `cargo test --test persistence_worker` - exit `0`; 9 passed, 0 failed.
+- `cargo clippy --all-targets --all-features -- -D warnings` - exit `0`.
+- `cargo test --all-targets --all-features` - exit `0`; all 278 tests passed.
+- `git diff --check` - exit `0`.
 
-Coverage includes exact 160x50, 120x30, 80x24, 60x18, 1x1, zero, and other
-tiny areas; profile presence/absence; all three stable row-major agents;
-selection/focus markers; shared room cues; contextual footer; preserved-pose
-connection overlays; ASCII; ANSI-16; reduced motion; and no motion.
+## Self-review
 
-## Self-review and concerns
+- The fixed `state.json.tmp` name now has exactly one production writer: only
+  the actor calls `publish_state` for staged runtime state.
+- `stage_state` updates `last_staged` only after a successful channel send.
+- Actor FIFO ordering ensures a shutdown message cannot acknowledge before any
+  previously sent append or flush message completes.
+- Timer publication, flush, and shutdown all take the dirty projection before
+  attempting I/O. A failed write therefore cannot become a repeating retry;
+  the worker remains available for later distinct state and append messages.
+- Flush disarms its pending sleep on both success and failure. A clean worker
+  has no armed timer and no periodic wakeup.
+- A disabled state path still clears attempted dirty state successfully; a
+  disabled guestbook path acknowledges without touching disk.
+- A full diagnostic receiver never backpressures the actor. Excess diagnostics
+  are dropped by `try_send`, keeping memory and shutdown latency bounded.
+- Channel closure without an explicit shutdown only terminates the actor; it
+  does not invent implicit durability semantics. Runtime integration must use
+  the acknowledged `shutdown` operation defined by this task.
+- The pre-existing modification to `.superpowers/sdd/task-2-report.md` was not
+  changed or included in this task's commit.
 
-- Rendering is pure: it owns no timer, performs no output/persistence read, and
-  mutates no model or domain state.
-- The layout uses domain BTreeMap iteration directly, preserving stable
-  row-major ordering without a second cache. Tests explicitly verify the first
-  Alpha, Beta, and Gamma occurrences and exercise a dense 60-agent map.
-- ANSI-16 verification checks the complete Cafe buffer rather than only the
-  persona widgets.
-- ASCII verification checks the complete Cafe buffer is ASCII and retains
-  explicit blocked/exited markers.
-- The Cafe adds no duplicate action reducer or Cafe-specific Herdr command.
-- Sub-80 layouts trade one room row for a second footer row so no valid Cafe
-  action is silently clipped; exact 80 uses the same complete two-row legend.
-- A floor/cable/counter title on the room's bottom border survives even when an
-  exact-height full grid occupies every inner row.
-- A palette-aware `CAFE WALL` title on the top border likewise survives an
-  exact 80x24 grid without consuming a workstation row.
-- No terminal timers, persistence behavior, output reads, raster assets, or
-  supplied reference artwork were introduced.
+## Concerns
+
+No unresolved concern within Task 5 scope. Task 7 must retain the client long
+enough to request and await `shutdown`; simply dropping the client deliberately
+does not flush dirty state.
