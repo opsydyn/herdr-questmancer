@@ -97,7 +97,9 @@ fn adapt_agent_status(
     let Some(agent_key) = state.agent_key_for_pane(&pane_id) else {
         return vec![AdapterAction::RequestSnapshot];
     };
-    let revision = state.agents[agent_key].pane_revision.saturating_add(1);
+    let revision = data
+        .revision
+        .unwrap_or_else(|| state.agents[agent_key].pane_revision.saturating_add(1));
     vec![AdapterAction::Apply(Box::new(
         AppEvent::AgentStatusChanged {
             pane_id,
@@ -143,6 +145,8 @@ struct AgentStatusData {
     agent_status: AgentStatus,
     #[serde(default)]
     custom_status: Option<String>,
+    #[serde(default)]
+    revision: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]

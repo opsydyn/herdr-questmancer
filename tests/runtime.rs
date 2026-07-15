@@ -1,16 +1,17 @@
 use std::fs;
 
-use herdr_webmaster::{app::View, runtime::RuntimeRegistration};
+use herdr_webmaster::{app::View, persistence::effective_view, runtime::RuntimeRegistration};
 use serde_json::Value;
 use tempfile::tempdir;
 
 #[test]
-fn registration_writes_runtime_state_and_cleans_it_on_drop() {
+fn registration_writes_the_resolved_effective_view_and_cleans_it_on_drop() {
     let directory = tempdir().expect("temporary state directory");
     let runtime_path = directory.path().join("runtime.json");
 
+    let resolved = effective_view(None, Some(View::Cafe), View::Desk);
     let registration =
-        RuntimeRegistration::register(directory.path(), "w1:p2", View::Cafe).expect("register");
+        RuntimeRegistration::register(directory.path(), "w1:p2", resolved).expect("register");
     let state: Value = serde_json::from_slice(&fs::read(&runtime_path).expect("runtime state"))
         .expect("valid runtime JSON");
 

@@ -59,7 +59,8 @@ impl PersistedStateV1 {
             preferences: *model.preferences(),
             selected_persona: model
                 .selected_agent()
-                .map(|agent| agent.persona.key.clone()),
+                .map(|agent| agent.persona.key.clone())
+                .or_else(|| intent.selected_persona.clone()),
             personas: intent.personas.clone(),
             seen_attention: intent.seen_attention.clone(),
         }

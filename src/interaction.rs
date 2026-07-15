@@ -3,17 +3,21 @@ use std::ops::ControlFlow;
 use crate::{
     app::{Modal, Model},
     command::DeskCommand,
+    persistence::PersistedStateV1,
     ui::input::Action,
+    update::Command,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ActionReduction {
     pub control: ControlFlow<(), ()>,
     pub commands: Vec<DeskCommand>,
+    pub persistence: Vec<Command>,
 }
 
 #[must_use]
 pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
+    let before = PersistedStateV1::capture(model);
     let mut commands = Vec::new();
     let control = match action {
         Action::Quit => ControlFlow::Break(()),
@@ -112,7 +116,24 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         }
         _ => ControlFlow::Continue(()),
     };
-    ActionReduction { control, commands }
+    finish_reduction(model, &before, control, commands)
+}
+
+fn finish_reduction(
+    model: &Model,
+    before: &PersistedStateV1,
+    control: ControlFlow<(), ()>,
+    commands: Vec<DeskCommand>,
+) -> ActionReduction {
+    let persistence = (PersistedStateV1::capture(model) != *before)
+        .then_some(Command::PersistState)
+        .into_iter()
+        .collect();
+    ActionReduction {
+        control,
+        commands,
+        persistence,
+    }
 }
 
 fn selected_pane(model: &Model) -> Option<crate::domain::PaneId> {

@@ -25,7 +25,7 @@ struct RuntimeState {
 }
 
 impl RuntimeRegistration {
-    pub fn from_env(initial_view: View) -> Result<Option<Self>> {
+    pub fn from_env(effective_view: View) -> Result<Option<Self>> {
         let (Ok(state_dir), Ok(pane_id)) = (
             env::var("HERDR_PLUGIN_STATE_DIR"),
             env::var("HERDR_PANE_ID"),
@@ -33,10 +33,10 @@ impl RuntimeRegistration {
             return Ok(None);
         };
 
-        Self::register(Path::new(&state_dir), &pane_id, initial_view).map(Some)
+        Self::register(Path::new(&state_dir), &pane_id, effective_view).map(Some)
     }
 
-    pub fn register(state_dir: &Path, pane_id: &str, initial_view: View) -> Result<Self> {
+    pub fn register(state_dir: &Path, pane_id: &str, effective_view: View) -> Result<Self> {
         fs::create_dir_all(state_dir).context("create plugin state directory")?;
         let path = state_dir.join("runtime.json");
         let temporary = state_dir.join(format!("runtime.json.tmp.{}", process::id()));
@@ -47,7 +47,7 @@ impl RuntimeRegistration {
                 .duration_since(UNIX_EPOCH)
                 .context("system clock is before Unix epoch")?
                 .as_secs(),
-            initial_view: match initial_view {
+            initial_view: match effective_view {
                 View::Desk => "desk",
                 View::Cafe => "cafe",
             }

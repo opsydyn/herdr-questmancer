@@ -8,6 +8,8 @@ use crate::{
         event_adapter::{AdapterAction, adapt_update},
         supervisor::{Backoff, ConnectionSupervisor, ConnectionUpdate},
     },
+    interaction::ActionReduction,
+    persistence::{PersistedStateV1, PersistenceClient, PersistenceError},
     update::{AppEvent, Command, update},
 };
 use tokio::{
@@ -20,6 +22,61 @@ pub enum RuntimeEvent {
     Connection(ConnectionUpdate),
     Command(CommandResult),
     CommandTaskFailed(String),
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct RuntimeEffects {
+    pub desk: Vec<DeskCommand>,
+    pub persistence: Vec<Command>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimeExit {
+    Quit,
+    Signal,
+    InputClosed,
+}
+
+#[derive(Debug)]
+pub struct ActionRuntimeEffects {
+    pub desk: Vec<DeskCommand>,
+    pub persistence_errors: Vec<PersistenceError>,
+    pub exit: Option<RuntimeExit>,
+}
+
+pub async fn dispatch_action_effects(
+    client: &mut PersistenceClient,
+    model: &Model,
+    reduction: ActionReduction,
+) -> ActionRuntimeEffects {
+    let persistence_errors =
+        dispatch_persistence_effects(client, model, reduction.persistence).await;
+    ActionRuntimeEffects {
+        desk: reduction.commands,
+        persistence_errors,
+        exit: reduction.control.is_break().then_some(RuntimeExit::Quit),
+    }
+}
+
+pub async fn dispatch_persistence_effects(
+    client: &mut PersistenceClient,
+    model: &Model,
+    effects: impl IntoIterator<Item = Command>,
+) -> Vec<PersistenceError> {
+    let mut errors = Vec::new();
+    for effect in effects {
+        let result = match effect {
+            Command::AppendGuestbook(entry) => client.append_guestbook(entry).await,
+            Command::PersistState => client
+                .stage_state(PersistedStateV1::capture(model))
+                .map(drop),
+            Command::RequestSnapshot => continue,
+        };
+        if let Err(error) = result {
+            errors.push(error);
+        }
+    }
+    errors
 }
 
 #[derive(Debug)]
@@ -139,19 +196,19 @@ pub fn apply_connection_update(
     model: &mut Model,
     connection_update: ConnectionUpdate,
     observed_at: Timestamp,
-) -> Vec<DeskCommand> {
+) -> RuntimeEffects {
     let discover_reviewr = matches!(connection_update, ConnectionUpdate::Connected(_));
     let before = selected_revision(model);
     let actions = adapt_update(connection_update, model.domain(), observed_at);
-    let mut commands = Vec::new();
+    let mut effects = RuntimeEffects::default();
 
     for action in actions {
         match action {
             AdapterAction::Apply(event) => {
-                apply_domain_event(model, *event, &mut commands);
+                apply_domain_event(model, *event, &mut effects);
             }
             AdapterAction::SetConnection(connection) => model.set_connection(connection),
-            AdapterAction::RequestSnapshot => push_unique_refresh(&mut commands),
+            AdapterAction::RequestSnapshot => push_unique_refresh(&mut effects.desk),
             AdapterAction::Diagnostic(message) => model.set_status_message(Some(message)),
         }
     }
@@ -160,20 +217,25 @@ pub fn apply_connection_update(
     if after != before
         && let Some((pane_id, _)) = after
     {
-        commands.push(DeskCommand::LoadOutput {
+        effects.desk.push(DeskCommand::LoadOutput {
             pane_id,
             lines: model.settings().output_preview_lines,
         });
     }
     if discover_reviewr {
-        commands.push(DeskCommand::DiscoverReviewr {
+        effects.desk.push(DeskCommand::DiscoverReviewr {
             qualified_id: model.settings().reviewr_action.clone(),
         });
     }
-    commands
+    effects
 }
 
-pub fn apply_command_result(model: &mut Model, result: CommandResult, observed_at: Timestamp) {
+pub fn apply_command_result(
+    model: &mut Model,
+    result: CommandResult,
+    observed_at: Timestamp,
+) -> RuntimeEffects {
+    let mut effects = RuntimeEffects::default();
     match result {
         CommandResult::Focused(pane_id) => {
             model.set_status_message(Some(format!("visited {pane_id}")));
@@ -210,29 +272,31 @@ pub fn apply_command_result(model: &mut Model, result: CommandResult, observed_a
             model.set_status_message(Some("opened reviewr".to_owned()));
         }
         CommandResult::SnapshotLoaded(snapshot) => {
-            let mut ignored = Vec::new();
             apply_domain_event(
                 model,
                 AppEvent::SnapshotReplaced {
                     snapshot: *snapshot,
                     observed_at,
                 },
-                &mut ignored,
+                &mut effects,
             );
         }
         CommandResult::Failed { operation, message } => {
             model.set_status_message(Some(format!("{operation} failed: {message}")));
         }
     }
+    effects
 }
 
-fn apply_domain_event(model: &mut Model, event: AppEvent, commands: &mut Vec<DeskCommand>) {
+fn apply_domain_event(model: &mut Model, event: AppEvent, effects: &mut RuntimeEffects) {
     let state = model.take_domain();
     let (state, domain_commands) = update(state, event);
     model.replace_domain(state);
     for command in domain_commands {
         if command == Command::RequestSnapshot {
-            push_unique_refresh(commands);
+            push_unique_refresh(&mut effects.desk);
+        } else {
+            effects.persistence.push(command);
         }
     }
 }

@@ -7,6 +7,7 @@ use herdr_webmaster::{
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::reduce_action,
     ui::input::Action,
+    update::Command,
 };
 
 fn live_model_with_two_agents() -> Model {
@@ -89,6 +90,25 @@ fn view_switch_is_reduced_without_effect_commands() {
     assert_eq!(model.view(), View::Cafe);
     assert_eq!(reduction.control, ControlFlow::Continue(()));
     assert!(reduction.commands.is_empty());
+    assert_eq!(reduction.persistence, vec![Command::PersistState]);
+
+    let unchanged = reduce_action(&mut model, Action::Switch(View::Cafe));
+    assert!(unchanged.persistence.is_empty());
+}
+
+#[test]
+fn selection_changes_persist_but_noops_and_animation_redraws_do_not() {
+    let mut model = live_model_with_two_distinct_personas();
+
+    let changed = reduce_action(&mut model, Action::Last);
+    assert_eq!(changed.persistence, vec![Command::PersistState]);
+
+    let unchanged = reduce_action(&mut model, Action::Last);
+    assert!(unchanged.persistence.is_empty());
+
+    model.set_now(Timestamp::from_millis(86_400_000));
+    let redraw = reduce_action(&mut model, Action::Redraw);
+    assert!(redraw.persistence.is_empty());
 }
 
 #[test]
@@ -326,11 +346,13 @@ fn mark_seen_uses_the_domain_reducer_for_the_selected_agent() {
     let marked = reduce_action(&mut model, Action::MarkSeen);
 
     assert!(marked.commands.is_empty());
+    assert_eq!(marked.persistence, vec![Command::PersistState]);
     assert!(!model.selected_agent().unwrap().attention.is_unseen());
 
     let mut empty = Model::new(View::Desk);
     let no_mark = reduce_action(&mut empty, Action::MarkSeen);
     assert!(no_mark.commands.is_empty());
+    assert!(no_mark.persistence.is_empty());
     assert_eq!(
         empty.status_message(),
         Some("no agent selected to mark seen")

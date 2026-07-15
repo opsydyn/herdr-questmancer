@@ -45,6 +45,9 @@ write_runtime() {
   local pane_id=$1
   local initial_view=$2
   local temporary="$RUNTIME.tmp.$$"
+  if [[ $(runtime_pane_id 2>/dev/null || true) == "$pane_id" ]]; then
+    return
+  fi
   printf '{"pane_id":"%s","pid":0,"started_at":%s,"initial_view":"%s"}\n' \
     "$pane_id" "$(date +%s)" "$initial_view" >"$temporary"
   mv "$temporary" "$RUNTIME"
@@ -65,12 +68,20 @@ open_pane() {
     return
   fi
 
-  response=$("$HERDR" plugin pane open \
-    --plugin "$PLUGIN_ID" \
-    --entrypoint webmaster \
-    --placement tab \
-    --env "WEBMASTER_INITIAL_VIEW=$initial_view" \
-    --focus)
+  if [[ $initial_view == default ]]; then
+    response=$("$HERDR" plugin pane open \
+      --plugin "$PLUGIN_ID" \
+      --entrypoint webmaster \
+      --placement tab \
+      --focus)
+  else
+    response=$("$HERDR" plugin pane open \
+      --plugin "$PLUGIN_ID" \
+      --entrypoint webmaster \
+      --placement tab \
+      --env "WEBMASTER_INITIAL_VIEW=$initial_view" \
+      --focus)
+  fi
   pane_id=$(printf '%s\n' "$response" | sed -n 's/.*"pane_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
   if [[ -z $pane_id ]]; then
     echo "webmaster could not read the new pane id" >&2
@@ -92,7 +103,7 @@ close_pane() {
 }
 
 case ${1:-} in
-  open) open_pane desk false ;;
+  open) open_pane default false ;;
   desk) open_pane desk true ;;
   cafe) open_pane cafe true ;;
   close) close_pane ;;
@@ -104,7 +115,7 @@ case ${1:-} in
         "$HERDR" plugin pane focus "$pane_id" >/dev/null
       fi
     else
-      open_pane desk false
+      open_pane default false
     fi
     ;;
   *)

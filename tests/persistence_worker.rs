@@ -2,9 +2,17 @@ use std::{task::Poll, time::Duration};
 
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use herdr_webmaster::{
-    app::{Motion, View},
-    domain::{EventId, GuestbookEntry, GuestbookEvent, Timestamp},
-    persistence::{PersistenceWorker, WorkerPaths, load_guestbook, load_state},
+    app::{Model, Motion, View},
+    config::PersistencePaths,
+    domain::{AgentPersona, EventId, GuestbookEntry, GuestbookEvent, PersonaKey, Timestamp},
+    interaction::reduce_action,
+    persistence::{
+        PersistenceWorker, WorkerPaths, load_guestbook, load_startup, load_state, publish_state,
+    },
+    runtime_loop::{RuntimeExit, dispatch_action_effects, dispatch_persistence_effects},
+    terminal::{complete_runtime_exit, shutdown_persistence},
+    ui::input::Action,
+    update::Command,
 };
 
 fn fixed_persisted_state(view: View) -> herdr_webmaster::persistence::PersistedStateV1 {
@@ -51,6 +59,176 @@ fn guestbook_entry(id: &str) -> GuestbookEntry {
         kind: GuestbookEvent::WorkCompleted,
         summary: format!("entry {id}"),
     }
+}
+
+#[tokio::test(start_paused = true)]
+async fn runtime_dispatch_durably_appends_before_staging_the_following_state() {
+    let directory = tempfile::tempdir().unwrap();
+    let state_path = directory.path().join("state.json");
+    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let (mut client, _diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
+        Some(state_path.clone()),
+        Some(guestbook_path.clone()),
+    ));
+    let entry = guestbook_entry("runtime-order");
+    let model = Model::new(View::Cafe);
+
+    let errors = dispatch_persistence_effects(
+        &mut client,
+        &model,
+        vec![
+            Command::AppendGuestbook(entry.clone()),
+            Command::PersistState,
+        ],
+    )
+    .await;
+
+    assert!(errors.is_empty());
+    let replay = load_guestbook(&guestbook_path, 10).await;
+    assert_eq!(
+        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        vec![&entry]
+    );
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+    assert_eq!(
+        load_state(&state_path).await.unwrap(),
+        Some(fixed_persisted_state(View::Cafe))
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn bounded_runtime_shutdown_flushes_latest_state_after_prior_append() {
+    let directory = tempfile::tempdir().unwrap();
+    let state_path = directory.path().join("state.json");
+    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let (mut client, _diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
+        Some(state_path.clone()),
+        Some(guestbook_path.clone()),
+    ));
+    let entry = guestbook_entry("before-runtime-shutdown");
+    let mut model = Model::new(View::Desk);
+
+    assert!(
+        dispatch_persistence_effects(
+            &mut client,
+            &model,
+            vec![
+                Command::AppendGuestbook(entry.clone()),
+                Command::PersistState,
+            ],
+        )
+        .await
+        .is_empty()
+    );
+    model.switch_to(View::Cafe);
+    assert!(
+        dispatch_persistence_effects(&mut client, &model, [Command::PersistState])
+            .await
+            .is_empty()
+    );
+
+    shutdown_persistence(&client, worker).await.unwrap();
+
+    assert_eq!(
+        load_state(&state_path).await.unwrap(),
+        Some(fixed_persisted_state(View::Cafe))
+    );
+    let replay = load_guestbook(&guestbook_path, 10).await;
+    assert_eq!(
+        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        vec![&entry]
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn bounded_runtime_shutdown_returns_filesystem_failure_after_worker_exit() {
+    let directory = tempfile::tempdir().unwrap();
+    let blocked_parent = directory.path().join("not-a-directory");
+    std::fs::write(&blocked_parent, b"blocking file").unwrap();
+    let (mut client, mut diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
+        Some(blocked_parent.join("state.json")),
+        None,
+    ));
+    client
+        .stage_state(fixed_persisted_state(View::Cafe))
+        .unwrap();
+
+    let error = shutdown_persistence(&client, worker).await.unwrap_err();
+
+    assert!(error.to_string().contains("shut down persistence writer"));
+    assert_eq!(
+        diagnostics.recv().await.unwrap().operation,
+        "create state directory"
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn offline_view_change_preserves_restored_selection_for_reconnect() {
+    let directory = tempfile::tempdir().unwrap();
+    let state_path = directory.path().join("state.json");
+    let selected = PersonaKey::new("remembered-agent");
+    let mut restored = fixed_persisted_state(View::Desk);
+    restored.personas.insert(
+        selected.clone(),
+        AgentPersona {
+            appearance: AgentPersona::appearance_for_key(&selected),
+            key: selected.clone(),
+            handle: "remembered".to_owned(),
+        },
+    );
+    restored.selected_persona = Some(selected.clone());
+    publish_state(&state_path, &restored).await.unwrap();
+    let startup = load_startup(
+        PersistencePaths::from_lookup(|name| {
+            (name == "HERDR_PLUGIN_STATE_DIR").then(|| directory.path().display().to_string())
+        }),
+        None,
+    )
+    .await;
+    let mut model = startup.model;
+    let (mut client, _diagnostics, worker) = PersistenceWorker::start(startup.paths);
+
+    let reduction = reduce_action(&mut model, Action::Switch(View::Cafe));
+    assert!(
+        dispatch_persistence_effects(&mut client, &model, reduction.persistence)
+            .await
+            .is_empty()
+    );
+    shutdown_persistence(&client, worker).await.unwrap();
+
+    let published = load_state(&state_path).await.unwrap().unwrap();
+    assert_eq!(published.last_view, View::Cafe);
+    assert_eq!(published.selected_persona, Some(selected));
+}
+
+#[tokio::test(start_paused = true)]
+async fn quit_action_dispatches_prior_local_intent_before_bounded_shutdown() {
+    let directory = tempfile::tempdir().unwrap();
+    let state_path = directory.path().join("state.json");
+    let (mut client, _diagnostics, worker) =
+        PersistenceWorker::start(WorkerPaths::new(Some(state_path.clone()), None));
+    let mut model = Model::new(View::Desk);
+
+    let reduction = reduce_action(&mut model, Action::Switch(View::Cafe));
+    let switched = dispatch_action_effects(&mut client, &model, reduction).await;
+    assert!(switched.exit.is_none());
+    assert!(switched.persistence_errors.is_empty());
+
+    let reduction = reduce_action(&mut model, Action::Quit);
+    let quitting = dispatch_action_effects(&mut client, &model, reduction).await;
+    assert_eq!(quitting.exit, Some(RuntimeExit::Quit));
+    assert!(quitting.persistence_errors.is_empty());
+
+    let exit = complete_runtime_exit(quitting.exit.unwrap(), &client, worker)
+        .await
+        .unwrap();
+
+    assert_eq!(exit, RuntimeExit::Quit);
+    assert_eq!(
+        load_state(&state_path).await.unwrap(),
+        Some(fixed_persisted_state(View::Cafe))
+    );
 }
 
 #[tokio::test(start_paused = true)]

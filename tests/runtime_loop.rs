@@ -12,11 +12,12 @@ use herdr_webmaster::{
         supervisor::ConnectionUpdate,
     },
     runtime_loop::{
-        RuntimeConnection, RuntimeEvent, apply_command_result, apply_connection_update,
-        bootstrap_model,
+        RuntimeConnection, RuntimeEffects, RuntimeEvent, apply_command_result,
+        apply_connection_update, bootstrap_model,
     },
     terminal::{AnimationScheduler, RuntimeClock},
     ui::theatre::{TheatrePose, frame_for},
+    update::Command,
 };
 use serde_json::json;
 use std::future::Future;
@@ -74,6 +75,92 @@ fn model_with_two_distinct_personas() -> Model {
     model
 }
 
+fn connected_model_with_presence(presence: Presence) -> Model {
+    let mut model = Model::new(View::Desk);
+    model.replace_domain(DomainState::from_snapshot(
+        &snapshot(),
+        Timestamp::from_millis(1_000),
+    ));
+    let agent = model.domain_mut().agents.values_mut().next().unwrap();
+    agent.presence = presence;
+    agent.attention = Attention::Clear;
+    model
+}
+
+fn status_update(status: &str, revision: u64) -> ConnectionUpdate {
+    ConnectionUpdate::Event(WireEvent {
+        event: "pane.agent_status_changed".into(),
+        data: json!({
+            "pane_id": "w1:p1",
+            "workspace_id": "w1",
+            "agent_status": status,
+            "revision": revision,
+        }),
+    })
+}
+
+#[test]
+fn blocked_transition_routes_history_and_state_to_persistence() {
+    let mut model = connected_model_with_presence(Presence::Working);
+
+    let effects = apply_connection_update(
+        &mut model,
+        status_update("blocked", 8),
+        Timestamp::from_millis(2_000),
+    );
+
+    assert_eq!(
+        effects
+            .persistence
+            .iter()
+            .filter(|effect| effect.is_guestbook_append())
+            .count(),
+        1
+    );
+    assert_eq!(
+        effects
+            .persistence
+            .iter()
+            .filter(|effect| **effect == Command::PersistState)
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn duplicate_and_stale_status_updates_have_no_runtime_effects() {
+    let mut model = connected_model_with_presence(Presence::Blocked);
+
+    for revision in [7, 6] {
+        let effects = apply_connection_update(
+            &mut model,
+            status_update("blocked", revision),
+            Timestamp::from_millis(2_000),
+        );
+
+        assert!(effects.desk.is_empty(), "revision {revision}");
+        assert!(effects.persistence.is_empty(), "revision {revision}");
+    }
+}
+
+#[test]
+fn snapshot_result_preserves_persistence_effect_after_durable_overlay() {
+    let mut model = connected_model_with_presence(Presence::Working);
+    let restored_handle = model.selected_agent().unwrap().persona.handle.clone();
+
+    let effects = apply_command_result(
+        &mut model,
+        CommandResult::SnapshotLoaded(Box::new(snapshot())),
+        Timestamp::from_millis(2_000),
+    );
+
+    assert_eq!(effects.persistence, vec![Command::PersistState]);
+    assert_eq!(
+        model.selected_agent().unwrap().persona.handle,
+        restored_handle
+    );
+}
+
 #[test]
 fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
     let mut model = Model::new(View::Desk);
@@ -83,7 +170,7 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
         show_elapsed_time: true,
     });
 
-    let commands = apply_connection_update(
+    let effects = apply_connection_update(
         &mut model,
         ConnectionUpdate::Connected(snapshot()),
         Timestamp::from_millis(1_000),
@@ -91,12 +178,12 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
 
     assert_eq!(model.connection(), &ConnectionState::Connected);
     assert_eq!(model.domain().agents.len(), 1);
-    assert!(commands.iter().any(|command| matches!(
+    assert!(effects.desk.iter().any(|command| matches!(
         command,
         DeskCommand::LoadOutput { pane_id, lines: 123 }
             if pane_id.as_str() == "w1:p1"
     )));
-    assert!(commands.contains(&DeskCommand::DiscoverReviewr {
+    assert!(effects.desk.contains(&DeskCommand::DiscoverReviewr {
         qualified_id: "acme.diff.inspect".to_owned(),
     }));
 }
@@ -110,7 +197,7 @@ fn selected_status_change_refreshes_only_that_output() {
         Timestamp::from_millis(1_000),
     );
 
-    let commands = apply_connection_update(
+    let effects = apply_connection_update(
         &mut model,
         ConnectionUpdate::Event(WireEvent {
             event: "pane.agent_status_changed".into(),
@@ -119,9 +206,9 @@ fn selected_status_change_refreshes_only_that_output() {
         Timestamp::from_millis(2_000),
     );
 
-    assert_eq!(commands.len(), 1);
+    assert_eq!(effects.desk.len(), 1);
     assert!(matches!(
-        &commands[0],
+        &effects.desk[0],
         DeskCommand::LoadOutput { pane_id, .. } if pane_id.as_str() == "w1:p1"
     ));
 }
@@ -235,14 +322,14 @@ fn disconnect_preserves_the_last_connected_snapshot() {
     );
     let connected_domain = model.domain().clone();
 
-    let commands = apply_connection_update(
+    let effects = apply_connection_update(
         &mut model,
         ConnectionUpdate::Disconnected("socket closed".into()),
         Timestamp::from_millis(2_000),
     );
 
     assert_eq!(model.domain(), &connected_domain);
-    assert!(commands.is_empty());
+    assert_eq!(effects, RuntimeEffects::default());
 }
 
 #[tokio::test]
@@ -292,7 +379,7 @@ async fn runtime_connection_exposes_owned_work_as_typed_events() {
 fn terminal_runtime_is_async() {
     fn assert_future(_: impl Future<Output = anyhow::Result<()>>) {}
 
-    assert_future(herdr_webmaster::terminal::run(View::Desk));
+    assert_future(herdr_webmaster::terminal::run(None));
 }
 
 #[tokio::test(start_paused = true)]
