@@ -28,7 +28,7 @@ Repository: `/Users/alancurrie/Projects/herdr-web-master`
 | Dedicated blocked path | PASS | Plain pane `w2:p5` in `/private/tmp` accepted `webmaster-smoke` blocked report; snapshot contained blocked agent |
 | Blocked UI | PASS | Desk showed `NEW webmaster-smoke - NEEDS WEBMASTER`; café showed `HELP!` |
 | Done transition | BLOCKED | Herdr 0.7.4 CLI still has no supported `done` report state |
-| Logs | PASS | Logs 1–6 (`open`, `desk`, `cafe`, `desk`, `cafe`, `close`) all succeeded with empty stderr |
+| Logs | PASS | Initial logs 1–6 and the follow-up café smoke logs 7–9 (`open`, `cafe`, `close`) all succeeded with empty stderr |
 | Cleanup | PASS | Synthetic source released; `w2:p5` closed; webmaster pane closed |
 | Final environment | PASS | Final snapshot contains only pre-existing Codex pane `w2:p1`; Herdr remains 0.7.4 |
 | Git status | PASS | `## main` |
@@ -39,6 +39,7 @@ Repository: `/Users/alancurrie/Projects/herdr-web-master`
 - The earlier blocked test over an agent-owned pane was invalid. This run used a dedicated unowned plain pane and the blocked state was visible end-to-end.
 - The café still needs the approved authored pixel-world redesign work; this task only verifies the current build and records the 0.7.4 sidebar follow-up.
 - A second live café assertion was run after the original cleanup. The temporary managed pane `w2:p6` was visible to Herdr but absent from café workstations; only the pre-existing Codex workstation rendered.
+- The follow-up generated plugin logs 7 (`open`), 8 (`cafe`), and 9 (`close`); all succeeded with empty stdout/stderr. The temporary managed pane `w2:p6` was explicitly closed by log 9, and no test pane or plugin pane remained afterward.
 
 ## Follow-up
 
