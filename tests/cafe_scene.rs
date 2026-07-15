@@ -74,6 +74,52 @@ fn tiny_scene_exposes_bays_without_duplicate_seats() {
     assert!(bays.iter().all(|bay| bay.seats.is_empty()));
 }
 
+#[test]
+fn overflowing_workspace_is_split_into_connected_bays_without_losing_agents() {
+    let keys = (0..11)
+        .map(|index| AgentKey::new(format!("a{index}")))
+        .collect::<Vec<_>>();
+    let workspace = WorkspaceId::new("overflow");
+    let sites = BTreeMap::from([(
+        workspace.clone(),
+        Site {
+            workspace_id: workspace.clone(),
+            label: "overflow".into(),
+            cwd: "/tmp".into(),
+            agents: keys.clone(),
+        },
+    )]);
+    let template = support::fixture_domain()
+        .agents
+        .values()
+        .next()
+        .unwrap()
+        .clone();
+    let agents = keys
+        .iter()
+        .cloned()
+        .map(|key| {
+            let mut agent = template.clone();
+            agent.key = key.clone();
+            (key, agent)
+        })
+        .collect::<BTreeMap<_, _>>();
+    let bays = layout_bays(&sites, &agents, Rect::new(0, 0, 120, 40), None);
+    assert!(bays.len() > 1);
+    let assigned = bays
+        .iter()
+        .flat_map(|bay| bay.agent_keys.iter().cloned())
+        .collect::<Vec<_>>();
+    assert_eq!(assigned.len(), keys.len());
+    assert_eq!(
+        assigned
+            .iter()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        keys.len()
+    );
+}
+
 #[allow(clippy::similar_names)]
 fn overlaps(
     left: herdr_webmaster::ui::cafe_scene::SeatAnchor,

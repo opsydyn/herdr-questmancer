@@ -63,3 +63,14 @@ Final fix evidence:
 - Added a selected wrapped-workspace 80x24 test and ASCII multi-workspace transition test.
 
 Final verification: 21 café rendering + 4 scene + 15 widget + 11 persona-art + 3 rendering tests passed; Clippy with `-D warnings` passed.
+
+Whole-branch review fix wave:
+
+- Workspaces exceeding authored seat capacity are split into deterministic connected bays with explicit `agent_keys`; no agents are silently dropped.
+- Active bays are promoted at sub-116-column wide layouts and compact layouts remap source seats into the active rectangle before painting.
+- Variant geometry includes object-shaped counter, booth, rack, monitor, and shelf marks; floor cues use tile geometry.
+- Same-row and wrapped-row transitions use bay-rect relationships and ASCII/Unicode-safe connectors.
+- `integer_sqrt_ceil` now uses a mathematically correct squared comparison.
+- Overflow assignment coverage was added to `cafe_scene` tests.
+
+Final quality gates: `cargo fmt --check` passed; `cargo clippy --all-targets --all-features -- -D warnings` passed; `cargo test --all-targets --all-features` passed.

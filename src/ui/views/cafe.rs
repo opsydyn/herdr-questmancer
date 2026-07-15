@@ -133,7 +133,7 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
         area,
         selected_workspace.as_ref(),
     );
-    if area.width <= 80 && bays.len() > 1 {
+    if area.width < 116 && bays.len() > 1 {
         let strip_height = 2.min(area.height);
         let active_area = Rect::new(
             area.x,
@@ -166,7 +166,7 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
             .next()
             .map(|bay| bay.seats)
             .unwrap_or_default();
-            for (index, key) in site.agents.iter().enumerate() {
+            for (index, key) in active_bay.agent_keys.iter().enumerate() {
                 if let (Some(agent), Some(anchor)) =
                     (model.domain().agents.get(key), remapped.get(index).copied())
                 {
@@ -230,10 +230,10 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
             };
             frame.render_widget(Paragraph::new(glyphs).style(styles.accent), transition);
         }
-        let Some(site) = sites.get(&bay.workspace_id) else {
+        if !sites.contains_key(&bay.workspace_id) {
             continue;
-        };
-        for (index, key) in site.agents.iter().enumerate() {
+        }
+        for (index, key) in bay.agent_keys.iter().enumerate() {
             let Some(agent) = model.domain().agents.get(key) else {
                 continue;
             };

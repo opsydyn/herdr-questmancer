@@ -19,6 +19,7 @@ pub struct CafeBay {
     pub variant: BayVariant,
     pub rect: Rect,
     pub seats: Vec<SeatAnchor>,
+    pub agent_keys: Vec<AgentKey>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -58,14 +59,34 @@ pub fn layout_bays(
         return Vec::new();
     }
 
-    let count = u32::try_from(sites.len()).unwrap_or(u32::MAX);
+    let mut entries = Vec::new();
+    for (workspace_id, site) in sites {
+        let keys = site
+            .agents
+            .iter()
+            .filter(|key| agents.contains_key(*key))
+            .cloned()
+            .collect::<Vec<_>>();
+        let chunk_capacity = match variant_for_workspace(workspace_id) {
+            BayVariant::WallRow => 4,
+            _ => 2,
+        };
+        let chunks = keys.len().max(1).div_ceil(chunk_capacity);
+        for chunk in keys.chunks(chunk_capacity) {
+            entries.push((workspace_id.clone(), chunk.to_vec()));
+        }
+        if keys.is_empty() && chunks == 1 {
+            entries.push((workspace_id.clone(), Vec::new()));
+        }
+    }
+    let count = u32::try_from(entries.len()).unwrap_or(u32::MAX);
     let columns = integer_sqrt_ceil(count).min(u32::from(area.width)).max(1);
     // Keep one bay per workspace even when a compact surface cannot display
     // every row; zero-sized off-screen bays simply contribute no seat anchors.
     let rows = count.div_ceil(columns).max(1);
-    let mut bays = Vec::with_capacity(sites.len());
+    let mut bays = Vec::with_capacity(entries.len());
 
-    for (index, (workspace_id, site)) in sites.iter().enumerate() {
+    for (index, (workspace_id, agent_keys)) in entries.iter().enumerate() {
         let index = u32::try_from(index).unwrap_or(u32::MAX);
         let column = index % columns;
         let row = index / columns;
@@ -73,18 +94,14 @@ pub fn layout_bays(
             break;
         }
         let bay = partition(area, column, row, columns, rows);
-        let count = site
-            .agents
-            .iter()
-            .filter(|key| agents.contains_key(*key))
-            .count();
         let variant = variant_for_workspace(workspace_id);
-        let seats = authored_seats(variant, count, bay);
+        let seats = authored_seats(variant, agent_keys.len(), bay);
         bays.push(CafeBay {
             workspace_id: workspace_id.clone(),
             variant,
             rect: bay,
             seats,
+            agent_keys: agent_keys.clone(),
         });
     }
     bays
@@ -94,8 +111,8 @@ fn integer_sqrt_ceil(value: u32) -> u32 {
     if value == 0 {
         return 0;
     }
-    let mut root = 1;
-    while root < value / root {
+    let mut root = 1u32;
+    while u64::from(root) * u64::from(root) < u64::from(value) {
         root += 1;
     }
     root
