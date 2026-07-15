@@ -223,7 +223,7 @@ pub fn apply_command_result(model: &mut Model, result: CommandResult, observed_a
 }
 
 fn apply_domain_event(model: &mut Model, event: AppEvent, commands: &mut Vec<DeskCommand>) {
-    let state = std::mem::take(model.domain_mut());
+    let state = model.take_domain();
     let (state, domain_commands) = update(state, event);
     model.replace_domain(state);
     for command in domain_commands {

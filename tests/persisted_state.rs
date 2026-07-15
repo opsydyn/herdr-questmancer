@@ -66,6 +66,29 @@ fn validation_rejects_a_seen_episode_referencing_a_missing_persona() {
 }
 
 #[test]
+fn failed_seed_is_atomic_and_cannot_cross_persona_identities() {
+    let mut valid = captured_state();
+    let persona_key = valid.personas.keys().next().unwrap().clone();
+    valid.personas.get_mut(&persona_key).unwrap().handle = "known_safe".to_owned();
+    let mut model = Model::new(View::Desk);
+    model.durable_intent_mut().seed(&valid).unwrap();
+    let before = model.durable_intent().clone();
+    let mut invalid = valid;
+    let embedded = invalid.personas.get_mut(&persona_key).unwrap();
+    embedded.key = PersonaKey::new("persona-crossed");
+    embedded.handle = "wrong_identity".to_owned();
+
+    let result = model.durable_intent_mut().seed(&invalid);
+
+    assert!(result.is_err());
+    assert_eq!(model.durable_intent(), &before);
+    model.replace_domain(support::fixture_domain());
+    let persona = &model.selected_agent().unwrap().persona;
+    assert_eq!(persona.key, persona_key);
+    assert_eq!(persona.handle, "known_safe");
+}
+
+#[test]
 fn validation_rejects_an_unsupported_schema_version() {
     let mut state = captured_state();
     state.schema_version = 2;
@@ -78,15 +101,18 @@ fn overlay_restores_matching_persona_selection_and_seen_episode() {
     let mut state = captured_state();
     let selected = state.selected_persona.clone().unwrap();
     state.personas.get_mut(&selected).unwrap().handle = "authored_handle".to_owned();
+    let domain = support::fixture_domain();
+    let before = support::live_facts(&domain);
     let mut model = Model::new(View::Desk);
-    model.durable_intent_mut().seed(&state);
+    model.durable_intent_mut().seed(&state).unwrap();
 
-    model.replace_domain(support::fixture_domain());
+    model.replace_domain(domain);
 
     let selected_agent = model.selected_agent().unwrap();
     assert_eq!(selected_agent.persona.key, selected);
     assert_eq!(selected_agent.persona.handle, "authored_handle");
     assert!(matches!(selected_agent.attention, Attention::Seen { .. }));
+    assert_eq!(support::live_facts(model.domain()), before);
 }
 
 #[test]
@@ -96,7 +122,7 @@ fn overlay_prunes_seen_episode_when_revision_no_longer_matches() {
     let mut domain = support::fixture_domain();
     domain.agents.values_mut().next().unwrap().pane_revision += 1;
     let mut model = Model::new(View::Desk);
-    model.durable_intent_mut().seed(&state);
+    model.durable_intent_mut().seed(&state).unwrap();
 
     model.replace_domain(domain);
 
@@ -117,7 +143,7 @@ fn overlay_retains_learned_personas_that_are_not_live() {
         .personas
         .insert(historical.key.clone(), historical.clone());
     let mut model = Model::new(View::Desk);
-    model.durable_intent_mut().seed(&state);
+    model.durable_intent_mut().seed(&state).unwrap();
 
     model.replace_domain(support::fixture_domain());
 
@@ -139,7 +165,7 @@ fn overlay_keeps_a_valid_snapshot_selection_when_persona_is_ambiguous() {
         .insert(duplicate.key.clone(), duplicate.clone());
     domain.selected_agent = Some(duplicate.key.clone());
     let mut model = Model::new(View::Desk);
-    model.durable_intent_mut().seed(&state);
+    model.durable_intent_mut().seed(&state).unwrap();
 
     model.replace_domain(domain);
 
@@ -157,7 +183,7 @@ fn overlay_marks_only_unseen_attention_as_seen() {
         until: Timestamp::from_millis(2_000),
     };
     let mut model = Model::new(View::Desk);
-    model.durable_intent_mut().seed(&state);
+    model.durable_intent_mut().seed(&state).unwrap();
 
     model.replace_domain(domain);
 
@@ -182,9 +208,7 @@ proptest! {
     ) {
         let before = support::live_facts(&domain);
         let mut intent = DurableIntent::default();
-        if state.validate().is_ok() {
-            intent.seed(&state);
-        }
+        prop_assert!(intent.seed(&state).is_ok());
         intent.overlay(&mut domain);
         prop_assert_eq!(support::live_facts(&domain), before);
         prop_assert!(domain.selected_agent.as_ref().is_none_or(|key| domain.agents.contains_key(key)));

@@ -3,7 +3,8 @@ use herdr_webmaster::{
     app::{ConnectionState, DisplayPreferences, Model, Motion, View},
     command::{CommandResult, DeskCommand},
     domain::{
-        Agent, AgentKey, Attention, AttentionReason, DomainState, PaneId, Presence, Timestamp,
+        Agent, AgentKey, AgentPersona, Attention, AttentionReason, DomainState, PaneId, PersonaKey,
+        Presence, Timestamp,
     },
     herdr::{
         environment::HerdrEnvironment,
@@ -56,6 +57,23 @@ fn animated_model(agents: impl IntoIterator<Item = Agent>, now: i64, motion: Mot
     model
 }
 
+fn model_with_two_distinct_personas() -> Model {
+    let mut domain = DomainState::from_snapshot(&snapshot(), Timestamp::from_millis(1_000));
+    let mut second = domain.agents.values().next().unwrap().clone();
+    second.key = AgentKey::new("agent-z");
+    second.pane_id = PaneId::new("w1:p2");
+    let persona_key = PersonaKey::new("persona-z");
+    second.persona = AgentPersona {
+        appearance: AgentPersona::appearance_for_key(&persona_key),
+        key: persona_key,
+        handle: "second_persona".to_owned(),
+    };
+    domain.agents.insert(second.key.clone(), second);
+    let mut model = Model::new(View::Desk);
+    model.replace_domain(domain);
+    model
+}
+
 #[test]
 fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
     let mut model = Model::new(View::Desk);
@@ -99,6 +117,29 @@ fn selected_status_change_refreshes_only_that_output() {
         &commands[0],
         DeskCommand::LoadOutput { pane_id, .. } if pane_id.as_str() == "w1:p1"
     ));
+}
+
+#[test]
+fn runtime_domain_update_keeps_the_newly_selected_distinct_persona_selected() {
+    let mut model = model_with_two_distinct_personas();
+    model.select_last_agent();
+    let selected = model.selected_agent_key().unwrap().clone();
+
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Event(WireEvent {
+            event: "pane.agent_status_changed".into(),
+            data: json!({
+                "pane_id": "w1:p2",
+                "workspace_id": "w1",
+                "agent_status": "done"
+            }),
+        }),
+        Timestamp::from_millis(2_000),
+    );
+
+    assert_eq!(model.selected_agent_key(), Some(&selected));
+    assert_eq!(model.domain().agents[&selected].presence, Presence::Done);
 }
 
 #[test]

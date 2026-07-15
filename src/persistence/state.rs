@@ -105,10 +105,12 @@ impl PersistedStateV1 {
 }
 
 impl DurableIntent {
-    pub fn seed(&mut self, state: &PersistedStateV1) {
+    pub fn seed(&mut self, state: &PersistedStateV1) -> Result<(), StateValidationError> {
+        state.validate()?;
         self.selected_persona.clone_from(&state.selected_persona);
         self.personas.clone_from(&state.personas);
         self.seen_attention.clone_from(&state.seen_attention);
+        Ok(())
     }
 
     pub fn overlay(&mut self, domain: &mut DomainState) {

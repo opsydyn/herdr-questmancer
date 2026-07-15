@@ -4,7 +4,6 @@ use crate::{
     app::{Modal, Model},
     command::DeskCommand,
     ui::input::Action,
-    update::{AppEvent, update},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -118,13 +117,11 @@ fn selected_pane(model: &Model) -> Option<crate::domain::PaneId> {
 }
 
 fn mark_seen(model: &mut Model) {
-    let Some(agent_key) = model.selected_agent_key().cloned() else {
+    if model.selected_agent_key().is_none() {
         model.set_status_message(Some("no agent selected to mark seen".to_owned()));
         return;
-    };
-    let state = std::mem::take(model.domain_mut());
-    let (state, _domain_commands) = update(state, AppEvent::MarkSeen(agent_key));
-    model.replace_domain(state);
+    }
+    model.mark_selected_attention_seen();
 }
 
 fn submit_reply(model: &mut Model, commands: &mut Vec<DeskCommand>) {

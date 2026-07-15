@@ -3,7 +3,7 @@ use std::ops::ControlFlow;
 use herdr_webmaster::{
     app::{Modal, Model, Region, View},
     command::DeskCommand,
-    domain::{AgentKey, DomainState, PaneId, Timestamp, WorkspaceId},
+    domain::{AgentKey, AgentPersona, DomainState, PaneId, PersonaKey, Timestamp, WorkspaceId},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::reduce_action,
     ui::input::Action,
@@ -20,6 +20,20 @@ fn live_model_with_two_agents() -> Model {
     domain.agents.insert(second.key.clone(), second);
     let mut model = Model::new(View::Desk);
     model.replace_domain(domain);
+    model
+}
+
+fn live_model_with_two_distinct_personas() -> Model {
+    let mut model = live_model_with_two_agents();
+    let second_key = model.domain().agents.keys().next_back().unwrap().clone();
+    let persona_key = PersonaKey::new("persona-z");
+    let second = model.domain_mut().agents.get_mut(&second_key).unwrap();
+    second.persona = AgentPersona {
+        appearance: AgentPersona::appearance_for_key(&persona_key),
+        key: persona_key,
+        handle: "second_persona".to_owned(),
+    };
+    model.replace_domain(model.domain().clone());
     model
 }
 
@@ -289,6 +303,19 @@ fn mark_seen_uses_the_domain_reducer_for_the_selected_agent() {
         empty.status_message(),
         Some("no agent selected to mark seen")
     );
+}
+
+#[test]
+fn mark_seen_keeps_the_newly_selected_distinct_persona_selected() {
+    let mut model = live_model_with_two_distinct_personas();
+    model.select_last_agent();
+    let selected = model.selected_agent_key().unwrap().clone();
+
+    let marked = reduce_action(&mut model, Action::MarkSeen);
+
+    assert!(marked.commands.is_empty());
+    assert_eq!(model.selected_agent_key(), Some(&selected));
+    assert!(!model.domain().agents[&selected].attention.is_unseen());
 }
 
 #[test]

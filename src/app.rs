@@ -150,11 +150,13 @@ impl Model {
         &mut self.domain
     }
 
+    pub(crate) fn take_domain(&mut self) -> DomainState {
+        self.remember_current_selection();
+        std::mem::take(&mut self.domain)
+    }
+
     pub fn replace_domain(&mut self, mut domain: DomainState) {
-        let selected_persona = self.selected_agent().map(|agent| agent.persona.key.clone());
-        if selected_persona.is_some() {
-            self.durable_intent.remember_selected(selected_persona);
-        }
+        self.remember_current_selection();
         if self
             .domain
             .selected_agent
@@ -175,11 +177,19 @@ impl Model {
         self.domain = domain;
     }
 
+    fn remember_current_selection(&mut self) {
+        let selected_persona = self.selected_agent().map(|agent| agent.persona.key.clone());
+        if selected_persona.is_some() {
+            self.durable_intent.remember_selected(selected_persona);
+        }
+    }
+
     pub fn mark_selected_attention_seen(&mut self) {
         let Some(agent_key) = self.selected_agent_key().cloned() else {
             return;
         };
-        let (domain, _commands) = update(self.domain.clone(), AppEvent::MarkSeen(agent_key));
+        let domain = self.take_domain();
+        let (domain, _commands) = update(domain, AppEvent::MarkSeen(agent_key));
         self.replace_domain(domain);
     }
 
