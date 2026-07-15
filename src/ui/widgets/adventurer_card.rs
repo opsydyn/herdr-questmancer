@@ -30,7 +30,7 @@ use crate::{
 
 use super::presentation::present;
 
-pub fn render_profile_card(
+pub fn render_adventurer_card(
     frame: &mut Frame<'_>,
     area: Rect,
     agent: &Agent,

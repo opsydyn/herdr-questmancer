@@ -7,11 +7,11 @@ use questmancer::{
 use ratatui::{Terminal, backend::TestBackend};
 
 #[test]
-fn reply_modal_renders_draft_and_contextual_keys() {
+fn counsel_modal_renders_draft_and_contextual_keys() {
     let mut model = Model::new(View::Guild);
-    model.open_reply();
+    model.open_counsel();
     for character in "use jsonb".chars() {
-        model.push_reply_character(character);
+        model.push_counsel_character(character);
     }
     let backend = TestBackend::new(80, 24);
     let mut terminal = Terminal::new(backend).unwrap();
@@ -27,7 +27,7 @@ fn reply_modal_renders_draft_and_contextual_keys() {
         })
         .collect::<Vec<_>>()
         .join("\n");
-    assert!(screen.contains("SHOUT OVER"));
+    assert!(screen.contains("ISSUE COUNSEL"));
     assert!(screen.contains("use jsonb"));
     assert!(screen.contains("[enter] send"));
     assert!(screen.contains("[esc] cancel"));
@@ -57,7 +57,7 @@ fn search_modal_renders_query_status_and_contextual_keys() {
         .join("\n");
     assert!(screen.contains("SEARCH AGENTS"));
     assert!(screen.contains("missing"));
-    assert!(screen.contains("no agents match"));
+    assert!(screen.contains("No adventurer or campaign answers \"missing\"."));
     assert!(screen.contains("[enter] find"));
     assert!(screen.contains("[esc] cancel"));
 }

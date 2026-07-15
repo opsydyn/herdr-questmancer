@@ -1,6 +1,6 @@
+mod adventurer_card;
 mod agent_crt;
 mod presentation;
-mod profile_card;
 
+pub use adventurer_card::render_adventurer_card;
 pub use agent_crt::{WorkstationAnchor, render_workstation};
-pub use profile_card::render_profile_card;

@@ -44,12 +44,12 @@ fn resize_requests_a_redraw() {
 }
 
 #[test]
-fn desk_navigation_and_actions_have_explicit_keys() {
+fn guild_hall_navigation_and_actions_have_explicit_keys() {
     assert_eq!(action_for(key(KeyCode::Char('j'))), Action::Next);
     assert_eq!(action_for(key(KeyCode::Down)), Action::Next);
     assert_eq!(action_for(key(KeyCode::Char('k'))), Action::Previous);
     assert_eq!(action_for(key(KeyCode::Enter)), Action::Visit);
-    assert_eq!(action_for(key(KeyCode::Char('r'))), Action::Reply);
+    assert_eq!(action_for(key(KeyCode::Char('r'))), Action::Counsel);
     assert_eq!(action_for(key(KeyCode::Char(' '))), Action::MarkSeen);
     assert_eq!(action_for(key(KeyCode::Char('o'))), Action::Refresh);
     assert_eq!(action_for(key(KeyCode::Char('v'))), Action::Reviewr);
@@ -60,8 +60,8 @@ fn desk_navigation_and_actions_have_explicit_keys() {
 }
 
 #[test]
-fn reply_modal_treats_global_shortcuts_as_composed_text() {
-    let modal = Modal::Reply {
+fn counsel_modal_treats_global_shortcuts_as_composed_text() {
+    let modal = Modal::Counsel {
         draft: String::new(),
     };
 

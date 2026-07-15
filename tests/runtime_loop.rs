@@ -295,6 +295,25 @@ fn output_and_discovery_results_update_app_state() {
 }
 
 #[test]
+fn operational_results_use_approved_guild_copy() {
+    let mut model = Model::new(View::Guild);
+
+    apply_command_result(
+        &mut model,
+        CommandResult::CounselSent(PaneId::new("w1:p1")),
+        Timestamp::from_millis(2_000),
+    );
+    assert_eq!(model.status_message(), Some("Counsel issued."));
+
+    apply_command_result(
+        &mut model,
+        CommandResult::SpoilsOpened,
+        Timestamp::from_millis(2_000),
+    );
+    assert_eq!(model.status_message(), Some("Spoils inspected."));
+}
+
+#[test]
 fn command_failure_is_visible_without_replacing_domain_state() {
     let mut model = Model::new(View::Guild);
     let before = model.domain().clone();

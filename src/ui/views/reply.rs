@@ -12,8 +12,8 @@ use crate::{
 
 pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     let (title, input, keys) = match model.modal() {
-        Modal::Reply { draft } => (
-            " SHOUT OVER ",
+        Modal::Counsel { draft } => (
+            " ISSUE COUNSEL ",
             draft.as_str(),
             "[enter] send   [esc] cancel   [ctrl-u] clear",
         ),

@@ -6,7 +6,7 @@ use questmancer::{
         persona::compose_profile_with_gear_for_palette,
         pixel::{ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
-        widgets::{render_profile_card, render_workstation},
+        widgets::{render_adventurer_card, render_workstation},
     },
 };
 use ratatui::{Terminal, backend::TestBackend, layout::Rect, style::Color};
@@ -141,7 +141,7 @@ fn render_profile_at(
     let mut terminal = Terminal::new(backend).unwrap();
     terminal
         .draw(|frame| {
-            render_profile_card(
+            render_adventurer_card(
                 frame,
                 Rect::new(0, 0, width, height),
                 agent,

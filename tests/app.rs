@@ -77,32 +77,32 @@ fn selection_movement_clamps_at_the_boundaries() {
 }
 
 #[test]
-fn region_and_reply_modal_are_explicit_app_state() {
+fn region_and_counsel_modal_are_explicit_app_state() {
     let mut model = Model::new(View::Guild);
-    model.set_region(Region::Inbox);
-    model.open_reply();
-    model.push_reply_character('h');
-    model.push_reply_character('i');
+    model.set_region(Region::Summons);
+    model.open_counsel();
+    model.push_counsel_character('h');
+    model.push_counsel_character('i');
 
-    assert_eq!(model.region(), Region::Inbox);
-    assert_eq!(model.modal(), &Modal::Reply { draft: "hi".into() });
-    assert_eq!(model.take_reply(), Some("hi".into()));
+    assert_eq!(model.region(), Region::Summons);
+    assert_eq!(model.modal(), &Modal::Counsel { draft: "hi".into() });
+    assert_eq!(model.take_counsel(), Some("hi".into()));
     assert_eq!(model.modal(), &Modal::None);
 }
 
 #[test]
-fn reply_editing_can_backspace_clear_and_cancel() {
+fn counsel_editing_can_backspace_clear_and_cancel() {
     let mut model = Model::new(View::Guild);
-    model.open_reply();
-    model.push_reply_character('o');
-    model.push_reply_character('k');
-    model.backspace_reply();
-    assert_eq!(model.modal(), &Modal::Reply { draft: "o".into() });
+    model.open_counsel();
+    model.push_counsel_character('o');
+    model.push_counsel_character('k');
+    model.backspace_counsel();
+    assert_eq!(model.modal(), &Modal::Counsel { draft: "o".into() });
 
     model.clear_modal_input();
     assert_eq!(
         model.modal(),
-        &Modal::Reply {
+        &Modal::Counsel {
             draft: String::new()
         }
     );

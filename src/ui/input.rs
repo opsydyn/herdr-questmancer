@@ -14,7 +14,7 @@ pub enum Action {
     First,
     Last,
     Visit,
-    Reply,
+    Counsel,
     MarkSeen,
     Refresh,
     Reviewr,
@@ -46,7 +46,7 @@ pub fn action_for(key: KeyEvent) -> Action {
 }
 
 fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
-    if matches!(modal, Modal::Reply { .. } | Modal::Search { .. }) {
+    if matches!(modal, Modal::Counsel { .. } | Modal::Search { .. }) {
         return modal_action(key);
     }
     if matches!(key.code, KeyCode::Char('c')) && key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -64,7 +64,7 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         KeyCode::Char('g') => Action::First,
         KeyCode::Char('G') => Action::Last,
         KeyCode::Enter => Action::Visit,
-        KeyCode::Char('r') => Action::Reply,
+        KeyCode::Char('r') => Action::Counsel,
         KeyCode::Char(' ') => Action::MarkSeen,
         KeyCode::Char('o') => Action::Refresh,
         KeyCode::Char('v') => Action::Reviewr,

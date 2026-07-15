@@ -16,6 +16,16 @@ fn live_model() -> Model {
         &response.result.snapshot,
         Timestamp::from_millis(1_000),
     ));
+    "Elowen Typeweaver".clone_into(
+        &mut model
+            .domain_mut()
+            .agents
+            .values_mut()
+            .next()
+            .unwrap()
+            .persona
+            .name,
+    );
     model.set_connection(ConnectionState::Connected);
     model.set_now(Timestamp::from_millis(121_000));
     model.set_output_preview(Some(OutputPreview {
@@ -53,32 +63,34 @@ fn render(model: &Model, width: u16, height: u16) -> String {
 }
 
 #[test]
-fn wide_desk_renders_sites_mail_and_live_agent_details() {
+fn wide_guild_hall_renders_every_operational_region() {
     let screen = render(&live_model(), 130, 32);
 
-    assert!(screen.contains("YOUR SITES"));
-    assert!(screen.contains("WEBMASTER MAIL"));
-    assert!(screen.contains("LIVE PAGE"));
-    assert!(screen.contains("webmaster"));
-    assert!(screen.contains("Codex"));
-    assert!(screen.contains("NEEDS WEBMASTER"));
+    assert!(screen.contains("QUESTMANCER'S GUILD HALL"));
+    assert!(screen.contains("QUEST BOARD"));
+    assert!(screen.contains("PARTY ROSTER"));
+    assert!(screen.contains("CALLS FOR COUNSEL"));
+    assert!(screen.contains("SCRYING TABLE"));
+    assert!(screen.contains("SPOILS DESK"));
+    assert!(screen.contains("CHRONICLE"));
+    assert!(screen.contains("Elowen"));
+    assert!(screen.contains("requests counsel"));
     assert!(screen.contains("blocked 2m"));
     assert!(screen.contains("which schema should I use?"));
 }
 
 #[test]
-fn empty_desk_explains_how_to_put_a_site_under_construction() {
+fn empty_guild_hall_is_warm_and_ready() {
     let mut model = Model::new(View::Guild);
     model.set_now(Timestamp::from_millis(121_000));
 
     let screen = render(&model, 80, 24);
 
-    assert!(screen.contains("No agents online"));
-    assert!(screen.contains("Start an agent to put a site under construction"));
+    assert!(screen.contains("The hearth is warm. The guild awaits its next commission."));
 }
 
 #[test]
-fn working_desk_uses_the_injected_clock_for_elapsed_time() {
+fn working_guild_hall_uses_the_injected_clock_for_elapsed_time() {
     let model = model_with_presence(Presence::Working, GuildAttention::Clear);
 
     let screen = render(&model, 130, 32);
@@ -101,19 +113,22 @@ fn elapsed_time_can_be_hidden_without_leaving_extra_spacing() {
 }
 
 #[test]
-fn done_unseen_is_an_update_awaiting_the_webmaster_in_the_narrow_projection() {
+fn returned_spoils_are_visible_in_the_narrow_projection() {
     let model = model_with_presence(
         Presence::Done,
         GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(61_000)),
     );
 
+    let mut model = model;
+    model.cycle_region();
+    model.cycle_region();
     let screen = render(&model, 60, 18);
 
-    assert!(screen.contains("UPDATE READY - AWAITING WEBMASTER"));
+    assert!(screen.contains("has returned with unopened spoils"));
 }
 
 #[test]
-fn exited_is_a_broken_link_in_the_narrow_projection() {
+fn departed_adventurer_is_visible_in_the_narrow_projection() {
     let model = model_with_presence(
         Presence::Exited,
         GuildAttention::unread(
@@ -122,43 +137,51 @@ fn exited_is_a_broken_link_in_the_narrow_projection() {
         ),
     );
 
+    let mut model = model;
+    model.cycle_region();
+    model.cycle_region();
     let screen = render(&model, 60, 18);
 
-    assert!(screen.contains("BROKEN LINK"));
+    assert!(screen.contains("departed"));
 }
 
 #[test]
-fn eighty_column_desk_keeps_attention_and_selected_agent_visible() {
+fn eighty_column_guild_hall_keeps_attention_and_selected_adventurer_visible() {
     let screen = render(&live_model(), 80, 24);
 
-    assert!(screen.contains("WEBMASTER MAIL"));
-    assert!(screen.contains("Codex"));
-    assert!(screen.contains("NEEDS WEBMASTER"));
-    assert!(screen.contains("[enter] visit"));
+    assert!(screen.contains("PARTY ROSTER"));
+    assert!(screen.contains("Elowen"));
+    assert!(screen.contains("requests counsel"));
+    assert!(screen.contains("Observe"));
 }
 
 #[test]
-fn narrow_desk_falls_back_without_losing_the_selected_agent() {
-    let screen = render(&live_model(), 60, 18);
+fn narrow_guild_hall_focuses_one_region_without_losing_the_selected_adventurer() {
+    let mut model = live_model();
+    for _ in 0..4 {
+        model.cycle_region();
+    }
+    let screen = render(&model, 60, 18);
 
-    assert!(screen.contains("Codex"));
+    assert!(screen.contains("Elowen"));
     assert!(screen.contains("blocked"));
     assert!(screen.contains("which schema"));
 }
 
 #[test]
-fn disconnected_desk_preserves_data_and_shows_connection_state() {
+fn reconnecting_guild_hall_preserves_data_and_pairs_voice_with_the_real_cause() {
     let mut model = live_model();
     model.set_connection(ConnectionState::Reconnecting { attempt: 3 });
 
     let screen = render(&model, 100, 24);
 
-    assert!(screen.contains("reconnecting #3"));
-    assert!(screen.contains("Codex"));
+    assert!(screen.contains("The scrying pool has clouded. Reconnecting"));
+    assert!(screen.contains("attempt 3"));
+    assert!(screen.contains("Elowen"));
 }
 
 #[test]
-fn live_page_hides_output_cached_for_a_different_pane() {
+fn scrying_table_hides_output_cached_for_a_different_pane() {
     let mut model = live_model();
     model.set_output_preview(Some(OutputPreview {
         pane_id: PaneId::new("w9:p9"),
@@ -168,14 +191,17 @@ fn live_page_hides_output_cached_for_a_different_pane() {
         error: None,
     }));
 
+    for _ in 0..4 {
+        model.cycle_region();
+    }
     let screen = render(&model, 60, 18);
 
     assert!(!screen.contains("stale output from another page"));
-    assert!(screen.contains("loading selected page..."));
+    assert!(screen.contains("The scrying pool is still."));
 }
 
 #[test]
-fn live_page_hides_nested_output_when_the_selected_pane_is_webmaster() {
+fn scrying_table_hides_nested_output_when_the_selected_pane_is_managed() {
     let mut model = live_model();
     model.set_managed_pane_id(Some(PaneId::new("w1:p1")));
     model.set_output_preview(Some(OutputPreview {
@@ -187,16 +213,19 @@ fn live_page_hides_nested_output_when_the_selected_pane_is_webmaster() {
         error: None,
     }));
 
+    for _ in 0..4 {
+        model.cycle_region();
+    }
     let screen = render(&model, 60, 18);
 
-    assert!(screen.contains("RECENT OUTPUT"));
+    assert!(screen.contains("SCRYING TABLE"));
     assert!(!screen.contains("CAFE WALL / 56K CABLE RUN"));
     assert!(!screen.contains("THE HERDR CYBERCAFE"));
     assert!(!screen.contains("NESTED WEBMASTER CONTROL CENTRE"));
 }
 
 #[test]
-fn zero_and_tiny_desk_areas_are_panic_free() {
+fn zero_and_tiny_guild_hall_areas_are_panic_free() {
     let model = live_model();
 
     for (width, height) in [(0, 0), (0, 1), (1, 0), (1, 1), (2, 2), (3, 2), (3, 3)] {
@@ -207,25 +236,28 @@ fn zero_and_tiny_desk_areas_are_panic_free() {
 #[test]
 fn footer_advertises_only_actions_valid_for_the_current_context() {
     let empty = render(&Model::new(View::Guild), 160, 24);
-    assert!(!empty.contains("[enter] visit"));
-    assert!(!empty.contains("[r] reply"));
-    assert!(!empty.contains("[o] output"));
-    assert!(!empty.contains("[space] seen"));
-    assert!(!empty.contains("[/] search"));
-    assert!(!empty.contains("[v] reviewr"));
+    assert!(!empty.contains("Observe"));
+    assert!(!empty.contains("Issue counsel"));
+    assert!(!empty.contains("Acknowledge summons"));
+    assert!(!empty.contains("Inspect spoils"));
 
     let mut live = live_model();
     let selected = render(&live, 160, 24);
-    assert!(selected.contains("[/] search"));
-    assert!(selected.contains("[enter] visit"));
-    assert!(selected.contains("[r] reply"));
-    assert!(selected.contains("[o] output"));
-    assert!(selected.contains("[space] seen"));
-    assert!(!selected.contains("[v] reviewr"));
+    assert!(selected.contains("Observe"));
+    assert!(selected.contains("Issue counsel"));
+    assert!(selected.contains("Acknowledge summons"));
+    assert!(selected.contains("Open Chronicle"));
+    assert!(!selected.contains("Inspect spoils"));
+
+    let _ = reduce_action(&mut live, Action::Reviewr);
+    let unavailable = render(&live, 160, 24);
+    assert!(unavailable.contains("The spoils cannot be inspected here"));
+    let unavailable_medium = render(&live, 80, 24);
+    assert!(unavailable_medium.contains("The spoils cannot be inspected here"));
 
     let _ = reduce_action(&mut live, Action::MarkSeen);
     live.set_reviewr_available(true);
     let seen = render(&live, 160, 24);
-    assert!(!seen.contains("[space] seen"));
-    assert!(seen.contains("[v] reviewr"));
+    assert!(!seen.contains("Acknowledge summons"));
+    assert!(seen.contains("Inspect spoils"));
 }

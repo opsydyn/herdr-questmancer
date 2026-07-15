@@ -128,10 +128,11 @@ fn region_cycle_is_deterministic_and_wraps() {
     let mut model = Model::new(View::Guild);
 
     for expected in [
-        Region::Inbox,
+        Region::Party,
+        Region::Summons,
         Region::Chronicle,
-        Region::Agent,
-        Region::Campaigns,
+        Region::Adventurer,
+        Region::QuestBoard,
     ] {
         let reduction = reduce_action(&mut model, Action::CycleRegion);
         assert_eq!(model.region(), expected);
@@ -217,11 +218,14 @@ fn managed_pane_selection_never_emits_effect_commands() {
     let mut model = live_model_with_two_agents();
     model.set_managed_pane_id(Some(PaneId::new("w1:p1")));
 
-    for action in [Action::Visit, Action::Refresh, Action::Reply] {
+    for action in [Action::Visit, Action::Refresh, Action::Counsel] {
         let reduction = reduce_action(&mut model, action);
         assert!(reduction.commands.is_empty());
     }
-    assert_eq!(model.status_message(), Some("no agent selected to reply"));
+    assert_eq!(
+        model.status_message(),
+        Some("Counsel cannot be issued: no adventurer is selected.")
+    );
 }
 
 #[test]
@@ -322,7 +326,10 @@ fn reviewr_opens_only_when_available_for_a_selection() {
     let mut unavailable = live_model_with_two_agents();
     let no_open = reduce_action(&mut unavailable, Action::Reviewr);
     assert!(no_open.commands.is_empty());
-    assert_eq!(unavailable.status_message(), Some("reviewr is unavailable"));
+    assert_eq!(
+        unavailable.status_message(),
+        Some("The spoils cannot be inspected here: Reviewr is unavailable.")
+    );
 
     let mut empty = Model::new(View::Guild);
     empty.set_reviewr_available(true);
@@ -330,19 +337,19 @@ fn reviewr_opens_only_when_available_for_a_selection() {
     assert!(no_selection.commands.is_empty());
     assert_eq!(
         empty.status_message(),
-        Some("no agent selected for reviewr")
+        Some("The spoils cannot be inspected here: no adventurer is selected.")
     );
 }
 
 #[test]
-fn reply_submit_sends_the_exact_draft_to_the_selected_pane() {
+fn counsel_submit_sends_the_exact_draft_to_the_selected_pane() {
     let mut model = live_model_with_two_agents();
 
-    let opened = reduce_action(&mut model, Action::Reply);
+    let opened = reduce_action(&mut model, Action::Counsel);
     assert!(opened.commands.is_empty());
     assert_eq!(
         model.modal(),
-        &Modal::Reply {
+        &Modal::Counsel {
             draft: String::new()
         }
     );
@@ -364,22 +371,25 @@ fn reply_submit_sends_the_exact_draft_to_the_selected_pane() {
 }
 
 #[test]
-fn empty_reply_stays_open_while_clear_and_cancel_are_local() {
+fn empty_counsel_stays_open_while_clear_and_cancel_are_local() {
     let mut model = live_model_with_two_agents();
-    let _ = reduce_action(&mut model, Action::Reply);
+    let _ = reduce_action(&mut model, Action::Counsel);
     let _ = reduce_action(&mut model, Action::TypeCharacter(' '));
 
     let empty = reduce_action(&mut model, Action::Submit);
     assert!(empty.commands.is_empty());
-    assert_eq!(model.status_message(), Some("reply cannot be empty"));
-    assert!(matches!(model.modal(), Modal::Reply { .. }));
+    assert_eq!(
+        model.status_message(),
+        Some("Counsel cannot be issued: the message is empty.")
+    );
+    assert!(matches!(model.modal(), Modal::Counsel { .. }));
 
     let _ = reduce_action(&mut model, Action::TypeCharacter('x'));
     let cleared = reduce_action(&mut model, Action::ClearInput);
     assert!(cleared.commands.is_empty());
     assert_eq!(
         model.modal(),
-        &Modal::Reply {
+        &Modal::Counsel {
             draft: String::new()
         }
     );
@@ -389,11 +399,11 @@ fn empty_reply_stays_open_while_clear_and_cancel_are_local() {
     assert_eq!(model.modal(), &Modal::None);
 
     let mut empty_selection = Model::new(View::Guild);
-    let no_reply = reduce_action(&mut empty_selection, Action::Reply);
-    assert!(no_reply.commands.is_empty());
+    let no_counsel = reduce_action(&mut empty_selection, Action::Counsel);
+    assert!(no_counsel.commands.is_empty());
     assert_eq!(
         empty_selection.status_message(),
-        Some("no agent selected to reply")
+        Some("Counsel cannot be issued: no adventurer is selected.")
     );
 }
 
@@ -407,6 +417,7 @@ fn mark_seen_uses_the_domain_reducer_for_the_selected_agent() {
     assert!(marked.commands.is_empty());
     assert_eq!(marked.persistence, vec![Command::PersistState]);
     assert!(!model.selected_agent().unwrap().attention.is_unread());
+    assert_eq!(model.status_message(), Some("Summons acknowledged."));
 
     let mut empty = Model::new(View::Guild);
     let no_mark = reduce_action(&mut empty, Action::MarkSeen);
@@ -510,7 +521,10 @@ fn search_no_match_stays_editable_with_visible_status() {
             query: "missing".to_owned()
         }
     );
-    assert_eq!(model.status_message(), Some("no agents match \"missing\""));
+    assert_eq!(
+        model.status_message(),
+        Some("No adventurer or campaign answers \"missing\".")
+    );
 }
 
 #[test]
@@ -587,12 +601,12 @@ fn cafe_visit_refresh_and_optional_reviewr_reuse_typed_desk_commands() {
 }
 
 #[test]
-fn cafe_reply_and_mark_seen_reuse_the_existing_local_and_command_boundaries() {
+fn delve_counsel_and_acknowledgement_reuse_the_existing_local_and_command_boundaries() {
     let mut desk = live_model_with_two_agents();
     let mut cafe = cafe_twin(&desk);
 
     for action in [
-        Action::Reply,
+        Action::Counsel,
         Action::TypeCharacter('o'),
         Action::TypeCharacter('k'),
         Action::Submit,

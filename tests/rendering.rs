@@ -25,12 +25,11 @@ fn render(view: View, width: u16, height: u16) -> String {
 }
 
 #[test]
-fn empty_desk_explains_what_to_do() {
+fn empty_guild_hall_is_ready_for_a_commission() {
     let screen = render(View::Guild, 80, 24);
 
-    assert!(screen.contains("WEBMASTER CONTROL CENTRE"));
-    assert!(screen.contains("No agents online"));
-    assert!(screen.contains("Start an agent to put a site under construction"));
+    assert!(screen.contains("QUESTMANCER'S GUILD HALL"));
+    assert!(screen.contains("The hearth is warm. The guild awaits its next commission."));
 }
 
 #[test]

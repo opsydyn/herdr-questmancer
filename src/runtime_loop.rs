@@ -10,6 +10,7 @@ use crate::{
     },
     interaction::ActionReduction,
     persistence::{PersistedStateV1, PersistenceClient, PersistenceError},
+    ui::copy::COUNSEL_ISSUED,
     update::{AppEvent, Command, update},
 };
 use tokio::{
@@ -249,8 +250,8 @@ pub fn apply_command_result(
         CommandResult::Focused(pane_id) => {
             model.set_status_message(Some(format!("visited {pane_id}")));
         }
-        CommandResult::CounselSent(pane_id) => {
-            model.set_status_message(Some(format!("reply sent to {pane_id}")));
+        CommandResult::CounselSent(_) => {
+            model.set_status_message(Some(COUNSEL_ISSUED.to_owned()));
         }
         CommandResult::OutputLoaded {
             pane_id,
@@ -278,7 +279,7 @@ pub fn apply_command_result(
             model.set_reviewr_available(available);
         }
         CommandResult::SpoilsOpened => {
-            model.set_status_message(Some("opened reviewr".to_owned()));
+            model.set_status_message(Some("Spoils inspected.".to_owned()));
         }
         CommandResult::SnapshotLoaded(snapshot) => {
             apply_domain_event(

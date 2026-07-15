@@ -83,10 +83,11 @@ pub enum ConnectionState {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Region {
     #[default]
-    Campaigns,
-    Inbox,
+    QuestBoard,
+    Party,
+    Summons,
     Chronicle,
-    Agent,
+    Adventurer,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -94,7 +95,7 @@ pub enum Modal {
     #[default]
     None,
     Help,
-    Reply {
+    Counsel {
         draft: String,
     },
     Search {
@@ -134,7 +135,7 @@ impl Model {
             view,
             domain: DomainState::default(),
             connection: ConnectionState::Offline,
-            region: Region::Campaigns,
+            region: Region::QuestBoard,
             modal: Modal::None,
             output_preview: None,
             status_message: None,
@@ -267,10 +268,11 @@ impl Model {
 
     pub fn cycle_region(&mut self) {
         self.region = match self.region {
-            Region::Campaigns => Region::Inbox,
-            Region::Inbox => Region::Chronicle,
-            Region::Chronicle => Region::Agent,
-            Region::Agent => Region::Campaigns,
+            Region::QuestBoard => Region::Party,
+            Region::Party => Region::Summons,
+            Region::Summons => Region::Chronicle,
+            Region::Chronicle => Region::Adventurer,
+            Region::Adventurer => Region::QuestBoard,
         };
     }
 
@@ -278,8 +280,8 @@ impl Model {
         &self.modal
     }
 
-    pub fn open_reply(&mut self) {
-        self.modal = Modal::Reply {
+    pub fn open_counsel(&mut self) {
+        self.modal = Modal::Counsel {
             draft: String::new(),
         };
     }
@@ -290,32 +292,32 @@ impl Model {
         };
     }
 
-    pub fn reply_draft(&self) -> Option<&str> {
+    pub fn counsel_draft(&self) -> Option<&str> {
         match &self.modal {
-            Modal::Reply { draft } => Some(draft),
+            Modal::Counsel { draft } => Some(draft),
             Modal::None | Modal::Help | Modal::Search { .. } => None,
         }
     }
 
-    pub fn push_reply_character(&mut self, character: char) {
+    pub fn push_counsel_character(&mut self, character: char) {
         self.push_modal_character(character);
     }
 
     pub fn push_modal_character(&mut self, character: char) {
         match &mut self.modal {
-            Modal::Reply { draft } => draft.push(character),
+            Modal::Counsel { draft } => draft.push(character),
             Modal::Search { query } => query.push(character),
             Modal::None | Modal::Help => {}
         }
     }
 
-    pub fn backspace_reply(&mut self) {
+    pub fn backspace_counsel(&mut self) {
         self.backspace_modal_input();
     }
 
     pub fn backspace_modal_input(&mut self) {
         match &mut self.modal {
-            Modal::Reply { draft } => {
+            Modal::Counsel { draft } => {
                 draft.pop();
             }
             Modal::Search { query } => {
@@ -327,7 +329,7 @@ impl Model {
 
     pub fn clear_modal_input(&mut self) {
         match &mut self.modal {
-            Modal::Reply { draft } => draft.clear(),
+            Modal::Counsel { draft } => draft.clear(),
             Modal::Search { query } => query.clear(),
             Modal::None | Modal::Help => {}
         }
@@ -337,9 +339,9 @@ impl Model {
         self.modal = Modal::None;
     }
 
-    pub fn take_reply(&mut self) -> Option<String> {
+    pub fn take_counsel(&mut self) -> Option<String> {
         match std::mem::take(&mut self.modal) {
-            Modal::Reply { draft } => Some(draft),
+            Modal::Counsel { draft } => Some(draft),
             modal => {
                 self.modal = modal;
                 None

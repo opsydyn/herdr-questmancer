@@ -4,7 +4,10 @@ use crate::{
     app::{Modal, Model},
     command::AgentCommand,
     persistence::PersistedStateV1,
-    ui::input::Action,
+    ui::{
+        copy::{SUMMONS_ACKNOWLEDGED, no_match},
+        input::Action,
+    },
     update::Command,
 };
 
@@ -62,24 +65,11 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             ControlFlow::Continue(())
         }
         Action::Reviewr => {
-            if !model.reviewr_available() {
-                model.set_status_message(Some("reviewr is unavailable".to_owned()));
-            } else if let Some(pane_id) = selected_pane(model) {
-                commands.push(AgentCommand::InspectSpoils {
-                    pane_id,
-                    qualified_id: model.settings().reviewr_action.clone(),
-                });
-            } else {
-                model.set_status_message(Some("no agent selected for reviewr".to_owned()));
-            }
+            inspect_spoils(model, &mut commands);
             ControlFlow::Continue(())
         }
-        Action::Reply => {
-            if selected_pane(model).is_some() {
-                model.open_reply();
-            } else {
-                model.set_status_message(Some("no agent selected to reply".to_owned()));
-            }
+        Action::Counsel => {
+            open_counsel(model);
             ControlFlow::Continue(())
         }
         Action::MarkSeen => {
@@ -108,7 +98,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         }
         Action::Submit => {
             match model.modal() {
-                Modal::Reply { .. } => submit_reply(model, &mut commands),
+                Modal::Counsel { .. } => submit_counsel(model, &mut commands),
                 Modal::Search { .. } => submit_search(model, &mut commands),
                 Modal::None | Modal::Help => {}
             }
@@ -145,24 +135,56 @@ fn selected_pane(model: &Model) -> Option<crate::domain::PaneId> {
     })
 }
 
+fn inspect_spoils(model: &mut Model, commands: &mut Vec<AgentCommand>) {
+    if !model.reviewr_available() {
+        model.set_status_message(Some(
+            "The spoils cannot be inspected here: Reviewr is unavailable.".to_owned(),
+        ));
+    } else if let Some(pane_id) = selected_pane(model) {
+        commands.push(AgentCommand::InspectSpoils {
+            pane_id,
+            qualified_id: model.settings().reviewr_action.clone(),
+        });
+    } else {
+        model.set_status_message(Some(
+            "The spoils cannot be inspected here: no adventurer is selected.".to_owned(),
+        ));
+    }
+}
+
+fn open_counsel(model: &mut Model) {
+    if selected_pane(model).is_some() {
+        model.open_counsel();
+    } else {
+        model.set_status_message(Some(
+            "Counsel cannot be issued: no adventurer is selected.".to_owned(),
+        ));
+    }
+}
+
 fn mark_read(model: &mut Model) {
     if model.selected_agent_key().is_none() {
         model.set_status_message(Some("no agent selected to mark seen".to_owned()));
         return;
     }
     model.mark_selected_attention_read();
+    model.set_status_message(Some(SUMMONS_ACKNOWLEDGED.to_owned()));
 }
 
-fn submit_reply(model: &mut Model, commands: &mut Vec<AgentCommand>) {
-    let Some(draft) = model.reply_draft().map(str::to_owned) else {
+fn submit_counsel(model: &mut Model, commands: &mut Vec<AgentCommand>) {
+    let Some(draft) = model.counsel_draft().map(str::to_owned) else {
         return;
     };
     if draft.trim().is_empty() {
-        model.set_status_message(Some("reply cannot be empty".to_owned()));
+        model.set_status_message(Some(
+            "Counsel cannot be issued: the message is empty.".to_owned(),
+        ));
         return;
     }
     let Some(pane_id) = selected_pane(model) else {
-        model.set_status_message(Some("no agent selected to reply".to_owned()));
+        model.set_status_message(Some(
+            "Counsel cannot be issued: no adventurer is selected.".to_owned(),
+        ));
         return;
     };
     model.dismiss_modal();
@@ -204,7 +226,7 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     });
 
     let Some(agent_key) = matched else {
-        model.set_status_message(Some(format!("no agents match {query:?}")));
+        model.set_status_message(Some(no_match(&query)));
         return;
     };
     let before = selected_pane(model);
