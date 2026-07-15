@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{CharacterSet, DisplayPreferences},
+    app::{CharacterSet, ColorMode, DisplayPreferences},
     domain::{Agent, PersonaAppearance},
     ui::{
         cafe_scene::SeatAnchor,
@@ -57,6 +57,7 @@ pub fn render_workstation<A: WorkstationAnchor>(
             theatre,
             selected,
             preferences.character_set,
+            preferences.color_mode,
         );
         return;
     }
@@ -112,7 +113,21 @@ fn render_compact(
     theatre: TheatreFrame,
     selected: bool,
     character_set: CharacterSet,
+    color_mode: ColorMode,
 ) {
+    if area.width >= 14 && area.height >= 6 {
+        render_compact_scene(
+            frame,
+            area,
+            agent,
+            theatre,
+            selected,
+            character_set,
+            color_mode,
+        );
+        return;
+    }
+
     let selection = if selected { ">" } else { " " };
     let live = if theatre.focused { " LIVE" } else { "" };
     let mut lines = vec![
@@ -133,6 +148,56 @@ fn render_compact(
         )));
     }
     frame.render_widget(Paragraph::new(Text::from(lines)), area);
+}
+
+fn render_compact_scene(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    agent: &Agent,
+    theatre: TheatreFrame,
+    selected: bool,
+    character_set: CharacterSet,
+    color_mode: ColorMode,
+) {
+    let palette = Palette::from(color_mode);
+    frame.render_widget(
+        Paragraph::new("").style(
+            Style::new()
+                .fg(palette.resolve(ColorRole::Highlight))
+                .bg(palette.resolve(ColorRole::PanelBackground)),
+        ),
+        area,
+    );
+
+    let scene_height = area.height.saturating_sub(1);
+    if scene_height > 0 {
+        render_scene(
+            frame,
+            Rect::new(area.x, area.y, area.width, scene_height),
+            agent,
+            theatre,
+            selected,
+            character_set,
+            palette,
+        );
+    }
+
+    let selection = if selected { ">" } else { " " };
+    frame.render_widget(
+        Paragraph::new(format!(
+            "{selection} {}",
+            present(&agent.name, character_set)
+        ))
+        .style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
+        Rect::new(area.x, area.y, area.width, 1),
+    );
+
+    let state_y = area.y.saturating_add(area.height.saturating_sub(1));
+    frame.render_widget(
+        Paragraph::new(state_line(agent, theatre, area.width, character_set))
+            .style(Style::new().fg(palette.resolve(ColorRole::CrtGlow))),
+        Rect::new(area.x, state_y, area.width, 1),
+    );
 }
 
 fn render_scene(

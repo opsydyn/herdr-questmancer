@@ -308,6 +308,28 @@ fn unicode_workstation_places_the_packed_seated_figure_in_six_scene_rows() {
 }
 
 #[test]
+fn compact_unicode_workstation_keeps_the_blocked_seated_sprite_visible() {
+    let agent = agent();
+    let screen = render_workstation_at(
+        &agent,
+        theatre(TheatrePose::Blocked, 1, false, "HELP!"),
+        false,
+        preferences(CharacterSet::Unicode),
+        14,
+        6,
+    );
+
+    assert!(
+        screen.contains("HELP!"),
+        "compact state label disappeared:\n{screen}"
+    );
+    assert!(
+        screen.chars().any(|glyph| matches!(glyph, '▀' | '▄' | '█')),
+        "compact blocked workstation lost its seated sprite:\n{screen}"
+    );
+}
+
+#[test]
 fn unicode_scene_composes_a_semantic_chair_behind_done_and_exited_poses() {
     let agent = agent();
     let preferences = preferences(CharacterSet::Unicode);
