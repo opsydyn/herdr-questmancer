@@ -4,14 +4,14 @@ mod support;
 use proptest::prelude::*;
 use questmancer::{
     app::{Model, View},
-    domain::{AgentKey, Attention, PersonaKey, Timestamp},
+    domain::{AgentKey, GuildAttention, PersonaKey, Timestamp},
     persistence::{AttentionEpisodeKey, DurableIntent, PersistedStateV1},
 };
 
 fn captured_state() -> PersistedStateV1 {
     let mut model = Model::new(View::Delve);
     model.replace_domain(support::fixture_domain());
-    model.mark_selected_attention_seen();
+    model.mark_selected_attention_read();
     PersistedStateV1::capture(&model)
 }
 
@@ -22,8 +22,8 @@ fn capture_contains_only_durable_intent() {
     let agent = model.selected_agent().unwrap();
     let expected_persona = agent.persona.key.clone();
     let expected_revision = agent.pane_revision;
-    let expected_reason = agent.attention.reason().unwrap();
-    model.mark_selected_attention_seen();
+    let expected_summons = agent.attention.summons().unwrap();
+    model.mark_selected_attention_read();
 
     let state = PersistedStateV1::capture(&model);
 
@@ -33,7 +33,7 @@ fn capture_contains_only_durable_intent() {
     assert!(state.seen_attention.contains(&AttentionEpisodeKey {
         persona: expected_persona,
         pane_revision: expected_revision,
-        reason: expected_reason,
+        summons: expected_summons,
     }));
 }
 
@@ -112,7 +112,10 @@ fn overlay_restores_matching_persona_selection_and_seen_episode() {
     let selected_agent = model.selected_agent().unwrap();
     assert_eq!(selected_agent.persona.key, selected);
     assert_eq!(selected_agent.persona.handle, "authored_handle");
-    assert!(matches!(selected_agent.attention, Attention::Seen { .. }));
+    assert!(matches!(
+        selected_agent.attention,
+        GuildAttention::Read { .. }
+    ));
     assert_eq!(support::live_facts(model.domain()), before);
 }
 
@@ -127,7 +130,7 @@ fn overlay_prunes_seen_episode_when_revision_no_longer_matches() {
 
     model.replace_domain(domain);
 
-    assert!(model.selected_agent().unwrap().attention.is_unseen());
+    assert!(model.selected_agent().unwrap().attention.is_unread());
     assert!(
         !PersistedStateV1::capture(&model)
             .seen_attention
@@ -174,12 +177,12 @@ fn overlay_keeps_a_valid_snapshot_selection_when_persona_is_ambiguous() {
 }
 
 #[test]
-fn overlay_marks_only_unseen_attention_as_seen() {
+fn overlay_marks_only_unread_attention_as_read() {
     let state = captured_state();
     let episode = state.seen_attention.iter().next().unwrap();
     let mut domain = support::fixture_domain();
-    domain.agents.values_mut().next().unwrap().attention = Attention::Snoozed {
-        reason: episode.reason,
+    domain.agents.values_mut().next().unwrap().attention = GuildAttention::Deferred {
+        summons: episode.summons,
         since: Timestamp::from_millis(1_000),
         until: Timestamp::from_millis(2_000),
     };
@@ -190,7 +193,7 @@ fn overlay_marks_only_unseen_attention_as_seen() {
 
     assert!(matches!(
         model.selected_agent().unwrap().attention,
-        Attention::Snoozed { .. }
+        GuildAttention::Deferred { .. }
     ));
 }
 

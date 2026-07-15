@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use questmancer::{
-    command::{CommandExecutor, CommandResult, DeskCommand},
+    command::{AgentCommand, CommandExecutor, CommandResult},
     domain::PaneId,
     herdr::client::HerdrClient,
 };
@@ -54,7 +54,7 @@ async fn output_load_returns_a_ui_ready_preview() {
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
-        .execute(DeskCommand::LoadOutput {
+        .execute(AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
         })
@@ -86,7 +86,7 @@ async fn server_failure_becomes_a_non_blocking_result() {
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
-        .execute(DeskCommand::FocusPane(PaneId::new("w1:p9")))
+        .execute(AgentCommand::FocusPane(PaneId::new("w1:p9")))
         .await;
 
     assert!(matches!(
@@ -115,7 +115,7 @@ async fn reviewr_discovery_checks_the_exact_qualified_action() {
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
-        .execute(DeskCommand::DiscoverReviewr {
+        .execute(AgentCommand::DiscoverReviewr {
             qualified_id: "acme.diff.inspect".to_owned(),
         })
         .await;
@@ -161,13 +161,13 @@ async fn opening_reviewr_focuses_the_agent_before_invocation() {
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
-        .execute(DeskCommand::OpenReviewr {
+        .execute(AgentCommand::InspectSpoils {
             pane_id: PaneId::new("w1:p1"),
             qualified_id: "acme.diff.inspect".to_owned(),
         })
         .await;
 
-    assert_eq!(result, CommandResult::ReviewrOpened);
+    assert_eq!(result, CommandResult::SpoilsOpened);
     server.await.unwrap();
 }
 
@@ -178,12 +178,12 @@ async fn non_splittable_reviewr_action_is_unavailable_and_invocation_fails_non_f
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let discovery = executor
-        .execute(DeskCommand::DiscoverReviewr {
+        .execute(AgentCommand::DiscoverReviewr {
             qualified_id: "inspect".to_owned(),
         })
         .await;
     let invocation = executor
-        .execute(DeskCommand::OpenReviewr {
+        .execute(AgentCommand::InspectSpoils {
             pane_id: PaneId::new("w1:p1"),
             qualified_id: "inspect".to_owned(),
         })
@@ -210,7 +210,7 @@ async fn reply_sends_the_composed_text_to_the_selected_pane() {
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
-        .execute(DeskCommand::SendReply {
+        .execute(AgentCommand::SendCounsel {
             pane_id: PaneId::new("w1:p1"),
             text: "use jsonb".into(),
         })
@@ -218,7 +218,7 @@ async fn reply_sends_the_composed_text_to_the_selected_pane() {
     let request = server.await.unwrap();
 
     assert_eq!(request["params"]["text"], "use jsonb");
-    assert_eq!(result, CommandResult::ReplySent(PaneId::new("w1:p1")));
+    assert_eq!(result, CommandResult::CounselSent(PaneId::new("w1:p1")));
 }
 
 #[tokio::test]
@@ -234,7 +234,7 @@ async fn snapshot_refresh_returns_a_domain_ready_snapshot() {
     });
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
-    let result = executor.execute(DeskCommand::RefreshSnapshot).await;
+    let result = executor.execute(AgentCommand::RefreshSnapshot).await;
 
     assert!(matches!(
         result,
@@ -251,16 +251,16 @@ async fn managed_pane_effects_are_refused_before_socket_io() {
     let executor = CommandExecutor::new(HerdrClient::new(path), Some(managed.clone()));
 
     let commands = [
-        DeskCommand::FocusPane(managed.clone()),
-        DeskCommand::SendReply {
+        AgentCommand::FocusPane(managed.clone()),
+        AgentCommand::SendCounsel {
             pane_id: managed.clone(),
             text: "do not send".to_owned(),
         },
-        DeskCommand::LoadOutput {
+        AgentCommand::LoadOutput {
             pane_id: managed.clone(),
             lines: 80,
         },
-        DeskCommand::OpenReviewr {
+        AgentCommand::InspectSpoils {
             pane_id: managed,
             qualified_id: "acme.diff.inspect".to_owned(),
         },

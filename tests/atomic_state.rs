@@ -14,7 +14,7 @@ use tempfile::tempdir;
 fn valid_state() -> PersistedStateV1 {
     let mut model = Model::new(View::Delve);
     model.replace_domain(support::fixture_domain());
-    model.mark_selected_attention_seen();
+    model.mark_selected_attention_read();
     PersistedStateV1::capture(&model)
 }
 

@@ -7,7 +7,7 @@ use proptest::prelude::*;
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View},
     config::PersistencePaths,
-    domain::{AgentPersona, GuestbookEntry, GuestbookEvent, PersonaKey, Timestamp},
+    domain::{AgentPersona, ChronicleEntry, ChronicleEvent, PersonaKey, Timestamp},
     persistence::{PersistedStateV1, StartupData, effective_view, load_startup},
 };
 use tempfile::TempDir;
@@ -31,25 +31,25 @@ fn state(last_view: View, preferences: DisplayPreferences) -> PersistedStateV1 {
     }
 }
 
-fn guestbook_entry(index: i64) -> GuestbookEntry {
-    GuestbookEntry::new(
+fn chronicle_entry(index: i64) -> ChronicleEntry {
+    ChronicleEntry::new(
         Timestamp::from_millis(index),
         None,
         None,
         None,
         u64::try_from(index).unwrap(),
-        GuestbookEvent::WorkCompleted,
+        ChronicleEvent::SpoilsReturned,
         format!("entry {index}"),
     )
 }
 
-async fn write_guestbook(directory: &TempDir, entries: impl IntoIterator<Item = GuestbookEntry>) {
+async fn write_chronicle(directory: &TempDir, entries: impl IntoIterator<Item = ChronicleEntry>) {
     let mut bytes = Vec::new();
     for entry in entries {
         bytes.extend(serde_json::to_vec(&entry).unwrap());
         bytes.push(b'\n');
     }
-    tokio::fs::write(directory.path().join("guestbook.jsonl"), bytes)
+    tokio::fs::write(directory.path().join("chronicle.jsonl"), bytes)
         .await
         .unwrap();
 }
@@ -96,11 +96,11 @@ async fn absent_files_use_defaults_without_diagnostics() {
         "persiyanov.reviewr.open"
     );
     assert!(startup.model.settings().show_elapsed_time);
-    assert!(startup.model.domain().guestbook.entries().is_empty());
+    assert!(startup.model.domain().chronicle.entries().is_empty());
     assert_eq!(startup.paths.state, Some(state.path().join("state.json")));
     assert_eq!(
-        startup.paths.guestbook,
-        Some(state.path().join("guestbook.jsonl"))
+        startup.paths.chronicle,
+        Some(state.path().join("chronicle.jsonl"))
     );
     assert!(startup.diagnostics.is_empty());
 }
@@ -117,7 +117,7 @@ motion = "full"
 character_set = "unicode"
 color_mode = "xterm256"
 output_preview_lines = 123
-guestbook_max_entries = 50
+chronicle_max_entries = 50
 reviewr_action = "acme.diff.inspect"
 show_elapsed_time = false
 "#,
@@ -146,7 +146,7 @@ show_elapsed_time = false
     )
     .await
     .unwrap();
-    write_guestbook(&state_dir, (0..55).map(guestbook_entry)).await;
+    write_chronicle(&state_dir, (0..55).map(chronicle_entry)).await;
 
     let startup = load_startup(paths(Some(config.path()), Some(state_dir.path())), None).await;
 
@@ -157,7 +157,7 @@ show_elapsed_time = false
     assert_eq!(startup.model.settings().output_preview_lines, 123);
     assert_eq!(startup.model.settings().reviewr_action, "acme.diff.inspect");
     assert!(!startup.model.settings().show_elapsed_time);
-    let entries = startup.model.domain().guestbook.entries();
+    let entries = startup.model.domain().chronicle.entries();
     assert_eq!(entries.len(), 50);
     assert_eq!(entries.front().unwrap().summary, "entry 5");
     assert_eq!(entries.back().unwrap().summary, "entry 54");
@@ -205,7 +205,7 @@ async fn invalid_config_uses_safe_runtime_defaults_but_keeps_valid_state() {
 }
 
 #[tokio::test]
-async fn future_state_is_ignored_without_hiding_valid_guestbook_history() {
+async fn future_state_is_ignored_without_hiding_valid_chronicle_history() {
     let state_dir = tempfile::tempdir().unwrap();
     let mut future = state(View::Delve, DisplayPreferences::default());
     future.schema_version = 2;
@@ -215,18 +215,18 @@ async fn future_state_is_ignored_without_hiding_valid_guestbook_history() {
     )
     .await
     .unwrap();
-    write_guestbook(&state_dir, [guestbook_entry(1)]).await;
+    write_chronicle(&state_dir, [chronicle_entry(1)]).await;
 
     let startup = load_startup(paths(None, Some(state_dir.path())), None).await;
 
     assert_eq!(startup.model.view(), View::Guild);
-    assert_eq!(startup.model.domain().guestbook.entries().len(), 1);
+    assert_eq!(startup.model.domain().chronicle.entries().len(), 1);
     assert_eq!(startup.diagnostics.len(), 1);
     assert_eq!(startup.diagnostics[0].operation, "validate state");
     assert_eq!(startup.paths.state, None);
     assert_eq!(
-        startup.paths.guestbook,
-        Some(state_dir.path().join("guestbook.jsonl"))
+        startup.paths.chronicle,
+        Some(state_dir.path().join("chronicle.jsonl"))
     );
 }
 
@@ -241,27 +241,27 @@ async fn unreadable_state_disables_only_state_publication() {
 
     assert_eq!(startup.paths.state, None);
     assert_eq!(
-        startup.paths.guestbook,
-        Some(state_dir.path().join("guestbook.jsonl"))
+        startup.paths.chronicle,
+        Some(state_dir.path().join("chronicle.jsonl"))
     );
     assert_eq!(startup.diagnostics.len(), 1);
     assert_eq!(startup.diagnostics[0].operation, "read state");
 }
 
 #[tokio::test]
-async fn malformed_guestbook_records_report_diagnostics_and_preserve_valid_records() {
+async fn malformed_chronicle_records_report_diagnostics_and_preserve_valid_records() {
     let state_dir = tempfile::tempdir().unwrap();
-    let mut bytes = serde_json::to_vec(&guestbook_entry(1)).unwrap();
+    let mut bytes = serde_json::to_vec(&chronicle_entry(1)).unwrap();
     bytes.extend_from_slice(b"\n{not json}\n");
-    tokio::fs::write(state_dir.path().join("guestbook.jsonl"), bytes)
+    tokio::fs::write(state_dir.path().join("chronicle.jsonl"), bytes)
         .await
         .unwrap();
 
     let startup = load_startup(paths(None, Some(state_dir.path())), None).await;
 
-    assert_eq!(startup.model.domain().guestbook.entries().len(), 1);
+    assert_eq!(startup.model.domain().chronicle.entries().len(), 1);
     assert_eq!(startup.diagnostics.len(), 1);
-    assert_eq!(startup.diagnostics[0].operation, "parse guestbook record");
+    assert_eq!(startup.diagnostics[0].operation, "parse chronicle record");
     assert_eq!(startup.diagnostics[0].line, Some(2));
 }
 
@@ -304,7 +304,7 @@ async fn plugin_disabled_startup_is_in_memory_only() {
 
     assert_eq!(startup.model.view(), View::Delve);
     assert_eq!(startup.paths.state, None);
-    assert_eq!(startup.paths.guestbook, None);
+    assert_eq!(startup.paths.chronicle, None);
     assert!(startup.diagnostics.is_empty());
 }
 
@@ -330,7 +330,7 @@ proptest! {
     fn arbitrary_startup_files_never_panic(
         config_bytes in prop::collection::vec(any::<u8>(), 0..=512),
         state_bytes in prop::collection::vec(any::<u8>(), 0..=512),
-        guestbook_bytes in prop::collection::vec(any::<u8>(), 0..=512),
+        chronicle_bytes in prop::collection::vec(any::<u8>(), 0..=512),
     ) {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -345,7 +345,7 @@ proptest! {
             tokio::fs::write(state.path().join("state.json"), state_bytes)
                 .await
                 .unwrap();
-            tokio::fs::write(state.path().join("guestbook.jsonl"), guestbook_bytes)
+            tokio::fs::write(state.path().join("chronicle.jsonl"), chronicle_bytes)
                 .await
                 .unwrap();
 

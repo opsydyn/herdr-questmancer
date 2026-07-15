@@ -15,10 +15,10 @@ use tokio::{
     time::{Instant, Sleep},
 };
 
-use crate::domain::GuestbookEntry;
+use crate::domain::ChronicleEntry;
 
 use super::{
-    PersistedStateV1, PersistenceDiagnostic, PersistenceError, append_guestbook, publish_state,
+    PersistedStateV1, PersistenceDiagnostic, PersistenceError, append_chronicle, publish_state,
 };
 
 const DEBOUNCE: Duration = Duration::from_millis(250);
@@ -26,8 +26,8 @@ const DIAGNOSTIC_CAPACITY: usize = 16;
 
 enum PersistenceMessage {
     StageState(PersistedStateV1),
-    AppendGuestbook {
-        entry: GuestbookEntry,
+    AppendChronicle {
+        entry: ChronicleEntry,
         acknowledgement: oneshot::Sender<Result<(), PersistenceError>>,
     },
     Flush(oneshot::Sender<Result<(), PersistenceError>>),
@@ -37,12 +37,12 @@ enum PersistenceMessage {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkerPaths {
     pub state: Option<PathBuf>,
-    pub guestbook: Option<PathBuf>,
+    pub chronicle: Option<PathBuf>,
 }
 
 impl WorkerPaths {
-    pub fn new(state: Option<PathBuf>, guestbook: Option<PathBuf>) -> Self {
-        Self { state, guestbook }
+    pub fn new(state: Option<PathBuf>, chronicle: Option<PathBuf>) -> Self {
+        Self { state, chronicle }
     }
 }
 
@@ -64,15 +64,15 @@ impl PersistenceClient {
         Ok(true)
     }
 
-    pub async fn append_guestbook(&self, entry: GuestbookEntry) -> Result<(), PersistenceError> {
+    pub async fn append_chronicle(&self, entry: ChronicleEntry) -> Result<(), PersistenceError> {
         let (acknowledgement, response) = oneshot::channel();
         self.sender
-            .send(PersistenceMessage::AppendGuestbook {
+            .send(PersistenceMessage::AppendChronicle {
                 entry,
                 acknowledgement,
             })
-            .map_err(|_| channel_error("append guestbook"))?;
-        receive_acknowledgement(response, "append guestbook").await
+            .map_err(|_| channel_error("append chronicle"))?;
+        receive_acknowledgement(response, "append chronicle").await
     }
 
     pub async fn flush(&self) -> Result<(), PersistenceError> {
@@ -244,7 +244,7 @@ async fn run(
                         debounce = Some(Box::pin(tokio::time::sleep_until(deadline)));
                     }
                 }
-                Some(PersistenceMessage::AppendGuestbook { entry, acknowledgement }) => {
+                Some(PersistenceMessage::AppendChronicle { entry, acknowledgement }) => {
                     if debounce
                         .as_ref()
                         .is_some_and(|timer| timer.deadline() <= Instant::now())
@@ -277,13 +277,13 @@ async fn run(
 
 async fn append_entry(
     paths: &WorkerPaths,
-    entry: &GuestbookEntry,
+    entry: &ChronicleEntry,
     diagnostics: &DiagnosticSender,
 ) -> Result<(), PersistenceError> {
-    let Some(path) = &paths.guestbook else {
+    let Some(path) = &paths.chronicle else {
         return Ok(());
     };
-    append_guestbook(path, entry).await.inspect_err(|error| {
+    append_chronicle(path, entry).await.inspect_err(|error| {
         diagnostics.send_latest(diagnostic_from(error));
     })
 }

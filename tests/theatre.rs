@@ -1,6 +1,6 @@
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Model, Motion, View},
-    domain::{Agent, Attention, AttentionReason, DomainState, Presence, Timestamp},
+    domain::{Agent, DomainState, GuildAttention, GuildSummons, Presence, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::theatre::{RenderCadence, TheatrePose, cadence_for, frame_for},
 };
@@ -51,20 +51,26 @@ fn model_with(agent: Agent, now: i64, motion: Motion) -> Model {
     model
 }
 
-fn attention_variants() -> Vec<Attention> {
+fn attention_variants() -> Vec<GuildAttention> {
     let since = Timestamp::from_millis(1_000);
     let until = Timestamp::from_millis(10_000);
     let reasons = [
-        AttentionReason::NeedsInput,
-        AttentionReason::WorkCompleted,
-        AttentionReason::PaneExited,
+        GuildSummons::CounselRequested,
+        GuildSummons::SpoilsReturned,
+        GuildSummons::AdventurerDeparted,
     ];
-    let mut variants = vec![Attention::Clear];
+    let mut variants = vec![GuildAttention::Clear];
     for reason in reasons {
-        variants.push(Attention::Unseen { reason, since });
-        variants.push(Attention::Seen { reason, since });
-        variants.push(Attention::Snoozed {
-            reason,
+        variants.push(GuildAttention::Unread {
+            summons: reason,
+            since,
+        });
+        variants.push(GuildAttention::Read {
+            summons: reason,
+            since,
+        });
+        variants.push(GuildAttention::Deferred {
+            summons: reason,
             since,
             until,
         });
@@ -85,7 +91,7 @@ fn presence_maps_to_explicit_theatre_poses_and_labels() {
     for (presence, expected_pose, expected_label) in cases {
         let mut agent = agent();
         agent.presence = presence;
-        agent.attention = Attention::Clear;
+        agent.attention = GuildAttention::Clear;
 
         let frame = frame_for(&agent, Timestamp::from_millis(5_000), &preferences());
 
@@ -98,16 +104,14 @@ fn presence_maps_to_explicit_theatre_poses_and_labels() {
 fn unseen_and_seen_done_attention_map_to_distinct_explicit_states() {
     let mut done = agent();
     done.presence = Presence::Done;
-    done.attention = Attention::unseen(
-        AttentionReason::WorkCompleted,
-        Timestamp::from_millis(1_000),
-    );
+    done.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(1_000));
 
     let unseen = frame_for(&done, Timestamp::from_millis(1_500), &preferences());
     assert_eq!(unseen.pose, TheatrePose::DoneUnseen);
     assert_eq!(unseen.label, "UPDATE READY");
 
-    done.attention = done.attention.mark_seen();
+    done.attention = done.attention.mark_read();
     let seen = frame_for(&done, Timestamp::from_millis(1_500), &preferences());
     assert_eq!(seen.pose, TheatrePose::DoneSeen);
     assert_eq!(seen.label, "DONE");
@@ -118,8 +122,8 @@ fn done_pose_and_cadence_follow_complete_attention_semantics() {
     for attention in attention_variants() {
         let completion_unseen = matches!(
             &attention,
-            Attention::Unseen {
-                reason: AttentionReason::WorkCompleted,
+            GuildAttention::Unread {
+                summons: GuildSummons::SpoilsReturned,
                 ..
             }
         );
@@ -184,7 +188,7 @@ fn non_done_presence_is_authoritative_for_every_attention_variant() {
 fn done_without_unseen_attention_is_stable_done_seen() {
     let mut done = agent();
     done.presence = Presence::Done;
-    done.attention = Attention::Clear;
+    done.attention = GuildAttention::Clear;
 
     let frame = frame_for(&done, Timestamp::from_millis(1_500), &preferences());
 
@@ -229,10 +233,8 @@ fn done_unseen_animation_uses_attention_time_and_ends_exactly_at_one_second() {
     let mut done = agent();
     done.presence = Presence::Done;
     done.presence_since = Timestamp::from_millis(10);
-    done.attention = Attention::unseen(
-        AttentionReason::WorkCompleted,
-        Timestamp::from_millis(2_000),
-    );
+    done.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(2_000));
     let original_attention = done.attention.clone();
 
     assert_eq!(frame_at(&done, 1_999, Motion::Full), 0);
@@ -259,7 +261,8 @@ fn reduced_motion_freezes_rapid_effects_but_retains_slow_idle_frames() {
     }
 
     agent.presence = Presence::Done;
-    agent.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+    agent.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0));
     assert_eq!(frame_at(&agent, 875, Motion::Reduced), 0);
 
     agent.presence = Presence::Idle;
@@ -282,7 +285,7 @@ fn no_motion_freezes_every_animation_frame() {
         agent.presence = presence;
         if presence == Presence::Done {
             agent.attention =
-                Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+                GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0));
         }
         assert_eq!(frame_at(&agent, 10_000, Motion::None), 0);
     }
@@ -312,7 +315,8 @@ fn full_motion_cadence_tracks_the_fastest_visible_animation() {
     );
 
     agent.presence = Presence::Done;
-    agent.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+    agent.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0));
     assert_eq!(
         cadence_for(&model_with(agent.clone(), 999, Motion::Full)),
         RenderCadence::Fps(8)
@@ -335,7 +339,7 @@ fn stable_states_are_event_driven() {
     }
 
     agent.presence = Presence::Done;
-    agent.attention = Attention::Clear;
+    agent.attention = GuildAttention::Clear;
     assert_eq!(
         cadence_for(&model_with(agent, 5_000, Motion::Full)),
         RenderCadence::EventDriven
@@ -368,7 +372,8 @@ fn reduced_and_no_motion_cadence_only_schedule_visible_changes() {
 fn no_motion_never_requests_a_future_frame_even_during_completion_transition() {
     let mut done = agent();
     done.presence = Presence::Done;
-    done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+    done.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0));
 
     let model = model_with(done, 500, Motion::None);
     assert_eq!(cadence_for(&model), RenderCadence::EventDriven);
@@ -397,7 +402,8 @@ fn mixed_cafe_uses_the_fastest_visible_agent_cadence() {
     let mut done = working.clone();
     done.key = "agent-done".into();
     done.presence = Presence::Done;
-    done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+    done.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0));
 
     let mut domain = DomainState::default();
     domain.agents.insert(working.key.clone(), working);
@@ -443,7 +449,8 @@ fn next_visible_frame_delay_is_phase_aware_and_exact() {
 
     let mut done = agent();
     done.presence = Presence::Done;
-    done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+    done.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0));
     assert_eq!(
         questmancer::ui::theatre::next_visible_frame_in(&model_with(done, 999, Motion::Full)),
         Some(Duration::from_millis(1))

@@ -7,8 +7,8 @@ use proptest::prelude::*;
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View},
     domain::{
-        Agent, AgentKey, AgentPersona, Attention, AttentionReason, DomainState, Guestbook,
-        GuestbookEvent, PaneId, PersonaKey, Presence, Site, TabId, Timestamp, WorkspaceId,
+        Agent, AgentKey, AgentPersona, Campaign, Chronicle, ChronicleEvent, DomainState,
+        GuildAttention, GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp, WorkspaceId,
     },
     herdr::protocol::{AgentInfo, AgentSessionInfo, AgentStatus, SessionSnapshot, WorkspaceInfo},
     persistence::{AttentionEpisodeKey, PersistedStateV1, STATE_SCHEMA_VERSION},
@@ -43,11 +43,11 @@ pub(crate) fn persona_key() -> impl Strategy<Value = PersonaKey> {
     id_text().prop_map(PersonaKey::new)
 }
 
-pub(crate) fn attention_reason() -> impl Strategy<Value = AttentionReason> {
+pub(crate) fn guild_summons() -> impl Strategy<Value = GuildSummons> {
     prop_oneof![
-        Just(AttentionReason::NeedsInput),
-        Just(AttentionReason::WorkCompleted),
-        Just(AttentionReason::PaneExited),
+        Just(GuildSummons::CounselRequested),
+        Just(GuildSummons::SpoilsReturned),
+        Just(GuildSummons::AdventurerDeparted),
     ]
 }
 
@@ -74,16 +74,16 @@ fn presence() -> impl Strategy<Value = Presence> {
     ]
 }
 
-pub(crate) fn attention() -> impl Strategy<Value = Attention> {
+pub(crate) fn attention() -> impl Strategy<Value = GuildAttention> {
     prop_oneof![
-        Just(Attention::Clear),
-        (attention_reason(), timestamp())
-            .prop_map(|(reason, since)| Attention::Unseen { reason, since }),
-        (attention_reason(), timestamp())
-            .prop_map(|(reason, since)| Attention::Seen { reason, since }),
-        (attention_reason(), timestamp(), timestamp()).prop_map(|(reason, since, until)| {
-            Attention::Snoozed {
-                reason,
+        Just(GuildAttention::Clear),
+        (guild_summons(), timestamp())
+            .prop_map(|(summons, since)| GuildAttention::Unread { summons, since }),
+        (guild_summons(), timestamp())
+            .prop_map(|(summons, since)| GuildAttention::Read { summons, since }),
+        (guild_summons(), timestamp(), timestamp()).prop_map(|(summons, since, until)| {
+            GuildAttention::Deferred {
+                summons,
                 since,
                 until,
             }
@@ -205,21 +205,21 @@ pub(crate) fn domain_with_one_agent() -> impl Strategy<Value = DomainState> {
         let workspace_id = agent.workspace_id.clone();
         let mut agents = BTreeMap::new();
         agents.insert(key.clone(), agent);
-        let mut sites = BTreeMap::new();
-        sites.insert(
+        let mut campaigns = BTreeMap::new();
+        campaigns.insert(
             workspace_id.clone(),
-            Site {
+            Campaign {
                 workspace_id,
                 label: "site".to_owned(),
                 cwd: PathBuf::from("/tmp/site"),
-                agents: vec![key.clone()],
+                party: vec![key.clone()],
             },
         );
         DomainState {
-            sites,
+            campaigns,
             agents,
             selected_agent: Some(key),
-            guestbook: Guestbook::default(),
+            chronicle: Chronicle::default(),
         }
     })
 }
@@ -308,15 +308,15 @@ pub(crate) fn topology_events() -> impl Strategy<Value = Vec<AppEvent>> {
     })
 }
 
-pub(crate) fn guestbook_event() -> impl Strategy<Value = GuestbookEvent> {
+pub(crate) fn chronicle_event() -> impl Strategy<Value = ChronicleEvent> {
     prop_oneof![
-        Just(GuestbookEvent::AgentDetected),
-        Just(GuestbookEvent::WorkStarted),
-        Just(GuestbookEvent::WebmasterNeeded),
-        Just(GuestbookEvent::WorkCompleted),
-        Just(GuestbookEvent::AgentBecameIdle),
-        Just(GuestbookEvent::PaneExited),
-        Just(GuestbookEvent::PaneClosed),
+        Just(ChronicleEvent::AdventurerJoined),
+        Just(ChronicleEvent::DelveBegan),
+        Just(ChronicleEvent::CounselRequested),
+        Just(ChronicleEvent::SpoilsReturned),
+        Just(ChronicleEvent::AdventurerRested),
+        Just(ChronicleEvent::AdventurerDeparted),
+        Just(ChronicleEvent::CampaignClosed),
     ]
 }
 
@@ -338,24 +338,24 @@ pub(crate) fn domain_state() -> impl Strategy<Value = DomainState> {
             (Just(agents), selection)
         })
         .prop_map(|(agents, selected_agent)| {
-            let mut sites = BTreeMap::<WorkspaceId, Site>::new();
+            let mut campaigns = BTreeMap::<WorkspaceId, Campaign>::new();
             for (key, agent) in &agents {
-                sites
+                campaigns
                     .entry(agent.workspace_id.clone())
-                    .or_insert_with(|| Site {
+                    .or_insert_with(|| Campaign {
                         workspace_id: agent.workspace_id.clone(),
                         label: format!("site-{}", agent.workspace_id),
                         cwd: PathBuf::from(format!("/tmp/{}", agent.workspace_id)),
-                        agents: Vec::new(),
+                        party: Vec::new(),
                     })
-                    .agents
+                    .party
                     .push(key.clone());
             }
             DomainState {
-                sites,
+                campaigns,
                 agents,
                 selected_agent,
-                guestbook: Guestbook::default(),
+                chronicle: Chronicle::default(),
             }
         })
 }
@@ -400,7 +400,7 @@ pub(crate) fn persisted_state() -> impl Strategy<Value = PersistedStateV1> {
                 Just(Vec::new()).boxed()
             } else {
                 prop::collection::vec(
-                    (prop::sample::select(keys), any::<u64>(), attention_reason()),
+                    (prop::sample::select(keys), any::<u64>(), guild_summons()),
                     0..=6,
                 )
                 .boxed()
@@ -416,10 +416,10 @@ pub(crate) fn persisted_state() -> impl Strategy<Value = PersistedStateV1> {
                 personas,
                 seen_attention: episodes
                     .into_iter()
-                    .map(|(persona, pane_revision, reason)| AttentionEpisodeKey {
+                    .map(|(persona, pane_revision, summons)| AttentionEpisodeKey {
                         persona,
                         pane_revision,
-                        reason,
+                        summons,
                     })
                     .collect(),
             },

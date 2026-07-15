@@ -1,5 +1,5 @@
 use crate::{
-    domain::{AgentKey, GuestbookEntry, PaneId, Timestamp, WorkspaceId},
+    domain::{AgentKey, ChronicleEntry, PaneId, Timestamp, WorkspaceId},
     herdr::protocol::{AgentStatus, SessionSnapshot},
 };
 
@@ -23,19 +23,19 @@ pub enum AppEvent {
         occurred_at: Timestamp,
     },
     WorkspaceClosed(WorkspaceId),
-    MarkSeen(AgentKey),
+    MarkRead(AgentKey),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Command {
     RequestSnapshot,
-    AppendGuestbook(GuestbookEntry),
+    AppendChronicle(ChronicleEntry),
     PersistState,
 }
 
 impl Command {
     #[must_use]
-    pub const fn is_guestbook_append(&self) -> bool {
-        matches!(self, Self::AppendGuestbook(_))
+    pub const fn is_chronicle_append(&self) -> bool {
+        matches!(self, Self::AppendChronicle(_))
     }
 }

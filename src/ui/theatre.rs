@@ -1,6 +1,6 @@
 use crate::{
     app::{DisplayPreferences, Model, Motion, View},
-    domain::{Agent, Attention, AttentionReason, Presence, Timestamp},
+    domain::{Agent, GuildAttention, GuildSummons, Presence, Timestamp},
 };
 
 use std::time::Duration;
@@ -189,15 +189,15 @@ fn done_transition_is_active(agent: &Agent, now: Timestamp) -> bool {
         .is_some_and(|since| now >= since && since.elapsed_until(now) < Duration::from_secs(1))
 }
 
-fn unseen_completion_since(attention: &Attention) -> Option<Timestamp> {
+fn unseen_completion_since(attention: &GuildAttention) -> Option<Timestamp> {
     match attention {
-        Attention::Unseen {
-            reason: AttentionReason::WorkCompleted,
+        GuildAttention::Unread {
+            summons: GuildSummons::SpoilsReturned,
             since,
         } => Some(*since),
-        Attention::Clear
-        | Attention::Unseen { .. }
-        | Attention::Seen { .. }
-        | Attention::Snoozed { .. } => None,
+        GuildAttention::Clear
+        | GuildAttention::Unread { .. }
+        | GuildAttention::Read { .. }
+        | GuildAttention::Deferred { .. } => None,
     }
 }

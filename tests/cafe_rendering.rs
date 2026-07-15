@@ -1,7 +1,7 @@
 use questmancer::{
     app::{CharacterSet, ColorMode, ConnectionState, DisplayPreferences, Model, Motion, View},
     domain::{
-        AgentKey, Attention, AttentionReason, DomainState, PaneId, Presence, Site, Timestamp,
+        AgentKey, Campaign, DomainState, GuildAttention, GuildSummons, PaneId, Presence, Timestamp,
         WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
@@ -24,7 +24,7 @@ fn three_agent_model() -> Model {
     alpha.pane_id = PaneId::new("w1:p1");
     "Alpha".clone_into(&mut alpha.name);
     alpha.presence = Presence::Working;
-    alpha.attention = Attention::Clear;
+    alpha.attention = GuildAttention::Clear;
     alpha.focused = true;
 
     let mut beta = source.clone();
@@ -32,7 +32,10 @@ fn three_agent_model() -> Model {
     beta.pane_id = PaneId::new("w1:p2");
     "Beta".clone_into(&mut beta.name);
     beta.presence = Presence::Blocked;
-    beta.attention = Attention::unseen(AttentionReason::NeedsInput, Timestamp::from_millis(2_000));
+    beta.attention = GuildAttention::unread(
+        GuildSummons::CounselRequested,
+        Timestamp::from_millis(2_000),
+    );
     beta.focused = false;
 
     let mut gamma = source;
@@ -40,7 +43,7 @@ fn three_agent_model() -> Model {
     gamma.pane_id = PaneId::new("w1:p3");
     "Gamma".clone_into(&mut gamma.name);
     gamma.presence = Presence::Exited;
-    gamma.attention = Attention::Clear;
+    gamma.attention = GuildAttention::Clear;
     gamma.focused = false;
 
     let mut domain = DomainState::default();
@@ -168,22 +171,22 @@ fn multiple_workspaces_render_as_connected_bays_with_deterministic_variant_cues(
         .get_mut(&gamma_key)
         .unwrap()
         .workspace_id = WorkspaceId::new("w2");
-    model.domain_mut().sites.insert(
+    model.domain_mut().campaigns.insert(
         WorkspaceId::new("w1"),
-        Site {
+        Campaign {
             workspace_id: WorkspaceId::new("w1"),
             label: "w1".into(),
             cwd: "/tmp/w1".into(),
-            agents: vec![AgentKey::new("agent-a"), AgentKey::new("agent-b")],
+            party: vec![AgentKey::new("agent-a"), AgentKey::new("agent-b")],
         },
     );
-    model.domain_mut().sites.insert(
+    model.domain_mut().campaigns.insert(
         WorkspaceId::new("w2"),
-        Site {
+        Campaign {
             workspace_id: WorkspaceId::new("w2"),
             label: "w2".into(),
             cwd: "/tmp/w2".into(),
-            agents: vec![gamma_key],
+            party: vec![gamma_key],
         },
     );
     let screen = render(&model, 160, 40);
@@ -215,15 +218,15 @@ fn authored_variants_change_rendered_room_geometry() {
         for agent in model.domain_mut().agents.values_mut() {
             agent.workspace_id = workspace.clone();
         }
-        model.domain_mut().sites.clear();
+        model.domain_mut().campaigns.clear();
         let keys = model.domain().agents.keys().cloned().collect();
-        model.domain_mut().sites.insert(
+        model.domain_mut().campaigns.insert(
             workspace.clone(),
-            Site {
+            Campaign {
                 workspace_id: workspace,
                 label: format!("{variant:?}"),
                 cwd: "/tmp".into(),
-                agents: keys,
+                party: keys,
             },
         );
         screens.push(render(&model, 120, 30));
@@ -235,26 +238,26 @@ fn authored_variants_change_rendered_room_geometry() {
 #[test]
 fn eighty_by_twenty_four_keeps_a_compact_bay_strip_and_actions() {
     let mut model = three_agent_model();
-    model.domain_mut().sites.insert(
+    model.domain_mut().campaigns.insert(
         WorkspaceId::new("w1"),
-        Site {
+        Campaign {
             workspace_id: WorkspaceId::new("w1"),
             label: "w1".into(),
             cwd: "/tmp/w1".into(),
-            agents: vec![
+            party: vec![
                 AgentKey::new("agent-a"),
                 AgentKey::new("agent-b"),
                 AgentKey::new("agent-c"),
             ],
         },
     );
-    model.domain_mut().sites.insert(
+    model.domain_mut().campaigns.insert(
         WorkspaceId::new("w2"),
-        Site {
+        Campaign {
             workspace_id: WorkspaceId::new("w2"),
             label: "w2".into(),
             cwd: "/tmp/w2".into(),
-            agents: vec![],
+            party: vec![],
         },
     );
     let screen = render(&model, 80, 24);
@@ -273,26 +276,26 @@ fn ascii_multi_workspace_transitions_remain_ascii_safe() {
         character_set: CharacterSet::Ascii,
         ..DisplayPreferences::default()
     });
-    model.domain_mut().sites.insert(
+    model.domain_mut().campaigns.insert(
         WorkspaceId::new("w1"),
-        Site {
+        Campaign {
             workspace_id: WorkspaceId::new("w1"),
             label: "w1".into(),
             cwd: "/tmp/w1".into(),
-            agents: vec![
+            party: vec![
                 AgentKey::new("agent-a"),
                 AgentKey::new("agent-b"),
                 AgentKey::new("agent-c"),
             ],
         },
     );
-    model.domain_mut().sites.insert(
+    model.domain_mut().campaigns.insert(
         WorkspaceId::new("w2"),
-        Site {
+        Campaign {
             workspace_id: WorkspaceId::new("w2"),
             label: "w2".into(),
             cwd: "/tmp/w2".into(),
-            agents: vec![],
+            party: vec![],
         },
     );
     let screen = render(&model, 120, 30);
@@ -311,22 +314,22 @@ fn compact_selected_wrapped_workspace_remaps_seats_into_active_scene() {
         .unwrap();
     gamma.workspace_id = WorkspaceId::new("w2");
     model.domain_mut().selected_agent = Some(AgentKey::new("agent-c"));
-    model.domain_mut().sites.insert(
+    model.domain_mut().campaigns.insert(
         WorkspaceId::new("w1"),
-        Site {
+        Campaign {
             workspace_id: WorkspaceId::new("w1"),
             label: "w1".into(),
             cwd: "/tmp/w1".into(),
-            agents: vec![AgentKey::new("agent-a"), AgentKey::new("agent-b")],
+            party: vec![AgentKey::new("agent-a"), AgentKey::new("agent-b")],
         },
     );
-    model.domain_mut().sites.insert(
+    model.domain_mut().campaigns.insert(
         WorkspaceId::new("w2"),
-        Site {
+        Campaign {
             workspace_id: WorkspaceId::new("w2"),
             label: "w2".into(),
             cwd: "/tmp/w2".into(),
-            agents: vec![AgentKey::new("agent-c")],
+            party: vec![AgentKey::new("agent-c")],
         },
     );
     let screen = render(&model, 80, 24);
@@ -353,14 +356,14 @@ fn compact_selection_targets_the_selected_overflow_bay() {
         keys.push(agent.key.clone());
         model.domain_mut().agents.insert(agent.key.clone(), agent);
     }
-    model.domain_mut().sites.clear();
-    model.domain_mut().sites.insert(
+    model.domain_mut().campaigns.clear();
+    model.domain_mut().campaigns.insert(
         WorkspaceId::new("overflow"),
-        Site {
+        Campaign {
             workspace_id: WorkspaceId::new("overflow"),
             label: "overflow".into(),
             cwd: "/tmp".into(),
-            agents: keys.clone(),
+            party: keys.clone(),
         },
     );
     model.domain_mut().selected_agent = Some(keys[4].clone());
@@ -647,10 +650,8 @@ fn done_confetti_has_exactly_eight_frames_then_leaves_a_stable_update_badge() {
     let selected = model.selected_agent_key().unwrap().clone();
     let agent = model.domain_mut().agents.get_mut(&selected).unwrap();
     agent.presence = Presence::Done;
-    agent.attention = Attention::unseen(
-        AttentionReason::WorkCompleted,
-        Timestamp::from_millis(2_000),
-    );
+    agent.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(2_000));
 
     for frame in 1..=8 {
         model.set_now(Timestamp::from_millis(2_000 + i64::from(frame - 1) * 125));

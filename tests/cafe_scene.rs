@@ -5,17 +5,17 @@ mod support;
 
 use proptest::prelude::*;
 use questmancer::{
-    domain::{Agent, AgentKey, Site, WorkspaceId},
+    domain::{Agent, AgentKey, Campaign, WorkspaceId},
     ui::cafe_scene::{BayVariant, layout_bays, variant_for_workspace},
 };
 use ratatui::layout::Rect;
 
-fn site(id: &str, agent_ids: &[&str]) -> Site {
-    Site {
+fn site(id: &str, agent_ids: &[&str]) -> Campaign {
+    Campaign {
         workspace_id: WorkspaceId::new(id),
         label: id.to_owned(),
         cwd: "/tmp".into(),
-        agents: agent_ids.iter().map(|id| AgentKey::new(*id)).collect(),
+        party: agent_ids.iter().map(|id| AgentKey::new(*id)).collect(),
     }
 }
 
@@ -82,11 +82,11 @@ fn overflowing_workspace_is_split_into_connected_bays_without_losing_agents() {
     let workspace = WorkspaceId::new("overflow");
     let sites = BTreeMap::from([(
         workspace.clone(),
-        Site {
+        Campaign {
             workspace_id: workspace.clone(),
             label: "overflow".into(),
             cwd: "/tmp".into(),
-            agents: keys.clone(),
+            party: keys.clone(),
         },
     )]);
     let template = support::fixture_domain()
@@ -160,11 +160,11 @@ proptest! {
             site_agents.push(agent.key.clone());
             agents.insert(agent.key.clone(), agent);
         }
-        let sites = BTreeMap::from([(workspace_id.clone(), Site {
+        let sites = BTreeMap::from([(workspace_id.clone(), Campaign {
             workspace_id: workspace_id.clone(),
             label: workspace_id.to_string(),
             cwd: "/tmp".into(),
-            agents: site_agents,
+            party: site_agents,
         })]);
         let area = Rect::new(0, 0, width, height);
         let first = layout_bays(&sites, &agents, area, None);

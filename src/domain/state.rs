@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::herdr::protocol::{SessionSnapshot, WorkspaceInfo};
 
-use super::{Agent, AgentKey, Guestbook, PaneId, Site, Timestamp, WorkspaceId};
+use super::{Agent, AgentKey, Campaign, Chronicle, PaneId, Timestamp, WorkspaceId};
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DomainState {
-    pub sites: BTreeMap<WorkspaceId, Site>,
+    pub campaigns: BTreeMap<WorkspaceId, Campaign>,
     pub agents: BTreeMap<AgentKey, Agent>,
     pub selected_agent: Option<AgentKey>,
-    pub guestbook: Guestbook,
+    pub chronicle: Chronicle,
 }
 
 impl DomainState {
@@ -52,13 +52,13 @@ impl DomainState {
                 .map(|agent| agent.key.clone())
                 .collect::<Vec<_>>();
             agent_keys.sort();
-            state.sites.insert(
+            state.campaigns.insert(
                 workspace_id.clone(),
-                Site {
+                Campaign {
                     workspace_id,
                     label: workspace.label.clone(),
-                    cwd: site_cwd(workspace),
-                    agents: agent_keys,
+                    cwd: campaign_cwd(workspace),
+                    party: agent_keys,
                 },
             );
         }
@@ -87,7 +87,7 @@ fn workspace_root(workspace: &WorkspaceInfo) -> Option<&str> {
         .map(|worktree| worktree.repo_root.as_str())
 }
 
-fn site_cwd(workspace: &WorkspaceInfo) -> PathBuf {
+fn campaign_cwd(workspace: &WorkspaceInfo) -> PathBuf {
     workspace
         .worktree
         .as_ref()

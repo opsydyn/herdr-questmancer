@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::{
     app::{DisplayPreferences, Model, View},
-    domain::{AgentPersona, Attention, AttentionReason, DomainState, PersonaKey},
+    domain::{AgentPersona, DomainState, GuildAttention, GuildSummons, PersonaKey},
 };
 
 pub const STATE_SCHEMA_VERSION: u32 = 1;
@@ -14,7 +14,7 @@ pub const STATE_SCHEMA_VERSION: u32 = 1;
 pub struct AttentionEpisodeKey {
     pub persona: PersonaKey,
     pub pane_revision: u64,
-    pub reason: AttentionReason,
+    pub summons: GuildSummons,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -146,18 +146,18 @@ impl DurableIntent {
         }
 
         for agent in domain.agents.values_mut() {
-            let Some(reason) = agent.attention.reason() else {
+            let Some(summons) = agent.attention.summons() else {
                 continue;
             };
             let episode = AttentionEpisodeKey {
                 persona: agent.persona.key.clone(),
                 pane_revision: agent.pane_revision,
-                reason,
+                summons,
             };
-            if matches!(agent.attention, Attention::Unseen { .. })
+            if matches!(agent.attention, GuildAttention::Unread { .. })
                 && self.seen_attention.contains(&episode)
             {
-                agent.attention = agent.attention.clone().mark_seen();
+                agent.attention = agent.attention.clone().mark_read();
             }
         }
 
@@ -172,7 +172,7 @@ impl DurableIntent {
             domain
                 .agents
                 .values()
-                .filter(|agent| matches!(agent.attention, Attention::Seen { .. }))
+                .filter(|agent| matches!(agent.attention, GuildAttention::Read { .. }))
                 .filter_map(attention_episode),
         );
         self.selected_persona = domain
@@ -191,6 +191,6 @@ fn attention_episode(agent: &crate::domain::Agent) -> Option<AttentionEpisodeKey
     Some(AttentionEpisodeKey {
         persona: agent.persona.key.clone(),
         pane_revision: agent.pane_revision,
-        reason: agent.attention.reason()?,
+        summons: agent.attention.summons()?,
     })
 }

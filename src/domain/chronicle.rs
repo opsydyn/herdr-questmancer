@@ -5,31 +5,31 @@ use serde::{Deserialize, Serialize};
 use super::{AgentKey, EventId, PaneId, Timestamp, WorkspaceId};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct GuestbookEntry {
+pub struct ChronicleEntry {
     pub id: EventId,
     pub occurred_at: Timestamp,
-    pub agent: Option<AgentKey>,
-    pub workspace: Option<WorkspaceId>,
+    pub adventurer: Option<AgentKey>,
+    pub campaign: Option<WorkspaceId>,
     pub pane: Option<PaneId>,
     pub pane_revision: u64,
-    pub kind: GuestbookEvent,
+    pub event: ChronicleEvent,
     pub summary: String,
 }
 
-impl GuestbookEntry {
+impl ChronicleEntry {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         occurred_at: Timestamp,
-        agent: Option<AgentKey>,
-        workspace: Option<WorkspaceId>,
+        adventurer: Option<AgentKey>,
+        campaign: Option<WorkspaceId>,
         pane: Option<PaneId>,
         pane_revision: u64,
-        kind: GuestbookEvent,
+        event: ChronicleEvent,
         summary: impl Into<String>,
     ) -> Self {
         let identity = format!(
             "{}\0{}\0{}\0{}",
-            kind.as_str(),
+            event.as_str(),
             pane.as_ref().map_or("-", PaneId::as_str),
             pane_revision,
             occurred_at.as_millis()
@@ -38,11 +38,11 @@ impl GuestbookEntry {
         Self {
             id: EventId::new(format!("event-{}", &hash[..24])),
             occurred_at,
-            agent,
-            workspace,
+            adventurer,
+            campaign,
             pane,
             pane_revision,
-            kind,
+            event,
             summary: summary.into(),
         }
     }
@@ -50,38 +50,38 @@ impl GuestbookEntry {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum GuestbookEvent {
-    AgentDetected,
-    WorkStarted,
-    WebmasterNeeded,
-    WorkCompleted,
-    AgentBecameIdle,
-    PaneExited,
-    PaneClosed,
+pub enum ChronicleEvent {
+    AdventurerJoined,
+    DelveBegan,
+    CounselRequested,
+    SpoilsReturned,
+    AdventurerRested,
+    AdventurerDeparted,
+    CampaignClosed,
 }
 
-impl GuestbookEvent {
+impl ChronicleEvent {
     const fn as_str(self) -> &'static str {
         match self {
-            Self::AgentDetected => "agent_detected",
-            Self::WorkStarted => "work_started",
-            Self::WebmasterNeeded => "webmaster_needed",
-            Self::WorkCompleted => "work_completed",
-            Self::AgentBecameIdle => "agent_became_idle",
-            Self::PaneExited => "pane_exited",
-            Self::PaneClosed => "pane_closed",
+            Self::AdventurerJoined => "adventurer_joined",
+            Self::DelveBegan => "delve_began",
+            Self::CounselRequested => "counsel_requested",
+            Self::SpoilsReturned => "spoils_returned",
+            Self::AdventurerRested => "adventurer_rested",
+            Self::AdventurerDeparted => "adventurer_departed",
+            Self::CampaignClosed => "campaign_closed",
         }
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct Guestbook {
+pub struct Chronicle {
     maximum_entries: usize,
-    entries: VecDeque<GuestbookEntry>,
+    entries: VecDeque<ChronicleEntry>,
     seen: BTreeSet<EventId>,
 }
 
-impl Guestbook {
+impl Chronicle {
     #[must_use]
     pub fn new(maximum_entries: usize) -> Self {
         Self {
@@ -91,7 +91,7 @@ impl Guestbook {
         }
     }
 
-    pub fn append(&mut self, entry: GuestbookEntry) -> bool {
+    pub fn append(&mut self, entry: ChronicleEntry) -> bool {
         if self.seen.contains(&entry.id) {
             return false;
         }
@@ -109,12 +109,12 @@ impl Guestbook {
     }
 
     #[must_use]
-    pub fn entries(&self) -> &VecDeque<GuestbookEntry> {
+    pub fn entries(&self) -> &VecDeque<ChronicleEntry> {
         &self.entries
     }
 }
 
-impl Default for Guestbook {
+impl Default for Chronicle {
     fn default() -> Self {
         Self::new(500)
     }

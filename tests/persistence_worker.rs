@@ -3,9 +3,9 @@ use std::{task::Poll, time::Duration};
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use questmancer::{
     app::{Model, Motion, View},
-    command::DeskCommand,
+    command::AgentCommand,
     config::PersistencePaths,
-    domain::{AgentPersona, EventId, GuestbookEntry, GuestbookEvent, PersonaKey, Timestamp},
+    domain::{AgentPersona, ChronicleEntry, ChronicleEvent, EventId, PersonaKey, Timestamp},
     herdr::environment::HerdrEnvironment,
     herdr::{
         protocol::{SessionSnapshot, SessionSnapshotResult, SuccessResponse},
@@ -13,7 +13,7 @@ use questmancer::{
     },
     interaction::reduce_action,
     persistence::{
-        PersistenceWorker, WorkerPaths, load_guestbook, load_startup, load_state, publish_state,
+        PersistenceWorker, WorkerPaths, load_chronicle, load_startup, load_state, publish_state,
     },
     runtime_loop::{
         RuntimeExit, apply_connection_update, dispatch_action_effects, dispatch_persistence_effects,
@@ -62,15 +62,15 @@ async fn assert_path_remains_absent(path: &std::path::Path) {
     .unwrap();
 }
 
-fn guestbook_entry(id: &str) -> GuestbookEntry {
-    GuestbookEntry {
+fn chronicle_entry(id: &str) -> ChronicleEntry {
+    ChronicleEntry {
         id: EventId::new(id),
         occurred_at: Timestamp::from_millis(1_000),
-        agent: None,
-        workspace: None,
+        adventurer: None,
+        campaign: None,
         pane: None,
         pane_revision: 7,
-        kind: GuestbookEvent::WorkCompleted,
+        event: ChronicleEvent::SpoilsReturned,
         summary: format!("entry {id}"),
     }
 }
@@ -79,28 +79,28 @@ fn guestbook_entry(id: &str) -> GuestbookEntry {
 async fn runtime_dispatch_durably_appends_before_staging_the_following_state() {
     let directory = tempfile::tempdir().unwrap();
     let state_path = directory.path().join("state.json");
-    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let chronicle_path = directory.path().join("chronicle.jsonl");
     let (mut client, _diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
         Some(state_path.clone()),
-        Some(guestbook_path.clone()),
+        Some(chronicle_path.clone()),
     ));
-    let entry = guestbook_entry("runtime-order");
+    let entry = chronicle_entry("runtime-order");
     let model = Model::new(View::Delve);
 
     let errors = dispatch_persistence_effects(
         &mut client,
         &model,
         vec![
-            Command::AppendGuestbook(entry.clone()),
+            Command::AppendChronicle(entry.clone()),
             Command::PersistState,
         ],
     )
     .await;
 
     assert!(errors.is_empty());
-    let replay = load_guestbook(&guestbook_path, 10).await;
+    let replay = load_chronicle(&chronicle_path, 10).await;
     assert_eq!(
-        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        replay.chronicle.entries().iter().collect::<Vec<_>>(),
         vec![&entry]
     );
     client.shutdown().await.unwrap();
@@ -115,12 +115,12 @@ async fn runtime_dispatch_durably_appends_before_staging_the_following_state() {
 async fn bounded_runtime_shutdown_flushes_latest_state_after_prior_append() {
     let directory = tempfile::tempdir().unwrap();
     let state_path = directory.path().join("state.json");
-    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let chronicle_path = directory.path().join("chronicle.jsonl");
     let (mut client, _diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
         Some(state_path.clone()),
-        Some(guestbook_path.clone()),
+        Some(chronicle_path.clone()),
     ));
-    let entry = guestbook_entry("before-runtime-shutdown");
+    let entry = chronicle_entry("before-runtime-shutdown");
     let mut model = Model::new(View::Guild);
 
     assert!(
@@ -128,7 +128,7 @@ async fn bounded_runtime_shutdown_flushes_latest_state_after_prior_append() {
             &mut client,
             &model,
             vec![
-                Command::AppendGuestbook(entry.clone()),
+                Command::AppendChronicle(entry.clone()),
                 Command::PersistState,
             ],
         )
@@ -148,9 +148,9 @@ async fn bounded_runtime_shutdown_flushes_latest_state_after_prior_append() {
         load_state(&state_path).await.unwrap(),
         Some(fixed_persisted_state(View::Delve))
     );
-    let replay = load_guestbook(&guestbook_path, 10).await;
+    let replay = load_chronicle(&chronicle_path, 10).await;
     assert_eq!(
-        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        replay.chronicle.entries().iter().collect::<Vec<_>>(),
         vec![&entry]
     );
 }
@@ -178,10 +178,10 @@ async fn bounded_runtime_shutdown_returns_filesystem_failure_after_worker_exit()
 }
 
 #[tokio::test]
-async fn malformed_state_survives_initial_snapshot_flush_while_guestbook_stays_writable() {
+async fn malformed_state_survives_initial_snapshot_flush_while_chronicle_stays_writable() {
     let directory = tempfile::tempdir().unwrap();
     let state_path = directory.path().join("state.json");
-    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let chronicle_path = directory.path().join("chronicle.jsonl");
     let malformed = b"{not valid state json}";
     tokio::fs::write(&state_path, malformed).await.unwrap();
     let startup = load_startup(
@@ -205,7 +205,7 @@ async fn malformed_state_survives_initial_snapshot_flush_while_guestbook_stays_w
             .persistence
             .contains(&Command::PersistState)
     );
-    let entry = guestbook_entry("protected-state");
+    let entry = chronicle_entry("protected-state");
     let (mut client, _diagnostics, worker) = PersistenceWorker::start(startup.paths);
 
     assert!(
@@ -213,14 +213,14 @@ async fn malformed_state_survives_initial_snapshot_flush_while_guestbook_stays_w
             .await
             .is_empty()
     );
-    client.append_guestbook(entry.clone()).await.unwrap();
+    client.append_chronicle(entry.clone()).await.unwrap();
     shutdown_persistence(&client, worker).await.unwrap();
 
     assert_eq!(tokio::fs::read(&state_path).await.unwrap(), malformed);
-    let replay = load_guestbook(&guestbook_path, 10).await;
+    let replay = load_chronicle(&chronicle_path, 10).await;
     assert!(replay.diagnostics.is_empty());
     assert_eq!(
-        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        replay.chronicle.entries().iter().collect::<Vec<_>>(),
         vec![&entry]
     );
 }
@@ -277,7 +277,7 @@ async fn quit_lifecycle_stops_real_runtime_then_flushes_writer() {
     lifecycle
         .connection_mut()
         .unwrap()
-        .schedule([DeskCommand::RefreshSnapshot]);
+        .schedule([AgentCommand::RefreshSnapshot]);
     let mut model = Model::new(View::Guild);
 
     let reduction = reduce_action(&mut model, Action::Switch(View::Delve));
@@ -302,7 +302,7 @@ async fn coalesces_state_to_the_latest_value_after_250_milliseconds() {
     let state_path = directory.path().join("state.json");
     let paths = WorkerPaths::new(
         Some(state_path.clone()),
-        Some(directory.path().join("guestbook.jsonl")),
+        Some(directory.path().join("chronicle.jsonl")),
     );
     let (mut client, _diagnostics, worker) = PersistenceWorker::start(paths);
     tokio::task::yield_now().await;
@@ -434,7 +434,7 @@ async fn disabled_paths_are_successful_no_ops() {
             .unwrap()
     );
     client
-        .append_guestbook(guestbook_entry("disabled"))
+        .append_chronicle(chronicle_entry("disabled"))
         .await
         .unwrap();
     client.flush().await.unwrap();
@@ -445,19 +445,19 @@ async fn disabled_paths_are_successful_no_ops() {
 }
 
 #[tokio::test]
-async fn guestbook_append_is_acknowledged_after_the_record_is_durable() {
+async fn chronicle_append_is_acknowledged_after_the_record_is_durable() {
     let directory = tempfile::tempdir().unwrap();
-    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let chronicle_path = directory.path().join("chronicle.jsonl");
     let (client, _diagnostics, worker) =
-        PersistenceWorker::start(WorkerPaths::new(None, Some(guestbook_path.clone())));
-    let entry = guestbook_entry("acknowledged");
+        PersistenceWorker::start(WorkerPaths::new(None, Some(chronicle_path.clone())));
+    let entry = chronicle_entry("acknowledged");
 
-    client.append_guestbook(entry.clone()).await.unwrap();
+    client.append_chronicle(entry.clone()).await.unwrap();
 
-    let replay = load_guestbook(&guestbook_path, 10).await;
+    let replay = load_chronicle(&chronicle_path, 10).await;
     assert!(replay.diagnostics.is_empty());
     assert_eq!(
-        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        replay.chronicle.entries().iter().collect::<Vec<_>>(),
         vec![&entry]
     );
     client.shutdown().await.unwrap();
@@ -465,26 +465,26 @@ async fn guestbook_append_is_acknowledged_after_the_record_is_durable() {
 }
 
 #[tokio::test]
-async fn acknowledged_append_survives_restart_after_a_truncated_guestbook_tail() {
+async fn acknowledged_append_survives_restart_after_a_truncated_chronicle_tail() {
     let directory = tempfile::tempdir().unwrap();
-    let guestbook_path = directory.path().join("guestbook.jsonl");
-    let prior = guestbook_entry("prior-complete");
-    let acknowledged = guestbook_entry("acknowledged-after-truncation");
+    let chronicle_path = directory.path().join("chronicle.jsonl");
+    let prior = chronicle_entry("prior-complete");
+    let acknowledged = chronicle_entry("acknowledged-after-truncation");
     let mut damaged_bytes = serde_json::to_vec(&prior).unwrap();
     damaged_bytes.extend_from_slice(b"\n{\"id\":");
-    tokio::fs::write(&guestbook_path, damaged_bytes)
+    tokio::fs::write(&chronicle_path, damaged_bytes)
         .await
         .unwrap();
     let (client, _diagnostics, worker) =
-        PersistenceWorker::start(WorkerPaths::new(None, Some(guestbook_path.clone())));
+        PersistenceWorker::start(WorkerPaths::new(None, Some(chronicle_path.clone())));
 
-    client.append_guestbook(acknowledged.clone()).await.unwrap();
+    client.append_chronicle(acknowledged.clone()).await.unwrap();
     client.shutdown().await.unwrap();
     worker.await.unwrap();
 
-    let replay = load_guestbook(&guestbook_path, 10).await;
+    let replay = load_chronicle(&chronicle_path, 10).await;
     assert_eq!(
-        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        replay.chronicle.entries().iter().collect::<Vec<_>>(),
         vec![&prior, &acknowledged]
     );
     assert_eq!(replay.diagnostics.len(), 1);
@@ -495,10 +495,10 @@ async fn acknowledged_append_survives_restart_after_a_truncated_guestbook_tail()
 async fn an_expired_state_deadline_precedes_sustained_queued_appends() {
     let directory = tempfile::tempdir().unwrap();
     let state_path = directory.path().join("state.json");
-    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let chronicle_path = directory.path().join("chronicle.jsonl");
     let (mut client, _diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
         Some(state_path.clone()),
-        Some(guestbook_path),
+        Some(chronicle_path),
     ));
     tokio::task::yield_now().await;
     let state = fixed_persisted_state(View::Delve);
@@ -507,7 +507,7 @@ async fn an_expired_state_deadline_precedes_sustained_queued_appends() {
 
     let mut appends = FuturesUnordered::new();
     for index in 0..64 {
-        appends.push(client.append_guestbook(guestbook_entry(&format!("queued-{index}"))));
+        appends.push(client.append_chronicle(chronicle_entry(&format!("queued-{index}"))));
     }
     assert!(matches!(futures_util::poll!(appends.next()), Poll::Pending));
 
@@ -527,25 +527,25 @@ async fn an_expired_state_deadline_precedes_sustained_queued_appends() {
 async fn flush_acknowledges_after_an_earlier_append_and_dirty_state_are_durable() {
     let directory = tempfile::tempdir().unwrap();
     let state_path = directory.path().join("state.json");
-    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let chronicle_path = directory.path().join("chronicle.jsonl");
     let (mut client, _diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
         Some(state_path.clone()),
-        Some(guestbook_path.clone()),
+        Some(chronicle_path.clone()),
     ));
     let state = fixed_persisted_state(View::Guild);
-    let entry = guestbook_entry("before-flush");
+    let entry = chronicle_entry("before-flush");
     assert!(client.stage_state(state.clone()).unwrap());
 
-    let mut append = Box::pin(client.append_guestbook(entry.clone()));
+    let mut append = Box::pin(client.append_chronicle(entry.clone()));
     assert!(matches!(futures_util::poll!(&mut append), Poll::Pending));
 
     client.flush().await.unwrap();
 
     assert_eq!(load_state(&state_path).await.unwrap(), Some(state));
-    let replay = load_guestbook(&guestbook_path, 10).await;
+    let replay = load_chronicle(&chronicle_path, 10).await;
     assert!(replay.diagnostics.is_empty());
     assert_eq!(
-        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        replay.chronicle.entries().iter().collect::<Vec<_>>(),
         vec![&entry]
     );
 
@@ -625,11 +625,11 @@ async fn saturated_diagnostic_queue_retains_the_latest_failure() {
     let directory = tempfile::tempdir().unwrap();
     let blocked_parent = directory.path().join("not-a-directory");
     std::fs::write(&blocked_parent, b"blocking file").unwrap();
-    let guestbook_path = directory.path().join("guestbook-is-a-directory");
-    std::fs::create_dir(&guestbook_path).unwrap();
+    let chronicle_path = directory.path().join("chronicle-is-a-directory");
+    std::fs::create_dir(&chronicle_path).unwrap();
     let (mut client, mut diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
         Some(blocked_parent.join("state.json")),
-        Some(guestbook_path),
+        Some(chronicle_path),
     ));
     let capacity = diagnostics.max_capacity();
 
@@ -640,10 +640,10 @@ async fn saturated_diagnostic_queue_retains_the_latest_failure() {
         assert!(client.flush().await.is_err());
     }
     let latest_error = client
-        .append_guestbook(guestbook_entry("latest-diagnostic"))
+        .append_chronicle(chronicle_entry("latest-diagnostic"))
         .await
         .unwrap_err();
-    assert_eq!(latest_error.operation, "open guestbook");
+    assert_eq!(latest_error.operation, "open chronicle");
 
     let mut retained = Vec::new();
     while let Ok(diagnostic) = diagnostics.try_recv() {

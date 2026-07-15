@@ -7,7 +7,7 @@ use ratatui::{
 
 use crate::{
     app::{ConnectionState, Model},
-    domain::{Agent, AttentionReason, Presence, SiteStatus},
+    domain::{Agent, CampaignStatus, GuildSummons, Presence},
     ui::theme::{ACCENT, INK, MUTED},
 };
 
@@ -61,7 +61,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     }
     if let Some(agent) = model.selected_agent() {
         footer_actions.extend(["[enter] visit", "[r] reply", "[o] output"]);
-        if agent.attention.is_unseen() {
+        if agent.attention.is_unread() {
             footer_actions.push("[space] seen");
         }
         if model.reviewr_available() {
@@ -94,7 +94,7 @@ fn render_empty(frame: &mut Frame<'_>, area: Rect) {
 fn render_sites(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     let lines = model
         .domain()
-        .sites
+        .campaigns
         .values()
         .map(|site| {
             let status = site.status(&model.domain().agents);
@@ -102,8 +102,8 @@ fn render_sites(frame: &mut Frame<'_>, area: Rect, model: &Model) {
                 "{} {}  {} contributor{}",
                 site_marker(status),
                 site.label,
-                site.agents.len(),
-                if site.agents.len() == 1 { "" } else { "s" }
+                site.party.len(),
+                if site.party.len() == 1 { "" } else { "s" }
             ))
         })
         .collect::<Vec<_>>();
@@ -113,7 +113,7 @@ fn render_sites(frame: &mut Frame<'_>, area: Rect, model: &Model) {
 fn render_mail(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     let mut lines = Vec::new();
     for agent in model.domain().agents.values() {
-        if agent.attention.is_unseen() || agent.presence == Presence::Blocked {
+        if agent.attention.is_unread() || agent.presence == Presence::Blocked {
             let subject = attention_label(agent).unwrap_or_else(|| presence_label(agent.presence));
             lines.push(Line::styled(
                 format!("NEW {} - {subject}", agent.name),
@@ -129,7 +129,7 @@ fn render_mail(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     }
     lines.push(Line::from(""));
     lines.push(Line::styled("GUESTBOOK", ACCENT));
-    for entry in model.domain().guestbook.entries().iter().rev().take(4) {
+    for entry in model.domain().chronicle.entries().iter().rev().take(4) {
         lines.push(Line::from(entry.summary.clone()));
     }
     render_panel(frame, area, " WEBMASTER MAIL ", Text::from(lines));
@@ -151,7 +151,7 @@ fn render_agent(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     };
     let site = model
         .domain()
-        .sites
+        .campaigns
         .get(&agent.workspace_id)
         .map_or("unknown site", |site| site.label.as_str());
     let mut lines = vec![
@@ -187,11 +187,11 @@ fn attention_label(agent: &Agent) -> Option<&'static str> {
     if agent.presence == Presence::Exited {
         return Some("BROKEN LINK");
     }
-    if agent.attention.is_unseen() {
-        return match agent.attention.reason() {
-            Some(AttentionReason::NeedsInput) => Some("NEEDS WEBMASTER"),
-            Some(AttentionReason::WorkCompleted) => Some("UPDATE READY - AWAITING WEBMASTER"),
-            Some(AttentionReason::PaneExited) => Some("BROKEN LINK"),
+    if agent.attention.is_unread() {
+        return match agent.attention.summons() {
+            Some(GuildSummons::CounselRequested) => Some("NEEDS WEBMASTER"),
+            Some(GuildSummons::SpoilsReturned) => Some("UPDATE READY - AWAITING WEBMASTER"),
+            Some(GuildSummons::AdventurerDeparted) => Some("BROKEN LINK"),
             None => None,
         };
     }
@@ -233,13 +233,13 @@ const fn presence_label(presence: Presence) -> &'static str {
     }
 }
 
-const fn site_marker(status: SiteStatus) -> &'static str {
+const fn site_marker(status: CampaignStatus) -> &'static str {
     match status {
-        SiteStatus::NeedsWebmaster => "!",
-        SiteStatus::UpdateReady => "+",
-        SiteStatus::Updating => "~",
-        SiteStatus::Online => "*",
-        SiteStatus::Offline => "x",
+        CampaignStatus::CounselRequired => "!",
+        CampaignStatus::SpoilsAwaitingInspection => "+",
+        CampaignStatus::ExpeditionActive => "~",
+        CampaignStatus::PartyAtRest => "*",
+        CampaignStatus::Abandoned => "x",
     }
 }
 

@@ -83,9 +83,9 @@ pub enum ConnectionState {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Region {
     #[default]
-    Sites,
+    Campaigns,
     Inbox,
-    Guestbook,
+    Chronicle,
     Agent,
 }
 
@@ -134,7 +134,7 @@ impl Model {
             view,
             domain: DomainState::default(),
             connection: ConnectionState::Offline,
-            region: Region::Sites,
+            region: Region::Campaigns,
             modal: Modal::None,
             output_preview: None,
             status_message: None,
@@ -205,12 +205,12 @@ impl Model {
         }
     }
 
-    pub fn mark_selected_attention_seen(&mut self) {
+    pub fn mark_selected_attention_read(&mut self) {
         let Some(agent_key) = self.selected_agent_key().cloned() else {
             return;
         };
         let domain = self.take_domain();
-        let (domain, _commands) = update(domain, AppEvent::MarkSeen(agent_key));
+        let (domain, _commands) = update(domain, AppEvent::MarkRead(agent_key));
         self.replace_domain(domain);
     }
 
@@ -267,10 +267,10 @@ impl Model {
 
     pub fn cycle_region(&mut self) {
         self.region = match self.region {
-            Region::Sites => Region::Inbox,
-            Region::Inbox => Region::Guestbook,
-            Region::Guestbook => Region::Agent,
-            Region::Agent => Region::Sites,
+            Region::Campaigns => Region::Inbox,
+            Region::Inbox => Region::Chronicle,
+            Region::Chronicle => Region::Agent,
+            Region::Agent => Region::Campaigns,
         };
     }
 

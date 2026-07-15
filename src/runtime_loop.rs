@@ -1,6 +1,6 @@
 use crate::{
     app::{ConnectionState, Model, OutputPreview},
-    command::{CommandExecutor, CommandResult, DeskCommand},
+    command::{AgentCommand, CommandExecutor, CommandResult},
     domain::{PaneId, Timestamp},
     herdr::{
         client::HerdrClient,
@@ -26,7 +26,7 @@ pub enum RuntimeEvent {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RuntimeEffects {
-    pub desk: Vec<DeskCommand>,
+    pub desk: Vec<AgentCommand>,
     pub persistence: Vec<Command>,
 }
 
@@ -39,7 +39,7 @@ pub enum RuntimeExit {
 
 #[derive(Debug)]
 pub struct ActionRuntimeEffects {
-    pub desk: Vec<DeskCommand>,
+    pub desk: Vec<AgentCommand>,
     pub persistence_errors: Vec<PersistenceError>,
     pub exit: Option<RuntimeExit>,
 }
@@ -66,7 +66,7 @@ pub async fn dispatch_persistence_effects(
     let mut errors = Vec::new();
     for effect in effects {
         let result = match effect {
-            Command::AppendGuestbook(entry) => client.append_guestbook(entry).await,
+            Command::AppendChronicle(entry) => client.append_chronicle(entry).await,
             Command::PersistState => client
                 .stage_state(PersistedStateV1::capture(model))
                 .map(drop),
@@ -112,7 +112,7 @@ impl RuntimeConnection {
         }
     }
 
-    pub fn schedule(&mut self, commands: impl IntoIterator<Item = DeskCommand>) {
+    pub fn schedule(&mut self, commands: impl IntoIterator<Item = AgentCommand>) {
         for command in commands {
             let executor = self.executor.clone();
             self.command_tasks
@@ -226,13 +226,13 @@ pub fn apply_connection_update(
     if after != before
         && let Some((pane_id, _)) = after
     {
-        effects.desk.push(DeskCommand::LoadOutput {
+        effects.desk.push(AgentCommand::LoadOutput {
             pane_id,
             lines: model.settings().output_preview_lines,
         });
     }
     if discover_reviewr {
-        effects.desk.push(DeskCommand::DiscoverReviewr {
+        effects.desk.push(AgentCommand::DiscoverReviewr {
             qualified_id: model.settings().reviewr_action.clone(),
         });
     }
@@ -249,7 +249,7 @@ pub fn apply_command_result(
         CommandResult::Focused(pane_id) => {
             model.set_status_message(Some(format!("visited {pane_id}")));
         }
-        CommandResult::ReplySent(pane_id) => {
+        CommandResult::CounselSent(pane_id) => {
             model.set_status_message(Some(format!("reply sent to {pane_id}")));
         }
         CommandResult::OutputLoaded {
@@ -277,7 +277,7 @@ pub fn apply_command_result(
         CommandResult::ReviewrAvailable(available) => {
             model.set_reviewr_available(available);
         }
-        CommandResult::ReviewrOpened => {
+        CommandResult::SpoilsOpened => {
             model.set_status_message(Some("opened reviewr".to_owned()));
         }
         CommandResult::SnapshotLoaded(snapshot) => {
@@ -317,9 +317,9 @@ fn selected_revision(model: &Model) -> Option<(PaneId, u64)> {
         .map(|agent| (agent.pane_id.clone(), agent.pane_revision))
 }
 
-fn push_unique_refresh(commands: &mut Vec<DeskCommand>) {
-    if !commands.contains(&DeskCommand::RefreshSnapshot) {
-        commands.push(DeskCommand::RefreshSnapshot);
+fn push_unique_refresh(commands: &mut Vec<AgentCommand>) {
+    if !commands.contains(&AgentCommand::RefreshSnapshot) {
+        commands.push(AgentCommand::RefreshSnapshot);
     }
 }
 

@@ -2,55 +2,55 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use super::{Agent, AgentKey, AttentionReason, Presence, WorkspaceId};
+use super::{Agent, AgentKey, GuildSummons, Presence, WorkspaceId};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct Site {
+pub struct Campaign {
     pub workspace_id: WorkspaceId,
     pub label: String,
     pub cwd: PathBuf,
-    pub agents: Vec<AgentKey>,
+    pub party: Vec<AgentKey>,
 }
 
-impl Site {
+impl Campaign {
     #[must_use]
-    pub fn status(&self, agents: &BTreeMap<AgentKey, Agent>) -> SiteStatus {
-        let site_agents = self.agents.iter().filter_map(|key| agents.get(key));
-        SiteStatus::derive(site_agents)
+    pub fn status(&self, agents: &BTreeMap<AgentKey, Agent>) -> CampaignStatus {
+        let party = self.party.iter().filter_map(|key| agents.get(key));
+        CampaignStatus::derive(party)
     }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum SiteStatus {
-    NeedsWebmaster,
-    UpdateReady,
-    Updating,
-    Online,
-    Offline,
+pub enum CampaignStatus {
+    CounselRequired,
+    SpoilsAwaitingInspection,
+    ExpeditionActive,
+    PartyAtRest,
+    Abandoned,
 }
 
-impl SiteStatus {
+impl CampaignStatus {
     fn derive<'a>(mut agents: impl Iterator<Item = &'a Agent> + Clone) -> Self {
         if agents
             .clone()
             .any(|agent| agent.presence == Presence::Blocked)
         {
-            Self::NeedsWebmaster
+            Self::CounselRequired
         } else if agents.clone().any(|agent| {
-            agent.attention.is_unseen()
-                && agent.attention.reason() == Some(AttentionReason::WorkCompleted)
+            agent.attention.is_unread()
+                && agent.attention.summons() == Some(GuildSummons::SpoilsReturned)
         }) {
-            Self::UpdateReady
+            Self::SpoilsAwaitingInspection
         } else if agents
             .clone()
             .any(|agent| agent.presence == Presence::Working)
         {
-            Self::Updating
+            Self::ExpeditionActive
         } else if agents.any(|agent| agent.presence != Presence::Exited) {
-            Self::Online
+            Self::PartyAtRest
         } else {
-            Self::Offline
+            Self::Abandoned
         }
     }
 }

@@ -2,7 +2,7 @@ use std::ops::ControlFlow;
 
 use crate::{
     app::{Modal, Model},
-    command::DeskCommand,
+    command::AgentCommand,
     persistence::PersistedStateV1,
     ui::input::Action,
     update::Command,
@@ -11,7 +11,7 @@ use crate::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ActionReduction {
     pub control: ControlFlow<(), ()>,
-    pub commands: Vec<DeskCommand>,
+    pub commands: Vec<AgentCommand>,
     pub persistence: Vec<Command>,
 }
 
@@ -47,7 +47,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         }
         Action::Visit => {
             if let Some(pane_id) = selected_pane(model) {
-                commands.push(DeskCommand::FocusPane(pane_id));
+                commands.push(AgentCommand::FocusPane(pane_id));
             } else {
                 model.set_status_message(Some("no agent selected to visit".to_owned()));
             }
@@ -65,7 +65,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             if !model.reviewr_available() {
                 model.set_status_message(Some("reviewr is unavailable".to_owned()));
             } else if let Some(pane_id) = selected_pane(model) {
-                commands.push(DeskCommand::OpenReviewr {
+                commands.push(AgentCommand::InspectSpoils {
                     pane_id,
                     qualified_id: model.settings().reviewr_action.clone(),
                 });
@@ -83,7 +83,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             ControlFlow::Continue(())
         }
         Action::MarkSeen => {
-            mark_seen(model);
+            mark_read(model);
             ControlFlow::Continue(())
         }
         Action::Search => {
@@ -123,7 +123,7 @@ fn finish_reduction(
     model: &Model,
     before: &PersistedStateV1,
     control: ControlFlow<(), ()>,
-    commands: Vec<DeskCommand>,
+    commands: Vec<AgentCommand>,
 ) -> ActionReduction {
     let persistence = (PersistedStateV1::capture(model) != *before)
         .then_some(Command::PersistState)
@@ -145,15 +145,15 @@ fn selected_pane(model: &Model) -> Option<crate::domain::PaneId> {
     })
 }
 
-fn mark_seen(model: &mut Model) {
+fn mark_read(model: &mut Model) {
     if model.selected_agent_key().is_none() {
         model.set_status_message(Some("no agent selected to mark seen".to_owned()));
         return;
     }
-    model.mark_selected_attention_seen();
+    model.mark_selected_attention_read();
 }
 
-fn submit_reply(model: &mut Model, commands: &mut Vec<DeskCommand>) {
+fn submit_reply(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     let Some(draft) = model.reply_draft().map(str::to_owned) else {
         return;
     };
@@ -166,13 +166,13 @@ fn submit_reply(model: &mut Model, commands: &mut Vec<DeskCommand>) {
         return;
     };
     model.dismiss_modal();
-    commands.push(DeskCommand::SendReply {
+    commands.push(AgentCommand::SendCounsel {
         pane_id,
         text: draft,
     });
 }
 
-fn submit_search(model: &mut Model, commands: &mut Vec<DeskCommand>) {
+fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     let Modal::Search { query } = model.modal() else {
         return;
     };
@@ -184,9 +184,9 @@ fn submit_search(model: &mut Model, commands: &mut Vec<DeskCommand>) {
     let matched = model.domain().agents.iter().find_map(|(key, agent)| {
         let site_matches = model
             .domain()
-            .sites
+            .campaigns
             .get(&agent.workspace_id)
-            .is_some_and(|site| site.label.to_lowercase().contains(&query));
+            .is_some_and(|campaign| campaign.label.to_lowercase().contains(&query));
         (agent.name.to_lowercase().contains(&query)
             || agent.persona.handle.to_lowercase().contains(&query)
             || agent
@@ -213,7 +213,7 @@ fn submit_search(model: &mut Model, commands: &mut Vec<DeskCommand>) {
     }
 }
 
-fn select_agent(model: &mut Model, select: fn(&mut Model), commands: &mut Vec<DeskCommand>) {
+fn select_agent(model: &mut Model, select: fn(&mut Model), commands: &mut Vec<AgentCommand>) {
     let before = selected_pane(model);
     select(model);
     let after = selected_pane(model);
@@ -224,8 +224,8 @@ fn select_agent(model: &mut Model, select: fn(&mut Model), commands: &mut Vec<De
     }
 }
 
-fn load_output(model: &Model, pane_id: crate::domain::PaneId) -> DeskCommand {
-    DeskCommand::LoadOutput {
+fn load_output(model: &Model, pane_id: crate::domain::PaneId) -> AgentCommand {
+    AgentCommand::LoadOutput {
         pane_id,
         lines: model.settings().output_preview_lines,
     }

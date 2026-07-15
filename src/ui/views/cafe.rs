@@ -105,24 +105,24 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
 #[allow(clippy::too_many_lines)]
 fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: CafeStyles) {
     use crate::ui::cafe_scene::layout_bays;
-    let sites = if model.domain().sites.is_empty() {
+    let sites = if model.domain().campaigns.is_empty() {
         let mut derived = std::collections::BTreeMap::new();
         for agent in model.domain().agents.values() {
             let id = agent.workspace_id.clone();
             derived
                 .entry(id.clone())
-                .or_insert_with(|| crate::domain::Site {
+                .or_insert_with(|| crate::domain::Campaign {
                     workspace_id: id.clone(),
                     label: id.to_string(),
                     cwd: std::path::PathBuf::new(),
-                    agents: Vec::new(),
+                    party: Vec::new(),
                 })
-                .agents
+                .party
                 .push(agent.key.clone());
         }
         derived
     } else {
-        model.domain().sites.clone()
+        model.domain().campaigns.clone()
     };
     let selected_workspace = model
         .selected_agent()
@@ -446,7 +446,7 @@ fn render_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: CafeS
             actions.extend(["[enter] visit", "[r] reply", "[o] refresh"]);
             if model
                 .selected_agent()
-                .is_some_and(|agent| agent.attention.is_unseen())
+                .is_some_and(|agent| agent.attention.is_unread())
             {
                 actions.push("[space] seen");
             }
@@ -477,7 +477,7 @@ fn render_narrow_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles
             selected.extend(["[enter] visit", "[r] reply", "[o] refresh"]);
             if model
                 .selected_agent()
-                .is_some_and(|agent| agent.attention.is_unseen())
+                .is_some_and(|agent| agent.attention.is_unread())
             {
                 selected.push("[space] seen");
             }

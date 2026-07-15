@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use questmancer::{
-    domain::{AgentKey, Attention, AttentionReason, PaneId, Presence, Timestamp, WorkspaceId},
+    domain::{AgentKey, GuildAttention, GuildSummons, PaneId, Presence, Timestamp, WorkspaceId},
     herdr::protocol::AgentStatus,
 };
 
@@ -30,16 +30,16 @@ fn protocol_status_converts_to_domain_presence() {
 }
 
 #[test]
-fn marking_attention_seen_retains_reason_and_original_time() {
+fn marking_attention_read_retains_summons_and_original_time() {
     let since = Timestamp::from_millis(1_000);
-    let attention = Attention::unseen(AttentionReason::NeedsInput, since);
+    let attention = GuildAttention::unread(GuildSummons::CounselRequested, since);
 
-    let seen = attention.mark_seen();
+    let read = attention.mark_read();
 
-    assert_eq!(seen.reason(), Some(AttentionReason::NeedsInput));
-    assert_eq!(seen.since(), Some(since));
-    assert!(!seen.is_unseen());
-    assert!(matches!(seen, Attention::Seen { .. }));
+    assert_eq!(read.summons(), Some(GuildSummons::CounselRequested));
+    assert_eq!(read.since(), Some(since));
+    assert!(!read.is_unread());
+    assert!(matches!(read, GuildAttention::Read { .. }));
 }
 
 #[test]

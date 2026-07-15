@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use ratatui::layout::Rect;
 
-use crate::domain::{Agent, AgentKey, Site, WorkspaceId};
+use crate::domain::{Agent, AgentKey, Campaign, WorkspaceId};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BayVariant {
@@ -50,7 +50,7 @@ pub fn variant_for_workspace(workspace_id: &WorkspaceId) -> BayVariant {
 /// keeping this model stable for snapshots and persistence.
 #[must_use]
 pub fn layout_bays(
-    sites: &BTreeMap<WorkspaceId, Site>,
+    sites: &BTreeMap<WorkspaceId, Campaign>,
     agents: &BTreeMap<AgentKey, Agent>,
     area: Rect,
     _selected: Option<&WorkspaceId>,
@@ -62,7 +62,7 @@ pub fn layout_bays(
     let mut entries = Vec::new();
     for (workspace_id, site) in sites {
         let keys = site
-            .agents
+            .party
             .iter()
             .filter(|key| agents.contains_key(*key))
             .cloned()

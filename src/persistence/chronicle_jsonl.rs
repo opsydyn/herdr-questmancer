@@ -5,7 +5,7 @@ use std::{
 
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
-use crate::domain::{Guestbook, GuestbookEntry};
+use crate::domain::{Chronicle, ChronicleEntry};
 
 use super::{PersistenceDiagnostic, PersistenceError};
 
@@ -13,12 +13,12 @@ const MAX_INDIVIDUAL_DIAGNOSTICS: usize = 5;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReplayResult {
-    pub guestbook: Guestbook,
+    pub chronicle: Chronicle,
     pub diagnostics: Vec<PersistenceDiagnostic>,
 }
 
-pub fn replay_guestbook(path: &Path, bytes: &[u8], maximum_entries: usize) -> ReplayResult {
-    let mut guestbook = Guestbook::new(maximum_entries);
+pub fn replay_chronicle(path: &Path, bytes: &[u8], maximum_entries: usize) -> ReplayResult {
+    let mut chronicle = Chronicle::new(maximum_entries);
     let mut diagnostics = Vec::new();
     let mut rejected_records = 0_usize;
     let mut lines = bytes.split(|byte| *byte == b'\n').peekable();
@@ -34,10 +34,10 @@ pub fn replay_guestbook(path: &Path, bytes: &[u8], maximum_entries: usize) -> Re
                     &mut diagnostics,
                     &mut rejected_records,
                     PersistenceDiagnostic {
-                        operation: "replay guestbook",
+                        operation: "replay chronicle",
                         path: path.to_owned(),
                         line: Some(line_number),
-                        source_message: "truncated final guestbook record".to_owned(),
+                        source_message: "truncated final chronicle record".to_owned(),
                     },
                 );
             }
@@ -51,7 +51,7 @@ pub fn replay_guestbook(path: &Path, bytes: &[u8], maximum_entries: usize) -> Re
                     &mut diagnostics,
                     &mut rejected_records,
                     PersistenceDiagnostic {
-                        operation: "decode guestbook record",
+                        operation: "decode chronicle record",
                         path: path.to_owned(),
                         line: Some(line_number),
                         source_message: error.to_string(),
@@ -60,15 +60,15 @@ pub fn replay_guestbook(path: &Path, bytes: &[u8], maximum_entries: usize) -> Re
                 continue;
             }
         };
-        match serde_json::from_str::<GuestbookEntry>(text) {
+        match serde_json::from_str::<ChronicleEntry>(text) {
             Ok(entry) => {
-                guestbook.append(entry);
+                chronicle.append(entry);
             }
             Err(error) => record_diagnostic(
                 &mut diagnostics,
                 &mut rejected_records,
                 PersistenceDiagnostic {
-                    operation: "parse guestbook record",
+                    operation: "parse chronicle record",
                     path: path.to_owned(),
                     line: Some(line_number),
                     source_message: error.to_string(),
@@ -79,33 +79,33 @@ pub fn replay_guestbook(path: &Path, bytes: &[u8], maximum_entries: usize) -> Re
 
     if rejected_records > MAX_INDIVIDUAL_DIAGNOSTICS {
         diagnostics.push(PersistenceDiagnostic {
-            operation: "replay guestbook",
+            operation: "replay chronicle",
             path: path.to_owned(),
             line: None,
             source_message: format!(
-                "{} additional rejected guestbook records omitted",
+                "{} additional rejected chronicle records omitted",
                 rejected_records - MAX_INDIVIDUAL_DIAGNOSTICS
             ),
         });
     }
 
     ReplayResult {
-        guestbook,
+        chronicle,
         diagnostics,
     }
 }
 
-pub async fn load_guestbook(path: &Path, maximum_entries: usize) -> ReplayResult {
+pub async fn load_chronicle(path: &Path, maximum_entries: usize) -> ReplayResult {
     match tokio::fs::read(path).await {
-        Ok(bytes) => replay_guestbook(path, &bytes, maximum_entries),
+        Ok(bytes) => replay_chronicle(path, &bytes, maximum_entries),
         Err(error) if error.kind() == ErrorKind::NotFound => ReplayResult {
-            guestbook: Guestbook::new(maximum_entries),
+            chronicle: Chronicle::new(maximum_entries),
             diagnostics: Vec::new(),
         },
         Err(error) => ReplayResult {
-            guestbook: Guestbook::new(maximum_entries),
+            chronicle: Chronicle::new(maximum_entries),
             diagnostics: vec![PersistenceDiagnostic {
-                operation: "read guestbook",
+                operation: "read chronicle",
                 path: path.to_owned(),
                 line: None,
                 source_message: error.to_string(),
@@ -114,9 +114,9 @@ pub async fn load_guestbook(path: &Path, maximum_entries: usize) -> ReplayResult
     }
 }
 
-pub async fn append_guestbook(path: &Path, entry: &GuestbookEntry) -> Result<(), PersistenceError> {
+pub async fn append_chronicle(path: &Path, entry: &ChronicleEntry) -> Result<(), PersistenceError> {
     let mut bytes = serde_json::to_vec(entry).map_err(|error| PersistenceError {
-        operation: "serialize guestbook record",
+        operation: "serialize chronicle record",
         path: path.to_owned(),
         line: None,
         source_message: error.to_string(),
@@ -130,7 +130,7 @@ pub async fn append_guestbook(path: &Path, entry: &GuestbookEntry) -> Result<(),
     tokio::fs::create_dir_all(parent)
         .await
         .map_err(|error| PersistenceError {
-            operation: "create guestbook directory",
+            operation: "create chronicle directory",
             path: parent.to_owned(),
             line: None,
             source_message: error.to_string(),
@@ -146,7 +146,7 @@ pub async fn append_guestbook(path: &Path, entry: &GuestbookEntry) -> Result<(),
         .open(path)
         .await
         .map_err(|error| PersistenceError {
-            operation: "open guestbook",
+            operation: "open chronicle",
             path: path.to_owned(),
             line: None,
             source_message: error.to_string(),
@@ -154,13 +154,13 @@ pub async fn append_guestbook(path: &Path, entry: &GuestbookEntry) -> Result<(),
     file.write_all(&bytes)
         .await
         .map_err(|error| PersistenceError {
-            operation: "write guestbook",
+            operation: "write chronicle",
             path: path.to_owned(),
             line: None,
             source_message: error.to_string(),
         })?;
     file.sync_data().await.map_err(|error| PersistenceError {
-        operation: "sync guestbook",
+        operation: "sync chronicle",
         path: path.to_owned(),
         line: None,
         source_message: error.to_string(),
@@ -192,7 +192,7 @@ async fn tail_needs_separator(path: &Path) -> Result<bool, PersistenceError> {
 
 fn tail_inspection_error(path: &Path, error: &std::io::Error) -> PersistenceError {
     PersistenceError {
-        operation: "inspect guestbook tail",
+        operation: "inspect chronicle tail",
         path: path.to_owned(),
         line: None,
         source_message: error.to_string(),

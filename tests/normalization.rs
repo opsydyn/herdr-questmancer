@@ -1,6 +1,6 @@
 use questmancer::{
     domain::{
-        Attention, AttentionReason, DomainState, PaneId, Presence, SiteStatus, Timestamp,
+        CampaignStatus, DomainState, GuildAttention, GuildSummons, PaneId, Presence, Timestamp,
         WorkspaceId,
     },
     herdr::protocol::{SessionSnapshot, SessionSnapshotResult, SuccessResponse},
@@ -13,21 +13,27 @@ fn snapshot() -> SessionSnapshot {
 }
 
 #[test]
-fn snapshot_normalizes_sites_agents_attention_and_personas() {
+fn snapshot_normalizes_campaigns_agents_attention_and_personas() {
     let state = DomainState::from_snapshot(&snapshot(), Timestamp::from_millis(10_000));
-    let site = state.sites.get(&WorkspaceId::new("w1")).unwrap();
-    let agent = state.agents.get(&site.agents[0]).unwrap();
+    let campaign = state.campaigns.get(&WorkspaceId::new("w1")).unwrap();
+    let agent = state.agents.get(&campaign.party[0]).unwrap();
 
-    assert_eq!(site.label, "webmaster");
-    assert_eq!(site.cwd.to_string_lossy(), "/tmp/herdr-questmancer");
-    assert_eq!(site.status(&state.agents), SiteStatus::NeedsWebmaster);
+    assert_eq!(campaign.label, "webmaster");
+    assert_eq!(campaign.cwd.to_string_lossy(), "/tmp/herdr-questmancer");
+    assert_eq!(
+        campaign.status(&state.agents),
+        CampaignStatus::CounselRequired
+    );
     assert_eq!(agent.name, "Codex");
     assert_eq!(agent.custom_status.as_deref(), Some("which schema?"));
     assert_eq!(agent.presence, Presence::Blocked);
     assert_eq!(agent.pane_revision, 7);
     assert_eq!(
         agent.attention,
-        Attention::unseen(AttentionReason::NeedsInput, Timestamp::from_millis(10_000))
+        GuildAttention::unread(
+            GuildSummons::CounselRequested,
+            Timestamp::from_millis(10_000),
+        )
     );
     assert!(agent.persona.key.as_str().starts_with("persona-"));
 }
@@ -53,7 +59,7 @@ fn managed_pane_is_excluded_from_snapshot_normalization() {
 
     let unfiltered = DomainState::from_snapshot(&snapshot, Timestamp::from_millis(10_000));
     assert_eq!(unfiltered.agents.len(), 2);
-    assert!(unfiltered.sites.contains_key(&WorkspaceId::new("w2")));
+    assert!(unfiltered.campaigns.contains_key(&WorkspaceId::new("w2")));
 
     let state = DomainState::from_snapshot_excluding(
         &snapshot,
@@ -62,9 +68,9 @@ fn managed_pane_is_excluded_from_snapshot_normalization() {
     );
 
     assert!(state.agent_key_for_pane(&PaneId::new("w2:p3")).is_none());
-    assert!(state.sites.values().all(|site| {
-        !site
-            .agents
+    assert!(state.campaigns.values().all(|campaign| {
+        !campaign
+            .party
             .iter()
             .any(|key| state.agents[key].pane_id == PaneId::new("w2:p3"))
     }));
@@ -78,37 +84,46 @@ fn managed_pane_is_excluded_from_snapshot_normalization() {
 }
 
 #[test]
-fn site_status_uses_the_required_priority() {
+fn campaign_status_uses_the_required_priority() {
     let mut state = DomainState::from_snapshot(&snapshot(), Timestamp::from_millis(1));
-    let site = state.sites.values().next().unwrap().clone();
-    let key = site.agents[0].clone();
+    let campaign = state.campaigns.values().next().unwrap().clone();
+    let key = campaign.party[0].clone();
     state.agents.get_mut(&key).unwrap().presence = Presence::Working;
-    state.agents.get_mut(&key).unwrap().attention = Attention::Clear;
-    assert_eq!(site.status(&state.agents), SiteStatus::Updating);
+    state.agents.get_mut(&key).unwrap().attention = GuildAttention::Clear;
+    assert_eq!(
+        campaign.status(&state.agents),
+        CampaignStatus::ExpeditionActive
+    );
 
     state.agents.get_mut(&key).unwrap().presence = Presence::Done;
     state.agents.get_mut(&key).unwrap().attention =
-        Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(2));
-    assert_eq!(site.status(&state.agents), SiteStatus::UpdateReady);
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(2));
+    assert_eq!(
+        campaign.status(&state.agents),
+        CampaignStatus::SpoilsAwaitingInspection
+    );
 
     state.agents.get_mut(&key).unwrap().presence = Presence::Blocked;
-    assert_eq!(site.status(&state.agents), SiteStatus::NeedsWebmaster);
+    assert_eq!(
+        campaign.status(&state.agents),
+        CampaignStatus::CounselRequired
+    );
 
     state.agents.get_mut(&key).unwrap().presence = Presence::Idle;
-    state.agents.get_mut(&key).unwrap().attention = Attention::Clear;
-    assert_eq!(site.status(&state.agents), SiteStatus::Online);
+    state.agents.get_mut(&key).unwrap().attention = GuildAttention::Clear;
+    assert_eq!(campaign.status(&state.agents), CampaignStatus::PartyAtRest);
 
     state.agents.get_mut(&key).unwrap().presence = Presence::Exited;
-    assert_eq!(site.status(&state.agents), SiteStatus::Offline);
+    assert_eq!(campaign.status(&state.agents), CampaignStatus::Abandoned);
 }
 
 #[test]
-fn empty_site_is_offline() {
+fn empty_campaign_is_abandoned() {
     let mut state = DomainState::from_snapshot(&snapshot(), Timestamp::from_millis(1));
-    let site = state.sites.values_mut().next().unwrap();
-    site.agents.clear();
+    let campaign = state.campaigns.values_mut().next().unwrap();
+    campaign.party.clear();
 
-    assert_eq!(site.status(&state.agents), SiteStatus::Offline);
+    assert_eq!(campaign.status(&state.agents), CampaignStatus::Abandoned);
 }
 
 #[test]

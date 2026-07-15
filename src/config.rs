@@ -6,32 +6,32 @@ use thiserror::Error;
 use crate::app::{CharacterSet, ColorMode, DisplayPreferences, Motion, RuntimeSettings, View};
 
 const OUTPUT_PREVIEW_LINES_RANGE: std::ops::RangeInclusive<u32> = 10..=500;
-const GUESTBOOK_MAX_ENTRIES_RANGE: std::ops::RangeInclusive<usize> = 50..=10_000;
+const CHRONICLE_MAX_ENTRIES_RANGE: std::ops::RangeInclusive<usize> = 50..=10_000;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WebmasterConfig {
+pub struct QuestmancerConfig {
     pub default_view: View,
     pub preferences: DisplayPreferences,
     pub output_preview_lines: u32,
-    pub guestbook_max_entries: usize,
+    pub chronicle_max_entries: usize,
     pub reviewr_action: String,
     pub show_elapsed_time: bool,
 }
 
-impl Default for WebmasterConfig {
+impl Default for QuestmancerConfig {
     fn default() -> Self {
         Self {
             default_view: View::Guild,
             preferences: DisplayPreferences::default(),
             output_preview_lines: 80,
-            guestbook_max_entries: 500,
+            chronicle_max_entries: 500,
             reviewr_action: "persiyanov.reviewr.open".to_owned(),
             show_elapsed_time: true,
         }
     }
 }
 
-impl WebmasterConfig {
+impl QuestmancerConfig {
     pub fn parse(bytes: &[u8]) -> Result<Self, ConfigError> {
         toml::from_slice::<ConfigFile>(bytes)?.try_into()
     }
@@ -47,9 +47,9 @@ impl WebmasterConfig {
 
 #[derive(Debug, Error)]
 pub enum ConfigError {
-    #[error("invalid webmaster configuration: {0}")]
+    #[error("invalid questmancer configuration: {0}")]
     Parse(#[from] toml::de::Error),
-    #[error("invalid webmaster configuration: {0}")]
+    #[error("invalid questmancer configuration: {0}")]
     Validation(&'static str),
 }
 
@@ -81,10 +81,10 @@ impl PersistencePaths {
         self.state_dir.as_ref().map(|path| path.join("state.json"))
     }
 
-    pub fn guestbook_path(&self) -> Option<PathBuf> {
+    pub fn chronicle_path(&self) -> Option<PathBuf> {
         self.state_dir
             .as_ref()
-            .map(|path| path.join("guestbook.jsonl"))
+            .map(|path| path.join("chronicle.jsonl"))
     }
 }
 
@@ -96,28 +96,28 @@ struct ConfigFile {
     character_set: CharacterSet,
     color_mode: ColorMode,
     output_preview_lines: u32,
-    guestbook_max_entries: usize,
+    chronicle_max_entries: usize,
     reviewr_action: String,
     show_elapsed_time: bool,
 }
 
 impl Default for ConfigFile {
     fn default() -> Self {
-        let config = WebmasterConfig::default();
+        let config = QuestmancerConfig::default();
         Self {
             default_view: config.default_view,
             motion: config.preferences.motion,
             character_set: config.preferences.character_set,
             color_mode: config.preferences.color_mode,
             output_preview_lines: config.output_preview_lines,
-            guestbook_max_entries: config.guestbook_max_entries,
+            chronicle_max_entries: config.chronicle_max_entries,
             reviewr_action: config.reviewr_action,
             show_elapsed_time: config.show_elapsed_time,
         }
     }
 }
 
-impl TryFrom<ConfigFile> for WebmasterConfig {
+impl TryFrom<ConfigFile> for QuestmancerConfig {
     type Error = ConfigError;
 
     fn try_from(file: ConfigFile) -> Result<Self, Self::Error> {
@@ -126,9 +126,9 @@ impl TryFrom<ConfigFile> for WebmasterConfig {
                 "output_preview_lines must be between 10 and 500",
             ));
         }
-        if !GUESTBOOK_MAX_ENTRIES_RANGE.contains(&file.guestbook_max_entries) {
+        if !CHRONICLE_MAX_ENTRIES_RANGE.contains(&file.chronicle_max_entries) {
             return Err(ConfigError::Validation(
-                "guestbook_max_entries must be between 50 and 10000",
+                "chronicle_max_entries must be between 50 and 10000",
             ));
         }
         if file.reviewr_action.trim().is_empty() {
@@ -143,7 +143,7 @@ impl TryFrom<ConfigFile> for WebmasterConfig {
                 color_mode: file.color_mode,
             },
             output_preview_lines: file.output_preview_lines,
-            guestbook_max_entries: file.guestbook_max_entries,
+            chronicle_max_entries: file.chronicle_max_entries,
             reviewr_action: file.reviewr_action,
             show_elapsed_time: file.show_elapsed_time,
         })

@@ -2,32 +2,32 @@ use std::path::Path;
 
 use proptest::prelude::*;
 use questmancer::{
-    domain::{EventId, Guestbook, GuestbookEntry, GuestbookEvent, Timestamp},
-    persistence::{append_guestbook, load_guestbook, replay_guestbook},
+    domain::{Chronicle, ChronicleEntry, ChronicleEvent, EventId, Timestamp},
+    persistence::{append_chronicle, load_chronicle, replay_chronicle},
 };
 use tempfile::tempdir;
 
 #[derive(Clone, Debug)]
 enum ReplayRecord {
-    Valid(GuestbookEntry),
-    Duplicate(GuestbookEntry),
+    Valid(ChronicleEntry),
+    Duplicate(ChronicleEntry),
     Invalid(Vec<u8>),
 }
 
-fn entry(id: &str, occurred_at: i64) -> GuestbookEntry {
-    GuestbookEntry {
+fn entry(id: &str, occurred_at: i64) -> ChronicleEntry {
+    ChronicleEntry {
         id: EventId::new(id),
         occurred_at: Timestamp::from_millis(occurred_at),
-        agent: None,
-        workspace: None,
+        adventurer: None,
+        campaign: None,
         pane: None,
         pane_revision: 0,
-        kind: GuestbookEvent::WorkCompleted,
+        event: ChronicleEvent::SpoilsReturned,
         summary: format!("entry {id}"),
     }
 }
 
-fn jsonl(entries: &[GuestbookEntry]) -> Vec<u8> {
+fn jsonl(entries: &[ChronicleEntry]) -> Vec<u8> {
     let mut bytes = Vec::new();
     for entry in entries {
         bytes.extend(serde_json::to_vec(entry).unwrap());
@@ -36,16 +36,16 @@ fn jsonl(entries: &[GuestbookEntry]) -> Vec<u8> {
     bytes
 }
 
-fn replay_entry() -> impl Strategy<Value = GuestbookEntry> {
+fn replay_entry() -> impl Strategy<Value = ChronicleEntry> {
     (0_u8..16, any::<i64>(), any::<u16>()).prop_map(|(id, occurred_at, pane_revision)| {
-        GuestbookEntry {
+        ChronicleEntry {
             id: EventId::new(format!("event-{id}")),
             occurred_at: Timestamp::from_millis(occurred_at),
-            agent: None,
-            workspace: None,
+            adventurer: None,
+            campaign: None,
             pane: None,
             pane_revision: u64::from(pane_revision),
-            kind: GuestbookEvent::WorkCompleted,
+            event: ChronicleEvent::SpoilsReturned,
             summary: format!("entry {id}"),
         }
     })
@@ -64,17 +64,17 @@ fn replay_record() -> impl Strategy<Value = ReplayRecord> {
 }
 
 #[test]
-fn replay_preserves_guestbook_order_deduplication_and_bound() {
+fn replay_preserves_chronicle_order_deduplication_and_bound() {
     let latest = entry("latest", 300);
     let oldest = entry("oldest", 100);
     let middle = entry("middle", 200);
     let bytes = jsonl(&[latest.clone(), oldest, latest.clone(), middle.clone()]);
 
-    let replay = replay_guestbook(Path::new("guestbook.jsonl"), &bytes, 2);
+    let replay = replay_chronicle(Path::new("chronicle.jsonl"), &bytes, 2);
 
     assert!(replay.diagnostics.is_empty());
     assert_eq!(
-        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        replay.chronicle.entries().iter().collect::<Vec<_>>(),
         vec![&middle, &latest]
     );
 }
@@ -87,10 +87,10 @@ fn schema_invalid_json_and_malformed_utf8_do_not_hide_valid_history() {
     bytes.extend(b"{\"bad\":true}\n\xff\n");
     bytes.extend(jsonl(std::slice::from_ref(&second)));
 
-    let replay = replay_guestbook(Path::new("guestbook.jsonl"), &bytes, 500);
+    let replay = replay_chronicle(Path::new("chronicle.jsonl"), &bytes, 500);
 
     assert_eq!(
-        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        replay.chronicle.entries().iter().collect::<Vec<_>>(),
         vec![&first, &second]
     );
     assert_eq!(replay.diagnostics.len(), 2);
@@ -105,10 +105,10 @@ fn non_newline_terminated_final_record_is_rejected_as_truncated() {
     let mut bytes = jsonl(std::slice::from_ref(&complete_entry));
     bytes.extend(serde_json::to_vec(&final_entry).unwrap());
 
-    let replay = replay_guestbook(Path::new("guestbook.jsonl"), &bytes, 500);
+    let replay = replay_chronicle(Path::new("chronicle.jsonl"), &bytes, 500);
 
     assert_eq!(
-        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        replay.chronicle.entries().iter().collect::<Vec<_>>(),
         vec![&complete_entry]
     );
     assert_eq!(replay.diagnostics.len(), 1);
@@ -120,7 +120,7 @@ fn non_newline_terminated_final_record_is_rejected_as_truncated() {
 fn replay_folds_diagnostics_after_five_rejected_records() {
     let bytes = b"bad\nbad\nbad\nbad\nbad\nbad\nbad\n";
 
-    let replay = replay_guestbook(Path::new("guestbook.jsonl"), bytes, 500);
+    let replay = replay_chronicle(Path::new("chronicle.jsonl"), bytes, 500);
 
     assert_eq!(replay.diagnostics.len(), 6);
     assert_eq!(
@@ -139,23 +139,23 @@ fn replay_folds_diagnostics_after_five_rejected_records() {
 }
 
 #[tokio::test]
-async fn absent_guestbook_loads_as_empty_without_diagnostics() {
+async fn absent_chronicle_loads_as_empty_without_diagnostics() {
     let directory = tempdir().unwrap();
-    let path = directory.path().join("missing/guestbook.jsonl");
+    let path = directory.path().join("missing/chronicle.jsonl");
 
-    let replay = load_guestbook(&path, 500).await;
+    let replay = load_chronicle(&path, 500).await;
 
-    assert!(replay.guestbook.entries().is_empty());
+    assert!(replay.chronicle.entries().is_empty());
     assert!(replay.diagnostics.is_empty());
 }
 
 #[tokio::test]
 async fn append_writes_one_compact_record_and_one_newline() {
     let directory = tempdir().unwrap();
-    let path = directory.path().join("guestbook.jsonl");
+    let path = directory.path().join("chronicle.jsonl");
     let entry = entry("first", 100);
 
-    append_guestbook(&path, &entry).await.unwrap();
+    append_chronicle(&path, &entry).await.unwrap();
 
     let bytes = tokio::fs::read(&path).await.unwrap();
     let mut expected = serde_json::to_vec(&entry).unwrap();
@@ -166,10 +166,10 @@ async fn append_writes_one_compact_record_and_one_newline() {
 #[tokio::test]
 async fn append_creates_missing_parent_directories() {
     let directory = tempdir().unwrap();
-    let path = directory.path().join("nested/state/guestbook.jsonl");
+    let path = directory.path().join("nested/state/chronicle.jsonl");
     let entry = entry("first", 100);
 
-    append_guestbook(&path, &entry).await.unwrap();
+    append_chronicle(&path, &entry).await.unwrap();
 
     assert!(path.is_file());
 }
@@ -177,12 +177,12 @@ async fn append_creates_missing_parent_directories() {
 #[tokio::test]
 async fn multiple_appends_remain_in_write_order() {
     let directory = tempdir().unwrap();
-    let path = directory.path().join("guestbook.jsonl");
+    let path = directory.path().join("chronicle.jsonl");
     let first = entry("first", 200);
     let second = entry("second", 100);
 
-    append_guestbook(&path, &first).await.unwrap();
-    append_guestbook(&path, &second).await.unwrap();
+    append_chronicle(&path, &first).await.unwrap();
+    append_chronicle(&path, &second).await.unwrap();
 
     assert_eq!(
         tokio::fs::read(&path).await.unwrap(),
@@ -191,16 +191,16 @@ async fn multiple_appends_remain_in_write_order() {
 }
 
 #[tokio::test]
-async fn append_failure_reports_the_guestbook_path() {
+async fn append_failure_reports_the_chronicle_path() {
     let directory = tempdir().unwrap();
-    let path = directory.path().join("guestbook.jsonl");
+    let path = directory.path().join("chronicle.jsonl");
     tokio::fs::create_dir(&path).await.unwrap();
 
-    let error = append_guestbook(&path, &entry("first", 100))
+    let error = append_chronicle(&path, &entry("first", 100))
         .await
         .unwrap_err();
 
-    assert_eq!(error.operation, "open guestbook");
+    assert_eq!(error.operation, "open chronicle");
     assert_eq!(error.path, path);
     assert_eq!(error.line, None);
     assert!(!error.source_message.is_empty());
@@ -208,12 +208,12 @@ async fn append_failure_reports_the_guestbook_path() {
 
 proptest! {
     #[test]
-    fn arbitrary_record_interleavings_match_a_guestbook_fold(
+    fn arbitrary_record_interleavings_match_a_chronicle_fold(
         records in prop::collection::vec(replay_record(), 0..100),
         maximum_entries in 1_usize..100,
     ) {
         let mut bytes = Vec::new();
-        let mut expected = Guestbook::new(maximum_entries);
+        let mut expected = Chronicle::new(maximum_entries);
         for record in records {
             match record {
                 ReplayRecord::Valid(entry) => {
@@ -237,8 +237,8 @@ proptest! {
             }
         }
 
-        let replay = replay_guestbook(Path::new("guestbook.jsonl"), &bytes, maximum_entries);
-        let entries = replay.guestbook.entries();
+        let replay = replay_chronicle(Path::new("chronicle.jsonl"), &bytes, maximum_entries);
+        let entries = replay.chronicle.entries();
         let unique_ids = entries
             .iter()
             .map(|entry| entry.id.clone())
@@ -250,6 +250,6 @@ proptest! {
             first.occurred_at <= second.occurred_at
         });
         prop_assert!(chronological);
-        prop_assert_eq!(replay.guestbook, expected);
+        prop_assert_eq!(replay.chronicle, expected);
     }
 }

@@ -4,9 +4,9 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum DeskCommand {
+pub enum AgentCommand {
     FocusPane(PaneId),
-    SendReply {
+    SendCounsel {
         pane_id: PaneId,
         text: String,
     },
@@ -18,7 +18,7 @@ pub enum DeskCommand {
     DiscoverReviewr {
         qualified_id: String,
     },
-    OpenReviewr {
+    InspectSpoils {
         pane_id: PaneId,
         qualified_id: String,
     },
@@ -27,7 +27,7 @@ pub enum DeskCommand {
 #[derive(Clone, Debug, PartialEq)]
 pub enum CommandResult {
     Focused(PaneId),
-    ReplySent(PaneId),
+    CounselSent(PaneId),
     OutputLoaded {
         pane_id: PaneId,
         revision: u64,
@@ -35,7 +35,7 @@ pub enum CommandResult {
         truncated: bool,
     },
     ReviewrAvailable(bool),
-    ReviewrOpened,
+    SpoilsOpened,
     SnapshotLoaded(Box<SessionSnapshot>),
     Failed {
         operation: &'static str,
@@ -69,9 +69,9 @@ impl CommandExecutor {
         }
     }
 
-    pub async fn execute(&self, command: DeskCommand) -> CommandResult {
+    pub async fn execute(&self, command: AgentCommand) -> CommandResult {
         match command {
-            DeskCommand::FocusPane(pane_id) => {
+            AgentCommand::FocusPane(pane_id) => {
                 if self.is_managed_pane(&pane_id) {
                     return Self::refused_managed_pane("focus pane");
                 }
@@ -80,16 +80,16 @@ impl CommandExecutor {
                     Err(error) => failed("focus pane", error),
                 }
             }
-            DeskCommand::SendReply { pane_id, text } => {
+            AgentCommand::SendCounsel { pane_id, text } => {
                 if self.is_managed_pane(&pane_id) {
                     return Self::refused_managed_pane("send reply");
                 }
                 match self.client.send_text(pane_id.as_str(), text).await {
-                    Ok(()) => CommandResult::ReplySent(pane_id),
+                    Ok(()) => CommandResult::CounselSent(pane_id),
                     Err(error) => failed("send reply", error),
                 }
             }
-            DeskCommand::LoadOutput { pane_id, lines } => {
+            AgentCommand::LoadOutput { pane_id, lines } => {
                 if self.is_managed_pane(&pane_id) {
                     return Self::refused_managed_pane("load output");
                 }
@@ -107,7 +107,7 @@ impl CommandExecutor {
                     Err(error) => failed("load output", error),
                 }
             }
-            DeskCommand::DiscoverReviewr { qualified_id } => {
+            AgentCommand::DiscoverReviewr { qualified_id } => {
                 if split_qualified_action(&qualified_id).is_none() {
                     return CommandResult::ReviewrAvailable(false);
                 }
@@ -120,11 +120,11 @@ impl CommandExecutor {
                     Err(error) => failed("discover reviewr", error),
                 }
             }
-            DeskCommand::RefreshSnapshot => match self.client.snapshot().await {
+            AgentCommand::RefreshSnapshot => match self.client.snapshot().await {
                 Ok(snapshot) => CommandResult::SnapshotLoaded(Box::new(snapshot)),
                 Err(error) => failed("refresh snapshot", error),
             },
-            DeskCommand::OpenReviewr {
+            AgentCommand::InspectSpoils {
                 pane_id,
                 qualified_id,
             } => {
@@ -147,7 +147,7 @@ impl CommandExecutor {
                     .invoke_plugin_action(plugin_id, action_id, pane_id.as_str())
                     .await
                 {
-                    Ok(()) => CommandResult::ReviewrOpened,
+                    Ok(()) => CommandResult::SpoilsOpened,
                     Err(error) => failed("open reviewr", error),
                 }
             }

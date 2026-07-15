@@ -2,7 +2,7 @@ use std::ops::ControlFlow;
 
 use questmancer::{
     app::{Modal, Model, Region, RuntimeSettings, View},
-    command::DeskCommand,
+    command::AgentCommand,
     domain::{AgentKey, AgentPersona, DomainState, PaneId, PersonaKey, Timestamp, WorkspaceId},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::reduce_action,
@@ -42,7 +42,7 @@ fn searchable_model() -> Model {
     let mut model = live_model_with_two_agents();
     let first_key = model.domain().agents.keys().next().unwrap().clone();
     let second_key = model.domain().agents.keys().next_back().unwrap().clone();
-    let first_site = model.domain().sites.values().next().unwrap().clone();
+    let first_site = model.domain().campaigns.values().next().unwrap().clone();
     {
         let domain = model.domain_mut();
         let first = domain.agents.get_mut(&first_key).unwrap();
@@ -59,8 +59,8 @@ fn searchable_model() -> Model {
         let mut second_site = first_site;
         second_site.workspace_id = WorkspaceId::new("w2");
         "Moon Base".clone_into(&mut second_site.label);
-        second_site.agents = vec![second_key];
-        domain.sites.insert(WorkspaceId::new("w2"), second_site);
+        second_site.party = vec![second_key];
+        domain.campaigns.insert(WorkspaceId::new("w2"), second_site);
     }
     model
 }
@@ -130,9 +130,9 @@ fn region_cycle_is_deterministic_and_wraps() {
 
     for expected in [
         Region::Inbox,
-        Region::Guestbook,
+        Region::Chronicle,
         Region::Agent,
-        Region::Sites,
+        Region::Campaigns,
     ] {
         let reduction = reduce_action(&mut model, Action::CycleRegion);
         assert_eq!(model.region(), expected);
@@ -152,7 +152,7 @@ fn first_and_last_select_boundaries_and_load_only_changed_selection() {
     );
     assert_eq!(
         last.commands,
-        vec![DeskCommand::LoadOutput {
+        vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p2"),
             lines: 80,
         }]
@@ -168,7 +168,7 @@ fn first_and_last_select_boundaries_and_load_only_changed_selection() {
     );
     assert_eq!(
         first.commands,
-        vec![DeskCommand::LoadOutput {
+        vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
         }]
@@ -182,7 +182,7 @@ fn relative_selection_loads_one_preview_per_change() {
     let next = reduce_action(&mut model, Action::Next);
     assert_eq!(
         next.commands,
-        vec![DeskCommand::LoadOutput {
+        vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p2"),
             lines: 80,
         }]
@@ -191,7 +191,7 @@ fn relative_selection_loads_one_preview_per_change() {
     let previous = reduce_action(&mut model, Action::Previous);
     assert_eq!(
         previous.commands,
-        vec![DeskCommand::LoadOutput {
+        vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
         }]
@@ -204,7 +204,7 @@ fn visit_focuses_selected_pane_and_empty_selection_is_contextual() {
     let visit = reduce_action(&mut selected, Action::Visit);
     assert_eq!(
         visit.commands,
-        vec![DeskCommand::FocusPane(PaneId::new("w1:p1"))]
+        vec![AgentCommand::FocusPane(PaneId::new("w1:p1"))]
     );
 
     let mut empty = Model::new(View::Guild);
@@ -236,7 +236,7 @@ fn navigation_does_not_load_output_for_a_managed_pane() {
     let previous = reduce_action(&mut model, Action::Previous);
     assert_eq!(
         previous.commands,
-        vec![DeskCommand::LoadOutput {
+        vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
         }]
@@ -266,7 +266,7 @@ fn refresh_loads_only_the_selected_output() {
     let refresh = reduce_action(&mut selected, Action::Refresh);
     assert_eq!(
         refresh.commands,
-        vec![DeskCommand::LoadOutput {
+        vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
         }]
@@ -290,7 +290,7 @@ fn configured_runtime_settings_drive_output_and_reviewr_commands() {
     let refresh = reduce_action(&mut model, Action::Refresh);
     assert_eq!(
         refresh.commands,
-        vec![DeskCommand::LoadOutput {
+        vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 123,
         }]
@@ -300,7 +300,7 @@ fn configured_runtime_settings_drive_output_and_reviewr_commands() {
     let reviewr = reduce_action(&mut model, Action::Reviewr);
     assert_eq!(
         reviewr.commands,
-        vec![DeskCommand::OpenReviewr {
+        vec![AgentCommand::InspectSpoils {
             pane_id: PaneId::new("w1:p1"),
             qualified_id: "acme.diff.inspect".to_owned(),
         }]
@@ -314,7 +314,7 @@ fn reviewr_opens_only_when_available_for_a_selection() {
     let open = reduce_action(&mut available, Action::Reviewr);
     assert_eq!(
         open.commands,
-        vec![DeskCommand::OpenReviewr {
+        vec![AgentCommand::InspectSpoils {
             pane_id: PaneId::new("w1:p1"),
             qualified_id: "persiyanov.reviewr.open".to_owned(),
         }]
@@ -356,7 +356,7 @@ fn reply_submit_sends_the_exact_draft_to_the_selected_pane() {
 
     assert_eq!(
         sent.commands,
-        vec![DeskCommand::SendReply {
+        vec![AgentCommand::SendCounsel {
             pane_id: PaneId::new("w1:p1"),
             text: "  use jsonb ".to_owned(),
         }]
@@ -401,13 +401,13 @@ fn empty_reply_stays_open_while_clear_and_cancel_are_local() {
 #[test]
 fn mark_seen_uses_the_domain_reducer_for_the_selected_agent() {
     let mut model = live_model_with_two_agents();
-    assert!(model.selected_agent().unwrap().attention.is_unseen());
+    assert!(model.selected_agent().unwrap().attention.is_unread());
 
     let marked = reduce_action(&mut model, Action::MarkSeen);
 
     assert!(marked.commands.is_empty());
     assert_eq!(marked.persistence, vec![Command::PersistState]);
-    assert!(!model.selected_agent().unwrap().attention.is_unseen());
+    assert!(!model.selected_agent().unwrap().attention.is_unread());
 
     let mut empty = Model::new(View::Guild);
     let no_mark = reduce_action(&mut empty, Action::MarkSeen);
@@ -429,7 +429,7 @@ fn mark_seen_keeps_the_newly_selected_distinct_persona_selected() {
 
     assert!(marked.commands.is_empty());
     assert_eq!(model.selected_agent_key(), Some(&selected));
-    assert!(!model.domain().agents[&selected].attention.is_unseen());
+    assert!(!model.domain().agents[&selected].attention.is_unread());
 }
 
 #[test]
@@ -485,7 +485,7 @@ fn search_is_case_insensitive_across_agent_fields() {
         assert_eq!(model.modal(), &Modal::None);
         assert_eq!(
             submitted.commands,
-            vec![DeskCommand::LoadOutput {
+            vec![AgentCommand::LoadOutput {
                 pane_id: PaneId::new("w1:p2"),
                 lines: 80,
             }],
@@ -580,7 +580,7 @@ fn cafe_visit_refresh_and_optional_reviewr_reuse_typed_desk_commands() {
     assert_eq!(cafe_reduction, desk_reduction);
     assert_eq!(
         cafe_reduction.commands,
-        vec![DeskCommand::OpenReviewr {
+        vec![AgentCommand::InspectSpoils {
             pane_id: PaneId::new("w1:p1"),
             qualified_id: "persiyanov.reviewr.open".to_owned(),
         }]

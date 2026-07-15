@@ -1,10 +1,10 @@
 use futures_util::FutureExt;
 use questmancer::{
     app::{ConnectionState, DisplayPreferences, Model, Motion, RuntimeSettings, View},
-    command::{CommandResult, DeskCommand},
+    command::{AgentCommand, CommandResult},
     domain::{
-        Agent, AgentKey, AgentPersona, Attention, AttentionReason, DomainState, PaneId, PersonaKey,
-        Presence, Timestamp,
+        Agent, AgentKey, AgentPersona, DomainState, GuildAttention, GuildSummons, PaneId,
+        PersonaKey, Presence, Timestamp,
     },
     herdr::{
         environment::HerdrEnvironment,
@@ -39,7 +39,7 @@ fn animated_agent(key: &str, presence: Presence, since: i64) -> Agent {
     agent.key = AgentKey::new(key);
     agent.presence = presence;
     agent.presence_since = Timestamp::from_millis(since);
-    agent.attention = Attention::Clear;
+    agent.attention = GuildAttention::Clear;
     agent
 }
 
@@ -83,7 +83,7 @@ fn connected_model_with_presence(presence: Presence) -> Model {
     ));
     let agent = model.domain_mut().agents.values_mut().next().unwrap();
     agent.presence = presence;
-    agent.attention = Attention::Clear;
+    agent.attention = GuildAttention::Clear;
     model
 }
 
@@ -113,7 +113,7 @@ fn blocked_transition_routes_history_and_state_to_persistence() {
         effects
             .persistence
             .iter()
-            .filter(|effect| effect.is_guestbook_append())
+            .filter(|effect| effect.is_chronicle_append())
             .count(),
         1
     );
@@ -200,10 +200,10 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
     assert_eq!(model.domain().agents.len(), 1);
     assert!(effects.desk.iter().any(|command| matches!(
         command,
-        DeskCommand::LoadOutput { pane_id, lines: 123 }
+        AgentCommand::LoadOutput { pane_id, lines: 123 }
             if pane_id.as_str() == "w1:p1"
     )));
-    assert!(effects.desk.contains(&DeskCommand::DiscoverReviewr {
+    assert!(effects.desk.contains(&AgentCommand::DiscoverReviewr {
         qualified_id: "acme.diff.inspect".to_owned(),
     }));
 }
@@ -249,7 +249,7 @@ fn selected_status_change_refreshes_only_that_output() {
     assert_eq!(effects.desk.len(), 1);
     assert!(matches!(
         &effects.desk[0],
-        DeskCommand::LoadOutput { pane_id, .. } if pane_id.as_str() == "w1:p1"
+        AgentCommand::LoadOutput { pane_id, .. } if pane_id.as_str() == "w1:p1"
     ));
 }
 
@@ -379,7 +379,7 @@ async fn runtime_shutdown_cancels_supervisor_and_command_tasks() {
     let _listener = UnixListener::bind(&socket_path).unwrap();
     let environment = HerdrEnvironment::new(&socket_path, "/usr/bin/herdr");
     let mut connection = RuntimeConnection::start(&environment);
-    connection.schedule([DeskCommand::RefreshSnapshot]);
+    connection.schedule([AgentCommand::RefreshSnapshot]);
     tokio::task::yield_now().await;
 
     timeout(std::time::Duration::from_secs(1), connection.shutdown())
@@ -394,7 +394,7 @@ async fn runtime_connection_exposes_owned_work_as_typed_events() {
     let environment =
         HerdrEnvironment::new(directory.path().join("missing.sock"), "/usr/bin/herdr");
     let mut connection = RuntimeConnection::start(&environment);
-    connection.schedule([DeskCommand::RefreshSnapshot]);
+    connection.schedule([AgentCommand::RefreshSnapshot]);
 
     timeout(std::time::Duration::from_secs(1), async {
         loop {
@@ -437,7 +437,8 @@ async fn runtime_clock_advances_from_one_epoch_sample_using_tokio_time() {
 async fn stale_999ms_model_resets_to_the_absolute_done_boundary_after_slow_render() {
     let clock = RuntimeClock::new(Timestamp::from_millis(0));
     let mut done = animated_agent("done", Presence::Done, 0);
-    done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+    done.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0));
     let mut model = animated_model([done], 0, Motion::Full);
     let mut scheduler = AnimationScheduler::new();
 
@@ -494,7 +495,8 @@ async fn mixed_six_and_eight_fps_agents_choose_each_earliest_boundary() {
     let clock = RuntimeClock::new(Timestamp::from_millis(0));
     let working = animated_agent("working", Presence::Working, 0);
     let mut done = animated_agent("done", Presence::Done, 0);
-    done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+    done.attention =
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0));
     let mut model = animated_model([working, done], 0, Motion::Full);
     let mut scheduler = AnimationScheduler::new();
     let boundaries = [125, 167, 250, 334, 375, 500, 625, 667, 750, 834, 875, 1_000];

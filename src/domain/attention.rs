@@ -4,70 +4,70 @@ use super::Timestamp;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum AttentionReason {
-    NeedsInput,
-    WorkCompleted,
-    PaneExited,
+pub enum GuildSummons {
+    CounselRequested,
+    SpoilsReturned,
+    AdventurerDeparted,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Attention {
+pub enum GuildAttention {
     Clear,
-    Unseen {
-        reason: AttentionReason,
+    Unread {
+        summons: GuildSummons,
         since: Timestamp,
     },
-    Seen {
-        reason: AttentionReason,
+    Read {
+        summons: GuildSummons,
         since: Timestamp,
     },
-    Snoozed {
-        reason: AttentionReason,
+    Deferred {
+        summons: GuildSummons,
         since: Timestamp,
         until: Timestamp,
     },
 }
 
-impl Attention {
-    pub const fn unseen(reason: AttentionReason, since: Timestamp) -> Self {
-        Self::Unseen { reason, since }
+impl GuildAttention {
+    pub const fn unread(summons: GuildSummons, since: Timestamp) -> Self {
+        Self::Unread { summons, since }
     }
 
     #[must_use]
-    pub fn mark_seen(self) -> Self {
+    pub fn mark_read(self) -> Self {
         match self {
-            Self::Unseen { reason, since } | Self::Snoozed { reason, since, .. } => {
-                Self::Seen { reason, since }
+            Self::Unread { summons, since } | Self::Deferred { summons, since, .. } => {
+                Self::Read { summons, since }
             }
             attention => attention,
         }
     }
 
-    pub const fn reason(&self) -> Option<AttentionReason> {
+    pub const fn summons(&self) -> Option<GuildSummons> {
         match self {
             Self::Clear => None,
-            Self::Unseen { reason, .. }
-            | Self::Seen { reason, .. }
-            | Self::Snoozed { reason, .. } => Some(*reason),
+            Self::Unread { summons, .. }
+            | Self::Read { summons, .. }
+            | Self::Deferred { summons, .. } => Some(*summons),
         }
     }
 
     pub const fn since(&self) -> Option<Timestamp> {
         match self {
             Self::Clear => None,
-            Self::Unseen { since, .. } | Self::Seen { since, .. } | Self::Snoozed { since, .. } => {
-                Some(*since)
-            }
+            Self::Unread { since, .. }
+            | Self::Read { since, .. }
+            | Self::Deferred { since, .. } => Some(*since),
         }
     }
 
-    pub const fn is_unseen(&self) -> bool {
-        matches!(self, Self::Unseen { .. })
+    pub const fn is_unread(&self) -> bool {
+        matches!(self, Self::Unread { .. })
     }
 }
 
-impl Default for Attention {
+impl Default for GuildAttention {
     fn default() -> Self {
         Self::Clear
     }

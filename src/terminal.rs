@@ -511,8 +511,8 @@ mod tests {
 
     use crate::{
         app::View,
-        domain::{EventId, GuestbookEntry, GuestbookEvent},
-        persistence::{PersistedStateV1, WorkerPaths, load_guestbook, load_state},
+        domain::{ChronicleEntry, ChronicleEvent, EventId},
+        persistence::{PersistedStateV1, WorkerPaths, load_chronicle, load_state},
     };
 
     use super::*;
@@ -532,32 +532,32 @@ mod tests {
     async fn signal_shutdown_flushes_state_after_an_acknowledged_append() {
         let directory = tempfile::tempdir().unwrap();
         let state_path = directory.path().join("state.json");
-        let guestbook_path = directory.path().join("guestbook.jsonl");
+        let chronicle_path = directory.path().join("chronicle.jsonl");
         let environment =
             HerdrEnvironment::new(directory.path().join("missing.sock"), "/usr/bin/herdr");
         let (mut lifecycle, _diagnostics) = RuntimeLifecycle::start(
             Some(&environment),
-            WorkerPaths::new(Some(state_path.clone()), Some(guestbook_path.clone())),
+            WorkerPaths::new(Some(state_path.clone()), Some(chronicle_path.clone())),
         );
         lifecycle
             .connection_mut()
             .unwrap()
-            .schedule([crate::command::DeskCommand::RefreshSnapshot]);
+            .schedule([crate::command::AgentCommand::RefreshSnapshot]);
         let model = Model::new(View::Delve);
         let state = PersistedStateV1::capture(&model);
-        let entry = GuestbookEntry {
+        let entry = ChronicleEntry {
             id: EventId::new("signal-shutdown"),
             occurred_at: Timestamp::from_millis(1_000),
-            agent: None,
-            workspace: None,
+            adventurer: None,
+            campaign: None,
             pane: None,
             pane_revision: 1,
-            kind: GuestbookEvent::WorkCompleted,
+            event: ChronicleEvent::SpoilsReturned,
             summary: "completed before signal".to_owned(),
         };
         lifecycle
             .persistence_mut()
-            .append_guestbook(entry.clone())
+            .append_chronicle(entry.clone())
             .await
             .unwrap();
         lifecycle
@@ -575,9 +575,9 @@ mod tests {
         );
 
         assert_eq!(load_state(&state_path).await.unwrap(), Some(state));
-        let replay = load_guestbook(&guestbook_path, 10).await;
+        let replay = load_chronicle(&chronicle_path, 10).await;
         assert_eq!(
-            replay.guestbook.entries().iter().collect::<Vec<_>>(),
+            replay.chronicle.entries().iter().collect::<Vec<_>>(),
             vec![&entry]
         );
     }

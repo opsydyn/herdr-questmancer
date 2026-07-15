@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use questmancer::{
     domain::{
-        AgentKey, Attention, AttentionReason, DomainState, Guestbook, PaneId, Presence, Site,
+        AgentKey, Campaign, Chronicle, DomainState, GuildAttention, GuildSummons, PaneId, Presence,
         TabId, Timestamp, WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
@@ -13,8 +13,8 @@ pub(crate) mod strategies;
 
 #[allow(unused_imports)]
 pub(crate) use strategies::{
-    agent, agent_identity, agent_status, attention, domain_state, domain_with_one_agent,
-    guestbook_event, pane_id, persisted_state, status_event, timestamp, topology_events,
+    agent, agent_identity, agent_status, attention, chronicle_event, domain_state,
+    domain_with_one_agent, pane_id, persisted_state, status_event, timestamp, topology_events,
 };
 
 pub(crate) fn fixture_domain() -> DomainState {
@@ -25,9 +25,9 @@ pub(crate) fn fixture_domain() -> DomainState {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct LiveFacts {
-    sites: BTreeMap<WorkspaceId, Site>,
+    campaigns: BTreeMap<WorkspaceId, Campaign>,
     agents: BTreeMap<AgentKey, LiveAgentFacts>,
-    guestbook: Guestbook,
+    chronicle: Chronicle,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -40,28 +40,27 @@ struct LiveAgentFacts {
     custom_status: Option<String>,
     presence: Presence,
     presence_since: Timestamp,
-    attention_episode: Option<(AttentionReason, Timestamp, Option<Timestamp>)>,
+    attention_episode: Option<(GuildSummons, Timestamp, Option<Timestamp>)>,
     focused: bool,
     pane_revision: u64,
 }
 
 pub(crate) fn live_facts(domain: &DomainState) -> LiveFacts {
     LiveFacts {
-        sites: domain.sites.clone(),
+        campaigns: domain.campaigns.clone(),
         agents: domain
             .agents
             .iter()
             .map(|(key, agent)| {
                 let attention_episode = match agent.attention {
-                    Attention::Clear => None,
-                    Attention::Unseen { reason, since } | Attention::Seen { reason, since } => {
-                        Some((reason, since, None))
-                    }
-                    Attention::Snoozed {
-                        reason,
+                    GuildAttention::Clear => None,
+                    GuildAttention::Unread { summons, since }
+                    | GuildAttention::Read { summons, since } => Some((summons, since, None)),
+                    GuildAttention::Deferred {
+                        summons,
                         since,
                         until,
-                    } => Some((reason, since, Some(until))),
+                    } => Some((summons, since, Some(until))),
                 };
                 (
                     key.clone(),
@@ -81,7 +80,7 @@ pub(crate) fn live_facts(domain: &DomainState) -> LiveFacts {
                 )
             })
             .collect(),
-        guestbook: domain.guestbook.clone(),
+        chronicle: domain.chronicle.clone(),
     }
 }
 

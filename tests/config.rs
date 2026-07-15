@@ -3,19 +3,19 @@ use std::path::Path;
 use proptest::prelude::*;
 use questmancer::{
     app::{CharacterSet, ColorMode, Motion, View},
-    config::{PersistencePaths, WebmasterConfig},
+    config::{PersistencePaths, QuestmancerConfig},
 };
 
 #[test]
 fn parses_a_complete_configuration() {
-    let config = WebmasterConfig::parse(
+    let config = QuestmancerConfig::parse(
         br#"
             default_view = "delve"
             motion = "reduced"
             character_set = "ascii"
             color_mode = "ansi16"
             output_preview_lines = 120
-            guestbook_max_entries = 750
+            chronicle_max_entries = 750
             reviewr_action = "persiyanov.reviewr.open"
             show_elapsed_time = false
             future_field = "accepted"
@@ -28,21 +28,21 @@ fn parses_a_complete_configuration() {
     assert_eq!(config.preferences.character_set, CharacterSet::Ascii);
     assert_eq!(config.preferences.color_mode, ColorMode::Ansi16);
     assert_eq!(config.output_preview_lines, 120);
-    assert_eq!(config.guestbook_max_entries, 750);
+    assert_eq!(config.chronicle_max_entries, 750);
     assert_eq!(config.reviewr_action, "persiyanov.reviewr.open");
     assert!(!config.show_elapsed_time);
 }
 
 #[test]
 fn empty_configuration_uses_complete_defaults() {
-    let config = WebmasterConfig::parse(b"").unwrap();
+    let config = QuestmancerConfig::parse(b"").unwrap();
 
     assert_eq!(config.default_view, View::Guild);
     assert_eq!(config.preferences.motion, Motion::Full);
     assert_eq!(config.preferences.character_set, CharacterSet::Unicode);
     assert_eq!(config.preferences.color_mode, ColorMode::Xterm256);
     assert_eq!(config.output_preview_lines, 80);
-    assert_eq!(config.guestbook_max_entries, 500);
+    assert_eq!(config.chronicle_max_entries, 500);
     assert_eq!(config.reviewr_action, "persiyanov.reviewr.open");
     assert!(config.show_elapsed_time);
 }
@@ -50,7 +50,7 @@ fn empty_configuration_uses_complete_defaults() {
 #[test]
 fn accepts_every_view_value() {
     for (value, expected) in [("guild", View::Guild), ("delve", View::Delve)] {
-        let config = WebmasterConfig::parse(format!("default_view = '{value}'").as_bytes())
+        let config = QuestmancerConfig::parse(format!("default_view = '{value}'").as_bytes())
             .expect("accepted view");
         assert_eq!(config.default_view, expected);
     }
@@ -63,7 +63,7 @@ fn accepts_every_motion_value() {
         ("reduced", Motion::Reduced),
         ("none", Motion::None),
     ] {
-        let config = WebmasterConfig::parse(format!("motion = '{value}'").as_bytes())
+        let config = QuestmancerConfig::parse(format!("motion = '{value}'").as_bytes())
             .expect("accepted motion");
         assert_eq!(config.preferences.motion, expected);
     }
@@ -75,7 +75,7 @@ fn accepts_every_character_set_value() {
         ("unicode", CharacterSet::Unicode),
         ("ascii", CharacterSet::Ascii),
     ] {
-        let config = WebmasterConfig::parse(format!("character_set = '{value}'").as_bytes())
+        let config = QuestmancerConfig::parse(format!("character_set = '{value}'").as_bytes())
             .expect("accepted character set");
         assert_eq!(config.preferences.character_set, expected);
     }
@@ -87,7 +87,7 @@ fn accepts_every_color_mode_value() {
         ("xterm256", ColorMode::Xterm256),
         ("ansi16", ColorMode::Ansi16),
     ] {
-        let config = WebmasterConfig::parse(format!("color_mode = '{value}'").as_bytes())
+        let config = QuestmancerConfig::parse(format!("color_mode = '{value}'").as_bytes())
             .expect("accepted color mode");
         assert_eq!(config.preferences.color_mode, expected);
     }
@@ -96,7 +96,7 @@ fn accepts_every_color_mode_value() {
 #[test]
 fn accepts_output_preview_line_bounds() {
     for value in [10, 500] {
-        let config = WebmasterConfig::parse(format!("output_preview_lines = {value}").as_bytes())
+        let config = QuestmancerConfig::parse(format!("output_preview_lines = {value}").as_bytes())
             .expect("value at the bound");
         assert_eq!(config.output_preview_lines, value);
     }
@@ -105,33 +105,34 @@ fn accepts_output_preview_line_bounds() {
 #[test]
 fn rejects_output_preview_lines_outside_bounds() {
     for value in [9, 501] {
-        let error = WebmasterConfig::parse(format!("output_preview_lines = {value}").as_bytes())
+        let error = QuestmancerConfig::parse(format!("output_preview_lines = {value}").as_bytes())
             .unwrap_err();
         assert!(error.to_string().contains("output_preview_lines"));
     }
 }
 
 #[test]
-fn accepts_guestbook_entry_bounds() {
+fn accepts_chronicle_entry_bounds() {
     for value in [50, 10_000] {
-        let config = WebmasterConfig::parse(format!("guestbook_max_entries = {value}").as_bytes())
-            .expect("value at the bound");
-        assert_eq!(config.guestbook_max_entries, value);
+        let config =
+            QuestmancerConfig::parse(format!("chronicle_max_entries = {value}").as_bytes())
+                .expect("value at the bound");
+        assert_eq!(config.chronicle_max_entries, value);
     }
 }
 
 #[test]
-fn rejects_guestbook_entries_outside_bounds() {
+fn rejects_chronicle_entries_outside_bounds() {
     for value in [49, 10_001] {
-        let error = WebmasterConfig::parse(format!("guestbook_max_entries = {value}").as_bytes())
+        let error = QuestmancerConfig::parse(format!("chronicle_max_entries = {value}").as_bytes())
             .unwrap_err();
-        assert!(error.to_string().contains("guestbook_max_entries"));
+        assert!(error.to_string().contains("chronicle_max_entries"));
     }
 }
 
 #[test]
 fn empty_reviewr_action_rejects_the_whole_file() {
-    let error = WebmasterConfig::parse(
+    let error = QuestmancerConfig::parse(
         br#"
             default_view = "delve"
             reviewr_action = "   "
@@ -144,7 +145,7 @@ fn empty_reviewr_action_rejects_the_whole_file() {
 
 #[test]
 fn malformed_toml_rejects_the_whole_file() {
-    assert!(WebmasterConfig::parse(b"default_view = [").is_err());
+    assert!(QuestmancerConfig::parse(b"default_view = [").is_err());
 }
 
 #[test]
@@ -164,8 +165,8 @@ fn discovers_each_plugin_directory_independently() {
         Path::new("/tmp/state/state.json")
     );
     assert_eq!(
-        paths.guestbook_path().unwrap(),
-        Path::new("/tmp/state/guestbook.jsonl")
+        paths.chronicle_path().unwrap(),
+        Path::new("/tmp/state/chronicle.jsonl")
     );
 }
 
@@ -179,7 +180,7 @@ fn missing_plugin_directories_disable_only_their_own_paths() {
         Path::new("/tmp/config/config.toml")
     );
     assert_eq!(config_only.state_path(), None);
-    assert_eq!(config_only.guestbook_path(), None);
+    assert_eq!(config_only.chronicle_path(), None);
 
     let state_only = PersistencePaths::from_lookup(|name| {
         (name == "HERDR_PLUGIN_STATE_DIR").then(|| "/tmp/state".into())
@@ -190,8 +191,8 @@ fn missing_plugin_directories_disable_only_their_own_paths() {
         Path::new("/tmp/state/state.json")
     );
     assert_eq!(
-        state_only.guestbook_path().unwrap(),
-        Path::new("/tmp/state/guestbook.jsonl")
+        state_only.chronicle_path().unwrap(),
+        Path::new("/tmp/state/chronicle.jsonl")
     );
 }
 
@@ -200,6 +201,6 @@ proptest! {
     fn arbitrary_config_bytes_never_panic(
         bytes in proptest::collection::vec(any::<u8>(), 0..4096),
     ) {
-        let _ = WebmasterConfig::parse(&bytes);
+        let _ = QuestmancerConfig::parse(&bytes);
     }
 }

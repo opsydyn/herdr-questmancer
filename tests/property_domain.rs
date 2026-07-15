@@ -7,8 +7,8 @@ use proptest::prelude::*;
 use questmancer::{
     app::{Model, View},
     domain::{
-        AgentKey, AgentPersona, AttentionReason, DomainState, GuestbookEntry, GuestbookEvent,
-        PersonaKey, Presence, Site, SiteStatus, WorkspaceId,
+        AgentKey, AgentPersona, Campaign, CampaignStatus, ChronicleEntry, ChronicleEvent,
+        DomainState, GuildSummons, PersonaKey, Presence, WorkspaceId,
     },
     ui::cafe_scene::layout_bays,
     update::{AppEvent, Command, update},
@@ -21,7 +21,7 @@ proptest! {
         workspaces in prop::collection::vec(support::strategies::workspace_id(), 0..=12),
         agents_per_workspace in prop::collection::vec(0usize..=4, 0..=12),
     ) {
-        let mut sites = BTreeMap::new();
+        let mut campaigns = BTreeMap::new();
         let mut agents = BTreeMap::new();
         let template = support::fixture_domain().agents.values().next().unwrap().clone();
         for (workspace_index, workspace_id) in workspaces.into_iter().enumerate() {
@@ -35,16 +35,16 @@ proptest! {
                 keys.push(agent.key.clone());
                 agents.insert(agent.key.clone(), agent);
             }
-            sites.entry(workspace_id.clone()).or_insert_with(|| Site {
+            campaigns.entry(workspace_id.clone()).or_insert_with(|| Campaign {
                 workspace_id,
                 label: "site".to_owned(),
                 cwd: "/tmp".into(),
-                agents: Vec::new(),
-            }).agents.extend(keys);
+                party: Vec::new(),
+            }).party.extend(keys);
         }
 
         for (width, height) in [(240, 120), (80, 24), (60, 18), (1, 1), (0, 0)] {
-            let bays = layout_bays(&sites, &agents, Rect::new(0, 0, width, height), None);
+            let bays = layout_bays(&campaigns, &agents, Rect::new(0, 0, width, height), None);
             let mut ownership = BTreeMap::<AgentKey, usize>::new();
             for bay in &bays {
                 for key in &bay.agent_keys {
@@ -118,9 +118,9 @@ proptest! {
     }
 
     #[test]
-    fn marking_attention_seen_is_idempotent(attention in support::attention()) {
-        let once = attention.clone().mark_seen();
-        let twice = once.clone().mark_seen();
+    fn marking_attention_read_is_idempotent(attention in support::attention()) {
+        let once = attention.clone().mark_read();
+        let twice = once.clone().mark_read();
 
         prop_assert_eq!(once, twice);
     }
@@ -151,11 +151,11 @@ proptest! {
     #[test]
     fn stale_revisions_never_regress_state(
         state in support::domain_with_one_agent(),
-        stale_revision in 0_u64..100,
+        stale_seed in any::<u64>(),
         status in support::agent_status(),
     ) {
         let current = state.agents.values().next().unwrap().pane_revision;
-        prop_assume!(stale_revision < current);
+        let stale_revision = stale_seed % current;
         let event = support::status_event(&state, stale_revision, status);
 
         let (next, commands) = update(state.clone(), event);
@@ -182,7 +182,7 @@ proptest! {
     }
 
     #[test]
-    fn site_status_priority_is_independent_of_agent_insertion_order(
+    fn campaign_status_priority_is_independent_of_agent_insertion_order(
         generated_agents in prop::collection::vec(support::agent(), 0..=8),
     ) {
         let mut forward_agents = BTreeMap::new();
@@ -197,47 +197,47 @@ proptest! {
         let forward_keys = forward_agents.keys().cloned().collect::<Vec<_>>();
         let mut reverse_keys = forward_keys.clone();
         reverse_keys.reverse();
-        let forward_site = Site {
+        let forward_campaign = Campaign {
             workspace_id: WorkspaceId::new("site"),
             label: "site".to_owned(),
             cwd: "/tmp/site".into(),
-            agents: forward_keys,
+            party: forward_keys,
         };
-        let reverse_site = Site {
-            agents: reverse_keys,
-            ..forward_site.clone()
+        let reverse_campaign = Campaign {
+            party: reverse_keys,
+            ..forward_campaign.clone()
         };
-        let expected = expected_site_status(&forward_agents);
+        let expected = expected_campaign_status(&forward_agents);
 
-        prop_assert_eq!(forward_site.status(&forward_agents), expected);
-        prop_assert_eq!(reverse_site.status(&reverse_agents), expected);
+        prop_assert_eq!(forward_campaign.status(&forward_agents), expected);
+        prop_assert_eq!(reverse_campaign.status(&reverse_agents), expected);
     }
 
     #[test]
-    fn guestbook_event_ids_are_stable_for_equal_identity_inputs(
+    fn chronicle_event_ids_are_stable_for_equal_identity_inputs(
         occurred_at in support::timestamp(),
         pane in prop::option::of(support::pane_id()),
         pane_revision in any::<u64>(),
-        kind in support::guestbook_event(),
+        event in support::chronicle_event(),
         first_summary in ".{0,32}",
         second_summary in ".{0,32}",
     ) {
-        let first = GuestbookEntry::new(
+        let first = ChronicleEntry::new(
             occurred_at,
             Some("agent-first".into()),
             Some("workspace-first".into()),
             pane.clone(),
             pane_revision,
-            kind,
+            event,
             first_summary,
         );
-        let second = GuestbookEntry::new(
+        let second = ChronicleEntry::new(
             occurred_at,
             Some("agent-second".into()),
             Some("workspace-second".into()),
             pane,
             pane_revision,
-            kind,
+            event,
             second_summary,
         );
 
@@ -266,54 +266,54 @@ fn assert_topology_commands(
                 prop_assert!(commands.is_empty());
             } else {
                 prop_assert_eq!(commands.len(), 2);
-                let Command::AppendGuestbook(entry) = &commands[0] else {
-                    prop_assert!(false, "real pane exit must append guestbook history");
+                let Command::AppendChronicle(entry) = &commands[0] else {
+                    prop_assert!(false, "real pane exit must append Chronicle history");
                     return Ok(());
                 };
-                prop_assert_eq!(entry.kind, GuestbookEvent::PaneExited);
+                prop_assert_eq!(entry.event, ChronicleEvent::AdventurerDeparted);
                 prop_assert_eq!(entry.pane.as_ref(), Some(pane_id));
                 prop_assert_eq!(entry.pane_revision, *revision);
                 prop_assert_eq!(&commands[1], &Command::PersistState);
             }
         }
         AppEvent::WorkspaceClosed(workspace_id) => {
-            if state.sites.contains_key(workspace_id) {
+            if state.campaigns.contains_key(workspace_id) {
                 prop_assert_eq!(commands, [Command::PersistState]);
             } else {
                 prop_assert!(commands.is_empty());
             }
         }
-        AppEvent::AgentStatusChanged { .. } | AppEvent::MarkSeen(_) => {
+        AppEvent::AgentStatusChanged { .. } | AppEvent::MarkRead(_) => {
             prop_assert!(false, "topology strategy emitted a non-topology event");
         }
     }
     Ok(())
 }
 
-fn expected_site_status(
+fn expected_campaign_status(
     agents: &BTreeMap<questmancer::domain::AgentKey, questmancer::domain::Agent>,
-) -> SiteStatus {
+) -> CampaignStatus {
     if agents
         .values()
         .any(|agent| agent.presence == Presence::Blocked)
     {
-        SiteStatus::NeedsWebmaster
+        CampaignStatus::CounselRequired
     } else if agents.values().any(|agent| {
-        agent.attention.is_unseen()
-            && agent.attention.reason() == Some(AttentionReason::WorkCompleted)
+        agent.attention.is_unread()
+            && agent.attention.summons() == Some(GuildSummons::SpoilsReturned)
     }) {
-        SiteStatus::UpdateReady
+        CampaignStatus::SpoilsAwaitingInspection
     } else if agents
         .values()
         .any(|agent| agent.presence == Presence::Working)
     {
-        SiteStatus::Updating
+        CampaignStatus::ExpeditionActive
     } else if agents
         .values()
         .any(|agent| agent.presence != Presence::Exited)
     {
-        SiteStatus::Online
+        CampaignStatus::PartyAtRest
     } else {
-        SiteStatus::Offline
+        CampaignStatus::Abandoned
     }
 }

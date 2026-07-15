@@ -1,7 +1,7 @@
 use crate::{
     domain::{
-        Attention, AttentionReason, DomainState, GuestbookEntry, GuestbookEvent, PaneId, Presence,
-        Timestamp, WorkspaceId,
+        ChronicleEntry, ChronicleEvent, DomainState, GuildAttention, GuildSummons, PaneId,
+        Presence, Timestamp, WorkspaceId,
     },
     herdr::protocol::AgentStatus,
 };
@@ -36,7 +36,7 @@ pub fn update(mut state: DomainState, event: AppEvent) -> (DomainState, Vec<Comm
             occurred_at,
         } => exit_pane(&mut state, &pane_id, revision, occurred_at),
         AppEvent::WorkspaceClosed(workspace_id) => close_workspace(&mut state, &workspace_id),
-        AppEvent::MarkSeen(agent_key) => mark_seen(&mut state, &agent_key),
+        AppEvent::MarkRead(agent_key) => mark_read(&mut state, &agent_key),
     };
     (state, commands)
 }
@@ -65,7 +65,7 @@ fn replace_snapshot(
     {
         replacement.selected_agent.clone_from(&state.selected_agent);
     }
-    replacement.guestbook = state.guestbook.clone();
+    replacement.chronicle = state.chronicle.clone();
     *state = replacement;
     vec![Command::PersistState]
 }
@@ -100,33 +100,33 @@ fn change_status(
     agent.custom_status = custom_status;
     let (attention, event, summary) = match next_presence {
         Presence::Working => (
-            Attention::Clear,
-            GuestbookEvent::WorkStarted,
+            GuildAttention::Clear,
+            ChronicleEvent::DelveBegan,
             "started updating",
         ),
         Presence::Blocked => (
-            Attention::unseen(AttentionReason::NeedsInput, occurred_at),
-            GuestbookEvent::WebmasterNeeded,
+            GuildAttention::unread(GuildSummons::CounselRequested, occurred_at),
+            ChronicleEvent::CounselRequested,
             "contacted the webmaster",
         ),
         Presence::Done => (
-            Attention::unseen(AttentionReason::WorkCompleted, occurred_at),
-            GuestbookEvent::WorkCompleted,
+            GuildAttention::unread(GuildSummons::SpoilsReturned, occurred_at),
+            ChronicleEvent::SpoilsReturned,
             "published a site update",
         ),
         Presence::Idle => (
-            Attention::Clear,
-            GuestbookEvent::AgentBecameIdle,
+            GuildAttention::Clear,
+            ChronicleEvent::AdventurerRested,
             "went idle",
         ),
         Presence::Exited => (
-            Attention::unseen(AttentionReason::PaneExited, occurred_at),
-            GuestbookEvent::PaneExited,
+            GuildAttention::unread(GuildSummons::AdventurerDeparted, occurred_at),
+            ChronicleEvent::AdventurerDeparted,
             "left a broken link",
         ),
         Presence::Unknown => (
-            Attention::Clear,
-            GuestbookEvent::AgentDetected,
+            GuildAttention::Clear,
+            ChronicleEvent::AdventurerJoined,
             "status unknown",
         ),
     };
@@ -149,12 +149,12 @@ fn exit_pane(
     }
     agent.presence = Presence::Exited;
     agent.presence_since = occurred_at;
-    agent.attention = Attention::unseen(AttentionReason::PaneExited, occurred_at);
+    agent.attention = GuildAttention::unread(GuildSummons::AdventurerDeparted, occurred_at);
     agent.pane_revision = revision;
     append_history(
         state,
         &key,
-        GuestbookEvent::PaneExited,
+        ChronicleEvent::AdventurerDeparted,
         "left a broken link",
         occurred_at,
     )
@@ -163,29 +163,29 @@ fn exit_pane(
 fn append_history(
     state: &mut DomainState,
     key: &crate::domain::AgentKey,
-    kind: GuestbookEvent,
+    event: ChronicleEvent,
     summary: &str,
     occurred_at: Timestamp,
 ) -> Vec<Command> {
     let agent = &state.agents[key];
-    let entry = GuestbookEntry::new(
+    let entry = ChronicleEntry::new(
         occurred_at,
         Some(key.clone()),
         Some(agent.workspace_id.clone()),
         Some(agent.pane_id.clone()),
         agent.pane_revision,
-        kind,
+        event,
         format!("{} {summary}", agent.name),
     );
-    if state.guestbook.append(entry.clone()) {
-        vec![Command::AppendGuestbook(entry), Command::PersistState]
+    if state.chronicle.append(entry.clone()) {
+        vec![Command::AppendChronicle(entry), Command::PersistState]
     } else {
         Vec::new()
     }
 }
 
 fn close_workspace(state: &mut DomainState, workspace_id: &WorkspaceId) -> Vec<Command> {
-    if state.sites.remove(workspace_id).is_none() {
+    if state.campaigns.remove(workspace_id).is_none() {
         return Vec::new();
     }
     state
@@ -201,13 +201,13 @@ fn close_workspace(state: &mut DomainState, workspace_id: &WorkspaceId) -> Vec<C
     vec![Command::PersistState]
 }
 
-fn mark_seen(state: &mut DomainState, agent_key: &crate::domain::AgentKey) -> Vec<Command> {
+fn mark_read(state: &mut DomainState, agent_key: &crate::domain::AgentKey) -> Vec<Command> {
     let Some(agent) = state.agents.get_mut(agent_key) else {
         return Vec::new();
     };
-    if !agent.attention.is_unseen() {
+    if !agent.attention.is_unread() {
         return Vec::new();
     }
-    agent.attention = agent.attention.clone().mark_seen();
+    agent.attention = agent.attention.clone().mark_read();
     vec![Command::PersistState]
 }

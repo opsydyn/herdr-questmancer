@@ -2,10 +2,10 @@ use std::{io::ErrorKind, path::PathBuf};
 
 use crate::{
     app::{Model, View},
-    config::{PersistencePaths, WebmasterConfig},
+    config::{PersistencePaths, QuestmancerConfig},
 };
 
-use super::{PersistenceDiagnostic, WorkerPaths, parse_state, replay_guestbook};
+use super::{PersistenceDiagnostic, WorkerPaths, parse_state, replay_chronicle};
 
 #[derive(Debug)]
 pub struct StartupData {
@@ -17,12 +17,12 @@ pub struct StartupData {
 pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) -> StartupData {
     let config_path = paths.config_path();
     let state_path = paths.state_path();
-    let guestbook_path = paths.guestbook_path();
+    let chronicle_path = paths.chronicle_path();
 
-    let (config_read, state_read, guestbook_read) = tokio::join!(
+    let (config_read, state_read, chronicle_read) = tokio::join!(
         read_optional(config_path, "read config"),
         read_optional(state_path.clone(), "read state"),
-        read_optional(guestbook_path.clone(), "read guestbook"),
+        read_optional(chronicle_path.clone(), "read chronicle"),
     );
 
     let mut diagnostics = Vec::new();
@@ -37,10 +37,10 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
         StateLoad::Loaded(state) => Some(state),
         StateLoad::Missing | StateLoad::Protected => None,
     };
-    let worker_paths = WorkerPaths::new(worker_state_path, guestbook_path);
-    let replay = interpret_guestbook(
-        guestbook_read,
-        config.guestbook_max_entries,
+    let worker_paths = WorkerPaths::new(worker_state_path, chronicle_path);
+    let replay = interpret_chronicle(
+        chronicle_read,
+        config.chronicle_max_entries,
         &mut diagnostics,
     );
 
@@ -61,7 +61,7 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
         let seeded = model.durable_intent_mut().seed(state);
         debug_assert!(seeded.is_ok());
     }
-    model.domain_mut().guestbook = replay;
+    model.domain_mut().chronicle = replay;
 
     StartupData {
         model,
@@ -123,15 +123,15 @@ async fn read_optional(path: Option<PathBuf>, operation: &'static str) -> RawRea
 fn interpret_config(
     read: RawRead,
     diagnostics: &mut Vec<PersistenceDiagnostic>,
-) -> WebmasterConfig {
+) -> QuestmancerConfig {
     if let Some(diagnostic) = read.diagnostic {
         diagnostics.push(diagnostic);
-        return WebmasterConfig::default();
+        return QuestmancerConfig::default();
     }
     let (Some(path), Some(bytes)) = (read.path, read.bytes) else {
-        return WebmasterConfig::default();
+        return QuestmancerConfig::default();
     };
-    match WebmasterConfig::parse(&bytes) {
+    match QuestmancerConfig::parse(&bytes) {
         Ok(config) => config,
         Err(error) => {
             diagnostics.push(PersistenceDiagnostic {
@@ -140,7 +140,7 @@ fn interpret_config(
                 line: None,
                 source_message: error.to_string(),
             });
-            WebmasterConfig::default()
+            QuestmancerConfig::default()
         }
     }
 }
@@ -168,19 +168,19 @@ fn interpret_state(read: RawRead, diagnostics: &mut Vec<PersistenceDiagnostic>) 
     }
 }
 
-fn interpret_guestbook(
+fn interpret_chronicle(
     read: RawRead,
     maximum_entries: usize,
     diagnostics: &mut Vec<PersistenceDiagnostic>,
-) -> crate::domain::Guestbook {
+) -> crate::domain::Chronicle {
     if let Some(diagnostic) = read.diagnostic {
         diagnostics.push(diagnostic);
-        return crate::domain::Guestbook::new(maximum_entries);
+        return crate::domain::Chronicle::new(maximum_entries);
     }
     let (Some(path), Some(bytes)) = (read.path, read.bytes) else {
-        return crate::domain::Guestbook::new(maximum_entries);
+        return crate::domain::Chronicle::new(maximum_entries);
     };
-    let replay = replay_guestbook(&path, &bytes, maximum_entries);
+    let replay = replay_chronicle(&path, &bytes, maximum_entries);
     diagnostics.extend(replay.diagnostics);
-    replay.guestbook
+    replay.chronicle
 }

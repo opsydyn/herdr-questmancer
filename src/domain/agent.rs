@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::herdr::protocol::{AgentInfo, AgentStatus};
 
 use super::{
-    AgentKey, AgentPersona, Attention, AttentionReason, PaneId, PersonaKey, TabId, Timestamp,
+    AgentKey, AgentPersona, GuildAttention, GuildSummons, PaneId, PersonaKey, TabId, Timestamp,
     WorkspaceId,
 };
 
@@ -40,7 +40,7 @@ pub struct Agent {
     pub custom_status: Option<String>,
     pub presence: Presence,
     pub presence_since: Timestamp,
-    pub attention: Attention,
+    pub attention: GuildAttention,
     pub focused: bool,
     pub pane_revision: u64,
     pub persona: AgentPersona,
@@ -57,10 +57,12 @@ impl Agent {
         let key = AgentKey::from_persona_key(&persona.key);
         let presence = Presence::from(agent.agent_status);
         let attention = match presence {
-            Presence::Blocked => Attention::unseen(AttentionReason::NeedsInput, observed_at),
-            Presence::Done => Attention::unseen(AttentionReason::WorkCompleted, observed_at),
+            Presence::Blocked => {
+                GuildAttention::unread(GuildSummons::CounselRequested, observed_at)
+            }
+            Presence::Done => GuildAttention::unread(GuildSummons::SpoilsReturned, observed_at),
             Presence::Working | Presence::Idle | Presence::Exited | Presence::Unknown => {
-                Attention::Clear
+                GuildAttention::Clear
             }
         };
         Self {

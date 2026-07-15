@@ -1,6 +1,6 @@
 use questmancer::{
     app::{ConnectionState, Model, OutputPreview, RuntimeSettings, View},
-    domain::{Attention, AttentionReason, DomainState, PaneId, Presence, Timestamp},
+    domain::{DomainState, GuildAttention, GuildSummons, PaneId, Presence, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::reduce_action,
     ui,
@@ -28,7 +28,7 @@ fn live_model() -> Model {
     model
 }
 
-fn model_with_presence(presence: Presence, attention: Attention) -> Model {
+fn model_with_presence(presence: Presence, attention: GuildAttention) -> Model {
     let mut model = live_model();
     let agent = model.domain_mut().agents.values_mut().next().unwrap();
     agent.presence = presence;
@@ -79,7 +79,7 @@ fn empty_desk_explains_how_to_put_a_site_under_construction() {
 
 #[test]
 fn working_desk_uses_the_injected_clock_for_elapsed_time() {
-    let model = model_with_presence(Presence::Working, Attention::Clear);
+    let model = model_with_presence(Presence::Working, GuildAttention::Clear);
 
     let screen = render(&model, 130, 32);
 
@@ -88,7 +88,7 @@ fn working_desk_uses_the_injected_clock_for_elapsed_time() {
 
 #[test]
 fn elapsed_time_can_be_hidden_without_leaving_extra_spacing() {
-    let mut model = model_with_presence(Presence::Working, Attention::Clear);
+    let mut model = model_with_presence(Presence::Working, GuildAttention::Clear);
     model.set_settings(RuntimeSettings {
         show_elapsed_time: false,
         ..RuntimeSettings::default()
@@ -104,10 +104,7 @@ fn elapsed_time_can_be_hidden_without_leaving_extra_spacing() {
 fn done_unseen_is_an_update_awaiting_the_webmaster_in_the_narrow_projection() {
     let model = model_with_presence(
         Presence::Done,
-        Attention::unseen(
-            AttentionReason::WorkCompleted,
-            Timestamp::from_millis(61_000),
-        ),
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(61_000)),
     );
 
     let screen = render(&model, 60, 18);
@@ -119,7 +116,10 @@ fn done_unseen_is_an_update_awaiting_the_webmaster_in_the_narrow_projection() {
 fn exited_is_a_broken_link_in_the_narrow_projection() {
     let model = model_with_presence(
         Presence::Exited,
-        Attention::unseen(AttentionReason::PaneExited, Timestamp::from_millis(61_000)),
+        GuildAttention::unread(
+            GuildSummons::AdventurerDeparted,
+            Timestamp::from_millis(61_000),
+        ),
     );
 
     let screen = render(&model, 60, 18);

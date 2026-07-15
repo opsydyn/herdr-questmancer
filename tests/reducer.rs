@@ -1,5 +1,8 @@
 use questmancer::{
-    domain::{Attention, AttentionReason, DomainState, PaneId, Presence, Timestamp, WorkspaceId},
+    domain::{
+        ChronicleEvent, DomainState, GuildAttention, GuildSummons, PaneId, Presence, Timestamp,
+        WorkspaceId,
+    },
     herdr::protocol::{AgentStatus, SessionSnapshot, SessionSnapshotResult, SuccessResponse},
     update::{AppEvent, Command, update},
 };
@@ -25,7 +28,7 @@ fn status(status: AgentStatus, revision: u64, at: i64) -> AppEvent {
 }
 
 #[test]
-fn working_to_blocked_creates_unseen_webmaster_attention() {
+fn working_to_blocked_creates_unread_counsel_summons() {
     let (working, _) = update(state(), status(AgentStatus::Working, 8, 2_000));
 
     let (blocked, commands) = update(working, status(AgentStatus::Blocked, 9, 3_000));
@@ -34,10 +37,17 @@ fn working_to_blocked_creates_unseen_webmaster_attention() {
     assert_eq!(agent.presence, Presence::Blocked);
     assert_eq!(
         agent.attention,
-        Attention::unseen(AttentionReason::NeedsInput, Timestamp::from_millis(3_000))
+        GuildAttention::unread(
+            GuildSummons::CounselRequested,
+            Timestamp::from_millis(3_000),
+        )
     );
-    assert!(commands.iter().any(Command::is_guestbook_append));
-    assert_eq!(blocked.guestbook.entries().len(), 2);
+    assert!(commands.iter().any(Command::is_chronicle_append));
+    assert_eq!(blocked.chronicle.entries().len(), 2);
+    assert_eq!(
+        blocked.chronicle.entries().back().unwrap().event,
+        ChronicleEvent::CounselRequested
+    );
 }
 
 #[test]
@@ -47,10 +57,10 @@ fn blocked_to_done_replaces_attention_with_completion() {
 
     assert_eq!(agent.presence, Presence::Done);
     assert_eq!(
-        agent.attention.reason(),
-        Some(AttentionReason::WorkCompleted)
+        agent.attention.summons(),
+        Some(GuildSummons::SpoilsReturned)
     );
-    assert!(agent.attention.is_unseen());
+    assert!(agent.attention.is_unread());
 }
 
 #[test]
@@ -59,7 +69,7 @@ fn blocked_to_idle_clears_attention() {
     let agent = idle.agents.values().next().unwrap();
 
     assert_eq!(agent.presence, Presence::Idle);
-    assert_eq!(agent.attention, Attention::Clear);
+    assert_eq!(agent.attention, GuildAttention::Clear);
 }
 
 #[test]
@@ -67,12 +77,12 @@ fn marking_done_attention_seen_is_local_and_persisted() {
     let (done, _) = update(state(), status(AgentStatus::Done, 8, 2_000));
     let key = done.agents.keys().next().unwrap().clone();
 
-    let (seen, commands) = update(done, AppEvent::MarkSeen(key.clone()));
+    let (seen, commands) = update(done, AppEvent::MarkRead(key.clone()));
 
     assert!(matches!(
         seen.agents[&key].attention,
-        Attention::Seen {
-            reason: AttentionReason::WorkCompleted,
+        GuildAttention::Read {
+            summons: GuildSummons::SpoilsReturned,
             ..
         }
     ));
@@ -92,15 +102,18 @@ fn pane_exit_becomes_attention_and_history() {
     let agent = exited.agents.values().next().unwrap();
 
     assert_eq!(agent.presence, Presence::Exited);
-    assert_eq!(agent.attention.reason(), Some(AttentionReason::PaneExited));
-    assert!(commands.iter().any(Command::is_guestbook_append));
+    assert_eq!(
+        agent.attention.summons(),
+        Some(GuildSummons::AdventurerDeparted)
+    );
+    assert!(commands.iter().any(Command::is_chronicle_append));
 }
 
 #[test]
-fn workspace_close_removes_its_site_and_agents() {
+fn workspace_close_removes_its_campaign_and_agents() {
     let (closed, commands) = update(state(), AppEvent::WorkspaceClosed(WorkspaceId::new("w1")));
 
-    assert!(closed.sites.is_empty());
+    assert!(closed.campaigns.is_empty());
     assert!(closed.agents.is_empty());
     assert_eq!(commands, vec![Command::PersistState]);
 }
@@ -138,7 +151,7 @@ fn snapshot_replacement_preserves_seen_attention_and_persona() {
     let initial = state();
     let key = initial.agents.keys().next().unwrap().clone();
     let persona = initial.agents[&key].persona.clone();
-    let (seen, _) = update(initial, AppEvent::MarkSeen(key.clone()));
+    let (seen, _) = update(initial, AppEvent::MarkRead(key.clone()));
     let mut replacement = snapshot();
     replacement.agents[0].pane_id = "w1:p9".to_owned();
 
@@ -153,7 +166,7 @@ fn snapshot_replacement_preserves_seen_attention_and_persona() {
 
     assert!(matches!(
         replaced.agents[&key].attention,
-        Attention::Seen { .. }
+        GuildAttention::Read { .. }
     ));
     assert_eq!(replaced.agents[&key].persona, persona);
     assert_eq!(replaced.agents[&key].pane_id, PaneId::new("w1:p9"));
