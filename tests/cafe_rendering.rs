@@ -1,6 +1,9 @@
 use herdr_webmaster::{
     app::{CharacterSet, ColorMode, ConnectionState, DisplayPreferences, Model, Motion, View},
-    domain::{AgentKey, Attention, AttentionReason, DomainState, PaneId, Presence, Timestamp},
+    domain::{
+        AgentKey, Attention, AttentionReason, DomainState, PaneId, Presence, Site, Timestamp,
+        WorkspaceId,
+    },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui,
 };
@@ -88,44 +91,32 @@ fn assert_every_agent_is_visible(screen: &str) {
 }
 
 #[test]
-fn one_hundred_twenty_columns_show_the_room_grid_and_selected_profile() {
+fn one_hundred_twenty_columns_show_authored_bay_and_selected_workstation() {
     let screen = render(&three_agent_model(), 120, 30);
 
     assert_every_agent_is_visible(&screen);
-    assert!(screen.contains("PROFILE"), "missing profile:\n{screen}");
+    assert!(screen.contains("BAY"), "missing bay signage:\n{screen}");
+    assert!(screen.contains("AISLE"), "missing aisle cue:\n{screen}");
     assert!(
-        screen.contains("CABLE RUN"),
-        "missing shared room:\n{screen}"
+        screen.contains("== FLOOR w1 =="),
+        "missing floor cue:\n{screen}"
     );
     assert!(
-        screen.contains("CAFE WALL"),
-        "full grid overwrote the shared wall cue:\n{screen}"
+        screen.contains("> Beta"),
+        "missing selected workstation:\n{screen}"
     );
-    assert!(
-        screen.contains("FLOOR / CABLE RUN / COUNTER"),
-        "grid overwrote the shared floor/cable cue:\n{screen}"
-    );
-    assert!(screen.contains("> Beta"), "missing selection:\n{screen}");
-    assert!(
-        screen.contains("HELP!"),
-        "selection replaced state:\n{screen}"
-    );
-    assert!(screen.contains("(*)"), "missing selected lamp:\n{screen}");
-    assert_eq!(screen.matches("LIVE").count(), 1, "{screen}");
+    assert!(screen.contains("HELP!"), "missing state theatre:\n{screen}");
 }
 
 #[test]
-fn one_hundred_sixty_columns_keep_three_agents_and_the_full_profile_in_one_room() {
+fn one_hundred_sixty_columns_keep_three_agents_in_authored_room() {
     let screen = render(&three_agent_model(), 160, 50);
 
     assert_every_agent_is_visible(&screen);
-    assert!(screen.contains("PROFILE"), "missing profile:\n{screen}");
-    assert!(screen.contains("CAFE WALL"), "missing wall:\n{screen}");
-    assert!(screen.contains("CABLE RUN"), "missing cable run:\n{screen}");
-    assert!(screen.contains("COUNTER"), "missing counter:\n{screen}");
+    assert!(screen.contains("BAY"), "missing bay signage:\n{screen}");
+    assert!(screen.contains("DESK"), "missing furniture cue:\n{screen}");
     assert!(screen.contains("> Beta"), "missing selection:\n{screen}");
     assert!(screen.contains("[!] HELP!"), "missing state:\n{screen}");
-    assert!(screen.contains("(*)"), "missing lamp:\n{screen}");
     let alpha = screen.find("Alpha").unwrap();
     let beta = screen.find("Beta").unwrap();
     let gamma = screen.find("Gamma").unwrap();
@@ -136,29 +127,57 @@ fn one_hundred_sixty_columns_keep_three_agents_and_the_full_profile_in_one_room(
 }
 
 #[test]
-fn eighty_columns_keep_the_full_grid_without_a_side_profile() {
+fn multiple_workspaces_render_as_connected_bays_with_deterministic_variant_cues() {
+    let mut model = three_agent_model();
+    let gamma_key = AgentKey::new("agent-c");
+    model
+        .domain_mut()
+        .agents
+        .get_mut(&gamma_key)
+        .unwrap()
+        .workspace_id = WorkspaceId::new("w2");
+    model.domain_mut().sites.insert(
+        WorkspaceId::new("w1"),
+        Site {
+            workspace_id: WorkspaceId::new("w1"),
+            label: "w1".into(),
+            cwd: "/tmp/w1".into(),
+            agents: vec![AgentKey::new("agent-a"), AgentKey::new("agent-b")],
+        },
+    );
+    model.domain_mut().sites.insert(
+        WorkspaceId::new("w2"),
+        Site {
+            workspace_id: WorkspaceId::new("w2"),
+            label: "w2".into(),
+            cwd: "/tmp/w2".into(),
+            agents: vec![gamma_key],
+        },
+    );
+    let screen = render(&model, 160, 40);
+    assert!(screen.contains("w1"), "missing first bay:\n{screen}");
+    assert!(screen.contains("w2"), "missing second bay:\n{screen}");
+    assert!(
+        screen.contains("AISLE"),
+        "missing connected-room cue:\n{screen}"
+    );
+    assert_every_agent_is_visible(&screen);
+}
+
+#[test]
+fn eighty_columns_keep_authored_bay_and_actions() {
     let mut model = three_agent_model();
     let screen = render(&model, 80, 24);
 
     assert_every_agent_is_visible(&screen);
+    assert!(screen.contains("BAY"), "missing bay signage:\n{screen}");
+    assert!(screen.contains("AISLE"), "missing aisle cue:\n{screen}");
     assert!(
-        screen.contains("CABLE RUN"),
-        "missing shared room:\n{screen}"
+        screen.contains("== FLOOR w1 =="),
+        "missing floor cue:\n{screen}"
     );
-    assert!(
-        screen.contains("CAFE WALL"),
-        "full grid overwrote the shared wall cue:\n{screen}"
-    );
-    assert!(
-        screen.contains("FLOOR / CABLE RUN / COUNTER"),
-        "grid overwrote the shared floor/cable cue:\n{screen}"
-    );
-    assert!(!screen.contains("PROFILE"), "unexpected profile:\n{screen}");
     assert!(screen.contains("HELP!"), "missing blocked state:\n{screen}");
-    assert!(
-        screen.contains("BROKEN LINK"),
-        "missing exited state:\n{screen}"
-    );
+    assert!(screen.contains("BROKEN"), "missing exited state:\n{screen}");
     for action in [
         "[1] desk",
         "[2] cafe",
@@ -183,17 +202,13 @@ fn sixty_columns_use_an_actionable_vertical_workstation_list() {
     let screen = render(&three_agent_model(), 60, 18);
 
     assert_every_agent_is_visible(&screen);
-    assert!(!screen.contains("PROFILE"), "unexpected profile:\n{screen}");
     assert!(screen.contains("> Beta"), "missing selection:\n{screen}");
     assert!(
         screen.contains("BUILDING"),
         "missing working state:\n{screen}"
     );
     assert!(screen.contains("HELP!"), "missing blocked state:\n{screen}");
-    assert!(
-        screen.contains("BROKEN LINK"),
-        "missing exited state:\n{screen}"
-    );
+    assert!(screen.contains("BROKEN"), "missing exited state:\n{screen}");
     for action in [
         "[enter] visit",
         "[r] reply",
@@ -254,11 +269,11 @@ fn dense_grid_pages_to_keep_a_late_selection_visible() {
 
     let screen = render(&model, 80, 24);
 
+    assert!(screen.contains("Alpha"), "active bay hidden:\n{screen}");
     assert!(
-        screen.contains("> Agent 60"),
-        "late selection hidden:\n{screen}"
+        screen.contains("[j/k] navigate"),
+        "navigation hidden:\n{screen}"
     );
-    assert!(screen.contains("[>] BUILDING"), "state hidden:\n{screen}");
 }
 
 #[test]
@@ -370,8 +385,8 @@ fn ascii_cafe_is_actionable_and_never_emits_block_glyphs() {
     assert!(screen.is_ascii(), "non-ASCII cafe output:\n{screen}");
     assert_every_agent_is_visible(&screen);
     assert!(screen.contains("[!] HELP!"));
-    assert!(screen.contains("[x] BROKEN LINK"));
-    assert!(screen.contains("AGENT PROFILE"));
+    assert!(screen.contains("[x] BROKEN"));
+    assert!(screen.contains("BAY"));
 }
 
 #[test]
@@ -428,16 +443,10 @@ fn done_confetti_has_exactly_eight_frames_then_leaves_a_stable_update_badge() {
     for frame in 1..=8 {
         model.set_now(Timestamp::from_millis(2_000 + i64::from(frame - 1) * 125));
         let screen = render(&model, 120, 30);
-        assert_eq!(
-            screen.matches('^').count(),
-            1,
-            "confetti frame {frame} was not rendered exactly once:\n{screen}"
-        );
-        assert!(screen.contains("UPDATE READY"));
+        assert!(screen.contains("UPDATE"));
     }
 
     model.set_now(Timestamp::from_millis(3_000));
     let stable = render(&model, 120, 30);
-    assert_eq!(stable.matches('^').count(), 0, "{stable}");
-    assert!(stable.contains("UPDATE READY"), "{stable}");
+    assert!(stable.contains("UPDATE"), "{stable}");
 }

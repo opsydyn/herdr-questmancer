@@ -22,3 +22,16 @@ The legacy `cafe_rendering` assertions still expect the removed shared labels an
 
 - Very small bay rectangles intentionally fall back to compact workstation text; the 80x24 path remains actionable but needs the new golden assertions to lock its final composition.
 - `render_profile_card` remains available for desk/other callers but is no longer painted over the active café bay.
+
+## Contract test update
+
+The legacy café rendering tests were replaced with authored-scene assertions covering bay cues, aisle/floor/furniture marks, connected workspaces, selected workstations, compact actionability, and zero-size safety.
+
+Exact verification after the test update:
+
+```text
+cargo test --test cafe_rendering --test cafe_scene --test cafe_widgets --test persona_art --test rendering -- --nocapture
+17 + 4 + 15 + 11 + 3 tests passed; 0 failed.
+cargo clippy --all-targets --all-features -- -D warnings
+passed.
+```
