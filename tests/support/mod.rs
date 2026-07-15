@@ -6,6 +6,7 @@ use herdr_webmaster::{
         TabId, Timestamp, WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
+    persistence::{PersistedStateV1, parse_state, publish_state},
 };
 
 pub(crate) mod strategies;
@@ -78,4 +79,39 @@ pub(crate) fn live_facts(domain: &DomainState) -> LiveFacts {
             .collect(),
         guestbook: domain.guestbook.clone(),
     }
+}
+
+#[allow(dead_code)]
+pub(crate) async fn assert_atomic_publication(first: PersistedStateV1, second: PersistedStateV1) {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("state.json");
+    publish_state(&path, &first).await.unwrap();
+
+    let writer_path = path.clone();
+    let writer_first = first.clone();
+    let writer_second = second.clone();
+    let writer = tokio::spawn(async move {
+        for index in 0..4 {
+            let state = if index % 2 == 0 {
+                &writer_second
+            } else {
+                &writer_first
+            };
+            publish_state(&writer_path, state).await.unwrap();
+            tokio::task::yield_now().await;
+        }
+    });
+
+    let reader_path = path.clone();
+    let reader = tokio::spawn(async move {
+        for _ in 0..32 {
+            let bytes = tokio::fs::read(&reader_path).await.unwrap();
+            let observed = parse_state(&reader_path, &bytes).unwrap();
+            assert!(observed == first || observed == second);
+            tokio::task::yield_now().await;
+        }
+    });
+
+    writer.await.unwrap();
+    reader.await.unwrap();
 }

@@ -1,99 +1,116 @@
-# Task 3 report: original persona composition
+# Task 3 report: atomic state loading and publication
+
+## Outcome
+
+Implemented the filesystem safety boundary for versioned `state.json`.
+Malformed, unsupported, and relationship-invalid documents now fail closed
+through structured path-bearing diagnostics. Successful publication serializes
+the complete document before touching the filesystem and uses a synced
+same-directory `state.json.tmp` followed by atomic rename on macOS/Linux, so a
+reader sees either the previous complete state or the next complete state.
 
 ## RED evidence
 
-The first production edit followed a failing integration test. Command:
+### Load and validation boundary
+
+The first `cargo test --test atomic_state` run exited 101 before production code
+was added. The compiler reported exactly:
 
 ```text
-cargo test --test persona_art
+error[E0432]: unresolved imports `herdr_webmaster::persistence::load_state`, `herdr_webmaster::persistence::parse_state`
+ --> tests/atomic_state.rs:8:58
+  |
+8 |     persistence::{AttentionEpisodeKey, PersistedStateV1, load_state, parse_state},
+  |                                                          ^^^^^^^^^^  ^^^^^^^^^^^ no `parse_state` in `persistence`
+  |                                                          |
+  |                                                          no `load_state` in `persistence`
 ```
 
-Observed exit code `101` with the expected missing-feature diagnostics:
+After the minimal parser and loader were implemented, the focused suite was
+green with `9 passed; 0 failed`.
+
+### Publication boundary
+
+Publication tests were then added before publication code. The next
+`cargo test --test atomic_state` run exited 101 with:
 
 ```text
-error[E0432]: unresolved import `herdr_webmaster::ui::persona`
-  --> tests/persona_art.rs:9:9
+error[E0432]: unresolved import `herdr_webmaster::persistence::publish_state`
+  --> tests/atomic_state.rs:10:73
    |
-9  |         persona::{AppearanceRoles, appearance_roles, compose_profile, compose_seated},
-   |         ^^^^^^^ could not find `persona` in `ui`
-
-error[E0624]: method `width` is private
-  --> tests/persona_art.rs:78:36
+10 |         AttentionEpisodeKey, PersistedStateV1, load_state, parse_state, publish_state,
+   |                                                                         ^^^^^^^^^^^^^ no `publish_state` in `persistence`
 ```
 
-The compositional refactor also used a focused RED before removing the invalid
-compact/blocked whole-sprite branch. The semantic golden expected the generic
-head/torso/pose/legs/accessory pipeline and failed against the special-case map;
-after removing the branch and strengthening the reusable leg/shoe primitive,
-the focused test returned GREEN.
+After the minimal atomic publisher was implemented, the deterministic focused
+suite was green with `15 passed; 0 failed`.
 
-The palette API correction was also test-first. `cargo test --test persona_art`
-failed with exit code `101` because `appearance_roles_for_palette`,
-`compose_profile_for_palette`, and `compose_seated_for_palette` did not exist.
-After implementing those boundaries, a second focused RED proved the exhaustive
-invariant test could not compile without `Palette::roles_contrast`; the minimal
-palette comparison API then made all 737,280 appearance/palette combinations
-GREEN.
-
-The final transparent-edge correction was test-first as well. A focused ANSI
-regression failed because black hair remained `HairTone(Black)` against the
-black `PanelBackground`; adding the exterior hair/background and
-shoes/background edges made that regression and the exhaustive invariant GREEN.
+The required bounded concurrent filesystem property was then added with
+`ProptestConfig::with_cases(64)`. Its first focused run was green with
+`16 passed; 0 failed` in 2.85 seconds. A final direct non-`NotFound` read-error
+coverage case brought the completed focused suite to 17 tests.
 
 ## Changes
 
-- Added public `AppearanceRoles` and a palette-independent `appearance_roles`
-  mapping that preserves the exact requested skin, hair, top, bottom, shoes,
-  accessory, accent, highlight, and shadow roles.
-- Added `appearance_roles_for_palette`, `compose_seated_for_palette`, and
-  `compose_profile_for_palette` so Task 4 can directly request canvases whose
-  roles are safe for the palette it will pack. Canonical composers remain
-  palette-independent for stable semantic goldens.
-- Extended `ColorRole` with typed skin, hair, fabric, footwear, and accent shade
-  roles, and removed the redundant untyped persona slots. Xterm-256 and ANSI-16
-  each select deterministic fallback roles only when their actual resolved
-  colours collide.
-- Modelled the complete adjacency graph: hair-skin/background; top-skin/hair;
-  bottom-top; shoes-bottom/background; accessory-top/skin/hair; and
-  accent-top/skin/hair/accessory. The background edges keep black hair and
-  loafers visible where the canvas is transparent.
-- Added a dedicated 10x12 seated compositor with typed CRT-facing, raised-hand,
-  relaxed, and absent poses. Working frames alternate a hand position from the
-  injected `animation_frame`; blocked keeps a stable raised-hand silhouette;
-  exited produces no person pixels.
-- Added a separately authored 16x32 neutral full-body compositor. It has its own
-  proportion layouts and clipped head, hair/face, torso/arms, legs/shoes, and
-  accessory primitives; it does not scale or crop seated art.
-- Exposed read-only canvas dimensions for logical-composition verification.
-- Added compact, tall, and broad fixtures plus semantic logical-role goldens.
-  Tests cover dimensions, distinct silhouette masks in both representations,
-  shared recognition anchors, palette-safe adjacency, deterministic working
-  frames, stable blocked shape, exited absence, and neutral profile identity.
-- Added the adversarial ANSI appearance regression, xterm-specific preservation
-  and collision regressions, and exhaustive coverage of every colour-influencing
-  trait combination under both shipped palettes.
+- Added public `parse_state`, `load_state`, and `publish_state` interfaces.
+- Added structured `PersistenceDiagnostic` and `PersistenceError` values with
+  operation, path, optional one-based line, and source message fields.
+- Deserialization requires a `PersistedStateV1` and delegates all schema and
+  relationship checking to the existing `PersistedStateV1::validate()`.
+- Loading maps only `ErrorKind::NotFound` to `Ok(None)`. Parse, validation, and
+  all other read failures preserve the destination and any leftover temporary
+  file.
+- Publication serializes pretty JSON plus one trailing newline before opening
+  files, creates missing parent directories, truncates/reuses `state.json.tmp`,
+  writes and `sync_all`s it, then renames it over `state.json`.
+- After rename, parent-directory sync runs in `tokio::task::spawn_blocking` and
+  is intentionally best effort. Failed publication best-effort removes only
+  `state.json.tmp` and never removes or rewrites the prior destination.
+- Added real-tempfile tests for malformed and arbitrary bytes, schema version
+  2, every invalid Task 2 relationship, exact invalid-file preservation,
+  formatting, replacement, missing directories, stale-temp reuse, temp-create
+  failure, and rename failure in a read-only Unix directory.
+- Added a 64-case property that performs four alternating synced publications
+  and 32 concurrent destination reads for each generated state pair. Every read
+  is parsed and must equal one of the two complete generated states.
 
-## Verification
+## Files
 
-- `cargo test --test persona_art` — 11 passed.
-- `cargo test --test pixel` — 11 passed.
-- `cargo test` — full Rust suite passed.
-- `cargo fmt --all --check` — passed.
-- `cargo clippy --all-targets --all-features -- -D warnings` — passed.
-- `git diff --check` — passed.
+- `src/persistence/atomic_json.rs` (new)
+- `src/persistence/mod.rs`
+- `tests/atomic_state.rs` (new)
+- `tests/support/mod.rs`
+- `.superpowers/sdd/task-3-report.md` (new)
 
-## Self-review and originality
+The pre-existing uncommitted change to `.superpowers/sdd/task-2-report.md` was
+not modified or staged.
 
-- Removed the first fixture-shaped compact/blocked implementation during review;
-  every seated persona now uses the same compositional primitive pipeline.
-- The art is original code-native block geometry derived only from the written
-  fidelity grammar. It does not reproduce supplied characters, costumes, logos,
-  poses, or scene composition, and it uses no raster/image protocol or theme
-  framework.
-- Composition functions are pure: no clock reads, randomness, timers, persistence,
-  or domain mutation. Theatre state enters only through the copied `TheatreFrame`.
-- The exhaustive palette property test completes in under one second locally and
-  demonstrates that the typed fallback candidate sets are sufficient for every
-  shipped combination and adjacency under both palettes.
-- No unresolved implementation concerns remain for Task 3. Workstation props and
-  textual state markers remain correctly owned by the later widget task.
+## Final verification
+
+- `cargo fmt --all` — exit 0.
+- `cargo fmt --all --check` — exit 0.
+- `cargo test --test atomic_state` — exit 0; 17 passed, 0 failed, 0 ignored.
+- `cargo clippy --all-targets --all-features -- -D warnings` — exit 0 with no
+  warnings.
+- `cargo test --all-targets` — exit 0; every unit and integration test binary
+  passed with 0 failures.
+- `git diff --check` — exit 0.
+
+## Self-review and concerns
+
+- Serialization precedes parent creation and temporary-file opening, so a
+  serialization failure cannot truncate either the destination or temp file.
+- The temp file is in the destination directory, and rename is the only
+  destination-changing operation. Failure paths remove only the temp file on a
+  best-effort basis and retain the prior destination byte-for-byte.
+- JSON syntax diagnostics retain `serde_json`'s one-based line; validation and
+  I/O errors correctly use `None` because they have no source line.
+- The read-only-parent regression is guarded by `#[cfg(unix)]` and verifies a
+  true rename failure after the existing temp file has been opened and synced.
+- Atomic replacement is intentionally scoped to macOS/Linux for v0.1, as
+  confirmed during execution. Windows rename-over-existing support is out of
+  scope and is not implied by this implementation.
+- The fixed `state.json.tmp` protocol assumes publication is serialized by the
+  Task 5 persistence worker. Multiple concurrent writers to the same path are
+  outside this task's contract; readers are safe during the required single
+  writer's alternating publications.
