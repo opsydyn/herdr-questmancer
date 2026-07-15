@@ -2,15 +2,15 @@ use ratatui::{
     Frame,
     layout::Rect,
     style::Style,
-    symbols::border,
     text::{Line, Text},
-    widgets::{Block, BorderType, Borders, Paragraph},
+    widgets::Paragraph,
 };
 
 use crate::{
     app::{CharacterSet, DisplayPreferences},
     domain::{Agent, PersonaAppearance},
     ui::{
+        cafe_scene::SeatAnchor,
         persona::compose_seated_for_palette,
         pixel::{Canvas, ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
@@ -21,25 +21,31 @@ use super::presentation::present;
 
 const MIN_FULL_WIDTH: u16 = 28;
 const MIN_FULL_HEIGHT: u16 = 10;
-const ASCII_BORDER: border::Set<'static> = border::Set {
-    top_left: "+",
-    top_right: "+",
-    bottom_left: "+",
-    bottom_right: "+",
-    vertical_left: "|",
-    vertical_right: "|",
-    horizontal_top: "-",
-    horizontal_bottom: "-",
-};
+pub trait WorkstationAnchor {
+    fn rect(self) -> Rect;
+}
 
-pub fn render_workstation(
+impl WorkstationAnchor for Rect {
+    fn rect(self) -> Rect {
+        self
+    }
+}
+
+impl WorkstationAnchor for SeatAnchor {
+    fn rect(self) -> Rect {
+        Rect::new(self.x, self.y, self.width, self.height)
+    }
+}
+
+pub fn render_workstation<A: WorkstationAnchor>(
     frame: &mut Frame<'_>,
-    area: Rect,
+    anchor: A,
     agent: &Agent,
     theatre: TheatreFrame,
     selected: bool,
     preferences: &DisplayPreferences,
 ) {
+    let area = anchor.rect();
     if area.is_empty() {
         return;
     }
@@ -59,28 +65,8 @@ pub fn render_workstation(
     let panel = Style::new()
         .fg(palette.resolve(ColorRole::Highlight))
         .bg(palette.resolve(ColorRole::PanelBackground));
-    let border_style = Style::new().fg(if theatre.focused || selected {
-        palette.resolve(ColorRole::CrtGlow)
-    } else {
-        palette.resolve(ColorRole::CrtCase)
-    });
-    let mut block = Block::default()
-        .borders(Borders::ALL)
-        .style(panel)
-        .border_style(border_style);
-    block = match preferences.character_set {
-        CharacterSet::Unicode => block.border_type(if selected {
-            BorderType::Double
-        } else {
-            BorderType::Rounded
-        }),
-        CharacterSet::Ascii => block.border_set(ASCII_BORDER),
-    };
-    if theatre.focused {
-        block = block.title(" * ");
-    }
-    let inner = block.inner(area);
-    frame.render_widget(block, area);
+    let inner = area;
+    frame.render_widget(Paragraph::new("").style(panel), area);
     if inner.is_empty() {
         return;
     }

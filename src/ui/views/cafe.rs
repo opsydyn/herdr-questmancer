@@ -12,14 +12,10 @@ use crate::{
     ui::{
         pixel::{ColorRole, Palette},
         theatre::frame_for,
-        widgets::{render_profile_card, render_workstation},
+        widgets::render_workstation,
     },
 };
 
-const PROFILE_WIDTH: u16 = 43;
-const MIN_WORKSTATION_WIDTH: u16 = 28;
-const MIN_WORKSTATION_HEIGHT: u16 = 10;
-const MAX_WORKSTATION_HEIGHT: u16 = 12;
 const ASCII_BORDER: border::Set<'static> = border::Set {
     top_left: "+",
     top_right: "+",
@@ -83,7 +79,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     let mut block = Block::default()
         .title(title)
         .title_bottom(
-            Line::styled(" FLOOR / CABLE RUN / COUNTER ", styles.floor).alignment(Alignment::Right),
+            Line::styled(" CONNECTED BAYS / 56K FLOOR ", styles.floor).alignment(Alignment::Right),
         )
         .title_alignment(Alignment::Center)
         .borders(Borders::ALL)
@@ -102,31 +98,8 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     if model.domain().agents.is_empty() {
         render_empty(frame, inner, styles);
     } else {
-        paint_room(frame, inner, styles);
-        if inner.width >= 118 {
-            let grid_width = inner.width.saturating_sub(PROFILE_WIDTH);
-            render_grid(
-                frame,
-                Rect::new(inner.x, inner.y, grid_width, inner.height),
-                model,
-            );
-            if let Some(agent) = model.selected_agent() {
-                let profile_area = Rect::new(
-                    inner.x.saturating_add(grid_width),
-                    inner.y.saturating_add(1),
-                    PROFILE_WIDTH,
-                    inner.height.saturating_sub(1).min(21),
-                );
-                render_profile_card(
-                    frame,
-                    profile_area,
-                    agent,
-                    frame_for(agent, model.now(), model.preferences()),
-                    model.preferences(),
-                );
-            }
-        } else if inner.width >= 78 {
-            render_grid(frame, inner, model);
+        if inner.width >= 78 {
+            render_connected_bays(frame, inner, model, styles);
         } else {
             render_compact_list(frame, inner, model);
         }
@@ -136,88 +109,112 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     render_footer(frame, footer, model, styles);
 }
 
-fn paint_room(frame: &mut Frame<'_>, area: Rect, styles: CafeStyles) {
+fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: CafeStyles) {
+    use crate::ui::cafe_scene::layout_bays;
+    let sites = if model.domain().sites.is_empty() {
+        let mut derived = std::collections::BTreeMap::new();
+        for agent in model.domain().agents.values() {
+            let id = agent.workspace_id.clone();
+            derived
+                .entry(id.clone())
+                .or_insert_with(|| crate::domain::Site {
+                    workspace_id: id.clone(),
+                    label: id.to_string(),
+                    cwd: std::path::PathBuf::new(),
+                    agents: Vec::new(),
+                })
+                .agents
+                .push(agent.key.clone());
+        }
+        derived
+    } else {
+        model.domain().sites.clone()
+    };
+    let bays = layout_bays(&sites, &model.domain().agents, area, None);
+    for bay in bays {
+        render_bay_architecture(frame, bay.rect, &bay.workspace_id, bay.variant, styles);
+        let Some(site) = sites.get(&bay.workspace_id) else {
+            continue;
+        };
+        for (index, key) in site.agents.iter().enumerate() {
+            let Some(agent) = model.domain().agents.get(key) else {
+                continue;
+            };
+            let Some(anchor) = bay.seats.get(index).copied() else {
+                continue;
+            };
+            render_workstation(
+                frame,
+                anchor,
+                agent,
+                frame_for(agent, model.now(), model.preferences()),
+                model.selected_agent_key() == Some(key),
+                model.preferences(),
+            );
+        }
+    }
+}
+
+fn render_bay_architecture(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    workspace: &crate::domain::WorkspaceId,
+    variant: crate::ui::cafe_scene::BayVariant,
+    styles: CafeStyles,
+) {
     if area.is_empty() {
         return;
     }
-    let mut lines = vec![Line::styled(
-        " CAFE WALL / 56K CABLE RUN / COUNTER ",
+    let label = format!(" BAY {} ", workspace.as_str());
+    let variant_label = match variant {
+        crate::ui::cafe_scene::BayVariant::WallRow => "WALL ROW",
+        crate::ui::cafe_scene::BayVariant::CornerBooth => "CORNER BOOTH",
+        crate::ui::cafe_scene::BayVariant::BackRoomLab => "BACK ROOM LAB",
+    };
+    let mut lines = Vec::with_capacity(usize::from(area.height));
+    lines.push(Line::styled(
+        format!(
+            "+{label:-^width$}+",
+            width = usize::from(area.width.saturating_sub(2))
+        ),
         styles.wall,
-    )];
-    lines.resize(usize::from(area.height), Line::from(""));
-    if area.height > 1 {
-        let floor = usize::from(area.height - 1);
-        lines[floor] = Line::styled("-- CABLE RUN ---------------- [COUNTER] --", styles.floor);
+    ));
+    for row in 1..area.height {
+        let text = if row == 1 {
+            format!(
+                "| {:width$}|",
+                variant_label,
+                width = usize::from(area.width.saturating_sub(3))
+            )
+        } else if row + 2 >= area.height {
+            format!(
+                "| {:width$}|",
+                "== FLOOR ==",
+                width = usize::from(area.width.saturating_sub(3))
+            )
+        } else if row == area.height / 2 {
+            format!(
+                "| {:width$}|",
+                "DOOR  /  AISLE",
+                width = usize::from(area.width.saturating_sub(3))
+            )
+        } else {
+            format!(
+                "|{:width$}|",
+                "",
+                width = usize::from(area.width.saturating_sub(2))
+            )
+        };
+        lines.push(Line::styled(
+            text,
+            if row + 2 >= area.height {
+                styles.floor
+            } else {
+                styles.wall
+            },
+        ));
     }
     frame.render_widget(Paragraph::new(Text::from(lines)).style(styles.ink), area);
-}
-
-fn render_grid(frame: &mut Frame<'_>, area: Rect, model: &Model) {
-    let count = model.domain().agents.len();
-    if count == 0 || area.width < MIN_WORKSTATION_WIDTH {
-        return;
-    }
-    let columns = usize::from(area.width / MIN_WORKSTATION_WIDTH)
-        .max(1)
-        .min(count);
-    let max_rows = usize::from(area.height / MIN_WORKSTATION_HEIGHT);
-    if max_rows == 0 {
-        return;
-    }
-    let capacity = columns.saturating_mul(max_rows);
-    let page_start = selected_page_start(model, capacity);
-    let visible_count = count.saturating_sub(page_start).min(capacity);
-    let rows = visible_count.div_ceil(columns);
-    let row_count = u16::try_from(rows).unwrap_or(1);
-    let top_inset = u16::from(area.height.saturating_sub(1) / row_count >= MIN_WORKSTATION_HEIGHT);
-    let grid = Rect::new(
-        area.x,
-        area.y.saturating_add(top_inset),
-        area.width,
-        area.height.saturating_sub(top_inset),
-    );
-    let row_height =
-        (grid.height / row_count).clamp(MIN_WORKSTATION_HEIGHT, MAX_WORKSTATION_HEIGHT);
-
-    for (index, (key, agent)) in model
-        .domain()
-        .agents
-        .iter()
-        .skip(page_start)
-        .take(capacity)
-        .enumerate()
-    {
-        let column = index % columns;
-        let row = index / columns;
-        let x0 = u32::from(grid.x)
-            + u32::try_from(column).unwrap_or_default() * u32::from(grid.width)
-                / u32::try_from(columns).unwrap_or(1);
-        let x1 = u32::from(grid.x)
-            + u32::try_from(column + 1).unwrap_or_default() * u32::from(grid.width)
-                / u32::try_from(columns).unwrap_or(1);
-        let y = grid.y.saturating_add(
-            u16::try_from(row)
-                .unwrap_or_default()
-                .saturating_mul(row_height),
-        );
-        if y >= grid.bottom() {
-            break;
-        }
-        let cell = Rect::new(
-            u16::try_from(x0).unwrap_or(u16::MAX),
-            y,
-            u16::try_from(x1.saturating_sub(x0)).unwrap_or_default(),
-            row_height.min(grid.bottom().saturating_sub(y)),
-        );
-        render_workstation(
-            frame,
-            cell,
-            agent,
-            frame_for(agent, model.now(), model.preferences()),
-            model.selected_agent_key() == Some(key),
-            model.preferences(),
-        );
-    }
 }
 
 fn render_compact_list(frame: &mut Frame<'_>, area: Rect, model: &Model) {
