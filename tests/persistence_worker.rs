@@ -464,6 +464,33 @@ async fn guestbook_append_is_acknowledged_after_the_record_is_durable() {
     worker.await.unwrap();
 }
 
+#[tokio::test]
+async fn acknowledged_append_survives_restart_after_a_truncated_guestbook_tail() {
+    let directory = tempfile::tempdir().unwrap();
+    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let prior = guestbook_entry("prior-complete");
+    let acknowledged = guestbook_entry("acknowledged-after-truncation");
+    let mut damaged_bytes = serde_json::to_vec(&prior).unwrap();
+    damaged_bytes.extend_from_slice(b"\n{\"id\":");
+    tokio::fs::write(&guestbook_path, damaged_bytes)
+        .await
+        .unwrap();
+    let (client, _diagnostics, worker) =
+        PersistenceWorker::start(WorkerPaths::new(None, Some(guestbook_path.clone())));
+
+    client.append_guestbook(acknowledged.clone()).await.unwrap();
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+
+    let replay = load_guestbook(&guestbook_path, 10).await;
+    assert_eq!(
+        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        vec![&prior, &acknowledged]
+    );
+    assert_eq!(replay.diagnostics.len(), 1);
+    assert_eq!(replay.diagnostics[0].line, Some(2));
+}
+
 #[tokio::test(start_paused = true)]
 async fn an_expired_state_deadline_precedes_sustained_queued_appends() {
     let directory = tempfile::tempdir().unwrap();
@@ -589,6 +616,42 @@ async fn diagnostic_queue_remains_bounded_under_repeated_failures() {
     }
 
     assert_eq!(diagnostics.len(), capacity);
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+}
+
+#[tokio::test]
+async fn saturated_diagnostic_queue_retains_the_latest_failure() {
+    let directory = tempfile::tempdir().unwrap();
+    let blocked_parent = directory.path().join("not-a-directory");
+    std::fs::write(&blocked_parent, b"blocking file").unwrap();
+    let guestbook_path = directory.path().join("guestbook-is-a-directory");
+    std::fs::create_dir(&guestbook_path).unwrap();
+    let (mut client, mut diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
+        Some(blocked_parent.join("state.json")),
+        Some(guestbook_path),
+    ));
+    let capacity = diagnostics.max_capacity();
+
+    for schema_version in 2..u32::try_from(capacity + 2).unwrap() {
+        let mut state = fixed_persisted_state(View::Desk);
+        state.schema_version = schema_version;
+        assert!(client.stage_state(state).unwrap());
+        assert!(client.flush().await.is_err());
+    }
+    let latest_error = client
+        .append_guestbook(guestbook_entry("latest-diagnostic"))
+        .await
+        .unwrap_err();
+    assert_eq!(latest_error.operation, "open guestbook");
+
+    let mut retained = Vec::new();
+    while let Ok(diagnostic) = diagnostics.try_recv() {
+        retained.push(diagnostic);
+    }
+    assert_eq!(retained.len(), capacity);
+    assert_eq!(retained.last().unwrap().operation, latest_error.operation,);
+
     client.shutdown().await.unwrap();
     worker.await.unwrap();
 }

@@ -270,7 +270,7 @@ fn session_snapshot() -> impl Strategy<Value = SessionSnapshot> {
 }
 
 pub(crate) fn topology_events() -> impl Strategy<Value = Vec<AppEvent>> {
-    prop::collection::vec(session_snapshot(), 0..=8).prop_map(|snapshots| {
+    prop::collection::vec(session_snapshot(), 1..=8).prop_map(|snapshots| {
         snapshots
             .into_iter()
             .flat_map(|snapshot| {
@@ -279,17 +279,28 @@ pub(crate) fn topology_events() -> impl Strategy<Value = Vec<AppEvent>> {
                     observed_at: Timestamp::from_millis(1_000),
                 }];
                 if let Some(agent) = snapshot.agents.first() {
-                    events.push(AppEvent::PaneExited {
+                    let pane_exit = AppEvent::PaneExited {
                         pane_id: PaneId::new(&agent.pane_id),
                         revision: agent.revision + 1,
                         occurred_at: Timestamp::from_millis(2_000),
-                    });
+                    };
+                    events.push(pane_exit.clone());
+                    events.push(pane_exit);
                 }
                 if let Some(workspace) = snapshot.workspaces.first() {
-                    events.push(AppEvent::WorkspaceClosed(WorkspaceId::new(
-                        &workspace.workspace_id,
-                    )));
+                    let workspace_closed =
+                        AppEvent::WorkspaceClosed(WorkspaceId::new(&workspace.workspace_id));
+                    events.push(workspace_closed.clone());
+                    events.push(workspace_closed);
                 }
+                events.push(AppEvent::PaneExited {
+                    pane_id: PaneId::new("property-missing-pane"),
+                    revision: 1,
+                    occurred_at: Timestamp::from_millis(3_000),
+                });
+                events.push(AppEvent::WorkspaceClosed(WorkspaceId::new(
+                    "property-missing-workspace",
+                )));
                 events
             })
             .collect()

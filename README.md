@@ -171,7 +171,7 @@ Reply and search modals accept normal text and `Backspace`. `Enter` sends the
 reply or runs the search, `Ctrl-U` clears the input, and `Esc` cancels without
 sending. The footer only advertises actions that apply to the current
 selection. In particular, `v` appears only when the connected Herdr session
-exposes `persiyanov.reviewr.open`.
+exposes the fully qualified action configured by `reviewr_action`.
 
 The desk and cafe use the same typed action path for selection, visit, reply,
 seen, search, refresh, and optional reviewr launch. At 120 columns and above the

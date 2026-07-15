@@ -1,6 +1,9 @@
-use std::{io::ErrorKind, path::Path};
+use std::{
+    io::{ErrorKind, SeekFrom},
+    path::Path,
+};
 
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use crate::domain::{Guestbook, GuestbookEntry};
 
@@ -133,6 +136,10 @@ pub async fn append_guestbook(path: &Path, entry: &GuestbookEntry) -> Result<(),
             source_message: error.to_string(),
         })?;
 
+    if tail_needs_separator(path).await? {
+        bytes.insert(0, b'\n');
+    }
+
     let mut file = tokio::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -158,6 +165,38 @@ pub async fn append_guestbook(path: &Path, entry: &GuestbookEntry) -> Result<(),
         line: None,
         source_message: error.to_string(),
     })
+}
+
+async fn tail_needs_separator(path: &Path) -> Result<bool, PersistenceError> {
+    let metadata = match tokio::fs::metadata(path).await {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(tail_inspection_error(path, &error)),
+    };
+    if metadata.len() == 0 || !metadata.is_file() {
+        return Ok(false);
+    }
+
+    let mut file = tokio::fs::File::open(path)
+        .await
+        .map_err(|error| tail_inspection_error(path, &error))?;
+    file.seek(SeekFrom::End(-1))
+        .await
+        .map_err(|error| tail_inspection_error(path, &error))?;
+    let mut tail = [0_u8; 1];
+    file.read_exact(&mut tail)
+        .await
+        .map_err(|error| tail_inspection_error(path, &error))?;
+    Ok(tail[0] != b'\n')
+}
+
+fn tail_inspection_error(path: &Path, error: &std::io::Error) -> PersistenceError {
+    PersistenceError {
+        operation: "inspect guestbook tail",
+        path: path.to_owned(),
+        line: None,
+        source_message: error.to_string(),
+    }
 }
 
 fn record_diagnostic(

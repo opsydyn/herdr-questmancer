@@ -1,7 +1,16 @@
-use std::{path::PathBuf, pin::Pin, time::Duration};
+use std::{
+    collections::VecDeque,
+    path::PathBuf,
+    pin::Pin,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 
 use tokio::{
-    sync::{mpsc, oneshot},
+    sync::{Notify, mpsc, oneshot},
     task::JoinHandle,
     time::{Instant, Sleep},
 };
@@ -86,16 +95,122 @@ impl PersistenceClient {
 #[derive(Debug)]
 pub struct PersistenceWorker;
 
+#[derive(Debug)]
+struct DiagnosticQueue {
+    items: Mutex<VecDeque<PersistenceDiagnostic>>,
+    notify: Notify,
+    capacity: usize,
+    closed: AtomicBool,
+}
+
+#[derive(Debug)]
+struct DiagnosticSender {
+    queue: Arc<DiagnosticQueue>,
+}
+
+impl DiagnosticSender {
+    fn send_latest(&self, diagnostic: PersistenceDiagnostic) {
+        let mut items = self
+            .queue
+            .items
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if items.len() == self.queue.capacity {
+            items.pop_front();
+        }
+        items.push_back(diagnostic);
+        drop(items);
+        self.queue.notify.notify_one();
+    }
+}
+
+impl Drop for DiagnosticSender {
+    fn drop(&mut self) {
+        self.queue.closed.store(true, Ordering::Release);
+        self.queue.notify.notify_waiters();
+    }
+}
+
+#[derive(Debug)]
+pub struct DiagnosticReceiver {
+    queue: Arc<DiagnosticQueue>,
+}
+
+impl DiagnosticReceiver {
+    pub async fn recv(&mut self) -> Option<PersistenceDiagnostic> {
+        loop {
+            let notified = self.queue.notify.notified();
+            {
+                let mut items = self
+                    .queue
+                    .items
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                if let Some(diagnostic) = items.pop_front() {
+                    return Some(diagnostic);
+                }
+            }
+            if self.queue.closed.load(Ordering::Acquire) {
+                return None;
+            }
+            notified.await;
+        }
+    }
+
+    pub fn try_recv(
+        &mut self,
+    ) -> Result<PersistenceDiagnostic, tokio::sync::mpsc::error::TryRecvError> {
+        let mut items = self
+            .queue
+            .items
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(diagnostic) = items.pop_front() {
+            return Ok(diagnostic);
+        }
+        if self.queue.closed.load(Ordering::Acquire) {
+            Err(tokio::sync::mpsc::error::TryRecvError::Disconnected)
+        } else {
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.queue
+            .items
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn max_capacity(&self) -> usize {
+        self.queue.capacity
+    }
+}
+
+fn diagnostic_channel(capacity: usize) -> (DiagnosticSender, DiagnosticReceiver) {
+    let queue = Arc::new(DiagnosticQueue {
+        items: Mutex::new(VecDeque::with_capacity(capacity)),
+        notify: Notify::new(),
+        capacity,
+        closed: AtomicBool::new(false),
+    });
+    (
+        DiagnosticSender {
+            queue: Arc::clone(&queue),
+        },
+        DiagnosticReceiver { queue },
+    )
+}
+
 impl PersistenceWorker {
-    pub fn start(
-        paths: WorkerPaths,
-    ) -> (
-        PersistenceClient,
-        mpsc::Receiver<PersistenceDiagnostic>,
-        JoinHandle<()>,
-    ) {
+    pub fn start(paths: WorkerPaths) -> (PersistenceClient, DiagnosticReceiver, JoinHandle<()>) {
         let (sender, messages) = mpsc::unbounded_channel();
-        let (diagnostic_sender, diagnostics) = mpsc::channel(DIAGNOSTIC_CAPACITY);
+        let (diagnostic_sender, diagnostics) = diagnostic_channel(DIAGNOSTIC_CAPACITY);
         let worker = tokio::spawn(run(paths, messages, diagnostic_sender));
         (
             PersistenceClient {
@@ -111,7 +226,7 @@ impl PersistenceWorker {
 async fn run(
     paths: WorkerPaths,
     mut messages: mpsc::UnboundedReceiver<PersistenceMessage>,
-    diagnostics: mpsc::Sender<PersistenceDiagnostic>,
+    diagnostics: DiagnosticSender,
 ) {
     let mut dirty_state = None;
     let mut debounce: Option<Pin<Box<Sleep>>> = None;
@@ -163,13 +278,13 @@ async fn run(
 async fn append_entry(
     paths: &WorkerPaths,
     entry: &GuestbookEntry,
-    diagnostics: &mpsc::Sender<PersistenceDiagnostic>,
+    diagnostics: &DiagnosticSender,
 ) -> Result<(), PersistenceError> {
     let Some(path) = &paths.guestbook else {
         return Ok(());
     };
     append_guestbook(path, entry).await.inspect_err(|error| {
-        let _ = diagnostics.try_send(diagnostic_from(error));
+        diagnostics.send_latest(diagnostic_from(error));
     })
 }
 
@@ -180,7 +295,7 @@ async fn wait_for_debounce(debounce: &mut Option<Pin<Box<Sleep>>>) {
 async fn publish_dirty_state(
     paths: &WorkerPaths,
     dirty_state: &mut Option<PersistedStateV1>,
-    diagnostics: &mpsc::Sender<PersistenceDiagnostic>,
+    diagnostics: &DiagnosticSender,
 ) -> Result<(), PersistenceError> {
     let Some(state) = dirty_state.take() else {
         return Ok(());
@@ -189,7 +304,7 @@ async fn publish_dirty_state(
         return Ok(());
     };
     publish_state(path, &state).await.inspect_err(|error| {
-        let _ = diagnostics.try_send(diagnostic_from(error));
+        diagnostics.send_latest(diagnostic_from(error));
     })
 }
 

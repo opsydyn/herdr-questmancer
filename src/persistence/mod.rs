@@ -13,4 +13,4 @@ pub use state::{
     AttentionEpisodeKey, DurableIntent, PersistedStateV1, STATE_SCHEMA_VERSION,
     StateValidationError,
 };
-pub use worker::{PersistenceClient, PersistenceWorker, WorkerPaths};
+pub use worker::{DiagnosticReceiver, PersistenceClient, PersistenceWorker, WorkerPaths};

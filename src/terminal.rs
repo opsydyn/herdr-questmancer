@@ -22,7 +22,8 @@ use crate::{
     herdr::environment::HerdrEnvironment,
     interaction::reduce_action,
     persistence::{
-        PersistenceClient, PersistenceDiagnostic, PersistenceError, PersistenceWorker, load_startup,
+        DiagnosticReceiver, PersistenceClient, PersistenceDiagnostic, PersistenceError,
+        PersistenceWorker, load_startup,
     },
     runtime::RuntimeRegistration,
     runtime_loop::{
@@ -46,7 +47,7 @@ impl RuntimeLifecycle {
     pub fn start(
         environment: Option<&HerdrEnvironment>,
         paths: crate::persistence::WorkerPaths,
-    ) -> (Self, tokio::sync::mpsc::Receiver<PersistenceDiagnostic>) {
+    ) -> (Self, DiagnosticReceiver) {
         let (persistence, diagnostics, persistence_worker) = PersistenceWorker::start(paths);
         (
             Self {
@@ -262,7 +263,7 @@ async fn run_live_loop(
     model: &mut Model,
     connection: &mut RuntimeConnection,
     persistence: &mut PersistenceClient,
-    persistence_diagnostics: &mut tokio::sync::mpsc::Receiver<PersistenceDiagnostic>,
+    persistence_diagnostics: &mut DiagnosticReceiver,
     collected_diagnostics: &mut Vec<PersistenceDiagnostic>,
     shutdown: &mut Shutdown,
     clock: &RuntimeClock,
@@ -338,7 +339,7 @@ async fn run_offline_loop(
     terminal: &mut Tui,
     model: &mut Model,
     persistence: &mut PersistenceClient,
-    persistence_diagnostics: &mut tokio::sync::mpsc::Receiver<PersistenceDiagnostic>,
+    persistence_diagnostics: &mut DiagnosticReceiver,
     collected_diagnostics: &mut Vec<PersistenceDiagnostic>,
     shutdown: &mut Shutdown,
     clock: &RuntimeClock,
@@ -440,7 +441,7 @@ fn record_diagnostic(
 }
 
 fn drain_diagnostics(
-    receiver: &mut tokio::sync::mpsc::Receiver<PersistenceDiagnostic>,
+    receiver: &mut DiagnosticReceiver,
     diagnostics: &mut Vec<PersistenceDiagnostic>,
 ) {
     while let Ok(diagnostic) = receiver.try_recv() {

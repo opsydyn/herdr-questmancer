@@ -5,10 +5,10 @@ use std::collections::BTreeMap;
 
 use herdr_webmaster::{
     domain::{
-        AgentPersona, AttentionReason, GuestbookEntry, PersonaKey, Presence, Site, SiteStatus,
-        WorkspaceId,
+        AgentPersona, AttentionReason, DomainState, GuestbookEntry, GuestbookEvent, PersonaKey,
+        Presence, Site, SiteStatus, WorkspaceId,
     },
-    update::update,
+    update::{AppEvent, Command, update},
 };
 use proptest::prelude::*;
 
@@ -84,10 +84,8 @@ proptest! {
     ) {
         for event in events {
             let (next, commands) = update(state.clone(), event.clone());
-            let (same_next, same_commands) = update(state, event);
 
-            prop_assert_eq!(&same_next, &next);
-            prop_assert_eq!(&same_commands, &commands);
+            assert_topology_commands(&state, &event, &commands)?;
             prop_assert!(next
                 .selected_agent
                 .as_ref()
@@ -158,6 +156,51 @@ proptest! {
 
         prop_assert_eq!(first.id, second.id);
     }
+}
+
+fn assert_topology_commands(
+    state: &DomainState,
+    event: &AppEvent,
+    commands: &[Command],
+) -> proptest::test_runner::TestCaseResult {
+    match event {
+        AppEvent::SnapshotReplaced { .. } => {
+            prop_assert_eq!(commands, [Command::PersistState]);
+        }
+        AppEvent::PaneExited {
+            pane_id, revision, ..
+        } => {
+            let Some(agent_key) = state.agent_key_for_pane(pane_id) else {
+                prop_assert_eq!(commands, [Command::RequestSnapshot]);
+                return Ok(());
+            };
+            let agent = &state.agents[agent_key];
+            if *revision < agent.pane_revision || agent.presence == Presence::Exited {
+                prop_assert!(commands.is_empty());
+            } else {
+                prop_assert_eq!(commands.len(), 2);
+                let Command::AppendGuestbook(entry) = &commands[0] else {
+                    prop_assert!(false, "real pane exit must append guestbook history");
+                    return Ok(());
+                };
+                prop_assert_eq!(entry.kind, GuestbookEvent::PaneExited);
+                prop_assert_eq!(entry.pane.as_ref(), Some(pane_id));
+                prop_assert_eq!(entry.pane_revision, *revision);
+                prop_assert_eq!(&commands[1], &Command::PersistState);
+            }
+        }
+        AppEvent::WorkspaceClosed(workspace_id) => {
+            if state.sites.contains_key(workspace_id) {
+                prop_assert_eq!(commands, [Command::PersistState]);
+            } else {
+                prop_assert!(commands.is_empty());
+            }
+        }
+        AppEvent::AgentStatusChanged { .. } | AppEvent::MarkSeen(_) => {
+            prop_assert!(false, "topology strategy emitted a non-topology event");
+        }
+    }
+    Ok(())
 }
 
 fn expected_site_status(
