@@ -81,10 +81,14 @@ fn attention_variants() -> Vec<GuildAttention> {
 #[test]
 fn presence_maps_to_explicit_theatre_poses_and_labels() {
     let cases = [
-        (Presence::Working, TheatrePose::Working, "BUILDING"),
-        (Presence::Blocked, TheatrePose::Blocked, "HELP!"),
-        (Presence::Idle, TheatrePose::Idle, "IDLE"),
-        (Presence::Exited, TheatrePose::Exited, "BROKEN LINK"),
+        (Presence::Working, TheatrePose::Delving, "DELVING"),
+        (
+            Presence::Blocked,
+            TheatrePose::SeekingCounsel,
+            "COUNSEL REQUESTED",
+        ),
+        (Presence::Idle, TheatrePose::Resting, "RESTING"),
+        (Presence::Exited, TheatrePose::Departed, "DEPARTED"),
         (Presence::Unknown, TheatrePose::Unknown, "UNKNOWN"),
     ];
 
@@ -108,13 +112,13 @@ fn unseen_and_seen_done_attention_map_to_distinct_explicit_states() {
         GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(1_000));
 
     let unseen = frame_for(&done, Timestamp::from_millis(1_500), &preferences());
-    assert_eq!(unseen.pose, TheatrePose::DoneUnseen);
-    assert_eq!(unseen.label, "UPDATE READY");
+    assert_eq!(unseen.pose, TheatrePose::SpoilsUnopened);
+    assert_eq!(unseen.label, "SPOILS RETURNED");
 
     done.attention = done.attention.mark_read();
     let seen = frame_for(&done, Timestamp::from_millis(1_500), &preferences());
-    assert_eq!(seen.pose, TheatrePose::DoneSeen);
-    assert_eq!(seen.label, "DONE");
+    assert_eq!(seen.pose, TheatrePose::VictoryRecorded);
+    assert_eq!(seen.label, "VICTORY RECORDED");
 }
 
 #[test]
@@ -134,14 +138,14 @@ fn done_pose_and_cadence_follow_complete_attention_semantics() {
         let frame = frame_for(&done, Timestamp::from_millis(1_500), &preferences());
 
         let expected_pose = if completion_unseen {
-            TheatrePose::DoneUnseen
+            TheatrePose::SpoilsUnopened
         } else {
-            TheatrePose::DoneSeen
+            TheatrePose::VictoryRecorded
         };
         let expected_label = if completion_unseen {
-            "UPDATE READY"
+            "SPOILS RETURNED"
         } else {
-            "DONE"
+            "VICTORY RECORDED"
         };
         let expected_frame = if completion_unseen { 5 } else { 0 };
         let expected_cadence = if completion_unseen {
@@ -163,10 +167,14 @@ fn done_pose_and_cadence_follow_complete_attention_semantics() {
 #[test]
 fn non_done_presence_is_authoritative_for_every_attention_variant() {
     let cases = [
-        (Presence::Working, TheatrePose::Working, "BUILDING"),
-        (Presence::Blocked, TheatrePose::Blocked, "HELP!"),
-        (Presence::Idle, TheatrePose::Idle, "IDLE"),
-        (Presence::Exited, TheatrePose::Exited, "BROKEN LINK"),
+        (Presence::Working, TheatrePose::Delving, "DELVING"),
+        (
+            Presence::Blocked,
+            TheatrePose::SeekingCounsel,
+            "COUNSEL REQUESTED",
+        ),
+        (Presence::Idle, TheatrePose::Resting, "RESTING"),
+        (Presence::Exited, TheatrePose::Departed, "DEPARTED"),
         (Presence::Unknown, TheatrePose::Unknown, "UNKNOWN"),
     ];
 
@@ -192,8 +200,8 @@ fn done_without_unseen_attention_is_stable_done_seen() {
 
     let frame = frame_for(&done, Timestamp::from_millis(1_500), &preferences());
 
-    assert_eq!(frame.pose, TheatrePose::DoneSeen);
-    assert_eq!(frame.label, "DONE");
+    assert_eq!(frame.pose, TheatrePose::VictoryRecorded);
+    assert_eq!(frame.label, "VICTORY RECORDED");
 }
 
 #[test]
@@ -205,8 +213,8 @@ fn focus_is_projected_without_replacing_pose_or_label() {
     let frame = frame_for(&working, Timestamp::from_millis(1_500), &preferences());
 
     assert!(frame.focused);
-    assert_eq!(frame.pose, TheatrePose::Working);
-    assert_eq!(frame.label, "BUILDING");
+    assert_eq!(frame.pose, TheatrePose::Delving);
+    assert_eq!(frame.label, "DELVING");
 }
 
 #[test]
@@ -384,19 +392,19 @@ fn no_motion_never_requests_a_future_frame_even_during_completion_transition() {
 }
 
 #[test]
-fn cadence_is_event_driven_when_the_cafe_theatre_is_not_visible_or_empty() {
+fn cadence_is_event_driven_when_the_delve_theatre_is_not_visible_or_empty() {
     let mut working = agent();
     working.presence = Presence::Working;
     let mut desk = model_with(working, 500, Motion::Full);
     desk.switch_to(View::Guild);
     assert_eq!(cadence_for(&desk), RenderCadence::EventDriven);
 
-    let empty_cafe = Model::new(View::Delve);
-    assert_eq!(cadence_for(&empty_cafe), RenderCadence::EventDriven);
+    let empty_delve = Model::new(View::Delve);
+    assert_eq!(cadence_for(&empty_delve), RenderCadence::EventDriven);
 }
 
 #[test]
-fn mixed_cafe_uses_the_fastest_visible_agent_cadence() {
+fn mixed_delve_uses_the_fastest_visible_adventurer_cadence() {
     let mut working = agent();
     working.presence = Presence::Working;
     let mut done = working.clone();

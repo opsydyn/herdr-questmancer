@@ -6,7 +6,7 @@ mod support;
 use proptest::prelude::*;
 use questmancer::{
     domain::{Agent, AgentKey, Campaign, WorkspaceId},
-    ui::cafe_scene::{BayVariant, layout_bays, variant_for_workspace},
+    ui::delve_scene::{DelveVariant, layout_delves, variant_for_campaign},
 };
 use ratatui::layout::Rect;
 
@@ -24,42 +24,56 @@ fn variants_are_deterministic_and_cover_all_authored_variants() {
     let ids = (0..128)
         .map(|index| WorkspaceId::new(format!("workspace-{index}")))
         .collect::<Vec<_>>();
-    let variants = ids.iter().map(variant_for_workspace).collect::<Vec<_>>();
+    let variants = ids.iter().map(variant_for_campaign).collect::<Vec<_>>();
 
     for id in &ids {
-        assert_eq!(variant_for_workspace(id), variant_for_workspace(id));
+        assert_eq!(variant_for_campaign(id), variant_for_campaign(id));
     }
-    assert!(variants.contains(&BayVariant::WallRow));
-    assert!(variants.contains(&BayVariant::CornerBooth));
-    assert!(variants.contains(&BayVariant::BackRoomLab));
+    assert!(variants.contains(&DelveVariant::ForgottenLibrary));
+    assert!(variants.contains(&DelveVariant::MossyUndercroft));
+    assert!(variants.contains(&DelveVariant::OldWatchtower));
 }
 
 #[test]
-fn bays_are_sorted_by_workspace_id_and_seats_fit_the_scene() {
+fn delves_are_sorted_non_overlapping_and_chambers_fit_the_scene() {
     let sites = BTreeMap::from([
         (WorkspaceId::new("zeta"), site("zeta", &["z1", "z2"])),
         (WorkspaceId::new("alpha"), site("alpha", &["a1"])),
     ]);
     let agents = BTreeMap::new();
     let area = Rect::new(0, 0, 120, 30);
-    let bays = layout_bays(&sites, &agents, area, None);
+    let delves = layout_delves(&sites, &agents, area, None);
 
     assert_eq!(
-        bays.iter().map(|bay| &bay.workspace_id).collect::<Vec<_>>(),
+        delves
+            .iter()
+            .map(|delve| &delve.workspace_id)
+            .collect::<Vec<_>>(),
         [&WorkspaceId::new("alpha"), &WorkspaceId::new("zeta")]
     );
-    for bay in bays {
-        for seat in bay.seats {
-            assert!(seat.x >= bay.rect.x);
-            assert!(seat.y >= bay.rect.y);
-            assert!(u32::from(seat.x) + u32::from(seat.width) <= u32::from(bay.rect.right()));
-            assert!(u32::from(seat.y) + u32::from(seat.height) <= u32::from(bay.rect.bottom()));
+    for (index, left) in delves.iter().enumerate() {
+        for right in delves.iter().skip(index + 1) {
+            let overlaps = left.rect.x < right.rect.right()
+                && right.rect.x < left.rect.right()
+                && left.rect.y < right.rect.bottom()
+                && right.rect.y < left.rect.bottom();
+            assert!(!overlaps, "Delves must not overlap: {left:?} and {right:?}");
+        }
+        for chamber in &left.chambers {
+            assert!(chamber.x >= left.rect.x);
+            assert!(chamber.y >= left.rect.y);
+            assert!(
+                u32::from(chamber.x) + u32::from(chamber.width) <= u32::from(left.rect.right())
+            );
+            assert!(
+                u32::from(chamber.y) + u32::from(chamber.height) <= u32::from(left.rect.bottom())
+            );
         }
     }
 }
 
 #[test]
-fn tiny_scene_exposes_bays_without_duplicate_seats() {
+fn tiny_scene_exposes_delves_without_duplicate_chambers() {
     let sites = BTreeMap::from([
         (
             WorkspaceId::new("alpha"),
@@ -68,14 +82,14 @@ fn tiny_scene_exposes_bays_without_duplicate_seats() {
         (WorkspaceId::new("beta"), site("beta", &["b1", "b2"])),
     ]);
     let agents = BTreeMap::new();
-    let bays = layout_bays(&sites, &agents, Rect::new(0, 0, 1, 1), None);
+    let delves = layout_delves(&sites, &agents, Rect::new(0, 0, 1, 1), None);
 
-    assert_eq!(bays.len(), 2);
-    assert!(bays.iter().all(|bay| bay.seats.is_empty()));
+    assert_eq!(delves.len(), 2);
+    assert!(delves.iter().all(|delve| delve.chambers.is_empty()));
 }
 
 #[test]
-fn overflowing_workspace_is_split_into_connected_bays_without_losing_agents() {
+fn overflowing_campaign_is_split_into_connected_delves_without_losing_adventurers() {
     let keys = (0..11)
         .map(|index| AgentKey::new(format!("a{index}")))
         .collect::<Vec<_>>();
@@ -104,11 +118,11 @@ fn overflowing_workspace_is_split_into_connected_bays_without_losing_agents() {
             (key, agent)
         })
         .collect::<BTreeMap<_, _>>();
-    let bays = layout_bays(&sites, &agents, Rect::new(0, 0, 120, 40), None);
-    assert!(bays.len() > 1);
-    let assigned = bays
+    let delves = layout_delves(&sites, &agents, Rect::new(0, 0, 120, 40), None);
+    assert!(delves.len() > 1);
+    let assigned = delves
         .iter()
-        .flat_map(|bay| bay.agent_keys.iter().cloned())
+        .flat_map(|delve| delve.adventurers.iter().cloned())
         .collect::<Vec<_>>();
     assert_eq!(assigned.len(), keys.len());
     assert_eq!(
@@ -122,16 +136,19 @@ fn overflowing_workspace_is_split_into_connected_bays_without_losing_agents() {
 
 #[allow(clippy::similar_names)]
 fn overlaps(
-    left: questmancer::ui::cafe_scene::SeatAnchor,
-    right: questmancer::ui::cafe_scene::SeatAnchor,
+    left: questmancer::ui::delve_scene::ChamberAnchor,
+    right: questmancer::ui::delve_scene::ChamberAnchor,
 ) -> bool {
-    let x = |seat: &questmancer::ui::cafe_scene::SeatAnchor| {
-        (u32::from(seat.x), u32::from(seat.x) + u32::from(seat.width))
-    };
-    let y = |seat: &questmancer::ui::cafe_scene::SeatAnchor| {
+    let x = |chamber: &questmancer::ui::delve_scene::ChamberAnchor| {
         (
-            u32::from(seat.y),
-            u32::from(seat.y) + u32::from(seat.height),
+            u32::from(chamber.x),
+            u32::from(chamber.x) + u32::from(chamber.width),
+        )
+    };
+    let y = |chamber: &questmancer::ui::delve_scene::ChamberAnchor| {
+        (
+            u32::from(chamber.y),
+            u32::from(chamber.y) + u32::from(chamber.height),
         )
     };
     let (left_x0, left_x1) = x(&left);
@@ -143,7 +160,7 @@ fn overlaps(
 
 proptest! {
     #[test]
-    fn generated_bays_are_stable_and_non_overlapping(
+    fn generated_delves_are_stable_and_non_overlapping(
         workspace in "[a-z0-9_-]{1,16}",
         count in 0usize..=12,
         width in 0u16..=8,
@@ -167,14 +184,14 @@ proptest! {
             party: site_agents,
         })]);
         let area = Rect::new(0, 0, width, height);
-        let first = layout_bays(&sites, &agents, area, None);
-        let second = layout_bays(&sites, &agents, area, None);
+        let first = layout_delves(&sites, &agents, area, None);
+        let second = layout_delves(&sites, &agents, area, None);
         prop_assert_eq!(&first, &second);
         prop_assume!(!first.is_empty());
-        let seats = &first[0].seats;
-        for (index, seat) in seats.iter().enumerate() {
-            for other in seats.iter().skip(index + 1) {
-                prop_assert!(!overlaps(*seat, *other));
+        let chambers = &first[0].chambers;
+        for (index, chamber) in chambers.iter().enumerate() {
+            for other in chambers.iter().skip(index + 1) {
+                prop_assert!(!overlaps(*chamber, *other));
             }
         }
     }

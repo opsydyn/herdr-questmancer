@@ -235,11 +235,11 @@ fn ascii_profile() -> Vec<Line<'static>> {
 
 const fn state_marker(pose: TheatrePose) -> &'static str {
     match pose {
-        TheatrePose::Working => "[>]",
-        TheatrePose::Blocked => "[!]",
-        TheatrePose::DoneUnseen | TheatrePose::DoneSeen => "[+]",
-        TheatrePose::Idle => "[~]",
-        TheatrePose::Exited => "[x]",
+        TheatrePose::Delving => "[>]",
+        TheatrePose::SeekingCounsel => "[!]",
+        TheatrePose::SpoilsUnopened | TheatrePose::VictoryRecorded => "[+]",
+        TheatrePose::Resting => "[~]",
+        TheatrePose::Departed => "[x]",
         TheatrePose::Unknown => "[?]",
     }
 }

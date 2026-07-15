@@ -467,7 +467,7 @@ async fn stale_999ms_model_resets_to_the_absolute_done_boundary_after_slow_rende
     assert_eq!(model.now(), Timestamp::from_millis(1_019));
     let done = model.domain().agents.values().next().unwrap();
     let frame = frame_for(done, model.now(), model.preferences());
-    assert_eq!(frame.pose, TheatrePose::DoneUnseen);
+    assert_eq!(frame.pose, TheatrePose::SpoilsUnopened);
     assert_eq!(frame.animation_frame, 0);
 
     scheduler.reset_for(&model, &clock);

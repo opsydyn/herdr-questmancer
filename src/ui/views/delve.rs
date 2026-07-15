@@ -12,7 +12,7 @@ use crate::{
     ui::{
         pixel::{ColorRole, Palette},
         theatre::frame_for,
-        widgets::render_workstation,
+        widgets::render_chamber,
     },
 };
 
@@ -28,7 +28,7 @@ const ASCII_BORDER: border::Set<'static> = border::Set {
 };
 
 #[derive(Clone, Copy)]
-struct CafeStyles {
+struct DelveStyles {
     ink: Style,
     accent: Style,
     muted: Style,
@@ -36,7 +36,7 @@ struct CafeStyles {
     floor: Style,
 }
 
-impl CafeStyles {
+impl DelveStyles {
     fn from_preferences(preferences: DisplayPreferences) -> Self {
         let palette = Palette::from(preferences.color_mode);
         let background = palette.resolve(ColorRole::PanelBackground);
@@ -62,9 +62,9 @@ impl CafeStyles {
 
 pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     let area = frame.area();
-    let styles = CafeStyles::from_preferences(*model.preferences());
+    let styles = DelveStyles::from_preferences(*model.preferences());
     if area.width < 4 || area.height < 3 {
-        frame.render_widget(Paragraph::new("C").style(styles.accent), area);
+        frame.render_widget(Paragraph::new("D").style(styles.accent), area);
         return;
     }
 
@@ -73,7 +73,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(area);
     let title = format!(
-        " THE HERDR CYBERCAFE - {} ",
+        " QUESTMANCER DELVES - {} ",
         connection_label(model.connection())
     );
     let mut block = Block::default()
@@ -92,7 +92,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         render_empty(frame, inner, styles);
     } else {
         if inner.width >= 78 {
-            render_connected_bays(frame, inner, model, styles);
+            render_connected_delves(frame, inner, model, styles);
         } else {
             render_compact_list(frame, inner, model);
         }
@@ -103,8 +103,8 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
 }
 
 #[allow(clippy::too_many_lines)]
-fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: CafeStyles) {
-    use crate::ui::cafe_scene::layout_bays;
+fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: DelveStyles) {
+    use crate::ui::delve_scene::layout_delves;
     let sites = if model.domain().campaigns.is_empty() {
         let mut derived = std::collections::BTreeMap::new();
         for agent in model.domain().agents.values() {
@@ -127,13 +127,13 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
     let selected_workspace = model
         .selected_agent()
         .map(|agent| agent.workspace_id.clone());
-    let bays = layout_bays(
+    let delves = layout_delves(
         &sites,
         &model.domain().agents,
         area,
         selected_workspace.as_ref(),
     );
-    if area.width < 116 && bays.len() > 1 {
+    if area.width < 116 && delves.len() > 1 {
         let strip_height = 2.min(area.height);
         let active_area = Rect::new(
             area.x,
@@ -142,40 +142,43 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
             area.height.saturating_sub(strip_height),
         );
         let selected_key = model.selected_agent_key();
-        let active_bay = bays
+        let active_delve = delves
             .iter()
-            .find(|bay| selected_key.is_some_and(|key| bay.agent_keys.contains(key)))
+            .find(|delve| selected_key.is_some_and(|key| delve.adventurers.contains(key)))
             .or_else(|| {
-                bays.iter()
-                    .find(|bay| selected_workspace.as_ref() == Some(&bay.workspace_id))
+                delves
+                    .iter()
+                    .find(|delve| selected_workspace.as_ref() == Some(&delve.workspace_id))
             })
-            .unwrap_or(&bays[0]);
-        render_bay_architecture(
+            .unwrap_or(&delves[0]);
+        render_delve_architecture(
             frame,
             active_area,
-            &active_bay.workspace_id,
-            active_bay.variant,
+            &active_delve.workspace_id,
+            active_delve.variant,
             true,
             styles,
         );
-        if let Some(site) = sites.get(&active_bay.workspace_id) {
-            let active_sites =
-                std::collections::BTreeMap::from([(active_bay.workspace_id.clone(), site.clone())]);
-            let remapped = layout_bays(
+        if let Some(site) = sites.get(&active_delve.workspace_id) {
+            let active_sites = std::collections::BTreeMap::from([(
+                active_delve.workspace_id.clone(),
+                site.clone(),
+            )]);
+            let remapped = layout_delves(
                 &active_sites,
                 &model.domain().agents,
                 active_area,
-                Some(&active_bay.workspace_id),
+                Some(&active_delve.workspace_id),
             )
             .into_iter()
             .next()
-            .map(|bay| bay.seats)
+            .map(|delve| delve.chambers)
             .unwrap_or_default();
-            for (index, key) in active_bay.agent_keys.iter().enumerate() {
+            for (index, key) in active_delve.adventurers.iter().enumerate() {
                 if let (Some(agent), Some(anchor)) =
                     (model.domain().agents.get(key), remapped.get(index).copied())
                 {
-                    render_workstation(
+                    render_chamber(
                         frame,
                         anchor,
                         agent,
@@ -186,13 +189,15 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
                 }
             }
         }
-        let labels = sites
+        let mut labels = sites
             .keys()
             .map(|id| format!("[{}]", id.as_str()))
-            .collect::<Vec<_>>()
-            .join(" ");
+            .collect::<Vec<_>>();
+        if delves.len() > sites.len() {
+            labels.push("[more chambers]".to_owned());
+        }
         frame.render_widget(
-            Paragraph::new(labels).style(styles.muted),
+            Paragraph::new(labels.join(" ")).style(styles.muted),
             Rect::new(
                 area.x,
                 area.bottom().saturating_sub(strip_height),
@@ -202,19 +207,19 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
         );
         return;
     }
-    for (index, bay) in bays.iter().enumerate() {
-        let active = selected_workspace.as_ref() == Some(&bay.workspace_id);
-        render_bay_architecture(
+    for (index, delve) in delves.iter().enumerate() {
+        let active = selected_workspace.as_ref() == Some(&delve.workspace_id);
+        render_delve_architecture(
             frame,
-            bay.rect,
-            &bay.workspace_id,
-            bay.variant,
+            delve.rect,
+            &delve.workspace_id,
+            delve.variant,
             active,
             styles,
         );
         if index > 0 {
-            let previous = bays[index - 1].rect;
-            let (transition, glyphs) = if previous.y == bay.rect.y {
+            let previous = delves[index - 1].rect;
+            let (transition, glyphs) = if previous.y == delve.rect.y {
                 let x = previous.right().saturating_sub(1);
                 let glyphs = if model.preferences().character_set == crate::app::CharacterSet::Ascii
                 {
@@ -222,7 +227,7 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
                 } else {
                     "│\n╫\n│"
                 };
-                (Rect::new(x, bay.rect.y, 1, bay.rect.height), glyphs)
+                (Rect::new(x, delve.rect.y, 1, delve.rect.height), glyphs)
             } else {
                 let y = previous.bottom().saturating_sub(1);
                 let glyphs = if model.preferences().character_set == crate::app::CharacterSet::Ascii
@@ -231,21 +236,24 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
                 } else {
                     "───╫───"
                 };
-                (Rect::new(bay.rect.x, y, bay.rect.width.min(7), 1), glyphs)
+                (
+                    Rect::new(delve.rect.x, y, delve.rect.width.min(7), 1),
+                    glyphs,
+                )
             };
             frame.render_widget(Paragraph::new(glyphs).style(styles.accent), transition);
         }
-        if !sites.contains_key(&bay.workspace_id) {
+        if !sites.contains_key(&delve.workspace_id) {
             continue;
         }
-        for (index, key) in bay.agent_keys.iter().enumerate() {
+        for (index, key) in delve.adventurers.iter().enumerate() {
             let Some(agent) = model.domain().agents.get(key) else {
                 continue;
             };
-            let Some(anchor) = bay.seats.get(index).copied() else {
+            let Some(anchor) = delve.chambers.get(index).copied() else {
                 continue;
             };
-            render_workstation(
+            render_chamber(
                 frame,
                 anchor,
                 agent,
@@ -257,23 +265,19 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
     }
 }
 
-fn render_bay_architecture(
+fn render_delve_architecture(
     frame: &mut Frame<'_>,
     area: Rect,
     workspace: &crate::domain::WorkspaceId,
-    variant: crate::ui::cafe_scene::BayVariant,
+    variant: crate::ui::delve_scene::DelveVariant,
     active: bool,
-    styles: CafeStyles,
+    styles: DelveStyles,
 ) {
     if area.is_empty() {
         return;
     }
     let label = format!(" {} ", workspace.as_str());
-    let variant_label = match variant {
-        crate::ui::cafe_scene::BayVariant::WallRow => "WALL ROW / DESKS",
-        crate::ui::cafe_scene::BayVariant::CornerBooth => "CORNER BOOTH / BAR",
-        crate::ui::cafe_scene::BayVariant::BackRoomLab => "BACK ROOM LAB / RACKS",
-    };
+    let architecture = DelveArchitecture::for_variant(variant);
     let mut lines = Vec::with_capacity(usize::from(area.height));
     lines.push(Line::styled(
         format!(
@@ -284,67 +288,26 @@ fn render_bay_architecture(
     ));
     for row in 1..area.height {
         let text = if row == 1 {
-            format!(
-                "| {:width$}|",
-                variant_label,
-                width = usize::from(area.width.saturating_sub(3))
-            )
-        } else if !active {
-            format!(
-                "| {:width$}|",
-                "...",
-                width = usize::from(area.width.saturating_sub(3))
+            architecture_row(area, architecture.name)
+        } else if row == 2 {
+            architecture_row(
+                area,
+                if active {
+                    "TORCHLIT PATH"
+                } else {
+                    "SHADOWED PASSAGE"
+                },
             )
         } else if row + 2 >= area.height {
-            format!(
-                "| {:width$}|",
-                "== == ==",
-                width = usize::from(area.width.saturating_sub(3))
-            )
+            architecture_row(area, "== == ==")
         } else if row == area.height / 2 {
-            let cue = match variant {
-                crate::ui::cafe_scene::BayVariant::WallRow => "DOOR LEFT / AISLE",
-                crate::ui::cafe_scene::BayVariant::CornerBooth => "AISLE / DOOR RIGHT",
-                crate::ui::cafe_scene::BayVariant::BackRoomLab => "HATCH / AISLE",
-            };
-            format!(
-                "| {:width$}|",
-                cue,
-                width = usize::from(area.width.saturating_sub(3))
-            )
+            architecture_row(area, architecture.connection)
         } else if row == 3 {
-            let furniture = match variant {
-                crate::ui::cafe_scene::BayVariant::WallRow => "WALL DESKS / CRT",
-                crate::ui::cafe_scene::BayVariant::CornerBooth => "BOOTH TABLE / CRT",
-                crate::ui::cafe_scene::BayVariant::BackRoomLab => "RACK DESKS / CRT",
-            };
-            format!(
-                "| {:width$}|",
-                furniture,
-                width = usize::from(area.width.saturating_sub(3))
-            )
-        } else if active && row == 4 {
-            let object = match variant {
-                crate::ui::cafe_scene::BayVariant::WallRow => "==== COUNTER / ALIGNED DESKS ====",
-                crate::ui::cafe_scene::BayVariant::CornerBooth => "#\\____ BOOTH ____/#",
-                crate::ui::cafe_scene::BayVariant::BackRoomLab => "[RACK] [MON] [RACK]",
-            };
-            format!(
-                "| {:width$}|",
-                object,
-                width = usize::from(area.width.saturating_sub(3))
-            )
-        } else if active && row == 5 {
-            let object = match variant {
-                crate::ui::cafe_scene::BayVariant::WallRow => "--+--+--+--+--+--",
-                crate::ui::cafe_scene::BayVariant::CornerBooth => "SIDE WALL / ANGLED AISLE",
-                crate::ui::cafe_scene::BayVariant::BackRoomLab => "CABLE SHELF / MONITOR BLOCKS",
-            };
-            format!(
-                "| {:width$}|",
-                object,
-                width = usize::from(area.width.saturating_sub(3))
-            )
+            architecture_row(area, architecture.wall)
+        } else if row == 4 {
+            architecture_row(area, architecture.furniture)
+        } else if row == 5 {
+            architecture_row(area, architecture.detail)
         } else {
             format!(
                 "|{:width$}|",
@@ -362,6 +325,49 @@ fn render_bay_architecture(
         ));
     }
     frame.render_widget(Paragraph::new(Text::from(lines)).style(styles.ink), area);
+}
+
+struct DelveArchitecture {
+    name: &'static str,
+    wall: &'static str,
+    furniture: &'static str,
+    detail: &'static str,
+    connection: &'static str,
+}
+
+impl DelveArchitecture {
+    const fn for_variant(variant: crate::ui::delve_scene::DelveVariant) -> Self {
+        match variant {
+            crate::ui::delve_scene::DelveVariant::ForgottenLibrary => Self {
+                name: "FORGOTTEN LIBRARY",
+                wall: "SHELVES / READING ALCOVE",
+                furniture: "==== RUNE TABLE ====",
+                detail: "SHELVES / CONNECTING ARCH",
+                connection: "READING ALCOVE / CONNECTING ARCH",
+            },
+            crate::ui::delve_scene::DelveVariant::MossyUndercroft => Self {
+                name: "MOSSY UNDERCROFT",
+                wall: "STONE WALL / ROOT BREAK",
+                furniture: "#\\__ CAMP JUNCTION __/#",
+                detail: "ROOT BREAK / DESCENDING PASSAGE",
+                connection: "CAMP JUNCTION / DESCENDING PASSAGE",
+            },
+            crate::ui::delve_scene::DelveVariant::OldWatchtower => Self {
+                name: "OLD WATCHTOWER",
+                wall: "MAP WALL / SIGNAL BRAZIER",
+                furniture: "[STAIR] [MAP] [BRAZIER]",
+                detail: "NARROW LANDING / SIGNAL BRAZIER",
+                connection: "STAIR / NARROW LANDING",
+            },
+        }
+    }
+}
+
+fn architecture_row(area: Rect, content: &str) -> String {
+    format!(
+        "| {content:width$}|",
+        width = usize::from(area.width.saturating_sub(3))
+    )
 }
 
 fn render_compact_list(frame: &mut Frame<'_>, area: Rect, model: &Model) {
@@ -395,7 +401,7 @@ fn render_compact_list(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         if y >= list.bottom() {
             break;
         }
-        render_workstation(
+        render_chamber(
             frame,
             Rect::new(
                 list.x,
@@ -419,12 +425,12 @@ fn selected_page_start(model: &Model, capacity: usize) -> usize {
     selected_index / capacity * capacity
 }
 
-fn render_empty(frame: &mut Frame<'_>, area: Rect, styles: CafeStyles) {
+fn render_empty(frame: &mut Frame<'_>, area: Rect, styles: DelveStyles) {
     let message = Text::from(vec![
         Line::from(""),
-        Line::styled("All workstations are free", styles.accent),
+        Line::styled("All Delves await a party", styles.accent),
         Line::from(""),
-        Line::styled("Start an agent to put a workstation online", styles.muted),
+        Line::styled("Start an adventurer to open a chamber", styles.muted),
     ]);
     frame.render_widget(
         Paragraph::new(message)
@@ -434,12 +440,12 @@ fn render_empty(frame: &mut Frame<'_>, area: Rect, styles: CafeStyles) {
     );
 }
 
-fn render_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: CafeStyles) {
+fn render_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: DelveStyles) {
     if area.height > 1 {
         render_narrow_footer(frame, area, model, styles);
         return;
     }
-    let mut actions = vec!["[1] desk", "[2] cafe"];
+    let mut actions = vec!["[1] guild", "[2] delves"];
     if !model.domain().agents.is_empty() {
         actions.push("[j/k] navigate");
         if model.selected_agent().is_some() {
@@ -468,8 +474,8 @@ fn render_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: CafeS
     );
 }
 
-fn render_narrow_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: CafeStyles) {
-    let mut global = vec!["[1] desk", "[2] cafe"];
+fn render_narrow_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: DelveStyles) {
+    let mut global = vec!["[1] guild", "[2] delves"];
     let mut selected = Vec::new();
     if !model.domain().agents.is_empty() {
         global.extend(["[j/k] navigate", "[/] search"]);
@@ -500,15 +506,15 @@ fn render_connection_overlay(
     frame: &mut Frame<'_>,
     area: Rect,
     connection: &ConnectionState,
-    styles: CafeStyles,
+    styles: DelveStyles,
 ) {
     let label = match connection {
-        ConnectionState::Offline => Some("DISCONNECTED - LAST POSES PRESERVED".to_owned()),
+        ConnectionState::Offline => Some("DISCONNECTED - LAST TALES PRESERVED".to_owned()),
         ConnectionState::Reconnecting { attempt } => {
-            Some(format!("RECONNECTING #{attempt} - LAST POSES PRESERVED"))
+            Some(format!("RECONNECTING #{attempt} - LAST TALES PRESERVED"))
         }
         ConnectionState::Incompatible { expected, actual } => Some(format!(
-            "INCOMPATIBLE PROTOCOL {actual} - NEED {expected} - LAST POSES PRESERVED"
+            "INCOMPATIBLE PROTOCOL {actual} - NEED {expected} - LAST TALES PRESERVED"
         )),
         ConnectionState::Connecting | ConnectionState::Connected => None,
     };
@@ -529,8 +535,8 @@ fn render_connection_overlay(
 fn connection_label(state: &ConnectionState) -> String {
     match state {
         ConnectionState::Offline => "offline".to_owned(),
-        ConnectionState::Connecting => "connecting at 56k".to_owned(),
-        ConnectionState::Connected => "connected at 56k".to_owned(),
+        ConnectionState::Connecting => "entering the depths".to_owned(),
+        ConnectionState::Connected => "paths joined".to_owned(),
         ConnectionState::Reconnecting { attempt } => format!("reconnecting #{attempt}"),
         ConnectionState::Incompatible { expected, actual } => {
             format!("protocol {actual} unsupported - need {expected}")

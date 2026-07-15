@@ -239,7 +239,7 @@ fn draw_torso(
 fn draw_pose(canvas: &mut Canvas, roles: AppearanceRoles, layout: SeatedLayout, pose: SeatedPose) {
     let shoulder_y = layout.torso_y + 1;
     match pose {
-        SeatedPose::CrtFacing { hand_phase } => {
+        SeatedPose::RuneWorking { hand_phase } => {
             canvas.set(layout.torso_x.saturating_sub(1), shoulder_y, roles.skin);
             let hand_x = if hand_phase { 9 } else { 8 };
             let hand_y = if hand_phase {
@@ -249,7 +249,7 @@ fn draw_pose(canvas: &mut Canvas, roles: AppearanceRoles, layout: SeatedLayout, 
             };
             canvas.set(hand_x, hand_y, roles.skin);
         }
-        SeatedPose::RaisedHand => {
+        SeatedPose::SignalLantern => {
             canvas.set(layout.torso_x.saturating_sub(1), shoulder_y + 1, roles.skin);
             canvas.set(8, 3, roles.skin);
             canvas.set(8, 4, roles.skin);

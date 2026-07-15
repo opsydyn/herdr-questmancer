@@ -10,7 +10,7 @@ use crate::{
     app::{CharacterSet, ColorMode, DisplayPreferences},
     domain::{Agent, PersonaAppearance},
     ui::{
-        cafe_scene::SeatAnchor,
+        delve_scene::ChamberAnchor,
         persona::compose_seated_with_gear_for_palette,
         pixel::{Canvas, ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
@@ -21,23 +21,23 @@ use super::presentation::present;
 
 const MIN_FULL_WIDTH: u16 = 28;
 const MIN_FULL_HEIGHT: u16 = 10;
-pub trait WorkstationAnchor {
+pub trait ChamberBounds {
     fn rect(self) -> Rect;
 }
 
-impl WorkstationAnchor for Rect {
+impl ChamberBounds for Rect {
     fn rect(self) -> Rect {
         self
     }
 }
 
-impl WorkstationAnchor for SeatAnchor {
+impl ChamberBounds for ChamberAnchor {
     fn rect(self) -> Rect {
         Rect::new(self.x, self.y, self.width, self.height)
     }
 }
 
-pub fn render_workstation<A: WorkstationAnchor>(
+pub fn render_chamber<A: ChamberBounds>(
     frame: &mut Frame<'_>,
     anchor: A,
     agent: &Agent,
@@ -101,7 +101,7 @@ pub fn render_workstation<A: WorkstationAnchor>(
     let state_y = inner.y.saturating_add(inner.height.saturating_sub(1));
     let state = state_line(agent, theatre, inner.width, preferences.character_set);
     frame.render_widget(
-        Paragraph::new(state).style(Style::new().fg(palette.resolve(ColorRole::CrtGlow))),
+        Paragraph::new(state).style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
         Rect::new(inner.x, state_y, inner.width, 1),
     );
 }
@@ -195,7 +195,7 @@ fn render_compact_scene(
     let state_y = area.y.saturating_add(area.height.saturating_sub(1));
     frame.render_widget(
         Paragraph::new(state_line(agent, theatre, area.width, character_set))
-            .style(Style::new().fg(palette.resolve(ColorRole::CrtGlow))),
+            .style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
         Rect::new(area.x, state_y, area.width, 1),
     );
 }
@@ -213,7 +213,7 @@ fn render_scene(
         return;
     }
     let background = Style::new()
-        .fg(palette.resolve(ColorRole::Desk))
+        .fg(palette.resolve(ColorRole::RoomFloor))
         .bg(palette.resolve(ColorRole::PanelBackground));
     frame.render_widget(
         Paragraph::new(Text::from(scene_lines(theatre, selected))).style(background),
@@ -228,7 +228,7 @@ fn render_scene(
     );
     match character_set {
         CharacterSet::Unicode => {
-            let canvas = compose_station_figure(
+            let canvas = compose_chamber_figure(
                 &agent.persona.appearance,
                 agent.persona.class.gear(),
                 theatre,
@@ -246,38 +246,38 @@ fn render_scene(
     }
 }
 
-fn compose_station_figure(
+fn compose_chamber_figure(
     appearance: &PersonaAppearance,
     gear: crate::domain::AdventuringGear,
     theatre: TheatreFrame,
     palette: Palette,
 ) -> Canvas {
-    let mut station = chair_for_pose(theatre.pose);
+    let mut chamber_rest = rest_for_pose(theatre.pose);
     let persona = compose_seated_with_gear_for_palette(appearance, gear, theatre, palette);
-    overlay(&mut station, &persona);
-    station
+    overlay(&mut chamber_rest, &persona);
+    chamber_rest
 }
 
-fn chair_for_pose(pose: TheatrePose) -> Canvas {
-    let mut chair = Canvas::new(10, 12);
+fn rest_for_pose(pose: TheatrePose) -> Canvas {
+    let mut rest = Canvas::new(10, 12);
     match pose {
-        TheatrePose::DoneUnseen | TheatrePose::DoneSeen | TheatrePose::Idle => {
-            chair.fill_rect(1, 5, 2, 5, ColorRole::Chair);
-            chair.fill_rect(2, 9, 7, 2, ColorRole::Chair);
-            chair.set(1, 10, ColorRole::Chair);
-            chair.set(8, 11, ColorRole::Chair);
+        TheatrePose::SpoilsUnopened | TheatrePose::VictoryRecorded | TheatrePose::Resting => {
+            rest.fill_rect(1, 5, 2, 5, ColorRole::Chair);
+            rest.fill_rect(2, 9, 7, 2, ColorRole::Chair);
+            rest.set(1, 10, ColorRole::Chair);
+            rest.set(8, 11, ColorRole::Chair);
         }
-        TheatrePose::Working
-        | TheatrePose::Blocked
-        | TheatrePose::Exited
+        TheatrePose::Delving
+        | TheatrePose::SeekingCounsel
+        | TheatrePose::Departed
         | TheatrePose::Unknown => {
-            chair.fill_rect(0, 4, 2, 6, ColorRole::Chair);
-            chair.fill_rect(1, 8, 7, 2, ColorRole::Chair);
-            chair.fill_rect(2, 10, 1, 2, ColorRole::Chair);
-            chair.fill_rect(7, 10, 1, 2, ColorRole::Chair);
+            rest.fill_rect(0, 4, 2, 6, ColorRole::Chair);
+            rest.fill_rect(1, 8, 7, 2, ColorRole::Chair);
+            rest.fill_rect(2, 10, 1, 2, ColorRole::Chair);
+            rest.fill_rect(7, 10, 1, 2, ColorRole::Chair);
         }
     }
-    chair
+    rest
 }
 
 fn overlay(target: &mut Canvas, source: &Canvas) {
@@ -293,43 +293,43 @@ fn overlay(target: &mut Canvas, source: &Canvas) {
 }
 
 fn scene_lines(theatre: TheatreFrame, selected: bool) -> Vec<Line<'static>> {
-    let lamp = if theatre.focused || selected {
+    let lantern = if theatre.focused || selected {
         "(*)"
     } else {
         "(.)"
     };
-    let modem = if theatre.animation_frame.is_multiple_of(2) {
+    let runes = if theatre.animation_frame.is_multiple_of(2) {
         "o*o"
     } else {
         "*o*"
     };
-    let (screen, activity) = match theatre.pose {
-        TheatrePose::Working => (
+    let (sigil, activity) = match theatre.pose {
+        TheatrePose::Delving => (
             if theatre.animation_frame.is_multiple_of(2) {
-                "> BUILD_"
+                "> RUNE_"
             } else {
-                "> BUILD "
+                "> RUNE "
             },
-            "CURSOR/HAND",
+            "TOOL/RUNE",
         ),
-        TheatrePose::Blocked => ("! HELP !", "RAISED HAND"),
-        TheatrePose::DoneUnseen => ("[+] UPD", "UPDATE READY"),
-        TheatrePose::DoneSeen => ("[+] DONE", "COMPLETE"),
-        TheatrePose::Idle => ("[~] IDLE", "SCREENSAVER"),
-        TheatrePose::Exited => ("[x] /\\", "EMPTY CHAIR"),
+        TheatrePose::SeekingCounsel => ("! SEALED", "SIGNAL LANTERN"),
+        TheatrePose::SpoilsUnopened => ("[+] CHEST", "CHEST SPARKLE"),
+        TheatrePose::VictoryRecorded => ("[+] LOG", "VICTORY LEDGER"),
+        TheatrePose::Resting => ("[~] FIRE", "CAMPFIRE"),
+        TheatrePose::Departed => ("[ ] /\\", "EMPTY CHAMBER"),
         TheatrePose::Unknown => ("[?] ???", "UNKNOWN"),
     };
 
     let mut rows = vec![
-        format!(" .--------. {lamp}"),
-        format!(" |{screen:<8}|"),
+        format!(" .--RUNE--. {lantern}"),
+        format!(" |{sigil:<8}|"),
         format!(" |{activity:<12}"),
-        " '--------'".to_owned(),
-        " ======DESK=====".to_owned(),
-        format!(" {modem} MODEM"),
+        " '--TABLE-'".to_owned(),
+        " ====CHAMBER====".to_owned(),
+        format!(" {runes} RUNES"),
     ];
-    if theatre.pose == TheatrePose::DoneUnseen && (1..=8).contains(&theatre.animation_frame) {
-        const CONFETTI: [(usize, usize, char); 8] = [
+    if theatre.pose == TheatrePose::SpoilsUnopened && (1..=8).contains(&theatre.animation_frame) {
+        const CHEST_SPARKLE: [(usize, usize, char); 8] = [
             (0, 1, '^'),
             (0, 8, '^'),
             (1, 0, '^'),
@@ -339,7 +339,7 @@ fn scene_lines(theatre: TheatreFrame, selected: bool) -> Vec<Line<'static>> {
             (4, 13, '^'),
             (5, 0, '^'),
         ];
-        let (row, column, glyph) = CONFETTI[usize::from(theatre.animation_frame - 1)];
+        let (row, column, glyph) = CHEST_SPARKLE[usize::from(theatre.animation_frame - 1)];
         replace_ascii_char(&mut rows[row], column, glyph);
     }
     rows.into_iter().map(Line::from).collect()
@@ -353,60 +353,60 @@ fn replace_ascii_char(text: &mut String, index: usize, replacement: char) {
 
 fn ascii_pose(pose: TheatrePose) -> Vec<Line<'static>> {
     let rows: [&str; 6] = match pose {
-        TheatrePose::Working => [
-            "  AGENT   ",
+        TheatrePose::Delving => [
+            "ADVENTURER",
             "   o>_    ",
             "  /|\\     ",
             "  / \\     ",
-            "  CHAIR   ",
-            "  typing  ",
+            " RUNE REST",
+            "tool/rune ",
         ],
-        TheatrePose::Blocked => [
-            " AGENT [!]",
+        TheatrePose::SeekingCounsel => [
+            "ADVENT [!]",
             "   \\o/    ",
             "    |     ",
             "   / \\    ",
-            "  CHAIR   ",
-            " raised   ",
+            " LANTERN  ",
+            " counsel  ",
         ],
-        TheatrePose::DoneUnseen => [
-            " AGENT [+]",
+        TheatrePose::SpoilsUnopened => [
+            "ADVENT [+]",
             "   \\o/    ",
             "    |     ",
             "   / \\    ",
-            "  CHAIR   ",
-            " update   ",
+            "  CHEST   ",
+            " spoils   ",
         ],
-        TheatrePose::DoneSeen => [
-            " AGENT [+]",
+        TheatrePose::VictoryRecorded => [
+            "ADVENT [+]",
             "    o     ",
             "   /|\\    ",
             "   / \\    ",
-            "  CHAIR   ",
-            "   done   ",
+            "  LEDGER  ",
+            " victory  ",
         ],
-        TheatrePose::Idle => [
-            " AGENT [~]",
+        TheatrePose::Resting => [
+            "ADVENT [~]",
             "    o     ",
             "   /|\\    ",
             "   / \\    ",
-            "  CHAIR   ",
-            "   idle   ",
+            " CAMPFIRE ",
+            " resting  ",
         ],
-        TheatrePose::Exited => [
+        TheatrePose::Departed => [
             "   [x]    ",
             "  EMPTY   ",
-            "  CHAIR   ",
+            " CHAMBER  ",
             "   /_\\    ",
             "          ",
-            "  exited  ",
+            " departed ",
         ],
         TheatrePose::Unknown => [
-            " AGENT [?]",
+            "ADVENT [?]",
             "    ?     ",
             "   /|\\    ",
             "   / \\    ",
-            "  CHAIR   ",
+            " CHAMBER  ",
             " unknown  ",
         ],
     };
@@ -434,11 +434,11 @@ fn state_line(
 
 const fn state_marker(pose: TheatrePose) -> &'static str {
     match pose {
-        TheatrePose::Working => "[>]",
-        TheatrePose::Blocked => "[!]",
-        TheatrePose::DoneUnseen | TheatrePose::DoneSeen => "[+]",
-        TheatrePose::Idle => "[~]",
-        TheatrePose::Exited => "[x]",
+        TheatrePose::Delving => "[>]",
+        TheatrePose::SeekingCounsel => "[!]",
+        TheatrePose::SpoilsUnopened | TheatrePose::VictoryRecorded => "[+]",
+        TheatrePose::Resting => "[~]",
+        TheatrePose::Departed => "[x]",
         TheatrePose::Unknown => "[?]",
     }
 }

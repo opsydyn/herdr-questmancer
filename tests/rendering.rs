@@ -33,13 +33,13 @@ fn empty_guild_hall_is_ready_for_a_commission() {
 }
 
 #[test]
-fn empty_cafe_is_still_an_actionable_view() {
+fn empty_delve_is_still_an_actionable_view() {
     let screen = render(View::Delve, 80, 24);
 
-    assert!(screen.contains("THE HERDR CYBERCAFE"));
-    assert!(screen.contains("All workstations are free"));
-    assert!(screen.contains("[1] desk"));
-    assert!(screen.contains("[2] cafe"));
+    assert!(screen.contains("QUESTMANCER DELVES"));
+    assert!(screen.contains("All Delves await a party"));
+    assert!(screen.contains("[1] guild"));
+    assert!(screen.contains("[2] delves"));
 }
 
 #[test]

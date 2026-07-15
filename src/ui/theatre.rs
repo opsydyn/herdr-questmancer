@@ -7,12 +7,12 @@ use std::time::Duration;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TheatrePose {
-    Working,
-    Blocked,
-    DoneUnseen,
-    DoneSeen,
-    Idle,
-    Exited,
+    Delving,
+    SeekingCounsel,
+    SpoilsUnopened,
+    VictoryRecorded,
+    Resting,
+    Departed,
     Unknown,
 }
 
@@ -32,14 +32,14 @@ pub enum RenderCadence {
 
 pub fn frame_for(agent: &Agent, now: Timestamp, preferences: &DisplayPreferences) -> TheatreFrame {
     let (pose, label) = match agent.presence {
-        Presence::Working => (TheatrePose::Working, "BUILDING"),
-        Presence::Blocked => (TheatrePose::Blocked, "HELP!"),
+        Presence::Working => (TheatrePose::Delving, "DELVING"),
+        Presence::Blocked => (TheatrePose::SeekingCounsel, "COUNSEL REQUESTED"),
         Presence::Done if unseen_completion_since(&agent.attention).is_some() => {
-            (TheatrePose::DoneUnseen, "UPDATE READY")
+            (TheatrePose::SpoilsUnopened, "SPOILS RETURNED")
         }
-        Presence::Done => (TheatrePose::DoneSeen, "DONE"),
-        Presence::Idle => (TheatrePose::Idle, "IDLE"),
-        Presence::Exited => (TheatrePose::Exited, "BROKEN LINK"),
+        Presence::Done => (TheatrePose::VictoryRecorded, "VICTORY RECORDED"),
+        Presence::Idle => (TheatrePose::Resting, "RESTING"),
+        Presence::Exited => (TheatrePose::Departed, "DEPARTED"),
         Presence::Unknown => (TheatrePose::Unknown, "UNKNOWN"),
     };
 
@@ -66,7 +66,7 @@ pub fn cadence_for(model: &Model) -> RenderCadence {
     fps.map_or(RenderCadence::EventDriven, RenderCadence::Fps)
 }
 
-/// Returns the phase-aware delay until any visible cafe animation changes.
+/// Returns the phase-aware delay until any visible Delve animation changes.
 ///
 /// This is deliberately derived from every agent rather than from the highest
 /// nominal FPS. Different agents can have interleaved boundaries, and a done
@@ -88,20 +88,20 @@ fn animation_frame(agent: &Agent, pose: TheatrePose, now: Timestamp, motion: Mot
     match motion {
         Motion::None => 0,
         Motion::Reduced => match pose {
-            TheatrePose::Idle => looping_frame(agent.presence_since, now, 1, 4),
-            TheatrePose::Working
-            | TheatrePose::Blocked
-            | TheatrePose::DoneUnseen
-            | TheatrePose::DoneSeen
-            | TheatrePose::Exited
+            TheatrePose::Resting => looping_frame(agent.presence_since, now, 1, 4),
+            TheatrePose::Delving
+            | TheatrePose::SeekingCounsel
+            | TheatrePose::SpoilsUnopened
+            | TheatrePose::VictoryRecorded
+            | TheatrePose::Departed
             | TheatrePose::Unknown => 0,
         },
         Motion::Full => match pose {
-            TheatrePose::Working => looping_frame(agent.presence_since, now, 6, 4),
-            TheatrePose::Blocked => looping_frame(agent.presence_since, now, 2, 2),
-            TheatrePose::DoneUnseen => done_transition_frame(agent, now),
-            TheatrePose::Idle => looping_frame(agent.presence_since, now, 1, 4),
-            TheatrePose::DoneSeen | TheatrePose::Exited | TheatrePose::Unknown => 0,
+            TheatrePose::Delving => looping_frame(agent.presence_since, now, 6, 4),
+            TheatrePose::SeekingCounsel => looping_frame(agent.presence_since, now, 2, 2),
+            TheatrePose::SpoilsUnopened => done_transition_frame(agent, now),
+            TheatrePose::Resting => looping_frame(agent.presence_since, now, 1, 4),
+            TheatrePose::VictoryRecorded | TheatrePose::Departed | TheatrePose::Unknown => 0,
         },
     }
 }

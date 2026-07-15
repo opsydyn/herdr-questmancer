@@ -10,14 +10,14 @@ use questmancer::{
         AdventurerPersona, AgentKey, Campaign, CampaignStatus, ChronicleEntry, ChronicleEvent,
         DomainState, GuildSummons, PersonaKey, Presence, WorkspaceId,
     },
-    ui::cafe_scene::layout_bays,
+    ui::delve_scene::layout_delves,
     update::{AppEvent, Command, update},
 };
 use ratatui::layout::Rect;
 
 proptest! {
     #[test]
-    fn every_generated_agent_is_owned_by_exactly_one_visible_bay(
+    fn every_generated_agent_is_owned_by_exactly_one_visible_delve(
         workspaces in prop::collection::vec(support::strategies::workspace_id(), 0..=12),
         agents_per_workspace in prop::collection::vec(0usize..=4, 0..=12),
     ) {
@@ -44,10 +44,10 @@ proptest! {
         }
 
         for (width, height) in [(240, 120), (80, 24), (60, 18), (1, 1), (0, 0)] {
-            let bays = layout_bays(&campaigns, &agents, Rect::new(0, 0, width, height), None);
+            let delves = layout_delves(&campaigns, &agents, Rect::new(0, 0, width, height), None);
             let mut ownership = BTreeMap::<AgentKey, usize>::new();
-            for bay in &bays {
-                for key in &bay.agent_keys {
+            for delve in &delves {
+                for key in &delve.adventurers {
                     *ownership.entry(key.clone()).or_default() += 1;
                 }
             }
@@ -55,19 +55,17 @@ proptest! {
                 prop_assert_eq!(*count, 1);
             }
             if width == 0 || height == 0 {
-                prop_assert!(bays.is_empty());
+                prop_assert!(delves.is_empty());
                 prop_assert!(ownership.is_empty());
             }
-            if (width, height) == (240, 120) {
+            if width > 0 && height > 0 {
                 prop_assert_eq!(ownership.len(), agents.len());
-            } else {
-                prop_assert!(ownership.len() <= agents.len());
             }
         }
     }
 
     #[test]
-    fn managed_pane_is_absent_from_the_cafe_model_and_rendered_surface(
+    fn managed_pane_is_absent_from_the_delve_model_and_rendered_surface(
         managed_pane in support::pane_id(),
     ) {
         let response: questmancer::herdr::protocol::SuccessResponse<questmancer::herdr::protocol::SessionSnapshotResult> =

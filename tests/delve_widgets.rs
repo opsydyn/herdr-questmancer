@@ -6,7 +6,7 @@ use questmancer::{
         persona::compose_profile_with_gear_for_palette,
         pixel::{ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
-        widgets::{render_adventurer_card, render_workstation},
+        widgets::{render_adventurer_card, render_chamber},
     },
 };
 use ratatui::{Terminal, backend::TestBackend, layout::Rect, style::Color};
@@ -29,17 +29,17 @@ fn preferences(character_set: CharacterSet) -> DisplayPreferences {
     }
 }
 
-fn render_workstation_colours(preferences: DisplayPreferences) -> Vec<Color> {
+fn render_chamber_colours(preferences: DisplayPreferences) -> Vec<Color> {
     let agent = agent();
     let backend = TestBackend::new(28, 10);
     let mut terminal = Terminal::new(backend).unwrap();
     terminal
         .draw(|frame| {
-            render_workstation(
+            render_chamber(
                 frame,
                 Rect::new(0, 0, 28, 10),
                 &agent,
-                theatre(TheatrePose::Working, 2, false, "BUILDING"),
+                theatre(TheatrePose::Delving, 2, false, "DELVING"),
                 false,
                 &preferences,
             );
@@ -54,7 +54,7 @@ fn render_workstation_colours(preferences: DisplayPreferences) -> Vec<Color> {
         .collect()
 }
 
-fn render_workstation_styles(
+fn render_chamber_styles(
     agent: &Agent,
     theatre: TheatreFrame,
     preferences: DisplayPreferences,
@@ -63,7 +63,7 @@ fn render_workstation_styles(
     let mut terminal = Terminal::new(backend).unwrap();
     terminal
         .draw(|frame| {
-            render_workstation(
+            render_chamber(
                 frame,
                 Rect::new(0, 0, 28, 10),
                 agent,
@@ -96,7 +96,7 @@ fn theatre(
     }
 }
 
-fn render_workstation_at(
+fn render_chamber_at(
     agent: &Agent,
     theatre: TheatreFrame,
     selected: bool,
@@ -108,7 +108,7 @@ fn render_workstation_at(
     let mut terminal = Terminal::new(backend).unwrap();
     terminal
         .draw(|frame| {
-            render_workstation(
+            render_chamber(
                 frame,
                 Rect::new(0, 0, width, height),
                 agent,
@@ -163,52 +163,52 @@ fn render_profile_at(
 }
 
 #[test]
-fn full_workstation_communicates_every_pose_without_relying_on_colour() {
+fn full_chamber_communicates_every_pose_without_relying_on_colour() {
     let preferences = preferences(CharacterSet::Unicode);
     let mut agent = agent();
     agent.focused = false;
     let cases = [
         (
             Presence::Working,
-            theatre(TheatrePose::Working, 2, false, "BUILDING"),
+            theatre(TheatrePose::Delving, 2, false, "DELVING"),
             "[>]",
-            "BUILDING",
-            "CURSOR/HAND",
+            "DELVING",
+            "TOOL/RUNE",
         ),
         (
             Presence::Blocked,
-            theatre(TheatrePose::Blocked, 1, false, "HELP!"),
+            theatre(TheatrePose::SeekingCounsel, 1, false, "COUNSEL REQUESTED"),
             "[!]",
-            "HELP!",
-            "RAISED HAND",
+            "COUNSEL REQUESTED",
+            "SIGNAL LANTERN",
         ),
         (
             Presence::Done,
-            theatre(TheatrePose::DoneUnseen, 4, false, "UPDATE READY"),
+            theatre(TheatrePose::SpoilsUnopened, 4, false, "SPOILS RETURNED"),
             "[+]",
-            "UPDATE READY",
-            "UPDATE READY",
+            "SPOILS RETURNED",
+            "CHEST SPARKLE",
         ),
         (
             Presence::Done,
-            theatre(TheatrePose::DoneSeen, 0, false, "DONE"),
+            theatre(TheatrePose::VictoryRecorded, 0, false, "VICTORY RECORDED"),
             "[+]",
-            "DONE",
-            "COMPLETE",
+            "VICTORY RECORDED",
+            "VICTORY LEDGER",
         ),
         (
             Presence::Idle,
-            theatre(TheatrePose::Idle, 3, false, "IDLE"),
+            theatre(TheatrePose::Resting, 3, false, "RESTING"),
             "[~]",
-            "IDLE",
-            "SCREENSAVER",
+            "RESTING",
+            "CAMPFIRE",
         ),
         (
             Presence::Exited,
-            theatre(TheatrePose::Exited, 0, false, "BROKEN LINK"),
+            theatre(TheatrePose::Departed, 0, false, "DEPARTED"),
             "[x]",
-            "BROKEN LINK",
-            "EMPTY CHAIR",
+            "DEPARTED",
+            "EMPTY CHAMBER",
         ),
         (
             Presence::Unknown,
@@ -221,7 +221,7 @@ fn full_workstation_communicates_every_pose_without_relying_on_colour() {
 
     for (presence, theatre, marker, label, scene_marker) in cases {
         agent.presence = presence;
-        let screen = render_workstation_at(&agent, theatre, false, preferences, 28, 10);
+        let screen = render_chamber_at(&agent, theatre, false, preferences, 28, 10);
 
         assert!(
             screen.contains("Codex"),
@@ -237,30 +237,26 @@ fn full_workstation_communicates_every_pose_without_relying_on_colour() {
             "missing scene marker {scene_marker} for {label}:\n{screen}"
         );
         assert!(
-            screen.contains("DESK"),
-            "missing desk for {label}:\n{screen}"
-        );
-        assert!(
-            screen.contains("MODEM"),
-            "missing modem for {label}:\n{screen}"
+            screen.contains("CHAMBER"),
+            "missing chamber setting for {label}:\n{screen}"
         );
     }
 }
 
 #[test]
-fn focused_workstation_keeps_state_and_adds_live_lamp() {
+fn focused_chamber_keeps_state_and_adds_live_lantern() {
     let mut agent = agent();
     agent.presence = Presence::Working;
-    let screen = render_workstation_at(
+    let screen = render_chamber_at(
         &agent,
-        theatre(TheatrePose::Working, 1, true, "BUILDING"),
+        theatre(TheatrePose::Delving, 1, true, "DELVING"),
         false,
         preferences(CharacterSet::Unicode),
         28,
         10,
     );
 
-    assert!(screen.contains("[>] BUILDING"));
+    assert!(screen.contains("[>] DELVING"));
     assert!(screen.contains("LIVE"));
     assert!(screen.contains("(*)"));
 }
@@ -268,26 +264,26 @@ fn focused_workstation_keeps_state_and_adds_live_lamp() {
 #[test]
 fn selection_lights_the_lamp_without_claiming_focus() {
     let agent = agent();
-    let screen = render_workstation_at(
+    let screen = render_chamber_at(
         &agent,
-        theatre(TheatrePose::Working, 1, false, "BUILDING"),
+        theatre(TheatrePose::Delving, 1, false, "DELVING"),
         true,
         preferences(CharacterSet::Unicode),
         28,
         10,
     );
 
-    assert!(screen.contains("[>] BUILDING"));
+    assert!(screen.contains("[>] DELVING"));
     assert!(screen.contains("(*)"));
     assert!(!screen.contains("LIVE"));
 }
 
 #[test]
-fn unicode_workstation_places_the_packed_seated_figure_in_six_scene_rows() {
+fn unicode_chamber_places_the_packed_seated_figure_in_six_scene_rows() {
     let agent = agent();
-    let screen = render_workstation_at(
+    let screen = render_chamber_at(
         &agent,
-        theatre(TheatrePose::Working, 1, false, "BUILDING"),
+        theatre(TheatrePose::Delving, 1, false, "DELVING"),
         false,
         preferences(CharacterSet::Unicode),
         28,
@@ -303,16 +299,16 @@ fn unicode_workstation_places_the_packed_seated_figure_in_six_scene_rows() {
             .filter(|glyph| matches!(glyph, '▀' | '▄' | '█'))
             .count()
             > 15,
-        "six-row workstation scene did not contain the packed seated figure:\n{screen}"
+        "six-row chamber scene did not contain the packed seated figure:\n{screen}"
     );
 }
 
 #[test]
-fn compact_unicode_workstation_keeps_the_blocked_seated_sprite_visible() {
+fn compact_unicode_chamber_keeps_the_counsel_seated_sprite_visible() {
     let agent = agent();
-    let screen = render_workstation_at(
+    let screen = render_chamber_at(
         &agent,
-        theatre(TheatrePose::Blocked, 1, false, "HELP!"),
+        theatre(TheatrePose::SeekingCounsel, 1, false, "COUNSEL REQUESTED"),
         false,
         preferences(CharacterSet::Unicode),
         14,
@@ -320,25 +316,25 @@ fn compact_unicode_workstation_keeps_the_blocked_seated_sprite_visible() {
     );
 
     assert!(
-        screen.contains("HELP!"),
-        "compact state label disappeared:\n{screen}"
+        screen.contains("[!] COUNSEL"),
+        "compact state marker and readable label prefix disappeared:\n{screen}"
     );
     assert!(
         screen.chars().any(|glyph| matches!(glyph, '▀' | '▄' | '█')),
-        "compact blocked workstation lost its seated sprite:\n{screen}"
+        "compact counsel chamber lost its seated sprite:\n{screen}"
     );
 }
 
 #[test]
-fn unicode_scene_composes_a_semantic_chair_behind_done_and_exited_poses() {
+fn unicode_scene_composes_a_semantic_rest_behind_victory_and_departed_poses() {
     let agent = agent();
     let preferences = preferences(CharacterSet::Unicode);
     let chair_colour = Color::Indexed(88);
-    let done = theatre(TheatrePose::DoneSeen, 0, false, "DONE");
-    let exited = theatre(TheatrePose::Exited, 0, false, "BROKEN LINK");
+    let done = theatre(TheatrePose::VictoryRecorded, 0, false, "VICTORY RECORDED");
+    let exited = theatre(TheatrePose::Departed, 0, false, "DEPARTED");
 
     let chair_mask = |pose| {
-        let styles = render_workstation_styles(&agent, pose, preferences);
+        let styles = render_chamber_styles(&agent, pose, preferences);
         assert!(
             styles
                 .iter()
@@ -362,7 +358,7 @@ fn unicode_scene_composes_a_semantic_chair_behind_done_and_exited_poses() {
     );
 
     let figure = |pose| {
-        render_workstation_at(&agent, pose, false, preferences, 28, 10)
+        render_chamber_at(&agent, pose, false, preferences, 28, 10)
             .lines()
             .skip(2)
             .take(6)
@@ -376,7 +372,7 @@ fn unicode_scene_composes_a_semantic_chair_behind_done_and_exited_poses() {
         exited_figure
             .chars()
             .any(|glyph| matches!(glyph, '▀' | '▄' | '█')),
-        "exited workstation did not leave a visible empty chair"
+        "departed chamber did not leave a visible empty rest"
     );
     assert_ne!(done_figure, exited_figure);
 }
@@ -387,7 +383,7 @@ fn profile_card_shows_the_independent_full_figure_and_actionable_details() {
     agent.persona.appearance.keepsake = Keepsake::TinyFamiliar;
     let screen = render_profile_at(
         &agent,
-        theatre(TheatrePose::Blocked, 1, true, "HELP!"),
+        theatre(TheatrePose::SeekingCounsel, 1, true, "COUNSEL REQUESTED"),
         preferences(CharacterSet::Unicode),
         40,
         20,
@@ -395,7 +391,7 @@ fn profile_card_shows_the_independent_full_figure_and_actionable_details() {
 
     assert!(screen.contains(&agent.persona.name));
     assert!(screen.contains("Site: w1"));
-    assert!(screen.contains("[!] HELP!"));
+    assert!(screen.contains("[!] COUNSEL REQUESTED"));
     assert!(screen.contains("Keepsake:"));
     assert!(screen.contains("Keepsake: Familiar"));
     assert!(screen.contains("Gear:"));
@@ -453,7 +449,7 @@ fn minimum_profile_boundary_never_drops_the_adventurer_name() {
     let agent = agent();
     let screen = render_profile_at(
         &agent,
-        theatre(TheatrePose::Idle, 0, false, "IDLE"),
+        theatre(TheatrePose::Resting, 0, false, "RESTING"),
         preferences(CharacterSet::Unicode),
         34,
         18,
@@ -469,19 +465,19 @@ fn minimum_profile_boundary_never_drops_the_adventurer_name() {
 fn ascii_widgets_use_labelled_silhouettes_and_no_block_glyphs() {
     let agent = agent();
     let preferences = preferences(CharacterSet::Ascii);
-    let blocked = theatre(TheatrePose::Blocked, 1, false, "HELP!");
+    let blocked = theatre(TheatrePose::SeekingCounsel, 1, false, "COUNSEL REQUESTED");
 
-    let workstation = render_workstation_at(&agent, blocked, false, preferences, 28, 10);
-    assert!(workstation.contains("AGENT [!]"));
-    assert!(workstation.contains("RAISED HAND"));
-    assert!(workstation.contains("[!] HELP!"));
+    let chamber = render_chamber_at(&agent, blocked, false, preferences, 28, 10);
+    assert!(chamber.contains("ADVENT [!]"));
+    assert!(chamber.contains("SIGNAL LANTERN"));
+    assert!(chamber.contains("[!] COUNSEL REQUESTED"));
 
     let profile = render_profile_at(&agent, blocked, preferences, 40, 20);
     assert!(profile.contains("ADVENTURER PROFILE"));
-    assert!(profile.contains("[!] HELP!"));
+    assert!(profile.contains("[!] COUNSEL REQUESTED"));
     assert!(profile.contains("Keepsake:"));
 
-    for screen in [workstation, profile] {
+    for screen in [chamber, profile] {
         assert!(
             !screen.chars().any(|glyph| matches!(glyph, '▀' | '▄' | '█')),
             "ASCII projection emitted a packed block glyph:\n{screen}"
@@ -502,11 +498,11 @@ fn ascii_presentation_sanitizes_domain_text_in_full_and_compact_widgets() {
     agent.pane_id = PaneId::new("pane\tß");
     agent.custom_status = Some("naïve\n状态\u{1b}".to_owned());
     let preferences = preferences(CharacterSet::Ascii);
-    let working = theatre(TheatrePose::Working, 0, false, "BUILDING");
+    let working = theatre(TheatrePose::Delving, 0, false, "DELVING");
 
     let screens = [
-        render_workstation_at(&agent, working, false, preferences, 60, 10),
-        render_workstation_at(&agent, working, false, preferences, 24, 4),
+        render_chamber_at(&agent, working, false, preferences, 60, 10),
+        render_chamber_at(&agent, working, false, preferences, 24, 4),
         render_profile_at(&agent, working, preferences, 60, 20),
         render_profile_at(&agent, working, preferences, 30, 6),
     ];
@@ -546,11 +542,11 @@ fn unicode_presentation_preserves_printable_text_but_neutralizes_controls() {
     agent.pane_id = PaneId::new("pane-ß");
     agent.custom_status = Some("naïve\trésumé".to_owned());
     let preferences = preferences(CharacterSet::Unicode);
-    let working = theatre(TheatrePose::Working, 0, false, "BUILDING");
+    let working = theatre(TheatrePose::Delving, 0, false, "DELVING");
 
-    let workstation = render_workstation_at(&agent, working, false, preferences, 60, 10);
-    assert!(workstation.contains("Café Müller?"));
-    assert!(workstation.contains("naïve résumé"));
+    let chamber = render_chamber_at(&agent, working, false, preferences, 60, 10);
+    assert!(chamber.contains("Café Müller?"));
+    assert!(chamber.contains("naïve résumé"));
 
     let profile = render_profile_at(&agent, working, preferences, 60, 20);
     assert!(profile.contains("Café Müller?"));
@@ -564,7 +560,7 @@ fn unicode_presentation_preserves_printable_text_but_neutralizes_controls() {
 fn colour_mode_selects_xterm_or_ansi_without_domain_ui_coupling() {
     assert_eq!(ColorMode::default(), ColorMode::Xterm256);
 
-    let xterm = render_workstation_colours(preferences(CharacterSet::Unicode));
+    let xterm = render_chamber_colours(preferences(CharacterSet::Unicode));
     assert!(
         xterm
             .iter()
@@ -573,7 +569,7 @@ fn colour_mode_selects_xterm_or_ansi_without_domain_ui_coupling() {
 
     let mut ansi_preferences = preferences(CharacterSet::Unicode);
     ansi_preferences.color_mode = ColorMode::Ansi16;
-    let ansi = render_workstation_colours(ansi_preferences);
+    let ansi = render_chamber_colours(ansi_preferences);
     assert!(ansi.iter().any(|colour| *colour != Color::Reset));
     assert!(
         ansi.iter()
@@ -585,25 +581,25 @@ fn colour_mode_selects_xterm_or_ansi_without_domain_ui_coupling() {
 fn zero_and_tiny_widgets_are_safe_and_tiny_cards_keep_the_state_actionable() {
     let agent = agent();
     let preferences = preferences(CharacterSet::Ascii);
-    let exited = theatre(TheatrePose::Exited, 0, false, "BROKEN LINK");
+    let exited = theatre(TheatrePose::Departed, 0, false, "DEPARTED");
 
     assert_eq!(
-        render_workstation_at(&agent, exited, false, preferences, 0, 0),
+        render_chamber_at(&agent, exited, false, preferences, 0, 0),
         ""
     );
     assert_eq!(render_profile_at(&agent, exited, preferences, 0, 0), "");
-    let _ = render_workstation_at(&agent, exited, false, preferences, 1, 1);
+    let _ = render_chamber_at(&agent, exited, false, preferences, 1, 1);
     let _ = render_profile_at(&agent, exited, preferences, 1, 1);
 
-    let workstation = render_workstation_at(&agent, exited, false, preferences, 18, 4);
+    let chamber = render_chamber_at(&agent, exited, false, preferences, 18, 4);
     let profile = render_profile_at(&agent, exited, preferences, 18, 4);
-    for screen in [workstation, profile] {
+    for screen in [chamber, profile] {
         assert!(
             screen.contains("Codex"),
             "tiny card lost identity:\n{screen}"
         );
         assert!(
-            screen.contains("[x] BROKEN LINK"),
+            screen.contains("[x] DEPARTED"),
             "tiny card lost actionable state:\n{screen}"
         );
     }
@@ -614,14 +610,14 @@ fn ascii_fallback_keeps_each_action_marker_explicit() {
     let agent = agent();
     let preferences = preferences(CharacterSet::Ascii);
     let cases = [
-        (TheatrePose::Blocked, "HELP!", "[!]"),
-        (TheatrePose::DoneUnseen, "UPDATE READY", "[+]"),
-        (TheatrePose::Idle, "IDLE", "[~]"),
-        (TheatrePose::Exited, "BROKEN LINK", "[x]"),
+        (TheatrePose::SeekingCounsel, "COUNSEL REQUESTED", "[!]"),
+        (TheatrePose::SpoilsUnopened, "SPOILS RETURNED", "[+]"),
+        (TheatrePose::Resting, "RESTING", "[~]"),
+        (TheatrePose::Departed, "DEPARTED", "[x]"),
     ];
 
     for (pose, label, marker) in cases {
-        let screen = render_workstation_at(
+        let screen = render_chamber_at(
             &agent,
             theatre(pose, 2, false, label),
             false,
@@ -635,17 +631,17 @@ fn ascii_fallback_keeps_each_action_marker_explicit() {
 }
 
 #[test]
-fn injected_frames_make_modem_crt_and_done_confetti_deterministic() {
+fn injected_frames_make_runes_and_chest_sparkle_deterministic() {
     let agent = agent();
     let preferences = preferences(CharacterSet::Unicode);
     let render = |animation_frame| {
-        render_workstation_at(
+        render_chamber_at(
             &agent,
             theatre(
-                TheatrePose::DoneUnseen,
+                TheatrePose::SpoilsUnopened,
                 animation_frame,
                 false,
-                "UPDATE READY",
+                "SPOILS RETURNED",
             ),
             false,
             preferences,
@@ -659,26 +655,26 @@ fn injected_frames_make_modem_crt_and_done_confetti_deterministic() {
     assert_eq!(render(9), render(11));
     assert_eq!(render(0).matches('^').count(), 0);
     for animation_frame in 1..=8 {
-        let stable_same_modem_phase = if animation_frame % 2 == 0 {
+        let stable_same_rune_phase = if animation_frame % 2 == 0 {
             render(10)
         } else {
             render(9)
         };
         assert_ne!(
             render(animation_frame),
-            stable_same_modem_phase,
-            "frame {animation_frame} did not contain deterministic confetti"
+            stable_same_rune_phase,
+            "frame {animation_frame} did not contain deterministic chest sparkle"
         );
         assert_eq!(
             render(animation_frame).matches('^').count(),
             1,
-            "frame {animation_frame} did not contain exactly one confetti marker"
+            "frame {animation_frame} did not contain exactly one chest sparkle marker"
         );
     }
 
-    let done_seen = render_workstation_at(
+    let done_seen = render_chamber_at(
         &agent,
-        theatre(TheatrePose::DoneSeen, 0, false, "DONE"),
+        theatre(TheatrePose::VictoryRecorded, 0, false, "VICTORY RECORDED"),
         false,
         preferences,
         28,
@@ -688,11 +684,11 @@ fn injected_frames_make_modem_crt_and_done_confetti_deterministic() {
 }
 
 #[test]
-fn wider_workstation_includes_custom_status_when_space_allows() {
+fn wider_chamber_includes_custom_status_when_space_allows() {
     let agent = agent();
-    let screen = render_workstation_at(
+    let screen = render_chamber_at(
         &agent,
-        theatre(TheatrePose::Working, 0, false, "BUILDING"),
+        theatre(TheatrePose::Delving, 0, false, "DELVING"),
         false,
         preferences(CharacterSet::Unicode),
         44,

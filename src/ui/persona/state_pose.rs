@@ -5,8 +5,8 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum SeatedPose {
-    CrtFacing { hand_phase: bool },
-    RaisedHand,
+    RuneWorking { hand_phase: bool },
+    SignalLantern,
     Relaxed,
     Absent,
 }
@@ -58,14 +58,14 @@ impl SeatedLayout {
 
 pub(super) const fn seated_pose(frame: TheatreFrame) -> SeatedPose {
     match frame.pose {
-        TheatrePose::Working => SeatedPose::CrtFacing {
+        TheatrePose::Delving => SeatedPose::RuneWorking {
             hand_phase: frame.animation_frame % 2 == 1,
         },
-        TheatrePose::Blocked => SeatedPose::RaisedHand,
-        TheatrePose::DoneUnseen
-        | TheatrePose::DoneSeen
-        | TheatrePose::Idle
+        TheatrePose::SeekingCounsel => SeatedPose::SignalLantern,
+        TheatrePose::SpoilsUnopened
+        | TheatrePose::VictoryRecorded
+        | TheatrePose::Resting
         | TheatrePose::Unknown => SeatedPose::Relaxed,
-        TheatrePose::Exited => SeatedPose::Absent,
+        TheatrePose::Departed => SeatedPose::Absent,
     }
 }

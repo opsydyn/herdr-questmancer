@@ -65,7 +65,7 @@ fn searchable_model() -> Model {
     model
 }
 
-fn cafe_twin(model: &Model) -> Model {
+fn delve_twin(model: &Model) -> Model {
     let mut twin = model.clone();
     twin.switch_to(View::Delve);
     twin
@@ -616,9 +616,9 @@ fn empty_search_does_not_select_the_first_agent() {
 }
 
 #[test]
-fn cafe_selection_reuses_the_desk_commands_and_loads_once_per_change() {
-    let mut desk = live_model_with_two_agents();
-    let mut cafe = cafe_twin(&desk);
+fn delve_selection_reuses_the_guild_commands_and_loads_once_per_change() {
+    let mut guild = live_model_with_two_agents();
+    let mut delve = delve_twin(&guild);
 
     for action in [
         Action::Next,
@@ -627,40 +627,40 @@ fn cafe_selection_reuses_the_desk_commands_and_loads_once_per_change() {
         Action::First,
         Action::Last,
     ] {
-        let desk_reduction = reduce_action(&mut desk, action);
-        let cafe_reduction = reduce_action(&mut cafe, action);
+        let guild_reduction = reduce_action(&mut guild, action);
+        let delve_reduction = reduce_action(&mut delve, action);
 
-        assert_eq!(cafe_reduction, desk_reduction, "action {action:?}");
+        assert_eq!(delve_reduction, guild_reduction, "action {action:?}");
         assert_eq!(
-            cafe.selected_agent_key(),
-            desk.selected_agent_key(),
+            delve.selected_agent_key(),
+            guild.selected_agent_key(),
             "action {action:?}"
         );
-        assert!(cafe_reduction.commands.len() <= 1, "action {action:?}");
+        assert!(delve_reduction.commands.len() <= 1, "action {action:?}");
     }
 }
 
 #[test]
-fn cafe_visit_refresh_and_optional_reviewr_reuse_typed_desk_commands() {
+fn delve_visit_refresh_and_optional_reviewr_reuse_typed_guild_commands() {
     for action in [Action::Visit, Action::Refresh] {
-        let mut desk = live_model_with_two_agents();
-        let mut cafe = cafe_twin(&desk);
+        let mut guild = live_model_with_two_agents();
+        let mut delve = delve_twin(&guild);
 
-        let desk_reduction = reduce_action(&mut desk, action);
-        let cafe_reduction = reduce_action(&mut cafe, action);
+        let guild_reduction = reduce_action(&mut guild, action);
+        let delve_reduction = reduce_action(&mut delve, action);
 
-        assert_eq!(cafe_reduction, desk_reduction, "action {action:?}");
+        assert_eq!(delve_reduction, guild_reduction, "action {action:?}");
     }
 
-    let mut desk = live_model_with_two_agents();
-    desk.set_reviewr_available(true);
-    let mut cafe = cafe_twin(&desk);
-    let desk_reduction = reduce_action(&mut desk, Action::Reviewr);
-    let cafe_reduction = reduce_action(&mut cafe, Action::Reviewr);
+    let mut guild = live_model_with_two_agents();
+    guild.set_reviewr_available(true);
+    let mut delve = delve_twin(&guild);
+    let guild_reduction = reduce_action(&mut guild, Action::Reviewr);
+    let delve_reduction = reduce_action(&mut delve, Action::Reviewr);
 
-    assert_eq!(cafe_reduction, desk_reduction);
+    assert_eq!(delve_reduction, guild_reduction);
     assert_eq!(
-        cafe_reduction.commands,
+        delve_reduction.commands,
         vec![AgentCommand::InspectSpoils {
             pane_id: PaneId::new("w1:p1"),
             qualified_id: "persiyanov.reviewr.open".to_owned(),
@@ -670,8 +670,8 @@ fn cafe_visit_refresh_and_optional_reviewr_reuse_typed_desk_commands() {
 
 #[test]
 fn delve_counsel_and_acknowledgement_reuse_the_existing_local_and_command_boundaries() {
-    let mut desk = live_model_with_two_agents();
-    let mut cafe = cafe_twin(&desk);
+    let mut guild = live_model_with_two_agents();
+    let mut delve = delve_twin(&guild);
 
     for action in [
         Action::Counsel,
@@ -679,28 +679,28 @@ fn delve_counsel_and_acknowledgement_reuse_the_existing_local_and_command_bounda
         Action::TypeCharacter('k'),
         Action::Submit,
     ] {
-        let desk_reduction = reduce_action(&mut desk, action);
-        let cafe_reduction = reduce_action(&mut cafe, action);
-        assert_eq!(cafe_reduction, desk_reduction, "action {action:?}");
+        let guild_reduction = reduce_action(&mut guild, action);
+        let delve_reduction = reduce_action(&mut delve, action);
+        assert_eq!(delve_reduction, guild_reduction, "action {action:?}");
     }
 
-    let mut desk = live_model_with_two_agents();
-    let mut cafe = cafe_twin(&desk);
-    let desk_seen = reduce_action(&mut desk, Action::MarkSeen);
-    let cafe_seen = reduce_action(&mut cafe, Action::MarkSeen);
+    let mut guild = live_model_with_two_agents();
+    let mut delve = delve_twin(&guild);
+    let guild_seen = reduce_action(&mut guild, Action::MarkSeen);
+    let delve_seen = reduce_action(&mut delve, Action::MarkSeen);
 
-    assert_eq!(cafe_seen, desk_seen);
+    assert_eq!(delve_seen, guild_seen);
     assert_eq!(
-        cafe.selected_agent().unwrap().attention,
-        desk.selected_agent().unwrap().attention
+        delve.selected_agent().unwrap().attention,
+        guild.selected_agent().unwrap().attention
     );
-    assert!(cafe_seen.commands.is_empty());
+    assert!(delve_seen.commands.is_empty());
 }
 
 #[test]
-fn cafe_search_reuses_selection_and_single_output_load_boundary() {
-    let mut desk = searchable_model();
-    let mut cafe = cafe_twin(&desk);
+fn delve_search_reuses_selection_and_single_output_load_boundary() {
+    let mut guild = searchable_model();
+    let mut delve = delve_twin(&guild);
 
     for action in [
         Action::Search,
@@ -710,11 +710,11 @@ fn cafe_search_reuses_selection_and_single_output_load_boundary() {
         Action::TypeCharacter('a'),
         Action::Submit,
     ] {
-        let desk_reduction = reduce_action(&mut desk, action);
-        let cafe_reduction = reduce_action(&mut cafe, action);
-        assert_eq!(cafe_reduction, desk_reduction, "action {action:?}");
+        let guild_reduction = reduce_action(&mut guild, action);
+        let delve_reduction = reduce_action(&mut delve, action);
+        assert_eq!(delve_reduction, guild_reduction, "action {action:?}");
     }
 
-    assert_eq!(cafe.selected_agent_key(), desk.selected_agent_key());
-    assert_eq!(cafe.modal(), &Modal::None);
+    assert_eq!(delve.selected_agent_key(), guild.selected_agent_key());
+    assert_eq!(delve.modal(), &Modal::None);
 }

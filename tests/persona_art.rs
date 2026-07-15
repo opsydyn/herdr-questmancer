@@ -151,7 +151,7 @@ fn assert_adjacency_contrast(roles: AppearanceRoles, palette: Palette) {
 fn fixed_personas_have_exact_dimensions_and_distinct_silhouettes() {
     let appearances = [compact(), tall(), broad()];
     let seated =
-        appearances.map(|appearance| compose_seated(&appearance, frame(TheatrePose::Idle, 0)));
+        appearances.map(|appearance| compose_seated(&appearance, frame(TheatrePose::Resting, 0)));
     let profiles = appearances.map(|appearance| compose_profile(&appearance));
 
     for canvas in &seated {
@@ -196,7 +196,7 @@ fn every_class_derived_gear_has_a_transitional_sprite_silhouette() {
             silhouette(&compose_seated_with_gear(
                 &appearance,
                 class.gear(),
-                frame(TheatrePose::Idle, 0),
+                frame(TheatrePose::Resting, 0),
             ))
         })
         .into_iter()
@@ -298,7 +298,7 @@ fn palette_aware_composers_apply_xterm_collision_fallbacks() {
     let safe_profile = compose_profile_for_palette(&appearance, Palette::Xterm256);
     let safe_seated = compose_seated_for_palette(
         &appearance,
-        frame(TheatrePose::Working, 0),
+        frame(TheatrePose::Delving, 0),
         Palette::Xterm256,
     );
     assert!(canonical_profile.pixels().contains(&Some(canonical.hair)));
@@ -401,7 +401,7 @@ fn safe_roles_exhaust_every_colour_trait_combination_for_both_palettes() {
 fn both_representations_preserve_each_personas_recognition_anchors() {
     for appearance in [compact(), tall(), broad()] {
         let roles = appearance_roles(&appearance);
-        let seated = compose_seated(&appearance, frame(TheatrePose::Idle, 0));
+        let seated = compose_seated(&appearance, frame(TheatrePose::Resting, 0));
         let profile = compose_profile(&appearance);
 
         for canvas in [&seated, &profile] {
@@ -415,13 +415,13 @@ fn both_representations_preserve_each_personas_recognition_anchors() {
 #[test]
 fn seated_state_is_explicit_in_the_non_colour_silhouette() {
     let appearance = tall();
-    let working = compose_seated(&appearance, frame(TheatrePose::Working, 0));
-    let working_next = compose_seated(&appearance, frame(TheatrePose::Working, 1));
-    let blocked = compose_seated(&appearance, frame(TheatrePose::Blocked, 0));
-    let blocked_next = compose_seated(&appearance, frame(TheatrePose::Blocked, 1));
-    let done = compose_seated(&appearance, frame(TheatrePose::DoneSeen, 0));
-    let idle = compose_seated(&appearance, frame(TheatrePose::Idle, 0));
-    let exited = compose_seated(&appearance, frame(TheatrePose::Exited, 0));
+    let working = compose_seated(&appearance, frame(TheatrePose::Delving, 0));
+    let working_next = compose_seated(&appearance, frame(TheatrePose::Delving, 1));
+    let blocked = compose_seated(&appearance, frame(TheatrePose::SeekingCounsel, 0));
+    let blocked_next = compose_seated(&appearance, frame(TheatrePose::SeekingCounsel, 1));
+    let done = compose_seated(&appearance, frame(TheatrePose::VictoryRecorded, 0));
+    let idle = compose_seated(&appearance, frame(TheatrePose::Resting, 0));
+    let exited = compose_seated(&appearance, frame(TheatrePose::Departed, 0));
 
     assert_ne!(silhouette(&working), silhouette(&working_next));
     assert_ne!(silhouette(&working), silhouette(&blocked));
@@ -435,7 +435,7 @@ fn seated_state_is_explicit_in_the_non_colour_silhouette() {
 fn compact_blocked_role_map_is_a_stable_semantic_golden() {
     let appearance = compact();
     let roles = appearance_roles(&appearance);
-    let blocked = compose_seated(&appearance, frame(TheatrePose::Blocked, 0));
+    let blocked = compose_seated(&appearance, frame(TheatrePose::SeekingCounsel, 0));
 
     assert_eq!(
         logical_role_map(&blocked, roles),
@@ -501,12 +501,12 @@ fn profile_is_a_separately_authored_neutral_composition() {
     );
 
     for pose in [
-        TheatrePose::Working,
-        TheatrePose::Blocked,
-        TheatrePose::DoneUnseen,
-        TheatrePose::DoneSeen,
-        TheatrePose::Idle,
-        TheatrePose::Exited,
+        TheatrePose::Delving,
+        TheatrePose::SeekingCounsel,
+        TheatrePose::SpoilsUnopened,
+        TheatrePose::VictoryRecorded,
+        TheatrePose::Resting,
+        TheatrePose::Departed,
         TheatrePose::Unknown,
     ] {
         let _ = compose_seated(&appearance, frame(pose, 7));

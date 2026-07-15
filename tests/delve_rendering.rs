@@ -94,7 +94,7 @@ fn assert_every_agent_is_visible(screen: &str) {
 }
 
 #[test]
-fn selected_and_disconnected_workstations_remain_in_the_same_authored_scene() {
+fn selected_and_departed_adventurers_remain_in_the_same_authored_delve() {
     let mut model = three_agent_model();
     model
         .domain_mut()
@@ -113,17 +113,17 @@ fn selected_and_disconnected_workstations_remain_in_the_same_authored_scene() {
     let screen = render(&model, 120, 30);
 
     assert!(screen.contains("Alpha"));
-    assert!(screen.contains("BROKEN") || screen.contains("EMPTY CHAIR"));
+    assert!(screen.contains("DEPARTED") || screen.contains("EMPTY CHAMBER"));
     assert!(screen.contains("> Beta"));
-    assert!(screen.contains("HELP!"));
+    assert!(screen.contains("COUNSEL REQUESTED"));
     assert!(
-        !screen.contains("CAFE WALL / 56K CABLE RUN"),
-        "nested webmaster output leaked into the cafe:\n{screen}"
+        !screen.contains("CRT") && !screen.contains("MODEM") && !screen.contains("DESK"),
+        "cybercafe architecture leaked into the Delve:\n{screen}"
     );
 }
 
 #[test]
-fn one_hundred_twenty_columns_show_authored_bay_and_selected_workstation() {
+fn one_hundred_twenty_columns_show_authored_delve_and_selected_chamber() {
     let screen = render(&three_agent_model(), 120, 30);
 
     assert_every_agent_is_visible(&screen);
@@ -131,13 +131,22 @@ fn one_hundred_twenty_columns_show_authored_bay_and_selected_workstation() {
         screen.contains("w1"),
         "missing workspace signage:\n{screen}"
     );
-    assert!(screen.contains("AISLE"), "missing aisle cue:\n{screen}");
-    assert!(screen.contains("== == =="), "missing floor cue:\n{screen}");
+    assert!(
+        screen.contains("PASSAGE") || screen.contains("ARCH") || screen.contains("STAIR"),
+        "missing connected Delve cue:\n{screen}"
+    );
+    assert!(
+        screen.contains("== == =="),
+        "missing stone floor cue:\n{screen}"
+    );
     assert!(
         screen.contains("> Beta"),
-        "missing selected workstation:\n{screen}"
+        "missing selected chamber:\n{screen}"
     );
-    assert!(screen.contains("HELP!"), "missing state theatre:\n{screen}");
+    assert!(
+        screen.contains("COUNSEL REQUESTED"),
+        "missing state theatre:\n{screen}"
+    );
 }
 
 #[test]
@@ -149,9 +158,17 @@ fn one_hundred_sixty_columns_keep_three_agents_in_authored_room() {
         screen.contains("w1"),
         "missing workspace signage:\n{screen}"
     );
-    assert!(screen.contains("CRT"), "missing furniture cue:\n{screen}");
+    assert!(
+        ["SHELVES", "STONE WALL", "MAP WALL"]
+            .iter()
+            .any(|cue| screen.contains(cue)),
+        "missing dungeon architecture cue:\n{screen}"
+    );
     assert!(screen.contains("> Beta"), "missing selection:\n{screen}");
-    assert!(screen.contains("[!] HELP!"), "missing state:\n{screen}");
+    assert!(
+        screen.contains("[!] COUNSEL REQUESTED"),
+        "missing state:\n{screen}"
+    );
     let alpha = screen.find("Alpha").unwrap();
     let beta = screen.find("Beta").unwrap();
     let gamma = screen.find("Gamma").unwrap();
@@ -162,7 +179,7 @@ fn one_hundred_sixty_columns_keep_three_agents_in_authored_room() {
 }
 
 #[test]
-fn multiple_workspaces_render_as_connected_bays_with_deterministic_variant_cues() {
+fn multiple_campaigns_render_as_connected_delves_with_deterministic_variant_cues() {
     let mut model = three_agent_model();
     let gamma_key = AgentKey::new("agent-c");
     model
@@ -190,10 +207,10 @@ fn multiple_workspaces_render_as_connected_bays_with_deterministic_variant_cues(
         },
     );
     let screen = render(&model, 160, 40);
-    assert!(screen.contains("w1"), "missing first bay:\n{screen}");
-    assert!(screen.contains("w2"), "missing second bay:\n{screen}");
+    assert!(screen.contains("w1"), "missing first Delve:\n{screen}");
+    assert!(screen.contains("w2"), "missing second Delve:\n{screen}");
     assert!(
-        screen.contains("AISLE"),
+        screen.contains("PASSAGE") || screen.contains("ARCH") || screen.contains("STAIR"),
         "missing connected-room cue:\n{screen}"
     );
     assert_every_agent_is_visible(&screen);
@@ -204,7 +221,7 @@ fn authored_variants_change_rendered_room_geometry() {
     let mut ids = Vec::new();
     for index in 0..128 {
         let id = WorkspaceId::new(format!("variant-{index}"));
-        let variant = questmancer::ui::cafe_scene::variant_for_workspace(&id);
+        let variant = questmancer::ui::delve_scene::variant_for_campaign(&id);
         if !ids.iter().any(|(known, _)| *known == variant) {
             ids.push((variant, id));
         }
@@ -236,7 +253,7 @@ fn authored_variants_change_rendered_room_geometry() {
 }
 
 #[test]
-fn eighty_by_twenty_four_keeps_a_compact_bay_strip_and_actions() {
+fn eighty_by_twenty_four_keeps_a_compact_delve_strip_and_actions() {
     let mut model = three_agent_model();
     model.domain_mut().campaigns.insert(
         WorkspaceId::new("w1"),
@@ -263,7 +280,7 @@ fn eighty_by_twenty_four_keeps_a_compact_bay_strip_and_actions() {
     let screen = render(&model, 80, 24);
     assert!(
         screen.contains("[w1] [w2]"),
-        "missing compact bay strip:\n{screen}"
+        "missing compact Delve strip:\n{screen}"
     );
     assert!(screen.contains("[j/k] navigate"));
     assert!(screen.contains("[enter] visit"));
@@ -305,7 +322,7 @@ fn ascii_multi_workspace_transitions_remain_ascii_safe() {
 }
 
 #[test]
-fn compact_selected_wrapped_workspace_remaps_seats_into_active_scene() {
+fn compact_selected_wrapped_campaign_remaps_chambers_into_active_delve() {
     let mut model = three_agent_model();
     let gamma = model
         .domain_mut()
@@ -345,7 +362,7 @@ fn compact_selected_wrapped_workspace_remaps_seats_into_active_scene() {
 }
 
 #[test]
-fn compact_selection_targets_the_selected_overflow_bay() {
+fn compact_selection_targets_the_selected_overflow_delve() {
     let mut model = three_agent_model();
     let template = model.domain().agents.values().next().unwrap().clone();
     let mut keys = Vec::new();
@@ -370,13 +387,17 @@ fn compact_selection_targets_the_selected_overflow_bay() {
     let screen = render(&model, 80, 24);
     assert!(
         screen.contains("Overflow 4"),
-        "selected overflow bay not visible above strip:\n{screen}"
+        "selected overflow adventurer not visible above marker:\n{screen}"
     );
-    assert!(screen.find("Overflow 4").unwrap() < screen.find("[overflow]").unwrap());
+    let selected_offset = screen.find("Overflow 4").unwrap();
+    let overflow_marker = screen
+        .find("[more chambers]")
+        .expect("overflow marker must be rendered");
+    assert!(selected_offset < overflow_marker);
 }
 
 #[test]
-fn eighty_columns_keep_authored_bay_and_actions() {
+fn eighty_columns_keep_authored_delve_and_actions() {
     let mut model = three_agent_model();
     let screen = render(&model, 80, 24);
 
@@ -385,12 +406,12 @@ fn eighty_columns_keep_authored_bay_and_actions() {
         screen.contains("w1"),
         "missing workspace signage:\n{screen}"
     );
-    assert!(screen.contains("AISLE"), "missing aisle cue:\n{screen}");
+    assert!(screen.contains("PASSAGE") || screen.contains("ARCH") || screen.contains("STAIR"));
     assert!(screen.contains("== == =="), "missing floor cue:\n{screen}");
-    assert!(screen.contains("HELP!"), "missing blocked state:\n{screen}");
+    assert!(screen.contains("COUNSEL REQUESTED"));
     for action in [
-        "[1] desk",
-        "[2] cafe",
+        "[1] guild",
+        "[2] delves",
         "[j/k] navigate",
         "[enter] visit",
         "[r] reply",
@@ -408,17 +429,17 @@ fn eighty_columns_keep_authored_bay_and_actions() {
 }
 
 #[test]
-fn sixty_columns_use_an_actionable_vertical_workstation_list() {
+fn sixty_columns_use_an_actionable_vertical_chamber_list() {
     let screen = render(&three_agent_model(), 60, 18);
 
     assert_every_agent_is_visible(&screen);
     assert!(screen.contains("> Beta"), "missing selection:\n{screen}");
     assert!(
-        screen.contains("BUILDING"),
-        "missing working state:\n{screen}"
+        screen.contains("DELVING"),
+        "missing delving state:\n{screen}"
     );
-    assert!(screen.contains("HELP!"), "missing blocked state:\n{screen}");
-    assert!(screen.contains("BROKEN"), "missing exited state:\n{screen}");
+    assert!(screen.contains("COUNSEL REQUESTED"));
+    assert!(screen.contains("DEPARTED"));
     for action in [
         "[enter] visit",
         "[r] reply",
@@ -431,14 +452,14 @@ fn sixty_columns_use_an_actionable_vertical_workstation_list() {
 }
 
 #[test]
-fn one_cell_cafe_is_safe() {
+fn one_cell_delve_is_safe() {
     let screen = render(&three_agent_model(), 1, 1);
 
-    assert_eq!(screen, "C");
+    assert_eq!(screen, "D");
 }
 
 #[test]
-fn zero_and_tiny_cafes_are_panic_free() {
+fn zero_and_tiny_delves_are_panic_free() {
     let model = three_agent_model();
 
     for (width, height) in [(0, 0), (0, 1), (1, 0), (2, 2), (3, 2), (3, 3)] {
@@ -480,7 +501,7 @@ fn dense_grid_pages_to_keep_a_late_selection_visible() {
 
     assert!(
         screen.contains("[w1]"),
-        "active bay strip hidden:\n{screen}"
+        "active Delve strip hidden:\n{screen}"
     );
     assert!(
         screen.contains("[j/k] navigate"),
@@ -507,16 +528,16 @@ fn compact_dense_list_pages_to_keep_a_late_selection_visible() {
         screen.contains("> Agent 60"),
         "late selection hidden:\n{screen}"
     );
-    assert!(screen.contains("[>] BUILDING"), "state hidden:\n{screen}");
+    assert!(screen.contains("[>] DELVING"), "state hidden:\n{screen}");
 }
 
 #[test]
-fn empty_cafe_keeps_helpful_navigation_without_invalid_agent_actions() {
+fn empty_delve_keeps_helpful_navigation_without_invalid_adventurer_actions() {
     let screen = render(&Model::new(View::Delve), 120, 30);
 
-    assert!(screen.contains("All workstations are free"));
-    assert!(screen.contains("Start an agent"));
-    assert!(screen.contains("[1] desk"));
+    assert!(screen.contains("All Delves await a party"));
+    assert!(screen.contains("Start an adventurer"));
+    assert!(screen.contains("[1] guild"));
     assert!(!screen.contains("[enter] visit"));
     assert!(!screen.contains("[r] reply"));
     assert!(!screen.contains("[o] refresh"));
@@ -526,13 +547,13 @@ fn empty_cafe_keeps_helpful_navigation_without_invalid_agent_actions() {
 }
 
 #[test]
-fn footer_advertises_only_available_cafe_actions() {
+fn footer_advertises_only_available_delve_actions() {
     let mut model = three_agent_model();
     let screen = render(&model, 160, 50);
 
     for action in [
-        "[1] desk",
-        "[2] cafe",
+        "[1] guild",
+        "[2] delves",
         "[j/k] navigate",
         "[enter] visit",
         "[r] reply",
@@ -573,19 +594,19 @@ fn connection_overlays_preserve_the_last_visible_agent_poses() {
 
         assert!(screen.contains(label), "missing {label}:\n{screen}");
         assert!(
-            screen.contains("LAST POSES PRESERVED"),
+            screen.contains("LAST TALES PRESERVED"),
             "missing preservation notice:\n{screen}"
         );
         assert_every_agent_is_visible(&screen);
         assert!(
-            screen.contains("HELP!"),
+            screen.contains("COUNSEL REQUESTED"),
             "missing preserved pose:\n{screen}"
         );
     }
 }
 
 #[test]
-fn ascii_cafe_is_actionable_and_never_emits_block_glyphs() {
+fn ascii_delve_is_actionable_and_never_emits_block_glyphs() {
     let mut model = three_agent_model();
     model.set_preferences(DisplayPreferences {
         character_set: CharacterSet::Ascii,
@@ -594,15 +615,15 @@ fn ascii_cafe_is_actionable_and_never_emits_block_glyphs() {
 
     let screen = render(&model, 120, 30);
 
-    assert!(screen.is_ascii(), "non-ASCII cafe output:\n{screen}");
+    assert!(screen.is_ascii(), "non-ASCII Delve output:\n{screen}");
     assert_every_agent_is_visible(&screen);
-    assert!(screen.contains("[!] HELP!"));
-    assert!(screen.contains("[x] BROKEN"));
+    assert!(screen.contains("[!] COUNSEL REQUESTED"));
+    assert!(screen.contains("[x] DEPARTED"));
     assert!(screen.contains("w1"));
 }
 
 #[test]
-fn ansi_sixteen_cafe_uses_only_named_palette_cells() {
+fn ansi_sixteen_delve_uses_only_named_palette_cells() {
     let mut model = three_agent_model();
     model.set_preferences(DisplayPreferences {
         color_mode: ColorMode::Ansi16,
@@ -626,7 +647,7 @@ fn ansi_sixteen_cafe_uses_only_named_palette_cells() {
 }
 
 #[test]
-fn reduced_and_no_motion_cafes_are_stable_across_clock_changes() {
+fn reduced_and_no_motion_delves_are_stable_across_clock_changes() {
     for motion in [Motion::Reduced, Motion::None] {
         let mut model = three_agent_model();
         model.set_preferences(DisplayPreferences {
@@ -638,14 +659,14 @@ fn reduced_and_no_motion_cafes_are_stable_across_clock_changes() {
         let later = render(&model, 120, 30);
 
         assert_eq!(first, later, "motion {motion:?} changed with the clock");
-        assert!(first.contains("BUILDING"));
-        assert!(first.contains("HELP!"));
-        assert!(first.contains("BROKEN"));
+        assert!(first.contains("DELVING"));
+        assert!(first.contains("COUNSEL REQUESTED"));
+        assert!(first.contains("DEPARTED"));
     }
 }
 
 #[test]
-fn done_confetti_has_exactly_eight_frames_then_leaves_a_stable_update_badge() {
+fn chest_sparkle_has_exactly_eight_frames_then_leaves_stable_spoils() {
     let mut model = three_agent_model();
     let selected = model.selected_agent_key().unwrap().clone();
     let agent = model.domain_mut().agents.get_mut(&selected).unwrap();
@@ -656,10 +677,10 @@ fn done_confetti_has_exactly_eight_frames_then_leaves_a_stable_update_badge() {
     for frame in 1..=8 {
         model.set_now(Timestamp::from_millis(2_000 + i64::from(frame - 1) * 125));
         let screen = render(&model, 120, 30);
-        assert!(screen.contains("UPDATE"));
+        assert!(screen.contains("SPOILS RETURNED"));
     }
 
     model.set_now(Timestamp::from_millis(3_000));
     let stable = render(&model, 120, 30);
-    assert!(stable.contains("UPDATE"), "{stable}");
+    assert!(stable.contains("SPOILS RETURNED"), "{stable}");
 }

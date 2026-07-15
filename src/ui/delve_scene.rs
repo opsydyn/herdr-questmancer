@@ -1,4 +1,4 @@
-//! Pure geometry for the connected cybercafé scene.
+//! Pure geometry for the connected campaign Delves.
 
 use std::collections::BTreeMap;
 
@@ -7,23 +7,23 @@ use ratatui::layout::Rect;
 use crate::domain::{Agent, AgentKey, Campaign, WorkspaceId};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BayVariant {
-    WallRow,
-    CornerBooth,
-    BackRoomLab,
+pub enum DelveVariant {
+    ForgottenLibrary,
+    MossyUndercroft,
+    OldWatchtower,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CafeBay {
+pub struct CampaignDelve {
     pub workspace_id: WorkspaceId,
-    pub variant: BayVariant,
+    pub variant: DelveVariant,
     pub rect: Rect,
-    pub seats: Vec<SeatAnchor>,
-    pub agent_keys: Vec<AgentKey>,
+    pub chambers: Vec<ChamberAnchor>,
+    pub adventurers: Vec<AgentKey>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct SeatAnchor {
+pub struct ChamberAnchor {
     pub x: u16,
     pub y: u16,
     pub width: u16,
@@ -32,29 +32,29 @@ pub struct SeatAnchor {
 
 /// Select an authored room variant from a stable workspace identity.
 #[must_use]
-pub fn variant_for_workspace(workspace_id: &WorkspaceId) -> BayVariant {
-    let mut input = Vec::with_capacity(12 + workspace_id.as_str().len());
-    input.extend_from_slice(b"cafe-variant\0");
+pub fn variant_for_campaign(workspace_id: &WorkspaceId) -> DelveVariant {
+    let mut input = Vec::with_capacity(27 + workspace_id.as_str().len());
+    input.extend_from_slice(b"questmancer-delve-variant\0");
     input.extend_from_slice(workspace_id.as_str().as_bytes());
     match blake3::hash(&input).as_bytes()[0] % 3 {
-        0 => BayVariant::WallRow,
-        1 => BayVariant::CornerBooth,
-        _ => BayVariant::BackRoomLab,
+        0 => DelveVariant::ForgottenLibrary,
+        1 => DelveVariant::MossyUndercroft,
+        _ => DelveVariant::OldWatchtower,
     }
 }
 
-/// Lay out one connected bay per workspace, preserving the map's lexical order.
+/// Lay out one connected Delve per campaign chunk, preserving lexical order.
 ///
-/// Seat coordinates are absolute terminal coordinates. The selected workspace is
+/// Chamber coordinates are absolute terminal coordinates. The selected workspace is
 /// intentionally not allowed to perturb geometry: selection is a rendering concern,
 /// keeping this model stable for snapshots and persistence.
 #[must_use]
-pub fn layout_bays(
+pub fn layout_delves(
     sites: &BTreeMap<WorkspaceId, Campaign>,
     agents: &BTreeMap<AgentKey, Agent>,
     area: Rect,
     _selected: Option<&WorkspaceId>,
-) -> Vec<CafeBay> {
+) -> Vec<CampaignDelve> {
     if sites.is_empty() || area.width == 0 || area.height == 0 {
         return Vec::new();
     }
@@ -67,8 +67,8 @@ pub fn layout_bays(
             .filter(|key| agents.contains_key(*key))
             .cloned()
             .collect::<Vec<_>>();
-        let chunk_capacity = match variant_for_workspace(workspace_id) {
-            BayVariant::WallRow => 4,
+        let chunk_capacity = match variant_for_campaign(workspace_id) {
+            DelveVariant::ForgottenLibrary => 4,
             _ => 2,
         };
         let chunks = keys.len().max(1).div_ceil(chunk_capacity);
@@ -81,10 +81,10 @@ pub fn layout_bays(
     }
     let count = u32::try_from(entries.len()).unwrap_or(u32::MAX);
     let columns = integer_sqrt_ceil(count).min(u32::from(area.width)).max(1);
-    // Keep one bay per workspace even when a compact surface cannot display
-    // every row; zero-sized off-screen bays simply contribute no seat anchors.
+    // Keep every Delve even when a compact surface cannot display every row;
+    // zero-sized off-screen Delves simply contribute no chamber anchors.
     let rows = count.div_ceil(columns).max(1);
-    let mut bays = Vec::with_capacity(entries.len());
+    let mut delves = Vec::with_capacity(entries.len());
 
     for (index, (workspace_id, agent_keys)) in entries.iter().enumerate() {
         let index = u32::try_from(index).unwrap_or(u32::MAX);
@@ -93,18 +93,18 @@ pub fn layout_bays(
         if row >= rows {
             break;
         }
-        let bay = partition(area, column, row, columns, rows);
-        let variant = variant_for_workspace(workspace_id);
-        let seats = authored_seats(variant, agent_keys.len(), bay);
-        bays.push(CafeBay {
+        let delve = partition(area, column, row, columns, rows);
+        let variant = variant_for_campaign(workspace_id);
+        let chambers = authored_chambers(variant, agent_keys.len(), delve);
+        delves.push(CampaignDelve {
             workspace_id: workspace_id.clone(),
             variant,
-            rect: bay,
-            seats,
-            agent_keys: agent_keys.clone(),
+            rect: delve,
+            chambers,
+            adventurers: agent_keys.clone(),
         });
     }
-    bays
+    delves
 }
 
 fn integer_sqrt_ceil(value: u32) -> u32 {
@@ -131,15 +131,15 @@ fn partition(area: Rect, column: u32, row: u32, columns: u32, rows: u32) -> Rect
     )
 }
 
-fn authored_seats(variant: BayVariant, count: usize, bay: Rect) -> Vec<SeatAnchor> {
-    if count == 0 || bay.width == 0 || bay.height == 0 {
+fn authored_chambers(variant: DelveVariant, count: usize, delve: Rect) -> Vec<ChamberAnchor> {
+    if count == 0 || delve.width == 0 || delve.height == 0 {
         return Vec::new();
     }
-    let width = u32::from(bay.width);
-    let height = u32::from(bay.height);
+    let width = u32::from(delve.width);
+    let height = u32::from(delve.height);
     let preferred_columns = match variant {
-        BayVariant::WallRow => u32::try_from(count.min(4)).unwrap_or(4),
-        BayVariant::CornerBooth | BayVariant::BackRoomLab => 2,
+        DelveVariant::ForgottenLibrary => u32::try_from(count.min(4)).unwrap_or(4),
+        DelveVariant::MossyUndercroft | DelveVariant::OldWatchtower => 2,
     };
     let columns = preferred_columns.min(width).max(1);
     let requested_rows = u32::try_from(count)
@@ -148,44 +148,47 @@ fn authored_seats(variant: BayVariant, count: usize, bay: Rect) -> Vec<SeatAncho
         .max(1);
     let rows = requested_rows.min(height).max(1);
     let capacity = columns.saturating_mul(rows);
-    let seat_count = u32::try_from(count).unwrap_or(u32::MAX).min(capacity) as usize;
-    let seat_width = (width / columns).clamp(1, 14);
-    let seat_height = (height / rows).clamp(1, 6);
-    let mut seats = Vec::with_capacity(seat_count);
-    for index in 0..seat_count {
+    let chamber_count = u32::try_from(count).unwrap_or(u32::MAX).min(capacity) as usize;
+    // State theatre labels such as COUNSEL REQUESTED must remain readable when
+    // the terminal gives a chamber enough room; compact areas still clamp to
+    // the partition and preserve the legacy tiny-surface behavior.
+    let chamber_width = (width / columns).clamp(1, 36);
+    let chamber_height = (height / rows).clamp(1, 6);
+    let mut chambers = Vec::with_capacity(chamber_count);
+    for index in 0..chamber_count {
         let index = u32::try_from(index).unwrap_or(u32::MAX);
         let col = index % columns;
         let row = index / columns;
-        let row = if variant == BayVariant::BackRoomLab {
+        let row = if variant == DelveVariant::OldWatchtower {
             rows - 1 - row
         } else {
             row
         };
-        let base_x = u32::from(bay.x) + width * col / columns;
-        let base_y = u32::from(bay.y) + height * row / rows;
+        let base_x = u32::from(delve.x) + width * col / columns;
+        let base_y = u32::from(delve.y) + height * row / rows;
         let (x, y) = if width <= 8 || height <= 8 {
             (base_x, base_y)
         } else {
             match variant {
-                BayVariant::WallRow => (base_x, base_y.saturating_add(height / 3)),
-                BayVariant::CornerBooth => (
+                DelveVariant::ForgottenLibrary => (base_x, base_y.saturating_add(height / 3)),
+                DelveVariant::MossyUndercroft => (
                     base_x.saturating_add(width / 8),
                     base_y.saturating_add(height / 5),
                 ),
-                BayVariant::BackRoomLab => (
+                DelveVariant::OldWatchtower => (
                     base_x.saturating_add(width / 10),
                     base_y.saturating_sub(height / 8),
                 ),
             }
         };
-        let x = x.min(u32::from(bay.right()).saturating_sub(seat_width));
-        let y = y.min(u32::from(bay.bottom()).saturating_sub(seat_height));
-        seats.push(SeatAnchor {
+        let x = x.min(u32::from(delve.right()).saturating_sub(chamber_width));
+        let y = y.min(u32::from(delve.bottom()).saturating_sub(chamber_height));
+        chambers.push(ChamberAnchor {
             x: u16::try_from(x).unwrap_or(u16::MAX),
             y: u16::try_from(y).unwrap_or(u16::MAX),
-            width: u16::try_from(seat_width).unwrap_or(u16::MAX),
-            height: u16::try_from(seat_height).unwrap_or(u16::MAX),
+            width: u16::try_from(chamber_width).unwrap_or(u16::MAX),
+            height: u16::try_from(chamber_height).unwrap_or(u16::MAX),
         });
     }
-    seats
+    chambers
 }
