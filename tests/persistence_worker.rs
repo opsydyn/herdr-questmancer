@@ -3,14 +3,16 @@ use std::{task::Poll, time::Duration};
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use herdr_webmaster::{
     app::{Model, Motion, View},
+    command::DeskCommand,
     config::PersistencePaths,
     domain::{AgentPersona, EventId, GuestbookEntry, GuestbookEvent, PersonaKey, Timestamp},
+    herdr::environment::HerdrEnvironment,
     interaction::reduce_action,
     persistence::{
         PersistenceWorker, WorkerPaths, load_guestbook, load_startup, load_state, publish_state,
     },
     runtime_loop::{RuntimeExit, dispatch_action_effects, dispatch_persistence_effects},
-    terminal::{complete_runtime_exit, shutdown_persistence},
+    terminal::{RuntimeLifecycle, shutdown_persistence},
     ui::input::Action,
     update::Command,
 };
@@ -203,28 +205,31 @@ async fn offline_view_change_preserves_restored_selection_for_reconnect() {
 }
 
 #[tokio::test(start_paused = true)]
-async fn quit_action_dispatches_prior_local_intent_before_bounded_shutdown() {
+async fn quit_lifecycle_stops_real_runtime_then_flushes_writer() {
     let directory = tempfile::tempdir().unwrap();
     let state_path = directory.path().join("state.json");
-    let (mut client, _diagnostics, worker) =
-        PersistenceWorker::start(WorkerPaths::new(Some(state_path.clone()), None));
+    let environment =
+        HerdrEnvironment::new(directory.path().join("missing.sock"), "/usr/bin/herdr");
+    let (mut lifecycle, _diagnostics) = RuntimeLifecycle::start(
+        Some(&environment),
+        WorkerPaths::new(Some(state_path.clone()), None),
+    );
+    lifecycle
+        .connection_mut()
+        .unwrap()
+        .schedule([DeskCommand::RefreshSnapshot]);
     let mut model = Model::new(View::Desk);
 
     let reduction = reduce_action(&mut model, Action::Switch(View::Cafe));
-    let switched = dispatch_action_effects(&mut client, &model, reduction).await;
-    assert!(switched.exit.is_none());
+    let switched = dispatch_action_effects(lifecycle.persistence_mut(), &model, reduction).await;
     assert!(switched.persistence_errors.is_empty());
-
     let reduction = reduce_action(&mut model, Action::Quit);
-    let quitting = dispatch_action_effects(&mut client, &model, reduction).await;
-    assert_eq!(quitting.exit, Some(RuntimeExit::Quit));
-    assert!(quitting.persistence_errors.is_empty());
+    let quitting = dispatch_action_effects(lifecycle.persistence_mut(), &model, reduction).await;
 
-    let exit = complete_runtime_exit(quitting.exit.unwrap(), &client, worker)
-        .await
-        .unwrap();
-
-    assert_eq!(exit, RuntimeExit::Quit);
+    assert_eq!(
+        lifecycle.complete(quitting.exit).await.unwrap(),
+        Some(RuntimeExit::Quit)
+    );
     assert_eq!(
         load_state(&state_path).await.unwrap(),
         Some(fixed_persisted_state(View::Cafe))

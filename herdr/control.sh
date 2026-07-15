@@ -45,12 +45,14 @@ write_runtime() {
   local pane_id=$1
   local initial_view=$2
   local temporary="$RUNTIME.tmp.$$"
-  if [[ $(runtime_pane_id 2>/dev/null || true) == "$pane_id" ]]; then
-    return
-  fi
   printf '{"pane_id":"%s","pid":0,"started_at":%s,"initial_view":"%s"}\n' \
     "$pane_id" "$(date +%s)" "$initial_view" >"$temporary"
-  mv "$temporary" "$RUNTIME"
+  if ! ln "$temporary" "$RUNTIME" 2>/dev/null && [[ ! -e $RUNTIME ]]; then
+    rm -f "$temporary"
+    echo "webmaster could not publish runtime registration" >&2
+    return 1
+  fi
+  rm -f "$temporary"
 }
 
 open_pane() {

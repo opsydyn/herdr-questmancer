@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use crate::{
     app::ConnectionState,
-    domain::{DomainState, PaneId, Timestamp, WorkspaceId},
+    domain::{DomainState, PaneId, Presence, Timestamp, WorkspaceId},
     update::AppEvent,
 };
 
@@ -97,15 +97,22 @@ fn adapt_agent_status(
     let Some(agent_key) = state.agent_key_for_pane(&pane_id) else {
         return vec![AdapterAction::RequestSnapshot];
     };
-    let revision = data
-        .revision
-        .unwrap_or_else(|| state.agents[agent_key].pane_revision.saturating_add(1));
+    let agent = &state.agents[agent_key];
+    let revision = match data.revision {
+        Some(revision) => StatusRevision::Explicit(revision),
+        None if agent.presence == Presence::from(data.agent_status)
+            && agent.custom_status == data.custom_status =>
+        {
+            return Vec::new();
+        }
+        None => StatusRevision::Synthetic(agent.pane_revision.saturating_add(1)),
+    };
     vec![AdapterAction::Apply(Box::new(
         AppEvent::AgentStatusChanged {
             pane_id,
             status: data.agent_status,
             custom_status: data.custom_status,
-            revision,
+            revision: revision.value(),
             occurred_at: observed_at,
         },
     ))]
@@ -147,6 +154,20 @@ struct AgentStatusData {
     custom_status: Option<String>,
     #[serde(default)]
     revision: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum StatusRevision {
+    Explicit(u64),
+    Synthetic(u64),
+}
+
+impl StatusRevision {
+    const fn value(self) -> u64 {
+        match self {
+            Self::Explicit(revision) | Self::Synthetic(revision) => revision,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

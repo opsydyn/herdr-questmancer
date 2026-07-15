@@ -72,6 +72,50 @@ fn dotted_agent_status_becomes_a_typed_transition() {
 }
 
 #[test]
+fn revisionless_duplicate_status_and_custom_status_are_inert() {
+    let actions = adapt_update(
+        ConnectionUpdate::Event(WireEvent {
+            event: "pane.agent_status_changed".into(),
+            data: json!({
+                "pane_id": "w1:p1",
+                "workspace_id": "w1",
+                "agent_status": "blocked",
+                "custom_status": "which schema?"
+            }),
+        }),
+        &state(),
+        Timestamp::from_millis(3_000),
+    );
+
+    assert!(actions.is_empty());
+}
+
+#[test]
+fn explicit_stale_revision_is_preserved_for_the_domain_reducer() {
+    let actions = adapt_update(
+        ConnectionUpdate::Event(WireEvent {
+            event: "pane.agent_status_changed".into(),
+            data: json!({
+                "pane_id": "w1:p1",
+                "workspace_id": "w1",
+                "agent_status": "done",
+                "revision": 6
+            }),
+        }),
+        &state(),
+        Timestamp::from_millis(3_000),
+    );
+
+    assert!(matches!(
+        &actions[0],
+        AdapterAction::Apply(event) if matches!(event.as_ref(), AppEvent::AgentStatusChanged {
+            revision: 6,
+            ..
+        })
+    ));
+}
+
+#[test]
 fn lifecycle_workspace_close_becomes_a_domain_event() {
     let actions = adapt_update(
         ConnectionUpdate::Event(WireEvent {

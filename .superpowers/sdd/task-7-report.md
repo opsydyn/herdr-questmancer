@@ -24,9 +24,9 @@ error[E0609]: no field `desk` on type `Vec<DeskCommand>`
 error[E0609]: no field `persistence` on type `ActionReduction`
 ```
 
-The tests cover one blocked-transition append plus state stage, duplicate and
-stale status no-ops, snapshot persistence after durable overlay, view and
-distinct-persona selection changes, mark-seen, repeated actions, and
+The tests cover one blocked-transition append plus state stage, explicit
+duplicate and stale status no-ops, snapshot persistence after durable overlay,
+view and distinct-persona selection changes, mark-seen, repeated actions, and
 animation-only redraws.
 
 ### GREEN 1: reducer effects retained end to end
@@ -171,6 +171,89 @@ The controller now preserves an app-published same-pane runtime registration,
 so its fallback singleton write cannot overwrite the terminal's resolved view.
 The shell fake regression passes with the app publishing Cafe during pane open.
 
+### Blocking review follow-up: schema, publication, and lifecycle ownership
+
+The independent blocking review identified three additional production gaps.
+Each fix was again driven by a focused failing regression.
+
+Revision-less Herdr 0.7.3 status fixture:
+
+```text
+cargo test --test event_adapter revisionless_duplicate_status_and_custom_status_are_inert
+assertion failed: actions.is_empty()
+```
+
+`adapt_agent_status` now distinguishes `Explicit` and `Synthetic` revisions.
+An exact revision-less status/custom-status duplicate is discarded before a
+synthetic revision is assigned. A meaningfully different revision-less event
+still receives the next synthetic revision; the implementation does not claim
+that revision-less stale ordering can be inferred. Explicit stale revisions are
+preserved for the domain reducer's monotonic guard.
+
+```text
+cargo test --test event_adapter
+event_adapter: 9 passed, 0 failed
+```
+
+Atomic no-clobber fallback publication:
+
+```text
+bash tests/scripts.sh
+FAIL: runtime file did not contain: "initial_view":"cafe"
+```
+
+The fallback now writes a complete temporary document and uses a hard link to
+publish only when `runtime.json` is absent. If the application publishes first,
+the link fails atomically and the application-owned resolved registration is
+retained.
+
+```text
+bash tests/scripts.sh
+scripts: 13 passed
+```
+
+Production lifecycle coordinator:
+
+```text
+cargo test --test persistence_worker quit_lifecycle_stops_real_runtime_then_flushes_writer
+error[E0432]: unresolved import `herdr_webmaster::terminal::RuntimeLifecycle`
+```
+
+`RuntimeLifecycle`, which is used directly by `terminal::run`, owns the optional
+real `RuntimeConnection`, persistence client, and writer task. Completion first
+awaits Herdr runtime shutdown and then always performs bounded writer shutdown.
+The quit and real `SIGHUP` regressions start a real connection/supervisor against
+a missing temporary socket, schedule runtime work, and verify durable writer
+completion through that same coordinator.
+
+```text
+quit_lifecycle_stops_real_runtime_then_flushes_writer ... ok
+terminal::tests::signal_shutdown_flushes_state_after_an_acknowledged_append ... ok
+```
+
+The first strict Clippy pass over the coordinator reported two
+`clippy::let_and_return` findings in the live/offline branches. Removing the
+redundant bindings left behavior unchanged; the subsequent warnings-denied run
+completed cleanly.
+
+Focused re-review found that the atomic link failure path treated every failure
+as a publication race. A fake `ln` that fails without creating the destination
+first produced:
+
+```text
+bash tests/scripts.sh
+FAIL: control succeeded after fallback publication failed
+```
+
+The controller now accepts a failed link only when `runtime.json` exists. A
+genuine publication failure removes the temporary file, reports a clear error,
+and fails the action.
+
+```text
+bash tests/scripts.sh
+scripts: 14 passed
+```
+
 ## Implementation
 
 - Added `RuntimeEffects { desk, persistence }` for connection and command-result
@@ -208,6 +291,7 @@ src/runtime.rs
 src/runtime_loop.rs
 src/terminal.rs
 tests/interaction.rs
+tests/event_adapter.rs
 tests/persistence_worker.rs
 tests/runtime.rs
 tests/runtime_loop.rs
@@ -229,7 +313,7 @@ Required focused gate:
 
 ```text
 cargo fmt --all
-cargo test --test interaction --test runtime --test runtime_loop --test persistence_worker
+cargo test --test event_adapter --test interaction --test runtime --test runtime_loop --test persistence_worker
 bash tests/scripts.sh
 bash -n herdr/run.sh herdr/control.sh
 cargo clippy --all-targets --all-features -- -D warnings
@@ -239,10 +323,11 @@ Results:
 
 ```text
 interaction: 22 passed
+event_adapter: 9 passed
 runtime: 2 passed
 runtime_loop: 19 passed
 persistence_worker: 16 passed
-scripts: 12 passed
+scripts: 14 passed
 shell syntax: exit 0
 clippy: exit 0, no warnings
 ```
@@ -258,7 +343,7 @@ Full milestone regression gate:
 cargo test --all-targets --all-features
 ```
 
-Result: 304 passed, 0 failed.
+Result: 306 passed, 0 failed.
 
 Hygiene:
 
@@ -276,6 +361,8 @@ Result: both exited 0.
 - Confirmed blocked history is appended once and its following state capture is
   not staged until the append acknowledgement completes.
 - Confirmed status events with explicit duplicate/stale revisions remain inert.
+- Confirmed exact revision-less status/custom-status duplicates remain inert,
+  while changed revision-less events make no unsupported stale-order claim.
 - Confirmed `PersistedStateV1::capture` is not called by animation ticks and
   unchanged captures do not emit `PersistState`.
 - Confirmed both loops dispatch local persistence effects and both surface
@@ -283,9 +370,11 @@ Result: both exited 0.
 - Confirmed offline capture retains a restored selected persona until a live
   reconnect can overlay it, including across an intervening view write.
 - Confirmed quit and signal are typed production exits that enter bounded
-  persistence completion only after action persistence dispatch.
-- Confirmed the control fallback cannot replace a same-pane registration
-  already published by the terminal with the resolved effective view.
+  persistence completion only after action persistence dispatch, and that the
+  production coordinator stops real Herdr-owned tasks before the writer.
+- Confirmed the control fallback publishes with an atomic no-clobber operation
+  and cannot replace a registration published concurrently by the terminal;
+  non-race publication failures are reported instead of silently accepted.
 - Confirmed no `?` or early return exists while `TerminalGuard` is owned after
   entering raw mode. All fallible loop and shutdown outcomes are values until
   after explicit guard drop and diagnostic emission.
@@ -309,3 +398,8 @@ The initial review found the offline selection loss, lifecycle seam gap, and
 registration race documented above. After their RED/GREEN fixes and full
 reverification, focused re-review reported no remaining Critical or Important
 issues and a ready-to-merge verdict.
+
+The blocking follow-up review approved the schema-grounded status handling and
+production lifecycle coordinator, then identified the genuine hard-link failure
+case. After the recorded RED/GREEN fix, the final blocker-only pass confirmed
+the issue resolved with no remaining blocker and a ready-to-commit verdict.

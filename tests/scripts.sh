@@ -80,13 +80,44 @@ SH
   chmod +x "$path"
 }
 
+make_date() {
+  local path=$1
+  cat >"$path" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ -n ${FAKE_REGISTER_DURING_DATE:-} ]]; then
+  mkdir -p "$HERDR_PLUGIN_STATE_DIR"
+  printf '{"pane_id":"new-pane","initial_view":"%s"}\n' "$FAKE_REGISTER_DURING_DATE" \
+    >"$HERDR_PLUGIN_STATE_DIR/runtime.json"
+fi
+exec /bin/date "$@"
+SH
+  chmod +x "$path"
+}
+
+make_ln() {
+  local path=$1
+  cat >"$path" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ -n ${FAKE_LN_FAILURE:-} ]]; then
+  exit 23
+fi
+exec /bin/ln "$@"
+SH
+  chmod +x "$path"
+}
+
 run_control() {
   HERDR_BIN_PATH="$TMP/herdr" \
   HERDR_PLUGIN_ID="opsydyn.webmaster" \
   HERDR_PLUGIN_STATE_DIR="$TMP/state" \
   HERDR_PLUGIN_ROOT="$ROOT" \
   FAKE_REGISTER_VIEW="${FAKE_REGISTER_VIEW:-}" \
+  FAKE_REGISTER_DURING_DATE="${FAKE_REGISTER_DURING_DATE:-}" \
+  FAKE_LN_FAILURE="${FAKE_LN_FAILURE:-}" \
   FAKE_HERDR_LOG="$TMP/herdr.log" \
+  PATH="$TMP/bin:$PATH" \
     "$ROOT/herdr/control.sh" "$@"
 }
 
@@ -121,6 +152,27 @@ test_control_does_not_overwrite_runtime_registration() {
   FAKE_REGISTER_VIEW=cafe run_control open
 
   assert_contains "$TMP/state/runtime.json" '"initial_view":"cafe"'
+}
+
+test_control_fallback_publication_is_atomic_no_clobber() {
+  rm -rf "$TMP/state"
+  : >"$TMP/herdr.log"
+
+  FAKE_REGISTER_DURING_DATE=cafe run_control open
+
+  assert_contains "$TMP/state/runtime.json" '"initial_view":"cafe"'
+}
+
+test_control_reports_fallback_publication_failure() {
+  rm -rf "$TMP/state"
+  : >"$TMP/herdr.log"
+
+  if FAKE_LN_FAILURE=1 run_control open >"$TMP/control.err" 2>&1; then
+    fail "control succeeded after fallback publication failed"
+  fi
+
+  assert_contains "$TMP/control.err" "could not publish runtime registration"
+  [[ ! -e "$TMP/state/runtime.json" ]] || fail "failed publication left runtime state"
 }
 
 test_open_focuses_a_live_existing_pane() {
@@ -196,12 +248,17 @@ test_busy_control_lock_refuses_a_second_action() {
 }
 
 make_herdr "$TMP/herdr"
+mkdir -p "$TMP/bin"
+make_date "$TMP/bin/date"
+make_ln "$TMP/bin/ln"
 test_run_prefers_installed_binary
 test_run_falls_back_to_debug_binary
 test_run_maps_only_exact_initial_views
 test_open_creates_one_cafe_pane
 test_open_and_closed_toggle_omit_initial_view
 test_control_does_not_overwrite_runtime_registration
+test_control_fallback_publication_is_atomic_no_clobber
+test_control_reports_fallback_publication_failure
 test_open_focuses_a_live_existing_pane
 test_view_actions_switch_a_live_existing_pane
 test_close_uses_plain_pane_close_and_clears_state
@@ -209,4 +266,4 @@ test_failed_close_preserves_singleton_state
 test_stale_state_is_replaced
 test_busy_control_lock_refuses_a_second_action
 
-echo "scripts: 12 passed"
+echo "scripts: 14 passed"

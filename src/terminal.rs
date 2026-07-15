@@ -35,6 +35,63 @@ use crate::{
 
 type Tui = Terminal<CrosstermBackend<Stdout>>;
 
+#[derive(Debug)]
+pub struct RuntimeLifecycle {
+    connection: Option<RuntimeConnection>,
+    persistence: PersistenceClient,
+    persistence_worker: tokio::task::JoinHandle<()>,
+}
+
+impl RuntimeLifecycle {
+    pub fn start(
+        environment: Option<&HerdrEnvironment>,
+        paths: crate::persistence::WorkerPaths,
+    ) -> (Self, tokio::sync::mpsc::Receiver<PersistenceDiagnostic>) {
+        let (persistence, diagnostics, persistence_worker) = PersistenceWorker::start(paths);
+        (
+            Self {
+                connection: environment.map(RuntimeConnection::start),
+                persistence,
+                persistence_worker,
+            },
+            diagnostics,
+        )
+    }
+
+    pub fn connection_mut(&mut self) -> Option<&mut RuntimeConnection> {
+        self.connection.as_mut()
+    }
+
+    pub const fn persistence_mut(&mut self) -> &mut PersistenceClient {
+        &mut self.persistence
+    }
+
+    fn live_parts_mut(&mut self) -> Option<(&mut RuntimeConnection, &mut PersistenceClient)> {
+        self.connection
+            .as_mut()
+            .map(|connection| (connection, &mut self.persistence))
+    }
+
+    pub async fn complete(self, exit: Option<RuntimeExit>) -> Result<Option<RuntimeExit>> {
+        let Self {
+            connection,
+            persistence,
+            persistence_worker,
+        } = self;
+        let runtime_result = if let Some(connection) = connection {
+            connection
+                .shutdown()
+                .await
+                .context("shut down terminal runtime tasks")
+        } else {
+            Ok(())
+        };
+        let persistence_result = shutdown_persistence(&persistence, persistence_worker).await;
+        runtime_result.and(persistence_result)?;
+        Ok(exit)
+    }
+}
+
 /// Maps one startup wall-clock sample onto Tokio's monotonic clock.
 ///
 /// Domain timestamps remain epoch-shaped for protocol and persistence
@@ -140,20 +197,20 @@ pub async fn run(initial_view: Option<View>) -> Result<()> {
     let effective_view = startup.model.view();
     let _runtime = RuntimeRegistration::from_env(effective_view)?;
     let mut shutdown = Shutdown::install()?;
-    let (mut persistence, mut persistence_diagnostics, persistence_worker) =
-        PersistenceWorker::start(startup.paths);
+    let environment = HerdrEnvironment::from_env().ok();
+    let (mut lifecycle, mut persistence_diagnostics) =
+        RuntimeLifecycle::start(environment.as_ref(), startup.paths);
     let mut collected_diagnostics = startup.diagnostics;
     let (guard, mut terminal) = match TerminalGuard::enter() {
         Ok(terminal) => terminal,
         Err(error) => {
-            let persistence_result = shutdown_persistence(&persistence, persistence_worker).await;
+            let lifecycle_result = lifecycle.complete(None).await.map(drop);
             drain_diagnostics(&mut persistence_diagnostics, &mut collected_diagnostics);
             emit_diagnostics(&collected_diagnostics);
             let terminal_result: Result<()> = Err(error);
-            return terminal_result.and(persistence_result);
+            return terminal_result.and(lifecycle_result);
         }
     };
-    let environment = HerdrEnvironment::from_env().ok();
     let mut model = bootstrap_model(startup.model, environment.as_ref());
     if let Some(diagnostic) = collected_diagnostics.last() {
         model.set_status_message(Some(diagnostic.to_string()));
@@ -161,53 +218,43 @@ pub async fn run(initial_view: Option<View>) -> Result<()> {
     let clock = RuntimeClock::new(sample_wall_time());
     model.set_now(clock.now());
 
-    let (loop_result, runtime_shutdown_result) = if let Some(environment) = environment.as_ref() {
-        let mut connection = RuntimeConnection::start(environment);
-        let loop_result = run_live_loop(
+    let loop_result = if environment.is_some() {
+        let (connection, persistence) = lifecycle
+            .live_parts_mut()
+            .expect("live lifecycle starts a runtime connection");
+        run_live_loop(
             &mut terminal,
             &mut model,
-            &mut connection,
-            &mut persistence,
+            connection,
+            persistence,
             &mut persistence_diagnostics,
             &mut collected_diagnostics,
             &mut shutdown,
             &clock,
         )
-        .await;
-        let runtime_shutdown_result = connection
-            .shutdown()
-            .await
-            .context("shut down terminal runtime tasks");
-        (loop_result, runtime_shutdown_result)
+        .await
     } else {
-        let loop_result = run_offline_loop(
+        run_offline_loop(
             &mut terminal,
             &mut model,
-            &mut persistence,
+            lifecycle.persistence_mut(),
             &mut persistence_diagnostics,
             &mut collected_diagnostics,
             &mut shutdown,
             &clock,
         )
-        .await;
-        (loop_result, Ok(()))
+        .await
     };
 
-    let persistence_shutdown_result = if let Ok(exit) = &loop_result {
-        complete_runtime_exit(*exit, &persistence, persistence_worker)
-            .await
-            .map(drop)
-    } else {
-        shutdown_persistence(&persistence, persistence_worker).await
-    };
+    let lifecycle_result = lifecycle
+        .complete(loop_result.as_ref().ok().copied())
+        .await
+        .map(drop);
     drain_diagnostics(&mut persistence_diagnostics, &mut collected_diagnostics);
     drop(guard);
     emit_diagnostics(&collected_diagnostics);
 
-    loop_result
-        .map(drop)
-        .and(runtime_shutdown_result)
-        .and(persistence_shutdown_result)
+    loop_result.map(drop).and(lifecycle_result)
 }
 
 async fn run_live_loop(
@@ -340,15 +387,6 @@ async fn run_offline_loop(
     }
 }
 
-pub async fn complete_runtime_exit(
-    exit: RuntimeExit,
-    persistence: &PersistenceClient,
-    worker: tokio::task::JoinHandle<()>,
-) -> Result<RuntimeExit> {
-    shutdown_persistence(persistence, worker).await?;
-    Ok(exit)
-}
-
 pub async fn shutdown_persistence(
     persistence: &PersistenceClient,
     mut worker: tokio::task::JoinHandle<()>,
@@ -468,9 +506,7 @@ mod tests {
     use crate::{
         app::View,
         domain::{EventId, GuestbookEntry, GuestbookEvent},
-        persistence::{
-            PersistedStateV1, PersistenceWorker, WorkerPaths, load_guestbook, load_state,
-        },
+        persistence::{PersistedStateV1, WorkerPaths, load_guestbook, load_state},
     };
 
     use super::*;
@@ -491,10 +527,16 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let state_path = directory.path().join("state.json");
         let guestbook_path = directory.path().join("guestbook.jsonl");
-        let (mut persistence, _diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
-            Some(state_path.clone()),
-            Some(guestbook_path.clone()),
-        ));
+        let environment =
+            HerdrEnvironment::new(directory.path().join("missing.sock"), "/usr/bin/herdr");
+        let (mut lifecycle, _diagnostics) = RuntimeLifecycle::start(
+            Some(&environment),
+            WorkerPaths::new(Some(state_path.clone()), Some(guestbook_path.clone())),
+        );
+        lifecycle
+            .connection_mut()
+            .unwrap()
+            .schedule([crate::command::DeskCommand::RefreshSnapshot]);
         let model = Model::new(View::Cafe);
         let state = PersistedStateV1::capture(&model);
         let entry = GuestbookEntry {
@@ -507,18 +549,23 @@ mod tests {
             kind: GuestbookEvent::WorkCompleted,
             summary: "completed before signal".to_owned(),
         };
-        persistence.append_guestbook(entry.clone()).await.unwrap();
-        persistence.stage_state(state.clone()).unwrap();
+        lifecycle
+            .persistence_mut()
+            .append_guestbook(entry.clone())
+            .await
+            .unwrap();
+        lifecycle
+            .persistence_mut()
+            .stage_state(state.clone())
+            .unwrap();
 
         let mut shutdown = Shutdown::install().unwrap();
         signal_hook::low_level::raise(signal_hook::consts::signal::SIGHUP).unwrap();
         let exit = shutdown.requested().await;
         assert_eq!(exit, RuntimeExit::Signal);
         assert_eq!(
-            complete_runtime_exit(exit, &persistence, worker)
-                .await
-                .unwrap(),
-            RuntimeExit::Signal
+            lifecycle.complete(Some(exit)).await.unwrap(),
+            Some(RuntimeExit::Signal)
         );
 
         assert_eq!(load_state(&state_path).await.unwrap(), Some(state));

@@ -87,7 +87,7 @@ fn connected_model_with_presence(presence: Presence) -> Model {
     model
 }
 
-fn status_update(status: &str, revision: u64) -> ConnectionUpdate {
+fn status_update_with_revision(status: &str, revision: u64) -> ConnectionUpdate {
     ConnectionUpdate::Event(WireEvent {
         event: "pane.agent_status_changed".into(),
         data: json!({
@@ -105,7 +105,7 @@ fn blocked_transition_routes_history_and_state_to_persistence() {
 
     let effects = apply_connection_update(
         &mut model,
-        status_update("blocked", 8),
+        status_update_with_revision("blocked", 8),
         Timestamp::from_millis(2_000),
     );
 
@@ -128,13 +128,13 @@ fn blocked_transition_routes_history_and_state_to_persistence() {
 }
 
 #[test]
-fn duplicate_and_stale_status_updates_have_no_runtime_effects() {
+fn explicit_duplicate_and_stale_status_updates_have_no_runtime_effects() {
     let mut model = connected_model_with_presence(Presence::Blocked);
 
     for revision in [7, 6] {
         let effects = apply_connection_update(
             &mut model,
-            status_update("blocked", revision),
+            status_update_with_revision("blocked", revision),
             Timestamp::from_millis(2_000),
         );
 
