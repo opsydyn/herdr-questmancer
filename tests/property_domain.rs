@@ -4,15 +4,92 @@ mod support;
 use std::collections::BTreeMap;
 
 use herdr_webmaster::{
+    app::{Model, View},
     domain::{
-        AgentPersona, AttentionReason, DomainState, GuestbookEntry, GuestbookEvent, PersonaKey,
-        Presence, Site, SiteStatus, WorkspaceId,
+        AgentKey, AgentPersona, AttentionReason, DomainState, GuestbookEntry, GuestbookEvent,
+        PersonaKey, Presence, Site, SiteStatus, WorkspaceId,
     },
+    ui::cafe_scene::layout_bays,
     update::{AppEvent, Command, update},
 };
 use proptest::prelude::*;
+use ratatui::layout::Rect;
 
 proptest! {
+    #[test]
+    fn every_generated_agent_is_owned_by_exactly_one_visible_bay(
+        workspaces in prop::collection::vec(support::strategies::workspace_id(), 0..=12),
+        agents_per_workspace in prop::collection::vec(0usize..=4, 0..=12),
+    ) {
+        let mut sites = BTreeMap::new();
+        let mut agents = BTreeMap::new();
+        let template = support::fixture_domain().agents.values().next().unwrap().clone();
+        for (workspace_index, workspace_id) in workspaces.into_iter().enumerate() {
+            let count = agents_per_workspace.get(workspace_index).copied().unwrap_or_default();
+            let mut keys = Vec::with_capacity(count);
+            for agent_index in 0..count {
+                let mut agent = template.clone();
+                agent.key = AgentKey::new(format!("agent-{workspace_index}-{agent_index}"));
+                agent.pane_id = herdr_webmaster::domain::PaneId::new(format!("pane-{workspace_index}-{agent_index}"));
+                agent.workspace_id = workspace_id.clone();
+                keys.push(agent.key.clone());
+                agents.insert(agent.key.clone(), agent);
+            }
+            sites.entry(workspace_id.clone()).or_insert_with(|| Site {
+                workspace_id,
+                label: "site".to_owned(),
+                cwd: "/tmp".into(),
+                agents: Vec::new(),
+            }).agents.extend(keys);
+        }
+
+        let bays = layout_bays(&sites, &agents, Rect::new(0, 0, 240, 120), None);
+        let mut ownership = BTreeMap::<AgentKey, usize>::new();
+        for bay in &bays {
+            let site = &sites[&bay.workspace_id];
+            for (key, _seat) in site.agents.iter().zip(&bay.seats) {
+                *ownership.entry(key.clone()).or_default() += 1;
+            }
+        }
+        for key in agents.keys() {
+            prop_assert_eq!(ownership.get(key).copied().unwrap_or_default(), 1);
+        }
+    }
+
+    #[test]
+    fn managed_pane_is_absent_from_the_cafe_model_and_rendered_surface(
+        managed_pane in support::pane_id(),
+    ) {
+        let response: herdr_webmaster::herdr::protocol::SuccessResponse<herdr_webmaster::herdr::protocol::SessionSnapshotResult> =
+            serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
+        let mut snapshot = response.result.snapshot;
+        let mut managed = snapshot.agents[0].clone();
+        managed.pane_id = managed_pane.to_string();
+        managed.name = Some("webmaster-managed-pane".to_owned());
+        snapshot.agents.push(managed);
+        let state = DomainState::from_snapshot_excluding(
+            &snapshot,
+            herdr_webmaster::domain::Timestamp::from_millis(1_000),
+            Some(&managed_pane),
+        );
+        prop_assert!(state.agent_key_for_pane(&managed_pane).is_none());
+        prop_assert!(state.agents.values().all(|agent| agent.name != "webmaster-managed-pane"));
+
+        let mut model = Model::new(View::Cafe);
+        model.replace_domain(state);
+        let backend = ratatui::backend::TestBackend::new(120, 30);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| herdr_webmaster::ui::render(frame, &model)).unwrap();
+        let screen = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect::<String>();
+        prop_assert!(!screen.contains("webmaster-managed-pane"));
+    }
+
     #[test]
     fn persona_key_and_appearance_are_deterministic(
         (agent, workspace_root) in support::agent_identity(),

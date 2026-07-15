@@ -178,6 +178,22 @@ seen, search, refresh, and optional reviewr launch. At 120 columns and above the
 cafe shows a workstation grid plus the selected full-body profile; from 80 to
 119 it uses the full grid; below 80 it uses the compact vertical list.
 
+### Connected café bays
+
+The café is a small authored pixel world, not a dashboard of unrelated cards.
+Each workspace becomes one connected room bay. Bays share walls, doors, an
+aisle, floor cues, and a common coordinate system; agents are seated at the
+workstations inside their workspace's bay. A stable hash of the workspace ID
+selects one of the built-in room variants (wall row, corner booth, or back-room
+lab), so a restart or pane move does not reshuffle the room.
+
+Wide terminals show the connected room. On narrow terminals the same world
+falls back to the active bay plus a workspace strip, and below 80 columns it
+uses a vertical workstation list. Selection, visit, reply, refresh, and seen
+actions remain available in every fallback. The selected workstation is shown
+in-world with a lamp and state pose; the profile is a detail view, not a second
+source of agent state.
+
 ## Cybercafe state language
 
 | Herdr state | Visible cafe signal | Full-motion cadence |
@@ -217,6 +233,21 @@ opsydyn.webmaster.toggle
 opsydyn.webmaster.desk
 opsydyn.webmaster.cafe
 ```
+
+## Manual Herdr test
+
+Use a dedicated plain pane for synthetic agent reports. Do not report against
+the Codex pane, the webmaster pane, or any pane already owned by another agent:
+Herdr may accept that command while leaving the reported source out of the
+session snapshot, which makes the blocked-state UI impossible to verify.
+
+With Herdr running, create a plain test pane, record its pane ID, and use the
+exact `herdr pane report-agent` syntax shown by `herdr pane report-agent --help`.
+Drive `working`, `blocked`, and `idle` transitions while the café is open, then
+release the synthetic source and close only the pane created by the test. Keep
+the Herdr server and any pre-existing plugin link running. Herdr 0.7.3 does not
+support synthesizing `done`; verify completion with a real agent or a fixture
+test instead.
 
 The controller uses `$HERDR_BIN_PATH`, an atomic lock directory, and
 `$HERDR_PLUGIN_STATE_DIR/runtime.json` to avoid duplicate panes and recover

@@ -365,6 +365,20 @@ fn reduced_and_no_motion_cadence_only_schedule_visible_changes() {
 }
 
 #[test]
+fn no_motion_never_requests_a_future_frame_even_during_completion_transition() {
+    let mut done = agent();
+    done.presence = Presence::Done;
+    done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
+
+    let model = model_with(done, 500, Motion::None);
+    assert_eq!(cadence_for(&model), RenderCadence::EventDriven);
+    assert_eq!(
+        herdr_webmaster::ui::theatre::next_visible_frame_in(&model),
+        None
+    );
+}
+
+#[test]
 fn cadence_is_event_driven_when_the_cafe_theatre_is_not_visible_or_empty() {
     let mut working = agent();
     working.presence = Presence::Working;

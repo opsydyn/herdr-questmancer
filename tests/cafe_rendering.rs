@@ -91,6 +91,35 @@ fn assert_every_agent_is_visible(screen: &str) {
 }
 
 #[test]
+fn selected_and_disconnected_workstations_remain_in_the_same_authored_scene() {
+    let mut model = three_agent_model();
+    model
+        .domain_mut()
+        .agents
+        .get_mut(&AgentKey::new("agent-a"))
+        .unwrap()
+        .presence = Presence::Exited;
+    model
+        .domain_mut()
+        .agents
+        .get_mut(&AgentKey::new("agent-a"))
+        .unwrap()
+        .focused = false;
+    model.domain_mut().selected_agent = Some(AgentKey::new("agent-b"));
+
+    let screen = render(&model, 120, 30);
+
+    assert!(screen.contains("Alpha"));
+    assert!(screen.contains("BROKEN") || screen.contains("EMPTY CHAIR"));
+    assert!(screen.contains("> Beta"));
+    assert!(screen.contains("HELP!"));
+    assert!(
+        !screen.contains("CAFE WALL / 56K CABLE RUN"),
+        "nested webmaster output leaked into the cafe:\n{screen}"
+    );
+}
+
+#[test]
 fn one_hundred_twenty_columns_show_authored_bay_and_selected_workstation() {
     let screen = render(&three_agent_model(), 120, 30);
 

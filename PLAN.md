@@ -7,6 +7,12 @@ contributors; blocked work is webmaster mail; completed work is a site update.
 The plugin is one Rust package with one domain model and two Ratatui projections:
 the operational **webmaster desk** and the ambient, interactive **cybercafe**.
 
+The café is an authored connected pixel world. Each workspace maps to one bay;
+stable workspace identity selects a deterministic room variant, while agents
+are seated against variant-specific furniture anchors. Wide layouts show the
+connected bays and shared aisle; compact layouts remap the active bay and keep
+a workspace strip; very narrow terminals use the actionable vertical list.
+
 ## Compatibility baseline
 
 - Target Herdr `0.7.3`, where `session.snapshot`, `herdr api schema`, the `done`
@@ -120,11 +126,21 @@ tests pass from full rooms through zero-sized areas.
 - Document local file ownership, precedence, corruption recovery, contributor
   checks, fake-agent acceptance, and the no-telemetry posture.
 
-#### 6.2 Release completion — open
+#### 6.2 Invariants and release completion — open
+
+- Keep TestBackend coverage for empty, one-bay, multi-bay, mixed-state,
+  selected, disconnected, ASCII, reduced-motion, 80x24, 60x18, and zero-sized
+  surfaces.
+- Prove generated agents have exactly one bay/seat owner and that the managed
+  webmaster pane is absent from normalized and rendered state.
+- Keep completion confetti bounded to one transition and keep static, reduced,
+  and no-motion rooms event-driven.
 
 - Add macOS/Linux release automation around the existing install/checksum path.
 - Record the desk/cafe release walkthrough and final fake-agent guide.
-- Run release-candidate live Herdr `0.7.3` acceptance and idle-CPU checks.
+- Run release-candidate live Herdr `0.7.3` acceptance and idle-CPU checks, then
+  verify the installed Herdr `0.7.4` sidebar integration without changing the
+  current protocol boundary.
 
 Exit: all twenty v0.1 acceptance criteria in the product handoff pass.
 
