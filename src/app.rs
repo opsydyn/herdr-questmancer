@@ -125,6 +125,7 @@ pub struct Model {
     preferences: DisplayPreferences,
     settings: RuntimeSettings,
     durable_intent: DurableIntent,
+    managed_pane_id: Option<PaneId>,
 }
 
 impl Model {
@@ -142,6 +143,7 @@ impl Model {
             preferences: DisplayPreferences::default(),
             settings: RuntimeSettings::default(),
             durable_intent: DurableIntent::default(),
+            managed_pane_id: None,
         }
     }
 
@@ -403,5 +405,13 @@ impl Model {
 
     pub fn durable_intent_mut(&mut self) -> &mut DurableIntent {
         &mut self.durable_intent
+    }
+
+    pub const fn managed_pane_id(&self) -> Option<&PaneId> {
+        self.managed_pane_id.as_ref()
+    }
+
+    pub fn set_managed_pane_id(&mut self, pane_id: Option<PaneId>) {
+        self.managed_pane_id = pane_id;
     }
 }

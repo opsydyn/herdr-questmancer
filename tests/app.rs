@@ -1,6 +1,6 @@
 use herdr_webmaster::{
     app::{ConnectionState, Modal, Model, Region, View},
-    domain::{AgentKey, DomainState, Timestamp},
+    domain::{AgentKey, DomainState, PaneId, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
 };
 
@@ -17,6 +17,22 @@ fn starts_in_requested_view() {
     assert_eq!(model.connection(), &ConnectionState::Offline);
     assert!(model.domain().agents.is_empty());
     assert_eq!(model.modal(), &Modal::None);
+}
+
+#[test]
+fn new_model_has_no_managed_pane() {
+    let model = Model::new(View::Desk);
+    assert_eq!(model.managed_pane_id(), None);
+}
+
+#[test]
+fn managed_pane_round_trips_through_model() {
+    let mut model = Model::new(View::Desk);
+    let pane_id = PaneId::new("w2:p3");
+
+    model.set_managed_pane_id(Some(pane_id.clone()));
+
+    assert_eq!(model.managed_pane_id(), Some(&pane_id));
 }
 
 #[test]

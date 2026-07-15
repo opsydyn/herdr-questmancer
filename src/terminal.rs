@@ -18,7 +18,7 @@ use tokio::signal::unix::{Signal, SignalKind, signal};
 use crate::{
     app::{Model, View},
     config::PersistencePaths,
-    domain::Timestamp,
+    domain::{PaneId, Timestamp},
     herdr::environment::HerdrEnvironment,
     interaction::reduce_action,
     persistence::{
@@ -212,7 +212,12 @@ pub async fn run(initial_view: Option<View>) -> Result<()> {
             return terminal_result.and(lifecycle_result);
         }
     };
+    let managed_pane_id = std::env::var("HERDR_PANE_ID")
+        .ok()
+        .filter(|value| !value.is_empty())
+        .map(PaneId::new);
     let mut model = bootstrap_model(startup.model, environment.as_ref());
+    model.set_managed_pane_id(managed_pane_id);
     if let Some(diagnostic) = collected_diagnostics.last() {
         model.set_status_message(Some(diagnostic.to_string()));
     }
