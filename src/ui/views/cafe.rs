@@ -82,10 +82,6 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         .borders(Borders::ALL)
         .border_style(styles.accent)
         .style(styles.ink);
-    if area.width >= 80 {
-        block =
-            block.title_top(Line::styled(" CAFE WALL ", styles.wall).alignment(Alignment::Left));
-    }
     if model.preferences().character_set == crate::app::CharacterSet::Ascii {
         block = block.border_set(ASCII_BORDER);
     }
@@ -106,6 +102,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     render_footer(frame, footer, model, styles);
 }
 
+#[allow(clippy::too_many_lines)]
 fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: CafeStyles) {
     use crate::ui::cafe_scene::layout_bays;
     let sites = if model.domain().sites.is_empty() {
@@ -136,6 +133,59 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
         area,
         selected_workspace.as_ref(),
     );
+    if area.width <= 80 && bays.len() > 1 {
+        let strip_height = 2.min(area.height);
+        let active_area = Rect::new(
+            area.x,
+            area.y,
+            area.width,
+            area.height.saturating_sub(strip_height),
+        );
+        let active_bay = bays
+            .iter()
+            .find(|bay| selected_workspace.as_ref() == Some(&bay.workspace_id))
+            .unwrap_or(&bays[0]);
+        render_bay_architecture(
+            frame,
+            active_area,
+            &active_bay.workspace_id,
+            active_bay.variant,
+            true,
+            styles,
+        );
+        if let Some(site) = sites.get(&active_bay.workspace_id) {
+            for (index, key) in site.agents.iter().enumerate() {
+                if let (Some(agent), Some(anchor)) = (
+                    model.domain().agents.get(key),
+                    active_bay.seats.get(index).copied(),
+                ) {
+                    render_workstation(
+                        frame,
+                        anchor,
+                        agent,
+                        frame_for(agent, model.now(), model.preferences()),
+                        model.selected_agent_key() == Some(key),
+                        model.preferences(),
+                    );
+                }
+            }
+        }
+        let labels = sites
+            .keys()
+            .map(|id| format!("[{}]", id.as_str()))
+            .collect::<Vec<_>>()
+            .join(" ");
+        frame.render_widget(
+            Paragraph::new(labels).style(styles.muted),
+            Rect::new(
+                area.x,
+                area.bottom().saturating_sub(strip_height),
+                area.width,
+                strip_height,
+            ),
+        );
+        return;
+    }
     for (index, bay) in bays.iter().enumerate() {
         let active = selected_workspace.as_ref() == Some(&bay.workspace_id);
         render_bay_architecture(
@@ -150,10 +200,12 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
             let previous = bays[index - 1].rect;
             let x = previous.right().saturating_sub(1);
             let transition = Rect::new(x, bay.rect.y, 1, bay.rect.height);
-            frame.render_widget(
-                Paragraph::new("│\n│\n╫\n│\n│").style(styles.accent),
-                transition,
-            );
+            let glyphs = if model.preferences().character_set == crate::app::CharacterSet::Ascii {
+                "|\n|\n+\n|\n|"
+            } else {
+                "│\n│\n╫\n│\n│"
+            };
+            frame.render_widget(Paragraph::new(glyphs).style(styles.accent), transition);
         }
         let Some(site) = sites.get(&bay.workspace_id) else {
             continue;
@@ -188,7 +240,7 @@ fn render_bay_architecture(
     if area.is_empty() {
         return;
     }
-    let label = format!(" BAY {} ", workspace.as_str());
+    let label = format!(" {} ", workspace.as_str());
     let variant_label = match variant {
         crate::ui::cafe_scene::BayVariant::WallRow => "WALL ROW / DESKS",
         crate::ui::cafe_scene::BayVariant::CornerBooth => "CORNER BOOTH / BAR",
@@ -212,13 +264,13 @@ fn render_bay_architecture(
         } else if !active {
             format!(
                 "| {:width$}|",
-                "neighbor bay",
+                "...",
                 width = usize::from(area.width.saturating_sub(3))
             )
         } else if row + 2 >= area.height {
             format!(
                 "| {:width$}|",
-                format!("== FLOOR {} ==", workspace.as_str()),
+                "== == ==",
                 width = usize::from(area.width.saturating_sub(3))
             )
         } else if row == area.height / 2 {

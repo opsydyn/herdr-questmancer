@@ -45,3 +45,12 @@ passed.
 - The 80x24 contract now tests a compact neighbor-bay strip plus navigation/actions.
 
 Follow-up verification: 19 café rendering + 4 scene + 15 widget + 11 persona-art + 3 general rendering tests passed; Clippy with `-D warnings` passed.
+
+Final visual/compatibility follow-up:
+
+- Wide rooms now render a selected workspace as the full active scene; neighboring workspaces are represented by a compact strip at 80x24 and simplified geometry at larger sizes.
+- Bay signage is workspace-attached; arbitrary `CAFE WALL`, `BAY`, `neighbor bay`, and shared floor labels were removed.
+- ASCII transition tests verify doorway joins use ASCII glyphs, while Unicode retains box-drawing transitions.
+- Compact and multi-workspace ASCII tests cover navigation and reachability.
+
+Final verification: 20 café rendering + 4 scene + 15 widget + 11 persona-art + 3 rendering tests passed; `cargo clippy --all-targets --all-features -- -D warnings` passed.

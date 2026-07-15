@@ -95,12 +95,12 @@ fn one_hundred_twenty_columns_show_authored_bay_and_selected_workstation() {
     let screen = render(&three_agent_model(), 120, 30);
 
     assert_every_agent_is_visible(&screen);
-    assert!(screen.contains("BAY"), "missing bay signage:\n{screen}");
-    assert!(screen.contains("AISLE"), "missing aisle cue:\n{screen}");
     assert!(
-        screen.contains("== FLOOR w1 =="),
-        "missing floor cue:\n{screen}"
+        screen.contains("w1"),
+        "missing workspace signage:\n{screen}"
     );
+    assert!(screen.contains("AISLE"), "missing aisle cue:\n{screen}");
+    assert!(screen.contains("== == =="), "missing floor cue:\n{screen}");
     assert!(
         screen.contains("> Beta"),
         "missing selected workstation:\n{screen}"
@@ -113,7 +113,10 @@ fn one_hundred_sixty_columns_keep_three_agents_in_authored_room() {
     let screen = render(&three_agent_model(), 160, 50);
 
     assert_every_agent_is_visible(&screen);
-    assert!(screen.contains("BAY"), "missing bay signage:\n{screen}");
+    assert!(
+        screen.contains("w1"),
+        "missing workspace signage:\n{screen}"
+    );
     assert!(screen.contains("CRT"), "missing furniture cue:\n{screen}");
     assert!(screen.contains("> Beta"), "missing selection:\n{screen}");
     assert!(screen.contains("[!] HELP!"), "missing state:\n{screen}");
@@ -227,11 +230,46 @@ fn eighty_by_twenty_four_keeps_a_compact_bay_strip_and_actions() {
     );
     let screen = render(&model, 80, 24);
     assert!(
-        screen.contains("neighbor bay"),
+        screen.contains("[w1] [w2]"),
         "missing compact bay strip:\n{screen}"
     );
     assert!(screen.contains("[j/k] navigate"));
     assert!(screen.contains("[enter] visit"));
+}
+
+#[test]
+fn ascii_multi_workspace_transitions_remain_ascii_safe() {
+    let mut model = three_agent_model();
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        ..DisplayPreferences::default()
+    });
+    model.domain_mut().sites.insert(
+        WorkspaceId::new("w1"),
+        Site {
+            workspace_id: WorkspaceId::new("w1"),
+            label: "w1".into(),
+            cwd: "/tmp/w1".into(),
+            agents: vec![
+                AgentKey::new("agent-a"),
+                AgentKey::new("agent-b"),
+                AgentKey::new("agent-c"),
+            ],
+        },
+    );
+    model.domain_mut().sites.insert(
+        WorkspaceId::new("w2"),
+        Site {
+            workspace_id: WorkspaceId::new("w2"),
+            label: "w2".into(),
+            cwd: "/tmp/w2".into(),
+            agents: vec![],
+        },
+    );
+    let screen = render(&model, 120, 30);
+    assert!(screen.is_ascii(), "non-ASCII transition:\n{screen}");
+    assert!(screen.contains('+'));
+    assert!(screen.contains("w1") && screen.contains("w2"));
 }
 
 #[test]
@@ -240,12 +278,12 @@ fn eighty_columns_keep_authored_bay_and_actions() {
     let screen = render(&model, 80, 24);
 
     assert_every_agent_is_visible(&screen);
-    assert!(screen.contains("BAY"), "missing bay signage:\n{screen}");
-    assert!(screen.contains("AISLE"), "missing aisle cue:\n{screen}");
     assert!(
-        screen.contains("== FLOOR w1 =="),
-        "missing floor cue:\n{screen}"
+        screen.contains("w1"),
+        "missing workspace signage:\n{screen}"
     );
+    assert!(screen.contains("AISLE"), "missing aisle cue:\n{screen}");
+    assert!(screen.contains("== == =="), "missing floor cue:\n{screen}");
     assert!(screen.contains("HELP!"), "missing blocked state:\n{screen}");
     assert!(screen.contains("BROKEN"), "missing exited state:\n{screen}");
     for action in [
@@ -456,7 +494,7 @@ fn ascii_cafe_is_actionable_and_never_emits_block_glyphs() {
     assert_every_agent_is_visible(&screen);
     assert!(screen.contains("[!] HELP!"));
     assert!(screen.contains("[x] BROKEN"));
-    assert!(screen.contains("BAY"));
+    assert!(screen.contains("w1"));
 }
 
 #[test]
