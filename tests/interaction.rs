@@ -4,7 +4,8 @@ use questmancer::{
     app::{Modal, Model, Region, RuntimeSettings, View},
     command::AgentCommand,
     domain::{
-        AdventurerPersona, AgentKey, DomainState, PaneId, PersonaKey, Timestamp, WorkspaceId,
+        AdventurerPersona, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey,
+        Timestamp, WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::reduce_action,
@@ -210,22 +211,39 @@ fn visit_focuses_selected_pane_and_empty_selection_is_contextual() {
     let mut empty = Model::new(View::Guild);
     let no_visit = reduce_action(&mut empty, Action::Visit);
     assert!(no_visit.commands.is_empty());
-    assert_eq!(empty.status_message(), Some("no agent selected to visit"));
+    assert_eq!(
+        empty.status_message(),
+        Some("No adventurer is selected to observe.")
+    );
 }
 
 #[test]
 fn managed_pane_selection_never_emits_effect_commands() {
-    let mut model = live_model_with_two_agents();
-    model.set_managed_pane_id(Some(PaneId::new("w1:p1")));
-
-    for action in [Action::Visit, Action::Refresh, Action::Counsel] {
+    for (action, expected) in [
+        (
+            Action::Visit,
+            "The Questmancer cannot observe its own managed pane.",
+        ),
+        (
+            Action::Refresh,
+            "The scrying table cannot observe the Questmancer's own managed pane.",
+        ),
+        (
+            Action::Counsel,
+            "Counsel cannot be issued to the Questmancer's own managed pane.",
+        ),
+        (
+            Action::Reviewr,
+            "The spoils cannot be inspected for the Questmancer's own managed pane.",
+        ),
+    ] {
+        let mut model = live_model_with_two_agents();
+        model.set_managed_pane_id(Some(PaneId::new("w1:p1")));
+        model.set_reviewr_available(true);
         let reduction = reduce_action(&mut model, action);
         assert!(reduction.commands.is_empty());
+        assert_eq!(model.status_message(), Some(expected), "action {action:?}");
     }
-    assert_eq!(
-        model.status_message(),
-        Some("Counsel cannot be issued: no adventurer is selected.")
-    );
 }
 
 #[test]
@@ -278,7 +296,10 @@ fn refresh_loads_only_the_selected_output() {
     let mut empty = Model::new(View::Guild);
     let no_refresh = reduce_action(&mut empty, Action::Refresh);
     assert!(no_refresh.commands.is_empty());
-    assert_eq!(empty.status_message(), Some("no agent selected to refresh"));
+    assert_eq!(
+        empty.status_message(),
+        Some("No adventurer is selected to scry.")
+    );
 }
 
 #[test]
@@ -425,8 +446,52 @@ fn mark_seen_uses_the_domain_reducer_for_the_selected_agent() {
     assert!(no_mark.persistence.is_empty());
     assert_eq!(
         empty.status_message(),
-        Some("no agent selected to mark seen")
+        Some("No adventurer is selected to acknowledge.")
     );
+}
+
+#[test]
+fn acknowledgement_claims_success_only_for_an_unread_summons() {
+    let mut clear = live_model_with_two_agents();
+    clear
+        .domain_mut()
+        .agents
+        .values_mut()
+        .next()
+        .unwrap()
+        .attention = GuildAttention::Clear;
+    clear.set_status_message(None);
+
+    let clear_result = reduce_action(&mut clear, Action::MarkSeen);
+
+    assert!(clear_result.persistence.is_empty());
+    assert_ne!(clear.status_message(), Some("Summons acknowledged."));
+
+    let mut read = live_model_with_two_agents();
+    read.domain_mut()
+        .agents
+        .values_mut()
+        .next()
+        .unwrap()
+        .attention = GuildAttention::Read {
+        summons: GuildSummons::CounselRequested,
+        since: Timestamp::from_millis(500),
+    };
+    read.set_status_message(None);
+
+    let read_result = reduce_action(&mut read, Action::MarkSeen);
+
+    assert!(read_result.persistence.is_empty());
+    assert_ne!(read.status_message(), Some("Summons acknowledged."));
+
+    let mut unread = live_model_with_two_agents();
+    unread.set_status_message(None);
+
+    let unread_result = reduce_action(&mut unread, Action::MarkSeen);
+
+    assert_eq!(unread_result.persistence, vec![Command::PersistState]);
+    assert_eq!(unread.status_message(), Some("Summons acknowledged."));
+    assert!(!unread.selected_agent().unwrap().attention.is_unread());
 }
 
 #[test]
@@ -544,7 +609,10 @@ fn empty_search_does_not_select_the_first_agent() {
             query: String::new()
         }
     );
-    assert_eq!(model.status_message(), Some("enter a search query"));
+    assert_eq!(
+        model.status_message(),
+        Some("Enter an adventurer or campaign to search.")
+    );
 }
 
 #[test]

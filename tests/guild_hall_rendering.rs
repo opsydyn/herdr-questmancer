@@ -1,12 +1,24 @@
 use questmancer::{
-    app::{ConnectionState, Model, OutputPreview, RuntimeSettings, View},
-    domain::{DomainState, GuildAttention, GuildSummons, PaneId, Presence, Timestamp},
-    herdr::protocol::{SessionSnapshotResult, SuccessResponse},
+    app::{
+        CharacterSet, ConnectionState, DisplayPreferences, Model, OutputPreview, RuntimeSettings,
+        View,
+    },
+    command::CommandResult,
+    domain::{
+        ChronicleEntry, ChronicleEvent, DomainState, Epithet, GuildAttention, GuildSummons, PaneId,
+        Presence, Timestamp,
+    },
+    herdr::{
+        protocol::{SessionSnapshotResult, SuccessResponse},
+        supervisor::ConnectionUpdate,
+    },
     interaction::reduce_action,
+    runtime_loop::{apply_command_result, apply_connection_update},
     ui,
     ui::input::Action,
 };
 use ratatui::{Terminal, backend::TestBackend};
+use std::time::Duration;
 
 fn live_model() -> Model {
     let response: SuccessResponse<SessionSnapshotResult> =
@@ -246,7 +258,7 @@ fn footer_advertises_only_actions_valid_for_the_current_context() {
     assert!(selected.contains("Observe"));
     assert!(selected.contains("Issue counsel"));
     assert!(selected.contains("Acknowledge summons"));
-    assert!(selected.contains("Open Chronicle"));
+    assert!(!selected.contains("Open Chronicle"));
     assert!(!selected.contains("Inspect spoils"));
 
     let _ = reduce_action(&mut live, Action::Reviewr);
@@ -260,4 +272,175 @@ fn footer_advertises_only_actions_valid_for_the_current_context() {
     let seen = render(&live, 160, 24);
     assert!(!seen.contains("Acknowledge summons"));
     assert!(seen.contains("Inspect spoils"));
+}
+
+#[test]
+fn footer_navigation_and_contextual_actions_are_truthful_at_layout_boundaries() {
+    let mut model = live_model();
+    model.set_reviewr_available(true);
+
+    let narrow = render(&model, 79, 24);
+    assert!(narrow.contains("[tab] Next region"));
+    assert!(!narrow.contains("[tab] Open Chronicle"));
+
+    for width in [80, 119, 120] {
+        let screen = render(&model, width, 24);
+        assert!(!screen.contains("[tab]"), "width {width}\n{screen}");
+        for action in [
+            "Observe",
+            "Issue counsel",
+            "Scry again",
+            "Acknowledge summons",
+            "Inspect spoils",
+        ] {
+            assert!(
+                screen.contains(action),
+                "missing {action} at width {width}\n{screen}"
+            );
+        }
+    }
+}
+
+#[test]
+fn managed_adventurer_footer_hides_every_refused_pane_action() {
+    let mut model = live_model();
+    model.set_managed_pane_id(Some(PaneId::new("w1:p1")));
+    model.set_reviewr_available(true);
+
+    for width in [79, 80, 119, 120] {
+        let screen = render(&model, width, 24);
+        for invalid in ["Observe", "Issue counsel", "Scry again", "Inspect spoils"] {
+            assert!(
+                !screen.contains(invalid),
+                "advertised {invalid} at width {width}\n{screen}"
+            );
+        }
+    }
+}
+
+#[test]
+fn narrow_diagnostics_remain_visible_in_every_focused_region() {
+    let mut model = live_model();
+    let titles = [
+        "QUEST BOARD",
+        "PARTY ROSTER",
+        "CALLS FOR COUNSEL",
+        "CHRONICLE",
+        "ADVENTURER",
+    ];
+
+    for title in titles {
+        let _ = reduce_action(&mut model, Action::Reviewr);
+        let unavailable = render(&model, 79, 24);
+        assert!(
+            unavailable.contains(title),
+            "missing {title}\n{unavailable}"
+        );
+        assert!(
+            unavailable.contains("The spoils cannot be inspected here"),
+            "missing Reviewr diagnostic in {title}\n{unavailable}"
+        );
+
+        apply_command_result(
+            &mut model,
+            CommandResult::Failed {
+                operation: "load output",
+                message: "pane vanished".to_owned(),
+            },
+            Timestamp::from_millis(122_000),
+        );
+        let failed = render(&model, 79, 24);
+        assert!(failed.contains(title), "missing {title}\n{failed}");
+        assert!(
+            failed.contains("load output failed: pane vanished"),
+            "missing command failure in {title}\n{failed}"
+        );
+
+        model.cycle_region();
+    }
+}
+
+#[test]
+fn reconnect_banner_preserves_the_real_disconnect_cause_with_or_without_a_party() {
+    for mut model in [live_model(), Model::new(View::Guild)] {
+        apply_connection_update(
+            &mut model,
+            ConnectionUpdate::Disconnected("socket closed by peer".to_owned()),
+            Timestamp::from_millis(122_000),
+        );
+        apply_connection_update(
+            &mut model,
+            ConnectionUpdate::Reconnecting {
+                attempt: 3,
+                delay: Duration::from_secs(1),
+            },
+            Timestamp::from_millis(122_001),
+        );
+
+        let screen = render(&model, 100, 24);
+
+        assert!(screen.contains("The scrying pool has clouded. Reconnecting"));
+        assert!(screen.contains("Cause: socket closed by peer"), "{screen}");
+        assert!(screen.contains("Reconnect attempt 3"), "{screen}");
+    }
+}
+
+#[test]
+fn ascii_guild_hall_sanitizes_all_external_text_and_border_glyphs() {
+    let mut model = live_model();
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        ..DisplayPreferences::default()
+    });
+    let selected = model.selected_agent_key().unwrap().clone();
+    let (workspace, pane) = {
+        let agent = model.domain_mut().agents.get_mut(&selected).unwrap();
+        "Cødex\u{1b}".clone_into(&mut agent.name);
+        agent.persona.name = "Élowen\u{1b}Name".to_owned();
+        agent.persona.epithet = Epithet::new("Keeper ☃\u{7}");
+        agent.custom_status = Some("blocked ☠\u{7}".to_owned());
+        (agent.workspace_id.clone(), agent.pane_id.clone())
+    };
+    model
+        .domain_mut()
+        .campaigns
+        .get_mut(&workspace)
+        .unwrap()
+        .label = "Café ☃\u{1b}".to_owned();
+    model.domain_mut().chronicle.append(ChronicleEntry::new(
+        Timestamp::from_millis(121_500),
+        Some(selected),
+        Some(workspace),
+        Some(pane.clone()),
+        8,
+        ChronicleEvent::CounselRequested,
+        "Chronicle ✓\u{1b}",
+    ));
+    model.set_output_preview(Some(OutputPreview {
+        pane_id: pane,
+        revision: 8,
+        text: "Output λ\u{1b}[31m".to_owned(),
+        loading: false,
+        error: None,
+    }));
+    model.set_status_message(Some("Diagnostic ⚠\u{7}".to_owned()));
+
+    let screen = render(&model, 130, 32);
+
+    assert!(screen.is_ascii(), "{screen:?}");
+    for leaked in ["É", "ø", "☃", "☠", "✓", "λ", "⚠", "\u{1b}", "\u{7}"] {
+        assert!(!screen.contains(leaked), "leaked {leaked:?}\n{screen}");
+    }
+    for sanitized in [
+        "?lowen?Name",
+        "Caf? ??",
+        "Chronicle ??",
+        "Output ??[31m",
+        "Diagnostic ??",
+    ] {
+        assert!(
+            screen.contains(sanitized),
+            "missing {sanitized:?}\n{screen}"
+        );
+    }
 }

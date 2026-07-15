@@ -1,5 +1,5 @@
 use questmancer::{
-    app::{Model, View},
+    app::{CharacterSet, DisplayPreferences, Model, View},
     interaction::reduce_action,
     ui,
     ui::input::Action,
@@ -55,9 +55,40 @@ fn search_modal_renders_query_status_and_contextual_keys() {
         })
         .collect::<Vec<_>>()
         .join("\n");
-    assert!(screen.contains("SEARCH AGENTS"));
+    assert!(screen.contains("SEARCH ADVENTURERS"));
     assert!(screen.contains("missing"));
     assert!(screen.contains("No adventurer or campaign answers \"missing\"."));
     assert!(screen.contains("[enter] find"));
     assert!(screen.contains("[esc] cancel"));
+}
+
+#[test]
+fn search_modal_sanitizes_query_and_status_in_ascii_mode() {
+    let mut model = Model::new(View::Guild);
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        ..DisplayPreferences::default()
+    });
+    let _ = reduce_action(&mut model, Action::Search);
+    for character in "café\u{1b}".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let _ = reduce_action(&mut model, Action::Submit);
+    let backend = TestBackend::new(80, 24);
+    let mut terminal = Terminal::new(backend).unwrap();
+
+    terminal.draw(|frame| ui::render(frame, &model)).unwrap();
+
+    let buffer = terminal.backend().buffer();
+    let screen = (0..24)
+        .map(|y| {
+            (0..80)
+                .map(|x| buffer.cell((x, y)).unwrap().symbol())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(screen.is_ascii(), "{screen:?}");
+    assert!(screen.contains("SEARCH ADVENTURERS"));
+    assert!(screen.contains("caf??"), "{screen}");
 }

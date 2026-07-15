@@ -49,18 +49,28 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             ControlFlow::Continue(())
         }
         Action::Visit => {
-            if let Some(pane_id) = selected_pane(model) {
-                commands.push(AgentCommand::FocusPane(pane_id));
-            } else {
-                model.set_status_message(Some("no agent selected to visit".to_owned()));
+            match selected_pane_state(model) {
+                SelectedPane::Available(pane_id) => {
+                    commands.push(AgentCommand::FocusPane(pane_id));
+                }
+                SelectedPane::Managed => model.set_status_message(Some(
+                    "The Questmancer cannot observe its own managed pane.".to_owned(),
+                )),
+                SelectedPane::Missing => model
+                    .set_status_message(Some("No adventurer is selected to observe.".to_owned())),
             }
             ControlFlow::Continue(())
         }
         Action::Refresh => {
-            if let Some(pane_id) = selected_pane(model) {
-                commands.push(load_output(model, pane_id));
-            } else {
-                model.set_status_message(Some("no agent selected to refresh".to_owned()));
+            match selected_pane_state(model) {
+                SelectedPane::Available(pane_id) => commands.push(load_output(model, pane_id)),
+                SelectedPane::Managed => model.set_status_message(Some(
+                    "The scrying table cannot observe the Questmancer's own managed pane."
+                        .to_owned(),
+                )),
+                SelectedPane::Missing => {
+                    model.set_status_message(Some("No adventurer is selected to scry.".to_owned()));
+                }
             }
             ControlFlow::Continue(())
         }
@@ -126,45 +136,69 @@ fn finish_reduction(
     }
 }
 
+enum SelectedPane {
+    Missing,
+    Managed,
+    Available(crate::domain::PaneId),
+}
+
+fn selected_pane_state(model: &Model) -> SelectedPane {
+    let Some(agent) = model.selected_agent() else {
+        return SelectedPane::Missing;
+    };
+    if model.managed_pane_id() == Some(&agent.pane_id) {
+        SelectedPane::Managed
+    } else {
+        SelectedPane::Available(agent.pane_id.clone())
+    }
+}
+
 fn selected_pane(model: &Model) -> Option<crate::domain::PaneId> {
-    model.selected_agent().and_then(|agent| {
-        (model
-            .managed_pane_id()
-            .is_none_or(|managed| managed != &agent.pane_id))
-        .then(|| agent.pane_id.clone())
-    })
+    match selected_pane_state(model) {
+        SelectedPane::Available(pane_id) => Some(pane_id),
+        SelectedPane::Missing | SelectedPane::Managed => None,
+    }
 }
 
 fn inspect_spoils(model: &mut Model, commands: &mut Vec<AgentCommand>) {
-    if !model.reviewr_available() {
-        model.set_status_message(Some(
-            "The spoils cannot be inspected here: Reviewr is unavailable.".to_owned(),
-        ));
-    } else if let Some(pane_id) = selected_pane(model) {
-        commands.push(AgentCommand::InspectSpoils {
+    match selected_pane_state(model) {
+        SelectedPane::Managed => model.set_status_message(Some(
+            "The spoils cannot be inspected for the Questmancer's own managed pane.".to_owned(),
+        )),
+        SelectedPane::Missing => model.set_status_message(Some(
+            "The spoils cannot be inspected here: no adventurer is selected.".to_owned(),
+        )),
+        SelectedPane::Available(_) if !model.reviewr_available() => {
+            model.set_status_message(Some(
+                "The spoils cannot be inspected here: Reviewr is unavailable.".to_owned(),
+            ));
+        }
+        SelectedPane::Available(pane_id) => commands.push(AgentCommand::InspectSpoils {
             pane_id,
             qualified_id: model.settings().reviewr_action.clone(),
-        });
-    } else {
-        model.set_status_message(Some(
-            "The spoils cannot be inspected here: no adventurer is selected.".to_owned(),
-        ));
+        }),
     }
 }
 
 fn open_counsel(model: &mut Model) {
-    if selected_pane(model).is_some() {
-        model.open_counsel();
-    } else {
-        model.set_status_message(Some(
+    match selected_pane_state(model) {
+        SelectedPane::Available(_) => model.open_counsel(),
+        SelectedPane::Managed => model.set_status_message(Some(
+            "Counsel cannot be issued to the Questmancer's own managed pane.".to_owned(),
+        )),
+        SelectedPane::Missing => model.set_status_message(Some(
             "Counsel cannot be issued: no adventurer is selected.".to_owned(),
-        ));
+        )),
     }
 }
 
 fn mark_read(model: &mut Model) {
-    if model.selected_agent_key().is_none() {
-        model.set_status_message(Some("no agent selected to mark seen".to_owned()));
+    let Some(agent) = model.selected_agent() else {
+        model.set_status_message(Some("No adventurer is selected to acknowledge.".to_owned()));
+        return;
+    };
+    if !agent.attention.is_unread() {
+        model.set_status_message(Some("No unread summons await acknowledgement.".to_owned()));
         return;
     }
     model.mark_selected_attention_read();
@@ -181,11 +215,20 @@ fn submit_counsel(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         ));
         return;
     }
-    let Some(pane_id) = selected_pane(model) else {
-        model.set_status_message(Some(
-            "Counsel cannot be issued: no adventurer is selected.".to_owned(),
-        ));
-        return;
+    let pane_id = match selected_pane_state(model) {
+        SelectedPane::Available(pane_id) => pane_id,
+        SelectedPane::Managed => {
+            model.set_status_message(Some(
+                "Counsel cannot be issued to the Questmancer's own managed pane.".to_owned(),
+            ));
+            return;
+        }
+        SelectedPane::Missing => {
+            model.set_status_message(Some(
+                "Counsel cannot be issued: no adventurer is selected.".to_owned(),
+            ));
+            return;
+        }
     };
     model.dismiss_modal();
     commands.push(AgentCommand::SendCounsel {
@@ -200,7 +243,9 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     };
     let query = query.trim().to_lowercase();
     if query.is_empty() {
-        model.set_status_message(Some("enter a search query".to_owned()));
+        model.set_status_message(Some(
+            "Enter an adventurer or campaign to search.".to_owned(),
+        ));
         return;
     }
     let matched = model.domain().agents.iter().find_map(|(key, agent)| {
