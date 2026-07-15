@@ -84,6 +84,9 @@ impl CommandExecutor {
                 }
             }
             DeskCommand::DiscoverReviewr { qualified_id } => {
+                if split_qualified_action(&qualified_id).is_none() {
+                    return CommandResult::ReviewrAvailable(false);
+                }
                 match self.client.list_plugin_actions().await {
                     Ok(actions) => CommandResult::ReviewrAvailable(
                         actions

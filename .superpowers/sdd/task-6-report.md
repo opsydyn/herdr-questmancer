@@ -198,3 +198,91 @@ Result: exit 0.
 
 No Task 6 blockers. Task 7 still must call `load_startup`, surface diagnostics,
 start `PersistenceWorker` from `StartupData.paths`, and coordinate flush/shutdown.
+
+## Review fixes
+
+Task 6 review identified a blocking duplicate runtime-settings owner and a
+discovery edge that performed transport I/O before validating action syntax.
+
+### Review RED 1: one authoritative settings owner
+
+An exhaustive public-shape test destructured `StartupData` into only its model,
+worker paths, and diagnostics:
+
+```text
+cargo test --test startup
+```
+
+Expected failure:
+
+```text
+error[E0027]: pattern does not mention field `settings`
+```
+
+This proved callers could independently retain or mutate both
+`StartupData.settings` and `Model.settings`.
+
+### Review GREEN 1
+
+Removed `StartupData.settings` and the persistence-module `RuntimeSettings`
+re-export. `Model` is now the only settings owner, and every startup assertion
+reads `model.settings()`.
+
+```text
+cargo test --test startup
+```
+
+Result: 11 passed, 0 failed, including the 64-case filesystem property.
+
+### Review RED 2: invalid discovery must not reach transport
+
+The non-splittable `inspect` regression was changed to use a nonexistent Unix
+socket:
+
+```text
+cargo test --test command non_splittable_reviewr_action_is_unavailable_and_invocation_fails_non_fatally -- --exact
+```
+
+Expected failure:
+
+```text
+left: Failed { operation: "discover reviewr", message: "failed to communicate with Herdr: No such file or directory (os error 2)" }
+right: ReviewrAvailable(false)
+```
+
+This proved discovery attempted `plugin.action.list` before validating syntax.
+
+### Review GREEN 2
+
+Discovery now uses the same final-dot validator as invocation before any Herdr
+call. Invalid syntax returns `ReviewrAvailable(false)` locally; invocation
+remains a non-fatal qualified-action error.
+
+```text
+cargo test --test command non_splittable_reviewr_action_is_unavailable_and_invocation_fails_non_fatally -- --exact
+cargo test --test command
+```
+
+Results: 1 passed, then 7 passed, 0 failed.
+
+### Review final verification
+
+```text
+cargo fmt --all
+cargo test --test startup --test command --test runtime_loop --test interaction
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+git diff --check
+```
+
+Results:
+
+- focused gate: 55 passed, 0 failed;
+- warnings-denied Clippy: exit 0;
+- full Rust suite: 294 passed, 0 failed;
+- diff hygiene: exit 0.
+
+Review self-check confirmed no remaining `StartupData.settings` or
+`persistence::RuntimeSettings` API, invalid reviewr syntax cannot reach
+discovery transport, valid dotted plugin IDs still use final-dot splitting, and
+no Task 7 terminal/worker lifecycle was introduced.

@@ -4,8 +4,6 @@ mod startup;
 mod state;
 mod worker;
 
-pub use crate::app::RuntimeSettings;
-
 pub use atomic_json::{
     PersistenceDiagnostic, PersistenceError, load_state, parse_state, publish_state,
 };

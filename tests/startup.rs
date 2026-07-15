@@ -7,7 +7,7 @@ use herdr_webmaster::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View},
     config::PersistencePaths,
     domain::{AgentPersona, GuestbookEntry, GuestbookEvent, PersonaKey, Timestamp},
-    persistence::{PersistedStateV1, effective_view, load_startup},
+    persistence::{PersistedStateV1, StartupData, effective_view, load_startup},
 };
 use proptest::prelude::*;
 use tempfile::TempDir;
@@ -90,10 +90,12 @@ async fn absent_files_use_defaults_without_diagnostics() {
 
     assert_eq!(startup.model.view(), View::Desk);
     assert_eq!(startup.model.preferences(), &DisplayPreferences::default());
-    assert_eq!(startup.model.settings(), &startup.settings);
-    assert_eq!(startup.settings.output_preview_lines, 80);
-    assert_eq!(startup.settings.reviewr_action, "persiyanov.reviewr.open");
-    assert!(startup.settings.show_elapsed_time);
+    assert_eq!(startup.model.settings().output_preview_lines, 80);
+    assert_eq!(
+        startup.model.settings().reviewr_action,
+        "persiyanov.reviewr.open"
+    );
+    assert!(startup.model.settings().show_elapsed_time);
     assert!(startup.model.domain().guestbook.entries().is_empty());
     assert_eq!(startup.paths.state, Some(state.path().join("state.json")));
     assert_eq!(
@@ -152,9 +154,9 @@ show_elapsed_time = false
     assert_eq!(startup.model.preferences(), &persisted_preferences);
     let captured = PersistedStateV1::capture(&startup.model);
     assert_eq!(captured.personas[&persona_key].handle, "restored_handle");
-    assert_eq!(startup.settings.output_preview_lines, 123);
-    assert_eq!(startup.settings.reviewr_action, "acme.diff.inspect");
-    assert!(!startup.settings.show_elapsed_time);
+    assert_eq!(startup.model.settings().output_preview_lines, 123);
+    assert_eq!(startup.model.settings().reviewr_action, "acme.diff.inspect");
+    assert!(!startup.model.settings().show_elapsed_time);
     let entries = startup.model.domain().guestbook.entries();
     assert_eq!(entries.len(), 50);
     assert_eq!(entries.front().unwrap().summary, "entry 5");
@@ -189,7 +191,7 @@ async fn invalid_config_uses_safe_runtime_defaults_but_keeps_valid_state() {
 
     assert_eq!(startup.model.view(), View::Cafe);
     assert_eq!(startup.model.preferences(), &persisted_preferences);
-    assert_eq!(startup.settings.output_preview_lines, 80);
+    assert_eq!(startup.model.settings().output_preview_lines, 80);
     assert_eq!(startup.diagnostics.len(), 1);
     assert_eq!(startup.diagnostics[0].operation, "parse config");
     assert_eq!(
@@ -279,6 +281,21 @@ async fn plugin_disabled_startup_is_in_memory_only() {
     assert!(startup.diagnostics.is_empty());
 }
 
+#[tokio::test]
+async fn startup_data_has_no_settings_owner_outside_the_model() {
+    let startup = load_startup(PersistencePaths::default(), None).await;
+
+    let StartupData {
+        model,
+        paths,
+        diagnostics,
+    } = startup;
+
+    assert_eq!(model.settings().output_preview_lines, 80);
+    assert_eq!(paths.state, None);
+    assert!(diagnostics.is_empty());
+}
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(64))]
 
@@ -308,8 +325,8 @@ proptest! {
             let startup = load_startup(paths(Some(config.path()), Some(state.path())), None).await;
 
             prop_assert!(matches!(startup.model.view(), View::Desk | View::Cafe));
-            prop_assert!((10..=500).contains(&startup.settings.output_preview_lines));
-            prop_assert!(!startup.settings.reviewr_action.trim().is_empty());
+            prop_assert!((10..=500).contains(&startup.model.settings().output_preview_lines));
+            prop_assert!(!startup.model.settings().reviewr_action.trim().is_empty());
             let selection_is_live = startup.model.selected_agent_key().is_none_or(|key| {
                 startup.model.domain().agents.contains_key(key)
             });

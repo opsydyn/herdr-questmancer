@@ -1,7 +1,7 @@
 use std::{io::ErrorKind, path::PathBuf};
 
 use crate::{
-    app::{Model, RuntimeSettings, View},
+    app::{Model, View},
     config::{PersistencePaths, WebmasterConfig},
 };
 
@@ -10,7 +10,6 @@ use super::{PersistenceDiagnostic, WorkerPaths, parse_state, replay_guestbook};
 #[derive(Debug)]
 pub struct StartupData {
     pub model: Model,
-    pub settings: RuntimeSettings,
     pub paths: WorkerPaths,
     pub diagnostics: Vec<PersistenceDiagnostic>,
 }
@@ -57,7 +56,6 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
 
     StartupData {
         model,
-        settings,
         paths: worker_paths,
         diagnostics,
     }

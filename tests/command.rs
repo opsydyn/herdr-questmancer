@@ -173,17 +173,8 @@ async fn opening_reviewr_focuses_the_agent_before_invocation() {
 
 #[tokio::test]
 async fn non_splittable_reviewr_action_is_unavailable_and_invocation_fails_non_fatally() {
-    let (_directory, path, listener) = listener();
-    let server = tokio::spawn(async move {
-        let (mut stream, _) = listener.accept().await.unwrap();
-        let request = request(&mut stream).await;
-        respond(
-            &mut stream,
-            &request,
-            json!({"type": "plugin_action_list", "actions": []}),
-        )
-        .await;
-    });
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("missing.sock");
     let executor = CommandExecutor::new(HerdrClient::new(path));
 
     let discovery = executor
@@ -204,7 +195,6 @@ async fn non_splittable_reviewr_action_is_unavailable_and_invocation_fails_non_f
         CommandResult::Failed { operation: "open reviewr", message }
             if message.contains("qualified")
     ));
-    server.await.unwrap();
 }
 
 #[tokio::test]
