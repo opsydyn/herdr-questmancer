@@ -21,7 +21,7 @@ pub struct WebmasterConfig {
 impl Default for WebmasterConfig {
     fn default() -> Self {
         Self {
-            default_view: View::Desk,
+            default_view: View::Guild,
             preferences: DisplayPreferences::default(),
             output_preview_lines: 80,
             guestbook_max_entries: 500,

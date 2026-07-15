@@ -125,7 +125,7 @@ impl HerdrClient {
                     plugin_id: Some(plugin_id.into()),
                     context: Some(PluginInvocationContext {
                         focused_pane_id: Some(focused_pane_id.into()),
-                        invocation_source: Some("opsydyn.webmaster".to_owned()),
+                        invocation_source: Some("opsydyn.questmancer".to_owned()),
                         ..PluginInvocationContext::default()
                     }),
                 },

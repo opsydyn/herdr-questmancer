@@ -48,8 +48,8 @@ impl RuntimeRegistration {
                 .context("system clock is before Unix epoch")?
                 .as_secs(),
             initial_view: match effective_view {
-                View::Desk => "desk",
-                View::Cafe => "cafe",
+                View::Guild => "guild",
+                View::Delve => "delve",
             }
             .to_owned(),
         };

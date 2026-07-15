@@ -1,4 +1,4 @@
-use herdr_webmaster::ui::pixel::{
+use questmancer::ui::pixel::{
     AccentShade, Canvas, ColorRole, FootwearShade, HairShade, Palette, pack,
 };
 use ratatui::style::Color;

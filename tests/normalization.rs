@@ -1,4 +1,4 @@
-use herdr_webmaster::{
+use questmancer::{
     domain::{
         Attention, AttentionReason, DomainState, PaneId, Presence, SiteStatus, Timestamp,
         WorkspaceId,
@@ -19,7 +19,7 @@ fn snapshot_normalizes_sites_agents_attention_and_personas() {
     let agent = state.agents.get(&site.agents[0]).unwrap();
 
     assert_eq!(site.label, "webmaster");
-    assert_eq!(site.cwd.to_string_lossy(), "/tmp/herdr-webmaster");
+    assert_eq!(site.cwd.to_string_lossy(), "/tmp/herdr-questmancer");
     assert_eq!(site.status(&state.agents), SiteStatus::NeedsWebmaster);
     assert_eq!(agent.name, "Codex");
     assert_eq!(agent.custom_status.as_deref(), Some("which schema?"));
@@ -39,7 +39,7 @@ fn managed_pane_is_excluded_from_snapshot_normalization() {
     managed.pane_id = "w2:p3".to_owned();
     managed.workspace_id = "w2".to_owned();
     managed.name = Some("webmaster-smoke".to_owned());
-    managed.agent_session = Some(herdr_webmaster::herdr::protocol::AgentSessionInfo {
+    managed.agent_session = Some(questmancer::herdr::protocol::AgentSessionInfo {
         source: "manual-test".to_owned(),
         agent: "webmaster-smoke".to_owned(),
         kind: "session".to_owned(),

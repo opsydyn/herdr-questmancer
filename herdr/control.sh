@@ -2,7 +2,9 @@
 set -euo pipefail
 
 HERDR=${HERDR_BIN_PATH:-herdr}
-PLUGIN_ID=${HERDR_PLUGIN_ID:-opsydyn.webmaster}
+PLUGIN_ID=${HERDR_PLUGIN_ID:-opsydyn.questmancer}
+ENTRYPOINT=guild-hall
+INITIAL_VIEW_ENV=QUESTMANCER_INITIAL_VIEW
 STATE_DIR=${HERDR_PLUGIN_STATE_DIR:?HERDR_PLUGIN_STATE_DIR is required}
 RUNTIME="$STATE_DIR/runtime.json"
 LOCK="$STATE_DIR/control.lock"
@@ -10,7 +12,7 @@ LOCK="$STATE_DIR/control.lock"
 mkdir -p "$STATE_DIR"
 
 locked=false
-for _ in $(seq 1 "${WEBMASTER_LOCK_ATTEMPTS:-50}"); do
+for _ in $(seq 1 "${QUESTMANCER_LOCK_ATTEMPTS:-50}"); do
   if mkdir "$LOCK" 2>/dev/null; then
     locked=true
     trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT
@@ -20,7 +22,7 @@ for _ in $(seq 1 "${WEBMASTER_LOCK_ATTEMPTS:-50}"); do
 done
 
 if [[ $locked != true ]]; then
-  echo "webmaster control is busy" >&2
+  echo "questmancer control is busy" >&2
   exit 1
 fi
 
@@ -49,7 +51,7 @@ write_runtime() {
     "$pane_id" "$(date +%s)" "$initial_view" >"$temporary"
   if ! ln "$temporary" "$RUNTIME" 2>/dev/null && [[ ! -e $RUNTIME ]]; then
     rm -f "$temporary"
-    echo "webmaster could not publish runtime registration" >&2
+    echo "questmancer could not publish runtime registration" >&2
     return 1
   fi
   rm -f "$temporary"
@@ -62,8 +64,8 @@ open_pane() {
   if pane_id=$(live_pane_id); then
     if [[ $switch_existing == true ]]; then
       case $initial_view in
-        desk) "$HERDR" pane send-keys "$pane_id" 1 >/dev/null ;;
-        cafe) "$HERDR" pane send-keys "$pane_id" 2 >/dev/null ;;
+        guild) "$HERDR" pane send-keys "$pane_id" 1 >/dev/null ;;
+        delve) "$HERDR" pane send-keys "$pane_id" 2 >/dev/null ;;
       esac
     fi
     "$HERDR" plugin pane focus "$pane_id" >/dev/null
@@ -73,20 +75,20 @@ open_pane() {
   if [[ $initial_view == default ]]; then
     response=$("$HERDR" plugin pane open \
       --plugin "$PLUGIN_ID" \
-      --entrypoint webmaster \
+      --entrypoint "$ENTRYPOINT" \
       --placement tab \
       --focus)
   else
     response=$("$HERDR" plugin pane open \
       --plugin "$PLUGIN_ID" \
-      --entrypoint webmaster \
+      --entrypoint "$ENTRYPOINT" \
       --placement tab \
-      --env "WEBMASTER_INITIAL_VIEW=$initial_view" \
+      --env "$INITIAL_VIEW_ENV=$initial_view" \
       --focus)
   fi
   pane_id=$(printf '%s\n' "$response" | sed -n 's/.*"pane_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
   if [[ -z $pane_id ]]; then
-    echo "webmaster could not read the new pane id" >&2
+    echo "questmancer could not read the new pane id" >&2
     exit 1
   fi
   write_runtime "$pane_id" "$initial_view"
@@ -106,8 +108,8 @@ close_pane() {
 
 case ${1:-} in
   open) open_pane default false ;;
-  desk) open_pane desk true ;;
-  cafe) open_pane cafe true ;;
+  guild) open_pane guild true ;;
+  delve) open_pane delve true ;;
   close) close_pane ;;
   toggle)
     if pane_id=$(live_pane_id); then
@@ -121,7 +123,7 @@ case ${1:-} in
     fi
     ;;
   *)
-    echo "usage: control.sh open|close|toggle|desk|cafe" >&2
+    echo "usage: control.sh open|close|toggle|guild|delve" >&2
     exit 2
     ;;
 esac

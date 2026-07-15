@@ -3,13 +3,13 @@ use std::{
     path::Path,
 };
 
-use herdr_webmaster::{
+use proptest::prelude::*;
+use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View},
     config::PersistencePaths,
     domain::{AgentPersona, GuestbookEntry, GuestbookEvent, PersonaKey, Timestamp},
     persistence::{PersistedStateV1, StartupData, effective_view, load_startup},
 };
-use proptest::prelude::*;
 use tempfile::TempDir;
 
 fn paths(config_dir: Option<&Path>, state_dir: Option<&Path>) -> PersistencePaths {
@@ -57,19 +57,19 @@ async fn write_guestbook(directory: &TempDir, entries: impl IntoIterator<Item = 
 #[test]
 fn view_precedence_is_explicit_then_persisted_then_configured_then_desk() {
     assert_eq!(
-        effective_view(Some(View::Desk), Some(View::Cafe), View::Cafe),
-        View::Desk
+        effective_view(Some(View::Guild), Some(View::Delve), View::Delve),
+        View::Guild
     );
     assert_eq!(
-        effective_view(None, Some(View::Cafe), View::Desk),
-        View::Cafe
+        effective_view(None, Some(View::Delve), View::Guild),
+        View::Delve
     );
-    assert_eq!(effective_view(None, None, View::Cafe), View::Cafe);
-    assert_eq!(effective_view(None, None, View::Desk), View::Desk);
+    assert_eq!(effective_view(None, None, View::Delve), View::Delve);
+    assert_eq!(effective_view(None, None, View::Guild), View::Guild);
 
-    for explicit in [None, Some(View::Desk), Some(View::Cafe)] {
-        for persisted in [None, Some(View::Desk), Some(View::Cafe)] {
-            for configured in [View::Desk, View::Cafe] {
+    for explicit in [None, Some(View::Guild), Some(View::Delve)] {
+        for persisted in [None, Some(View::Guild), Some(View::Delve)] {
+            for configured in [View::Guild, View::Delve] {
                 let expected = explicit.or(persisted).unwrap_or(configured);
                 assert_eq!(
                     effective_view(explicit, persisted, configured),
@@ -88,7 +88,7 @@ async fn absent_files_use_defaults_without_diagnostics() {
 
     let startup = load_startup(paths(Some(config.path()), Some(state.path())), None).await;
 
-    assert_eq!(startup.model.view(), View::Desk);
+    assert_eq!(startup.model.view(), View::Guild);
     assert_eq!(startup.model.preferences(), &DisplayPreferences::default());
     assert_eq!(startup.model.settings().output_preview_lines, 80);
     assert_eq!(
@@ -112,7 +112,7 @@ async fn valid_files_restore_state_preferences_history_and_config_only_settings(
     tokio::fs::write(
         config.path().join("config.toml"),
         br#"
-default_view = "desk"
+default_view = "guild"
 motion = "full"
 character_set = "unicode"
 color_mode = "xterm256"
@@ -129,7 +129,7 @@ show_elapsed_time = false
         character_set: CharacterSet::Ascii,
         color_mode: ColorMode::Ansi16,
     };
-    let mut persisted_state = state(View::Cafe, persisted_preferences);
+    let mut persisted_state = state(View::Delve, persisted_preferences);
     let persona_key = PersonaKey::new("persona-restored");
     persisted_state.personas.insert(
         persona_key.clone(),
@@ -150,7 +150,7 @@ show_elapsed_time = false
 
     let startup = load_startup(paths(Some(config.path()), Some(state_dir.path())), None).await;
 
-    assert_eq!(startup.model.view(), View::Cafe);
+    assert_eq!(startup.model.view(), View::Delve);
     assert_eq!(startup.model.preferences(), &persisted_preferences);
     let captured = PersistedStateV1::capture(&startup.model);
     assert_eq!(captured.personas[&persona_key].handle, "restored_handle");
@@ -186,14 +186,14 @@ async fn invalid_config_uses_safe_runtime_defaults_but_keeps_valid_state() {
     };
     tokio::fs::write(
         state_dir.path().join("state.json"),
-        serde_json::to_vec(&state(View::Cafe, persisted_preferences)).unwrap(),
+        serde_json::to_vec(&state(View::Delve, persisted_preferences)).unwrap(),
     )
     .await
     .unwrap();
 
     let startup = load_startup(paths(Some(config.path()), Some(state_dir.path())), None).await;
 
-    assert_eq!(startup.model.view(), View::Cafe);
+    assert_eq!(startup.model.view(), View::Delve);
     assert_eq!(startup.model.preferences(), &persisted_preferences);
     assert_eq!(startup.model.settings().output_preview_lines, 80);
     assert_eq!(startup.diagnostics.len(), 1);
@@ -207,7 +207,7 @@ async fn invalid_config_uses_safe_runtime_defaults_but_keeps_valid_state() {
 #[tokio::test]
 async fn future_state_is_ignored_without_hiding_valid_guestbook_history() {
     let state_dir = tempfile::tempdir().unwrap();
-    let mut future = state(View::Cafe, DisplayPreferences::default());
+    let mut future = state(View::Delve, DisplayPreferences::default());
     future.schema_version = 2;
     tokio::fs::write(
         state_dir.path().join("state.json"),
@@ -219,7 +219,7 @@ async fn future_state_is_ignored_without_hiding_valid_guestbook_history() {
 
     let startup = load_startup(paths(None, Some(state_dir.path())), None).await;
 
-    assert_eq!(startup.model.view(), View::Desk);
+    assert_eq!(startup.model.view(), View::Guild);
     assert_eq!(startup.model.domain().guestbook.entries().len(), 1);
     assert_eq!(startup.diagnostics.len(), 1);
     assert_eq!(startup.diagnostics[0].operation, "validate state");
@@ -272,14 +272,14 @@ async fn missing_config_directory_does_not_block_valid_state() {
     let state_dir = tempfile::tempdir().unwrap();
     tokio::fs::write(
         state_dir.path().join("state.json"),
-        serde_json::to_vec(&state(View::Cafe, DisplayPreferences::default())).unwrap(),
+        serde_json::to_vec(&state(View::Delve, DisplayPreferences::default())).unwrap(),
     )
     .await
     .unwrap();
 
     let startup = load_startup(paths(Some(&missing_config), Some(state_dir.path())), None).await;
 
-    assert_eq!(startup.model.view(), View::Cafe);
+    assert_eq!(startup.model.view(), View::Delve);
     assert!(startup.diagnostics.is_empty());
 }
 
@@ -288,21 +288,21 @@ async fn missing_state_directory_does_not_block_valid_config() {
     let root = tempfile::tempdir().unwrap();
     let missing_state = root.path().join("missing-state");
     let config = tempfile::tempdir().unwrap();
-    tokio::fs::write(config.path().join("config.toml"), b"default_view = 'cafe'")
+    tokio::fs::write(config.path().join("config.toml"), b"default_view = 'delve'")
         .await
         .unwrap();
 
     let startup = load_startup(paths(Some(config.path()), Some(&missing_state)), None).await;
 
-    assert_eq!(startup.model.view(), View::Cafe);
+    assert_eq!(startup.model.view(), View::Delve);
     assert!(startup.diagnostics.is_empty());
 }
 
 #[tokio::test]
 async fn plugin_disabled_startup_is_in_memory_only() {
-    let startup = load_startup(PersistencePaths::default(), Some(View::Cafe)).await;
+    let startup = load_startup(PersistencePaths::default(), Some(View::Delve)).await;
 
-    assert_eq!(startup.model.view(), View::Cafe);
+    assert_eq!(startup.model.view(), View::Delve);
     assert_eq!(startup.paths.state, None);
     assert_eq!(startup.paths.guestbook, None);
     assert!(startup.diagnostics.is_empty());
@@ -351,7 +351,7 @@ proptest! {
 
             let startup = load_startup(paths(Some(config.path()), Some(state.path())), None).await;
 
-            prop_assert!(matches!(startup.model.view(), View::Desk | View::Cafe));
+            prop_assert!(matches!(startup.model.view(), View::Guild | View::Delve));
             prop_assert!((10..=500).contains(&startup.model.settings().output_preview_lines));
             prop_assert!(!startup.model.settings().reviewr_action.trim().is_empty());
             let selection_is_live = startup.model.selected_agent_key().is_none_or(|key| {

@@ -11,8 +11,8 @@ use crate::{
 #[serde(rename_all = "snake_case")]
 pub enum View {
     #[default]
-    Desk,
-    Cafe,
+    Guild,
+    Delve,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

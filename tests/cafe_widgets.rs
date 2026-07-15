@@ -1,4 +1,4 @@
-use herdr_webmaster::{
+use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion},
     domain::{Accessory, Agent, DomainState, PaneId, Presence, Timestamp, WorkspaceId},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},

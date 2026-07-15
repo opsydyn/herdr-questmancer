@@ -52,7 +52,7 @@ pub fn frame_for(agent: &Agent, now: Timestamp, preferences: &DisplayPreferences
 }
 
 pub fn cadence_for(model: &Model) -> RenderCadence {
-    if model.view() != View::Cafe {
+    if model.view() != View::Delve {
         return RenderCadence::EventDriven;
     }
 
@@ -72,7 +72,7 @@ pub fn cadence_for(model: &Model) -> RenderCadence {
 /// nominal FPS. Different agents can have interleaved boundaries, and a done
 /// transition has an exact terminal boundary at one second.
 pub fn next_visible_frame_in(model: &Model) -> Option<Duration> {
-    if model.view() != View::Cafe || model.preferences().motion == Motion::None {
+    if model.view() != View::Delve || model.preferences().motion == Motion::None {
         return None;
     }
 

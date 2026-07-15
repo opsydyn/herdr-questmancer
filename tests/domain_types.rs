@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use herdr_webmaster::{
+use questmancer::{
     domain::{AgentKey, Attention, AttentionReason, PaneId, Presence, Timestamp, WorkspaceId},
     herdr::protocol::AgentStatus,
 };

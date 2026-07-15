@@ -661,26 +661,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "herdr-webmaster"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "blake3",
- "clap",
- "crossterm",
- "futures-util",
- "proptest",
- "ratatui",
- "serde",
- "serde_json",
- "signal-hook",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
- "toml",
-]
-
-[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1158,6 +1138,26 @@ dependencies = [
  "rusty-fork",
  "tempfile",
  "unarray",
+]
+
+[[package]]
+name = "questmancer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "blake3",
+ "clap",
+ "crossterm",
+ "futures-util",
+ "proptest",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "signal-hook",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "toml",
 ]
 
 [[package]]

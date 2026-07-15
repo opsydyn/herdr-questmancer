@@ -1,7 +1,7 @@
 use std::{task::Poll, time::Duration};
 
 use futures_util::{StreamExt, stream::FuturesUnordered};
-use herdr_webmaster::{
+use questmancer::{
     app::{Model, Motion, View},
     command::DeskCommand,
     config::PersistencePaths,
@@ -23,8 +23,8 @@ use herdr_webmaster::{
     update::Command,
 };
 
-fn fixed_persisted_state(view: View) -> herdr_webmaster::persistence::PersistedStateV1 {
-    herdr_webmaster::persistence::PersistedStateV1::capture(&herdr_webmaster::app::Model::new(view))
+fn fixed_persisted_state(view: View) -> questmancer::persistence::PersistedStateV1 {
+    questmancer::persistence::PersistedStateV1::capture(&questmancer::app::Model::new(view))
 }
 
 fn snapshot() -> SessionSnapshot {
@@ -85,7 +85,7 @@ async fn runtime_dispatch_durably_appends_before_staging_the_following_state() {
         Some(guestbook_path.clone()),
     ));
     let entry = guestbook_entry("runtime-order");
-    let model = Model::new(View::Cafe);
+    let model = Model::new(View::Delve);
 
     let errors = dispatch_persistence_effects(
         &mut client,
@@ -107,7 +107,7 @@ async fn runtime_dispatch_durably_appends_before_staging_the_following_state() {
     worker.await.unwrap();
     assert_eq!(
         load_state(&state_path).await.unwrap(),
-        Some(fixed_persisted_state(View::Cafe))
+        Some(fixed_persisted_state(View::Delve))
     );
 }
 
@@ -121,7 +121,7 @@ async fn bounded_runtime_shutdown_flushes_latest_state_after_prior_append() {
         Some(guestbook_path.clone()),
     ));
     let entry = guestbook_entry("before-runtime-shutdown");
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
 
     assert!(
         dispatch_persistence_effects(
@@ -135,7 +135,7 @@ async fn bounded_runtime_shutdown_flushes_latest_state_after_prior_append() {
         .await
         .is_empty()
     );
-    model.switch_to(View::Cafe);
+    model.switch_to(View::Delve);
     assert!(
         dispatch_persistence_effects(&mut client, &model, [Command::PersistState])
             .await
@@ -146,7 +146,7 @@ async fn bounded_runtime_shutdown_flushes_latest_state_after_prior_append() {
 
     assert_eq!(
         load_state(&state_path).await.unwrap(),
-        Some(fixed_persisted_state(View::Cafe))
+        Some(fixed_persisted_state(View::Delve))
     );
     let replay = load_guestbook(&guestbook_path, 10).await;
     assert_eq!(
@@ -165,7 +165,7 @@ async fn bounded_runtime_shutdown_returns_filesystem_failure_after_worker_exit()
         None,
     ));
     client
-        .stage_state(fixed_persisted_state(View::Cafe))
+        .stage_state(fixed_persisted_state(View::Delve))
         .unwrap();
 
     let error = shutdown_persistence(&client, worker).await.unwrap_err();
@@ -230,7 +230,7 @@ async fn offline_view_change_preserves_restored_selection_for_reconnect() {
     let directory = tempfile::tempdir().unwrap();
     let state_path = directory.path().join("state.json");
     let selected = PersonaKey::new("remembered-agent");
-    let mut restored = fixed_persisted_state(View::Desk);
+    let mut restored = fixed_persisted_state(View::Guild);
     restored.personas.insert(
         selected.clone(),
         AgentPersona {
@@ -251,7 +251,7 @@ async fn offline_view_change_preserves_restored_selection_for_reconnect() {
     let mut model = startup.model;
     let (mut client, _diagnostics, worker) = PersistenceWorker::start(startup.paths);
 
-    let reduction = reduce_action(&mut model, Action::Switch(View::Cafe));
+    let reduction = reduce_action(&mut model, Action::Switch(View::Delve));
     assert!(
         dispatch_persistence_effects(&mut client, &model, reduction.persistence)
             .await
@@ -260,7 +260,7 @@ async fn offline_view_change_preserves_restored_selection_for_reconnect() {
     shutdown_persistence(&client, worker).await.unwrap();
 
     let published = load_state(&state_path).await.unwrap().unwrap();
-    assert_eq!(published.last_view, View::Cafe);
+    assert_eq!(published.last_view, View::Delve);
     assert_eq!(published.selected_persona, Some(selected));
 }
 
@@ -278,9 +278,9 @@ async fn quit_lifecycle_stops_real_runtime_then_flushes_writer() {
         .connection_mut()
         .unwrap()
         .schedule([DeskCommand::RefreshSnapshot]);
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
 
-    let reduction = reduce_action(&mut model, Action::Switch(View::Cafe));
+    let reduction = reduce_action(&mut model, Action::Switch(View::Delve));
     let switched = dispatch_action_effects(lifecycle.persistence_mut(), &model, reduction).await;
     assert!(switched.persistence_errors.is_empty());
     let reduction = reduce_action(&mut model, Action::Quit);
@@ -292,7 +292,7 @@ async fn quit_lifecycle_stops_real_runtime_then_flushes_writer() {
     );
     assert_eq!(
         load_state(&state_path).await.unwrap(),
-        Some(fixed_persisted_state(View::Cafe))
+        Some(fixed_persisted_state(View::Delve))
     );
 }
 
@@ -306,10 +306,10 @@ async fn coalesces_state_to_the_latest_value_after_250_milliseconds() {
     );
     let (mut client, _diagnostics, worker) = PersistenceWorker::start(paths);
     tokio::task::yield_now().await;
-    let first = fixed_persisted_state(View::Desk);
+    let first = fixed_persisted_state(View::Guild);
     let mut middle = first.clone();
     middle.preferences.motion = Motion::Reduced;
-    let latest = fixed_persisted_state(View::Cafe);
+    let latest = fixed_persisted_state(View::Delve);
 
     assert!(client.stage_state(first).unwrap());
     assert!(client.stage_state(middle).unwrap());
@@ -338,14 +338,14 @@ async fn a_later_distinct_state_resets_the_debounce_deadline() {
 
     assert!(
         client
-            .stage_state(fixed_persisted_state(View::Desk))
+            .stage_state(fixed_persisted_state(View::Guild))
             .unwrap()
     );
     tokio::task::yield_now().await;
     tokio::time::advance(Duration::from_millis(249)).await;
     assert!(!state_path.exists());
 
-    let latest = fixed_persisted_state(View::Cafe);
+    let latest = fixed_persisted_state(View::Delve);
     assert!(client.stage_state(latest.clone()).unwrap());
     tokio::task::yield_now().await;
     tokio::time::advance(Duration::from_millis(249)).await;
@@ -366,7 +366,7 @@ async fn unchanged_state_is_not_staged_or_republished() {
     let paths = WorkerPaths::new(Some(state_path.clone()), None);
     let (mut client, _diagnostics, worker) = PersistenceWorker::start(paths);
     tokio::task::yield_now().await;
-    let state = fixed_persisted_state(View::Desk);
+    let state = fixed_persisted_state(View::Guild);
 
     assert!(client.stage_state(state.clone()).unwrap());
     tokio::task::yield_now().await;
@@ -395,7 +395,7 @@ async fn flush_publishes_dirty_state_without_waiting_for_the_debounce() {
     let state_path = directory.path().join("state.json");
     let (mut client, _diagnostics, worker) =
         PersistenceWorker::start(WorkerPaths::new(Some(state_path.clone()), None));
-    let state = fixed_persisted_state(View::Cafe);
+    let state = fixed_persisted_state(View::Delve);
 
     assert!(client.stage_state(state.clone()).unwrap());
     assert!(!state_path.exists());
@@ -413,7 +413,7 @@ async fn shutdown_publishes_dirty_state_and_exits() {
     let state_path = directory.path().join("state.json");
     let (mut client, _diagnostics, worker) =
         PersistenceWorker::start(WorkerPaths::new(Some(state_path.clone()), None));
-    let state = fixed_persisted_state(View::Desk);
+    let state = fixed_persisted_state(View::Guild);
 
     assert!(client.stage_state(state.clone()).unwrap());
 
@@ -430,7 +430,7 @@ async fn disabled_paths_are_successful_no_ops() {
 
     assert!(
         client
-            .stage_state(fixed_persisted_state(View::Cafe))
+            .stage_state(fixed_persisted_state(View::Delve))
             .unwrap()
     );
     client
@@ -501,7 +501,7 @@ async fn an_expired_state_deadline_precedes_sustained_queued_appends() {
         Some(guestbook_path),
     ));
     tokio::task::yield_now().await;
-    let state = fixed_persisted_state(View::Cafe);
+    let state = fixed_persisted_state(View::Delve);
     assert!(client.stage_state(state.clone()).unwrap());
     tokio::task::yield_now().await;
 
@@ -532,7 +532,7 @@ async fn flush_acknowledges_after_an_earlier_append_and_dirty_state_are_durable(
         Some(state_path.clone()),
         Some(guestbook_path.clone()),
     ));
-    let state = fixed_persisted_state(View::Desk);
+    let state = fixed_persisted_state(View::Guild);
     let entry = guestbook_entry("before-flush");
     assert!(client.stage_state(state.clone()).unwrap());
 
@@ -564,7 +564,7 @@ async fn failed_state_write_is_non_fatal_and_only_a_distinct_state_retries() {
     let (mut client, mut diagnostics, worker) =
         PersistenceWorker::start(WorkerPaths::new(Some(state_path), None));
     tokio::task::yield_now().await;
-    let first = fixed_persisted_state(View::Desk);
+    let first = fixed_persisted_state(View::Guild);
 
     assert!(client.stage_state(first.clone()).unwrap());
     tokio::task::yield_now().await;
@@ -580,7 +580,7 @@ async fn failed_state_write_is_non_fatal_and_only_a_distinct_state_retries() {
 
     assert!(
         client
-            .stage_state(fixed_persisted_state(View::Cafe))
+            .stage_state(fixed_persisted_state(View::Delve))
             .unwrap()
     );
     let second_error = client.flush().await.unwrap_err();
@@ -609,7 +609,7 @@ async fn diagnostic_queue_remains_bounded_under_repeated_failures() {
     let capacity = diagnostics.max_capacity();
 
     for schema_version in 2..u32::try_from(capacity + 10).unwrap() {
-        let mut state = fixed_persisted_state(View::Desk);
+        let mut state = fixed_persisted_state(View::Guild);
         state.schema_version = schema_version;
         assert!(client.stage_state(state).unwrap());
         assert!(client.flush().await.is_err());
@@ -634,7 +634,7 @@ async fn saturated_diagnostic_queue_retains_the_latest_failure() {
     let capacity = diagnostics.max_capacity();
 
     for schema_version in 2..u32::try_from(capacity + 2).unwrap() {
-        let mut state = fixed_persisted_state(View::Desk);
+        let mut state = fixed_persisted_state(View::Guild);
         state.schema_version = schema_version;
         assert!(client.stage_state(state).unwrap());
         assert!(client.flush().await.is_err());

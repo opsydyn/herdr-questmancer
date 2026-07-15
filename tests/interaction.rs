@@ -1,6 +1,6 @@
 use std::ops::ControlFlow;
 
-use herdr_webmaster::{
+use questmancer::{
     app::{Modal, Model, Region, RuntimeSettings, View},
     command::DeskCommand,
     domain::{AgentKey, AgentPersona, DomainState, PaneId, PersonaKey, Timestamp, WorkspaceId},
@@ -19,7 +19,7 @@ fn live_model_with_two_agents() -> Model {
     second.key = AgentKey::new("agent-z");
     second.pane_id = PaneId::new("w1:p2");
     domain.agents.insert(second.key.clone(), second);
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.replace_domain(domain);
     model
 }
@@ -67,13 +67,13 @@ fn searchable_model() -> Model {
 
 fn cafe_twin(model: &Model) -> Model {
     let mut twin = model.clone();
-    twin.switch_to(View::Cafe);
+    twin.switch_to(View::Delve);
     twin
 }
 
 #[test]
 fn quit_is_an_explicit_typed_loop_outcome() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
 
     let reduction = reduce_action(&mut model, Action::Quit);
 
@@ -83,16 +83,16 @@ fn quit_is_an_explicit_typed_loop_outcome() {
 
 #[test]
 fn view_switch_is_reduced_without_effect_commands() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
 
-    let reduction = reduce_action(&mut model, Action::Switch(View::Cafe));
+    let reduction = reduce_action(&mut model, Action::Switch(View::Delve));
 
-    assert_eq!(model.view(), View::Cafe);
+    assert_eq!(model.view(), View::Delve);
     assert_eq!(reduction.control, ControlFlow::Continue(()));
     assert!(reduction.commands.is_empty());
     assert_eq!(reduction.persistence, vec![Command::PersistState]);
 
-    let unchanged = reduce_action(&mut model, Action::Switch(View::Cafe));
+    let unchanged = reduce_action(&mut model, Action::Switch(View::Delve));
     assert!(unchanged.persistence.is_empty());
 }
 
@@ -115,7 +115,7 @@ fn selection_changes_persist_but_noops_and_animation_redraws_do_not() {
 fn unchanged_idle_room_emits_no_output_load_or_persistence_effects() {
     let mut model = live_model_with_two_agents();
     for agent in model.domain_mut().agents.values_mut() {
-        agent.presence = herdr_webmaster::domain::Presence::Idle;
+        agent.presence = questmancer::domain::Presence::Idle;
     }
 
     let redraw = reduce_action(&mut model, Action::Redraw);
@@ -126,7 +126,7 @@ fn unchanged_idle_room_emits_no_output_load_or_persistence_effects() {
 
 #[test]
 fn region_cycle_is_deterministic_and_wraps() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
 
     for expected in [
         Region::Inbox,
@@ -207,7 +207,7 @@ fn visit_focuses_selected_pane_and_empty_selection_is_contextual() {
         vec![DeskCommand::FocusPane(PaneId::new("w1:p1"))]
     );
 
-    let mut empty = Model::new(View::Desk);
+    let mut empty = Model::new(View::Guild);
     let no_visit = reduce_action(&mut empty, Action::Visit);
     assert!(no_visit.commands.is_empty());
     assert_eq!(empty.status_message(), Some("no agent selected to visit"));
@@ -272,7 +272,7 @@ fn refresh_loads_only_the_selected_output() {
         }]
     );
 
-    let mut empty = Model::new(View::Desk);
+    let mut empty = Model::new(View::Guild);
     let no_refresh = reduce_action(&mut empty, Action::Refresh);
     assert!(no_refresh.commands.is_empty());
     assert_eq!(empty.status_message(), Some("no agent selected to refresh"));
@@ -325,7 +325,7 @@ fn reviewr_opens_only_when_available_for_a_selection() {
     assert!(no_open.commands.is_empty());
     assert_eq!(unavailable.status_message(), Some("reviewr is unavailable"));
 
-    let mut empty = Model::new(View::Desk);
+    let mut empty = Model::new(View::Guild);
     empty.set_reviewr_available(true);
     let no_selection = reduce_action(&mut empty, Action::Reviewr);
     assert!(no_selection.commands.is_empty());
@@ -389,7 +389,7 @@ fn empty_reply_stays_open_while_clear_and_cancel_are_local() {
     assert!(cancelled.commands.is_empty());
     assert_eq!(model.modal(), &Modal::None);
 
-    let mut empty_selection = Model::new(View::Desk);
+    let mut empty_selection = Model::new(View::Guild);
     let no_reply = reduce_action(&mut empty_selection, Action::Reply);
     assert!(no_reply.commands.is_empty());
     assert_eq!(
@@ -409,7 +409,7 @@ fn mark_seen_uses_the_domain_reducer_for_the_selected_agent() {
     assert_eq!(marked.persistence, vec![Command::PersistState]);
     assert!(!model.selected_agent().unwrap().attention.is_unseen());
 
-    let mut empty = Model::new(View::Desk);
+    let mut empty = Model::new(View::Guild);
     let no_mark = reduce_action(&mut empty, Action::MarkSeen);
     assert!(no_mark.commands.is_empty());
     assert!(no_mark.persistence.is_empty());

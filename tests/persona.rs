@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use herdr_webmaster::{
+use questmancer::{
     domain::{AgentPersona, PersonaKey},
     herdr::protocol::{AgentInfo, SessionSnapshotResult, SuccessResponse},
 };
@@ -57,8 +57,8 @@ fn workspace_and_pane_are_the_last_identity_fallback() {
 #[test]
 fn persona_generation_is_stable_and_keeps_handle_separate_from_appearance() {
     let agent = fixture_agent();
-    let first = AgentPersona::for_agent(&agent, Some("/tmp/herdr-webmaster"));
-    let second = AgentPersona::for_agent(&agent, Some("/tmp/herdr-webmaster"));
+    let first = AgentPersona::for_agent(&agent, Some("/tmp/herdr-questmancer"));
+    let second = AgentPersona::for_agent(&agent, Some("/tmp/herdr-questmancer"));
 
     assert_eq!(first, second);
     assert!(first.handle.contains("codex"));

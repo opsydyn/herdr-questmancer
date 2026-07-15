@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use herdr_webmaster::{
+use questmancer::{
     domain::{
         AgentKey, Attention, AttentionReason, DomainState, Guestbook, PaneId, Presence, Site,
         TabId, Timestamp, WorkspaceId,

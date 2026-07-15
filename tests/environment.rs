@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use herdr_webmaster::herdr::environment::{EnvironmentError, HerdrEnvironment};
+use questmancer::herdr::environment::{EnvironmentError, HerdrEnvironment};
 
 #[test]
 fn requires_socket_path() {

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use herdr_webmaster::herdr::client::HerdrClient;
+use questmancer::herdr::client::HerdrClient;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 use tokio::{
@@ -155,4 +155,8 @@ async fn invokes_a_plugin_action_with_focused_pane_context() {
     assert_eq!(request["params"]["plugin_id"], "persiyanov.reviewr");
     assert_eq!(request["params"]["action_id"], "open");
     assert_eq!(request["params"]["context"]["focused_pane_id"], "w1:p1");
+    assert_eq!(
+        request["params"]["context"]["invocation_source"],
+        "opsydyn.questmancer"
+    );
 }

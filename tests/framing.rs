@@ -1,4 +1,4 @@
-use herdr_webmaster::herdr::framing::{
+use questmancer::herdr::framing::{
     FramingError, read_json_line, read_optional_json_line, write_json_line,
 };
 use serde_json::{Value, json};

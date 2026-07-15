@@ -1,4 +1,4 @@
-use herdr_webmaster::domain::{
+use questmancer::domain::{
     AgentKey, Guestbook, GuestbookEntry, GuestbookEvent, PaneId, Timestamp, WorkspaceId,
 };
 

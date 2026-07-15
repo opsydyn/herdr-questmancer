@@ -3,16 +3,16 @@ mod support;
 
 use std::fs;
 
-use herdr_webmaster::{
+use proptest::prelude::*;
+use questmancer::{
     app::{Model, View},
     domain::PersonaKey,
     persistence::{AttentionEpisodeKey, PersistedStateV1, load_state, parse_state, publish_state},
 };
-use proptest::prelude::*;
 use tempfile::tempdir;
 
 fn valid_state() -> PersistedStateV1 {
-    let mut model = Model::new(View::Cafe);
+    let mut model = Model::new(View::Delve);
     model.replace_domain(support::fixture_domain());
     model.mark_selected_attention_seen();
     PersistedStateV1::capture(&model)
@@ -163,7 +163,7 @@ async fn publication_atomically_replaces_an_existing_valid_document() {
     let path = directory.path().join("state.json");
     let old = valid_state();
     let mut new = old.clone();
-    new.last_view = View::Desk;
+    new.last_view = View::Guild;
     fs::write(&path, serde_json::to_vec(&old).unwrap()).unwrap();
 
     publish_state(&path, &new).await.unwrap();
@@ -203,7 +203,7 @@ async fn temporary_file_creation_failure_retains_the_prior_destination() {
     let temporary_path = directory.path().join("state.json.tmp");
     let old = valid_state();
     let mut new = old.clone();
-    new.last_view = View::Desk;
+    new.last_view = View::Guild;
     let old_bytes = serde_json::to_vec_pretty(&old).unwrap();
     fs::write(&path, &old_bytes).unwrap();
     fs::create_dir(&temporary_path).unwrap();
@@ -227,7 +227,7 @@ async fn read_only_parent_rename_failure_retains_the_prior_destination() {
     let temporary_path = directory.path().join("state.json.tmp");
     let old = valid_state();
     let mut new = old.clone();
-    new.last_view = View::Desk;
+    new.last_view = View::Guild;
     let old_bytes = serde_json::to_vec_pretty(&old).unwrap();
     fs::write(&path, &old_bytes).unwrap();
     fs::write(&temporary_path, b"stale temporary bytes").unwrap();

@@ -1,16 +1,16 @@
 use std::path::Path;
 
-use herdr_webmaster::{
+use proptest::prelude::*;
+use questmancer::{
     app::{CharacterSet, ColorMode, Motion, View},
     config::{PersistencePaths, WebmasterConfig},
 };
-use proptest::prelude::*;
 
 #[test]
 fn parses_a_complete_configuration() {
     let config = WebmasterConfig::parse(
         br#"
-            default_view = "cafe"
+            default_view = "delve"
             motion = "reduced"
             character_set = "ascii"
             color_mode = "ansi16"
@@ -23,7 +23,7 @@ fn parses_a_complete_configuration() {
     )
     .unwrap();
 
-    assert_eq!(config.default_view, View::Cafe);
+    assert_eq!(config.default_view, View::Delve);
     assert_eq!(config.preferences.motion, Motion::Reduced);
     assert_eq!(config.preferences.character_set, CharacterSet::Ascii);
     assert_eq!(config.preferences.color_mode, ColorMode::Ansi16);
@@ -37,7 +37,7 @@ fn parses_a_complete_configuration() {
 fn empty_configuration_uses_complete_defaults() {
     let config = WebmasterConfig::parse(b"").unwrap();
 
-    assert_eq!(config.default_view, View::Desk);
+    assert_eq!(config.default_view, View::Guild);
     assert_eq!(config.preferences.motion, Motion::Full);
     assert_eq!(config.preferences.character_set, CharacterSet::Unicode);
     assert_eq!(config.preferences.color_mode, ColorMode::Xterm256);
@@ -49,7 +49,7 @@ fn empty_configuration_uses_complete_defaults() {
 
 #[test]
 fn accepts_every_view_value() {
-    for (value, expected) in [("desk", View::Desk), ("cafe", View::Cafe)] {
+    for (value, expected) in [("guild", View::Guild), ("delve", View::Delve)] {
         let config = WebmasterConfig::parse(format!("default_view = '{value}'").as_bytes())
             .expect("accepted view");
         assert_eq!(config.default_view, expected);
@@ -133,7 +133,7 @@ fn rejects_guestbook_entries_outside_bounds() {
 fn empty_reviewr_action_rejects_the_whole_file() {
     let error = WebmasterConfig::parse(
         br#"
-            default_view = "cafe"
+            default_view = "delve"
             reviewr_action = "   "
         "#,
     )

@@ -1,4 +1,4 @@
-use herdr_webmaster::{
+use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Model, Motion, View},
     domain::{Agent, Attention, AttentionReason, DomainState, Presence, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
@@ -40,7 +40,7 @@ fn frame_at(agent: &Agent, milliseconds: i64, motion: Motion) -> u8 {
 fn model_with(agent: Agent, now: i64, motion: Motion) -> Model {
     let mut domain = DomainState::default();
     domain.agents.insert(agent.key.clone(), agent);
-    let mut model = Model::new(View::Cafe);
+    let mut model = Model::new(View::Delve);
     model.replace_domain(domain);
     model.set_now(Timestamp::from_millis(now));
     model.set_preferences(DisplayPreferences {
@@ -373,7 +373,7 @@ fn no_motion_never_requests_a_future_frame_even_during_completion_transition() {
     let model = model_with(done, 500, Motion::None);
     assert_eq!(cadence_for(&model), RenderCadence::EventDriven);
     assert_eq!(
-        herdr_webmaster::ui::theatre::next_visible_frame_in(&model),
+        questmancer::ui::theatre::next_visible_frame_in(&model),
         None
     );
 }
@@ -383,10 +383,10 @@ fn cadence_is_event_driven_when_the_cafe_theatre_is_not_visible_or_empty() {
     let mut working = agent();
     working.presence = Presence::Working;
     let mut desk = model_with(working, 500, Motion::Full);
-    desk.switch_to(View::Desk);
+    desk.switch_to(View::Guild);
     assert_eq!(cadence_for(&desk), RenderCadence::EventDriven);
 
-    let empty_cafe = Model::new(View::Cafe);
+    let empty_cafe = Model::new(View::Delve);
     assert_eq!(cadence_for(&empty_cafe), RenderCadence::EventDriven);
 }
 
@@ -402,7 +402,7 @@ fn mixed_cafe_uses_the_fastest_visible_agent_cadence() {
     let mut domain = DomainState::default();
     domain.agents.insert(working.key.clone(), working);
     domain.agents.insert(done.key.clone(), done);
-    let mut model = Model::new(View::Cafe);
+    let mut model = Model::new(View::Delve);
     model.replace_domain(domain);
     model.set_now(Timestamp::from_millis(500));
 
@@ -411,7 +411,7 @@ fn mixed_cafe_uses_the_fastest_visible_agent_cadence() {
 
 #[test]
 fn display_preferences_are_model_state_with_accessible_defaults() {
-    let mut model = Model::new(View::Cafe);
+    let mut model = Model::new(View::Delve);
     assert_eq!(model.preferences(), &DisplayPreferences::default());
 
     let configured = DisplayPreferences {
@@ -429,7 +429,7 @@ fn next_visible_frame_delay_is_phase_aware_and_exact() {
     working.presence = Presence::Working;
     working.presence_since = Timestamp::from_millis(0);
     assert_eq!(
-        herdr_webmaster::ui::theatre::next_visible_frame_in(&model_with(
+        questmancer::ui::theatre::next_visible_frame_in(&model_with(
             working.clone(),
             166,
             Motion::Full
@@ -437,11 +437,7 @@ fn next_visible_frame_delay_is_phase_aware_and_exact() {
         Some(Duration::from_millis(1))
     );
     assert_eq!(
-        herdr_webmaster::ui::theatre::next_visible_frame_in(&model_with(
-            working,
-            167,
-            Motion::Full
-        )),
+        questmancer::ui::theatre::next_visible_frame_in(&model_with(working, 167, Motion::Full)),
         Some(Duration::from_millis(167))
     );
 
@@ -449,7 +445,7 @@ fn next_visible_frame_delay_is_phase_aware_and_exact() {
     done.presence = Presence::Done;
     done.attention = Attention::unseen(AttentionReason::WorkCompleted, Timestamp::from_millis(0));
     assert_eq!(
-        herdr_webmaster::ui::theatre::next_visible_frame_in(&model_with(done, 999, Motion::Full)),
+        questmancer::ui::theatre::next_visible_frame_in(&model_with(done, 999, Motion::Full)),
         Some(Duration::from_millis(1))
     );
 }

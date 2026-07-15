@@ -1,4 +1,4 @@
-use herdr_webmaster::{
+use questmancer::{
     app::{ConnectionState, Model, OutputPreview, RuntimeSettings, View},
     domain::{Attention, AttentionReason, DomainState, PaneId, Presence, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
@@ -11,7 +11,7 @@ use ratatui::{Terminal, backend::TestBackend};
 fn live_model() -> Model {
     let response: SuccessResponse<SessionSnapshotResult> =
         serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.replace_domain(DomainState::from_snapshot(
         &response.result.snapshot,
         Timestamp::from_millis(1_000),
@@ -68,7 +68,7 @@ fn wide_desk_renders_sites_mail_and_live_agent_details() {
 
 #[test]
 fn empty_desk_explains_how_to_put_a_site_under_construction() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.set_now(Timestamp::from_millis(121_000));
 
     let screen = render(&model, 80, 24);
@@ -206,7 +206,7 @@ fn zero_and_tiny_desk_areas_are_panic_free() {
 
 #[test]
 fn footer_advertises_only_actions_valid_for_the_current_context() {
-    let empty = render(&Model::new(View::Desk), 160, 24);
+    let empty = render(&Model::new(View::Guild), 160, 24);
     assert!(!empty.contains("[enter] visit"));
     assert!(!empty.contains("[r] reply"));
     assert!(!empty.contains("[o] output"));

@@ -1,4 +1,4 @@
-use herdr_webmaster::{
+use questmancer::{
     domain::{Attention, AttentionReason, DomainState, PaneId, Presence, Timestamp, WorkspaceId},
     herdr::protocol::{AgentStatus, SessionSnapshot, SessionSnapshotResult, SuccessResponse},
     update::{AppEvent, Command, update},

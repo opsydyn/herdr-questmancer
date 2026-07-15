@@ -28,31 +28,40 @@ SH
 
 test_run_prefers_installed_binary() {
   local plugin_root="$TMP/run-installed"
-  make_binary "$plugin_root/bin/herdr-webmaster"
+  make_binary "$plugin_root/bin/questmancer"
 
   local output
-  output=$(HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui --view cafe)
-  [[ $output == "ui --view cafe" ]] || fail "installed runner received: $output"
+  output=$(HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui --view delve)
+  [[ $output == "ui --view delve" ]] || fail "installed runner received: $output"
+}
+
+test_run_falls_back_to_release_binary() {
+  local plugin_root="$TMP/run-release"
+  make_binary "$plugin_root/target/release/questmancer"
+
+  local output
+  output=$(HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui --view guild)
+  [[ $output == "ui --view guild" ]] || fail "release runner received: $output"
 }
 
 test_run_falls_back_to_debug_binary() {
   local plugin_root="$TMP/run-debug"
-  make_binary "$plugin_root/target/debug/herdr-webmaster"
+  make_binary "$plugin_root/target/debug/questmancer"
 
   local output
-  output=$(HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui --view desk)
-  [[ $output == "ui --view desk" ]] || fail "debug runner received: $output"
+  output=$(HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui --view guild)
+  [[ $output == "ui --view guild" ]] || fail "debug runner received: $output"
 }
 
 test_run_maps_only_exact_initial_views() {
   local plugin_root="$TMP/run-env"
-  make_binary "$plugin_root/bin/herdr-webmaster"
+  make_binary "$plugin_root/bin/questmancer"
 
   local output
-  output=$(WEBMASTER_INITIAL_VIEW=cafe HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui)
-  [[ $output == "ui --view cafe" ]] || fail "cafe runner received: $output"
+  output=$(QUESTMANCER_INITIAL_VIEW=delve HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui)
+  [[ $output == "ui --view delve" ]] || fail "delve runner received: $output"
 
-  output=$(WEBMASTER_INITIAL_VIEW=default HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui)
+  output=$(QUESTMANCER_INITIAL_VIEW=default HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui)
   [[ $output == "ui" ]] || fail "default runner received: $output"
 }
 
@@ -110,7 +119,7 @@ SH
 
 run_control() {
   HERDR_BIN_PATH="$TMP/herdr" \
-  HERDR_PLUGIN_ID="opsydyn.webmaster" \
+  HERDR_PLUGIN_ID="opsydyn.questmancer" \
   HERDR_PLUGIN_STATE_DIR="$TMP/state" \
   HERDR_PLUGIN_ROOT="$ROOT" \
   FAKE_REGISTER_VIEW="${FAKE_REGISTER_VIEW:-}" \
@@ -121,13 +130,13 @@ run_control() {
     "$ROOT/herdr/control.sh" "$@"
 }
 
-test_open_creates_one_cafe_pane() {
+test_open_creates_one_delve_pane() {
   rm -rf "$TMP/state"
   : >"$TMP/herdr.log"
 
-  run_control cafe
+  run_control delve
 
-  assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.webmaster --entrypoint webmaster --placement tab --env WEBMASTER_INITIAL_VIEW=cafe --focus"
+  assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.questmancer --entrypoint guild-hall --placement tab --env QUESTMANCER_INITIAL_VIEW=delve --focus"
   assert_contains "$TMP/state/runtime.json" '"pane_id":"new-pane"'
 }
 
@@ -138,8 +147,8 @@ test_open_and_closed_toggle_omit_initial_view() {
 
     run_control "$action"
 
-    assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.webmaster --entrypoint webmaster --placement tab --focus"
-    if grep -F -- "--env WEBMASTER_INITIAL_VIEW" "$TMP/herdr.log" >/dev/null; then
+    assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.questmancer --entrypoint guild-hall --placement tab --focus"
+    if grep -F -- "--env QUESTMANCER_INITIAL_VIEW" "$TMP/herdr.log" >/dev/null; then
       fail "$action passed an explicit initial view"
     fi
   done
@@ -149,18 +158,18 @@ test_control_does_not_overwrite_runtime_registration() {
   rm -rf "$TMP/state"
   : >"$TMP/herdr.log"
 
-  FAKE_REGISTER_VIEW=cafe run_control open
+  FAKE_REGISTER_VIEW=delve run_control open
 
-  assert_contains "$TMP/state/runtime.json" '"initial_view":"cafe"'
+  assert_contains "$TMP/state/runtime.json" '"initial_view":"delve"'
 }
 
 test_control_fallback_publication_is_atomic_no_clobber() {
   rm -rf "$TMP/state"
   : >"$TMP/herdr.log"
 
-  FAKE_REGISTER_DURING_DATE=cafe run_control open
+  FAKE_REGISTER_DURING_DATE=delve run_control open
 
-  assert_contains "$TMP/state/runtime.json" '"initial_view":"cafe"'
+  assert_contains "$TMP/state/runtime.json" '"initial_view":"delve"'
 }
 
 test_control_reports_fallback_publication_failure() {
@@ -193,7 +202,7 @@ test_view_actions_switch_a_live_existing_pane() {
   printf '{"pane_id":"live-pane"}\n' >"$TMP/state/runtime.json"
   : >"$TMP/herdr.log"
 
-  run_control cafe
+  run_control delve
 
   assert_contains "$TMP/herdr.log" "pane send-keys live-pane 2"
   assert_contains "$TMP/herdr.log" "plugin pane focus live-pane"
@@ -227,10 +236,10 @@ test_stale_state_is_replaced() {
   printf '{"pane_id":"stale-pane"}\n' >"$TMP/state/runtime.json"
   : >"$TMP/herdr.log"
 
-  run_control desk
+  run_control guild
 
   assert_contains "$TMP/herdr.log" "pane get stale-pane"
-  assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.webmaster --entrypoint webmaster --placement tab --env WEBMASTER_INITIAL_VIEW=desk --focus"
+  assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.questmancer --entrypoint guild-hall --placement tab --env QUESTMANCER_INITIAL_VIEW=guild --focus"
   assert_contains "$TMP/state/runtime.json" '"pane_id":"new-pane"'
 }
 
@@ -238,11 +247,11 @@ test_busy_control_lock_refuses_a_second_action() {
   mkdir -p "$TMP/state/control.lock"
   : >"$TMP/herdr.log"
 
-  if WEBMASTER_LOCK_ATTEMPTS=1 run_control open 2>"$TMP/busy.err"; then
+  if QUESTMANCER_LOCK_ATTEMPTS=1 run_control open 2>"$TMP/busy.err"; then
     fail "a second control action acquired an existing lock"
   fi
 
-  assert_contains "$TMP/busy.err" "webmaster control is busy"
+  assert_contains "$TMP/busy.err" "questmancer control is busy"
   [[ ! -s "$TMP/herdr.log" ]] || fail "busy control action called Herdr"
   rmdir "$TMP/state/control.lock"
 }
@@ -252,9 +261,10 @@ mkdir -p "$TMP/bin"
 make_date "$TMP/bin/date"
 make_ln "$TMP/bin/ln"
 test_run_prefers_installed_binary
+test_run_falls_back_to_release_binary
 test_run_falls_back_to_debug_binary
 test_run_maps_only_exact_initial_views
-test_open_creates_one_cafe_pane
+test_open_creates_one_delve_pane
 test_open_and_closed_toggle_omit_initial_view
 test_control_does_not_overwrite_runtime_registration
 test_control_fallback_publication_is_atomic_no_clobber
@@ -266,4 +276,4 @@ test_failed_close_preserves_singleton_state
 test_stale_state_is_replaced
 test_busy_control_lock_refuses_a_second_action
 
-echo "scripts: 14 passed"
+echo "scripts: 15 passed"

@@ -1,46 +1,45 @@
-id = "opsydyn.webmaster"
-name = "webmaster"
+id = "opsydyn.questmancer"
+name = "questmancer"
 version = "0.1.0"
-min_herdr_version = "0.7.3"
+min_herdr_version = "0.7.4"
 platforms = ["macos", "linux"]
-description = "A 90s internet control room for your herd of coding agents."
+description = "A cozy fantasy guild and dungeon control room for coding agents."
 
 [[build]]
 command = ["bash", "herdr/install.sh"]
 
 [[panes]]
-id = "webmaster"
-title = "webmaster"
+id = "guild-hall"
+title = "Questmancer"
 placement = "tab"
 command = ["bash", "herdr/run.sh", "ui"]
 
 [[actions]]
 id = "toggle"
-title = "webmaster: toggle"
+title = "Questmancer: toggle"
 contexts = ["pane", "workspace"]
 command = ["bash", "herdr/control.sh", "toggle"]
 
 [[actions]]
 id = "open"
-title = "webmaster: open"
+title = "Questmancer: open"
 contexts = ["pane", "workspace"]
 command = ["bash", "herdr/control.sh", "open"]
 
 [[actions]]
 id = "close"
-title = "webmaster: close"
+title = "Questmancer: close"
 contexts = ["pane", "workspace"]
 command = ["bash", "herdr/control.sh", "close"]
 
 [[actions]]
-id = "desk"
-title = "webmaster: open desk"
+id = "guild"
+title = "Questmancer: enter the Guild Hall"
 contexts = ["pane", "workspace"]
-command = ["bash", "herdr/control.sh", "desk"]
+command = ["bash", "herdr/control.sh", "guild"]
 
 [[actions]]
-id = "cafe"
-title = "webmaster: open cybercafe"
+id = "delve"
+title = "Questmancer: enter the Delve"
 contexts = ["pane", "workspace"]
-command = ["bash", "herdr/control.sh", "cafe"]
-
+command = ["bash", "herdr/control.sh", "delve"]

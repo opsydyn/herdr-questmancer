@@ -1,4 +1,4 @@
-use herdr_webmaster::{
+use questmancer::{
     app::{Model, View},
     ui,
 };
@@ -26,7 +26,7 @@ fn render(view: View, width: u16, height: u16) -> String {
 
 #[test]
 fn empty_desk_explains_what_to_do() {
-    let screen = render(View::Desk, 80, 24);
+    let screen = render(View::Guild, 80, 24);
 
     assert!(screen.contains("WEBMASTER CONTROL CENTRE"));
     assert!(screen.contains("No agents online"));
@@ -35,7 +35,7 @@ fn empty_desk_explains_what_to_do() {
 
 #[test]
 fn empty_cafe_is_still_an_actionable_view() {
-    let screen = render(View::Cafe, 80, 24);
+    let screen = render(View::Delve, 80, 24);
 
     assert!(screen.contains("THE HERDR CYBERCAFE"));
     assert!(screen.contains("All workstations are free"));
@@ -45,7 +45,7 @@ fn empty_cafe_is_still_an_actionable_view() {
 
 #[test]
 fn tiny_terminal_does_not_panic() {
-    let screen = render(View::Cafe, 1, 1);
+    let screen = render(View::Delve, 1, 1);
 
     assert_eq!(screen.lines().count(), 1);
 }

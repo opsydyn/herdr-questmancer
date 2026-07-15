@@ -1,5 +1,5 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-use herdr_webmaster::{
+use questmancer::{
     app::{Modal, View},
     ui::input::{Action, action_for, action_for_event, action_for_event_in},
 };
@@ -12,14 +12,14 @@ fn key(code: KeyCode) -> KeyEvent {
 fn number_and_function_keys_switch_views() {
     assert_eq!(
         action_for(key(KeyCode::Char('1'))),
-        Action::Switch(View::Desk)
+        Action::Switch(View::Guild)
     );
-    assert_eq!(action_for(key(KeyCode::F(1))), Action::Switch(View::Desk));
+    assert_eq!(action_for(key(KeyCode::F(1))), Action::Switch(View::Guild));
     assert_eq!(
         action_for(key(KeyCode::Char('2'))),
-        Action::Switch(View::Cafe)
+        Action::Switch(View::Delve)
     );
-    assert_eq!(action_for(key(KeyCode::F(2))), Action::Switch(View::Cafe));
+    assert_eq!(action_for(key(KeyCode::F(2))), Action::Switch(View::Delve));
 }
 
 #[test]

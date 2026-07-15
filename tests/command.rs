@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use herdr_webmaster::{
+use questmancer::{
     command::{CommandExecutor, CommandResult, DeskCommand},
     domain::PaneId,
     herdr::client::HerdrClient,

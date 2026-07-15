@@ -1,13 +1,13 @@
 [package]
-name = "herdr-webmaster"
+name = "questmancer"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.90"
-description = "A 90s internet control room for your herd of coding agents."
+description = "A cozy fantasy guild and dungeon control room for coding agents."
 license = "MIT"
-repository = "https://github.com/opsydyn/herdr-webmaster"
+repository = "https://github.com/opsydyn/herdr-questmancer"
 readme = "README.md"
-keywords = ["herdr", "ratatui", "agents", "tui"]
+keywords = ["herdr", "ratatui", "agents", "tui", "fantasy"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]

@@ -1,5 +1,5 @@
 use futures_util::FutureExt;
-use herdr_webmaster::{
+use questmancer::{
     app::{ConnectionState, DisplayPreferences, Model, Motion, RuntimeSettings, View},
     command::{CommandResult, DeskCommand},
     domain::{
@@ -48,7 +48,7 @@ fn animated_model(agents: impl IntoIterator<Item = Agent>, now: i64, motion: Mot
     for agent in agents {
         domain.agents.insert(agent.key.clone(), agent);
     }
-    let mut model = Model::new(View::Cafe);
+    let mut model = Model::new(View::Delve);
     model.replace_domain(domain);
     model.set_now(Timestamp::from_millis(now));
     model.set_preferences(DisplayPreferences {
@@ -70,13 +70,13 @@ fn model_with_two_distinct_personas() -> Model {
         handle: "second_persona".to_owned(),
     };
     domain.agents.insert(second.key.clone(), second);
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.replace_domain(domain);
     model
 }
 
 fn connected_model_with_presence(presence: Presence) -> Model {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.replace_domain(DomainState::from_snapshot(
         &snapshot(),
         Timestamp::from_millis(1_000),
@@ -163,7 +163,7 @@ fn snapshot_result_preserves_persistence_effect_after_durable_overlay() {
 
 #[test]
 fn snapshot_result_excludes_the_managed_webmaster_pane() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     let managed = PaneId::new("w2:p3");
     model.set_managed_pane_id(Some(managed.clone()));
     let mut snapshot = snapshot();
@@ -183,7 +183,7 @@ fn snapshot_result_excludes_the_managed_webmaster_pane() {
 
 #[test]
 fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.set_settings(RuntimeSettings {
         output_preview_lines: 123,
         reviewr_action: "acme.diff.inspect".to_owned(),
@@ -210,7 +210,7 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
 
 #[test]
 fn connection_snapshot_excludes_the_managed_webmaster_pane() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     let managed = PaneId::new("w2:p3");
     model.set_managed_pane_id(Some(managed.clone()));
     let mut snapshot = snapshot();
@@ -230,7 +230,7 @@ fn connection_snapshot_excludes_the_managed_webmaster_pane() {
 
 #[test]
 fn selected_status_change_refreshes_only_that_output() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     apply_connection_update(
         &mut model,
         ConnectionUpdate::Connected(snapshot()),
@@ -278,7 +278,7 @@ fn runtime_domain_update_keeps_the_newly_selected_distinct_persona_selected() {
 
 #[test]
 fn output_and_discovery_results_update_app_state() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
 
     apply_command_result(
         &mut model,
@@ -302,7 +302,7 @@ fn output_and_discovery_results_update_app_state() {
 
 #[test]
 fn command_failure_is_visible_without_replacing_domain_state() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     let before = model.domain().clone();
 
     apply_command_result(
@@ -323,7 +323,7 @@ fn command_failure_is_visible_without_replacing_domain_state() {
 
 #[test]
 fn startup_without_plugin_environment_is_usefully_offline() {
-    let mut restored = Model::new(View::Cafe);
+    let mut restored = Model::new(View::Delve);
     restored.set_preferences(DisplayPreferences {
         motion: Motion::None,
         ..DisplayPreferences::default()
@@ -332,7 +332,7 @@ fn startup_without_plugin_environment_is_usefully_offline() {
     let model = bootstrap_model(restored, None);
 
     assert_eq!(model.connection(), &ConnectionState::Offline);
-    assert_eq!(model.view(), View::Cafe);
+    assert_eq!(model.view(), View::Delve);
     assert_eq!(model.preferences().motion, Motion::None);
     assert_eq!(
         model.status_message(),
@@ -343,18 +343,18 @@ fn startup_without_plugin_environment_is_usefully_offline() {
 #[test]
 fn startup_with_plugin_environment_begins_connecting() {
     let environment = HerdrEnvironment::new("/tmp/herdr.sock", "/usr/bin/herdr");
-    let restored = Model::new(View::Cafe);
+    let restored = Model::new(View::Delve);
 
     let model = bootstrap_model(restored, Some(&environment));
 
     assert_eq!(model.connection(), &ConnectionState::Connecting);
-    assert_eq!(model.view(), View::Cafe);
+    assert_eq!(model.view(), View::Delve);
     assert_eq!(model.status_message(), Some("connecting to Herdr"));
 }
 
 #[test]
 fn disconnect_preserves_the_last_connected_snapshot() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     apply_connection_update(
         &mut model,
         ConnectionUpdate::Connected(snapshot()),
@@ -419,7 +419,7 @@ async fn runtime_connection_exposes_owned_work_as_typed_events() {
 fn terminal_runtime_is_async() {
     fn assert_future(_: impl Future<Output = anyhow::Result<()>>) {}
 
-    assert_future(herdr_webmaster::terminal::run(None));
+    assert_future(questmancer::terminal::run(None));
 }
 
 #[tokio::test(start_paused = true)]

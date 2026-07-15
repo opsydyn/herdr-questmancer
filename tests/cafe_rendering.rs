@@ -1,4 +1,4 @@
-use herdr_webmaster::{
+use questmancer::{
     app::{CharacterSet, ColorMode, ConnectionState, DisplayPreferences, Model, Motion, View},
     domain::{
         AgentKey, Attention, AttentionReason, DomainState, PaneId, Presence, Site, Timestamp,
@@ -49,7 +49,7 @@ fn three_agent_model() -> Model {
     domain.agents.insert(gamma.key.clone(), gamma);
     domain.selected_agent = Some(AgentKey::new("agent-b"));
 
-    let mut model = Model::new(View::Cafe);
+    let mut model = Model::new(View::Delve);
     model.replace_domain(domain);
     model.set_connection(ConnectionState::Connected);
     model.set_now(Timestamp::from_millis(2_500));
@@ -201,7 +201,7 @@ fn authored_variants_change_rendered_room_geometry() {
     let mut ids = Vec::new();
     for index in 0..128 {
         let id = WorkspaceId::new(format!("variant-{index}"));
-        let variant = herdr_webmaster::ui::cafe_scene::variant_for_workspace(&id);
+        let variant = questmancer::ui::cafe_scene::variant_for_workspace(&id);
         if !ids.iter().any(|(known, _)| *known == variant) {
             ids.push((variant, id));
         }
@@ -509,7 +509,7 @@ fn compact_dense_list_pages_to_keep_a_late_selection_visible() {
 
 #[test]
 fn empty_cafe_keeps_helpful_navigation_without_invalid_agent_actions() {
-    let screen = render(&Model::new(View::Cafe), 120, 30);
+    let screen = render(&Model::new(View::Delve), 120, 30);
 
     assert!(screen.contains("All workstations are free"));
     assert!(screen.contains("Start an agent"));

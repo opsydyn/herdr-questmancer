@@ -1,15 +1,15 @@
 #[allow(dead_code)]
 mod support;
 
-use herdr_webmaster::{
+use proptest::prelude::*;
+use questmancer::{
     app::{Model, View},
     domain::{AgentKey, Attention, PersonaKey, Timestamp},
     persistence::{AttentionEpisodeKey, DurableIntent, PersistedStateV1},
 };
-use proptest::prelude::*;
 
 fn captured_state() -> PersistedStateV1 {
-    let mut model = Model::new(View::Cafe);
+    let mut model = Model::new(View::Delve);
     model.replace_domain(support::fixture_domain());
     model.mark_selected_attention_seen();
     PersistedStateV1::capture(&model)
@@ -17,7 +17,7 @@ fn captured_state() -> PersistedStateV1 {
 
 #[test]
 fn capture_contains_only_durable_intent() {
-    let mut model = Model::new(View::Cafe);
+    let mut model = Model::new(View::Delve);
     model.replace_domain(support::fixture_domain());
     let agent = model.selected_agent().unwrap();
     let expected_persona = agent.persona.key.clone();
@@ -71,7 +71,7 @@ fn failed_seed_is_atomic_and_cannot_cross_persona_identities() {
     let mut valid = captured_state();
     let persona_key = valid.personas.keys().next().unwrap().clone();
     valid.personas.get_mut(&persona_key).unwrap().handle = "known_safe".to_owned();
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.durable_intent_mut().seed(&valid).unwrap();
     let before = model.durable_intent().clone();
     let mut invalid = valid;
@@ -104,7 +104,7 @@ fn overlay_restores_matching_persona_selection_and_seen_episode() {
     state.personas.get_mut(&selected).unwrap().handle = "authored_handle".to_owned();
     let domain = support::fixture_domain();
     let before = support::live_facts(&domain);
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.durable_intent_mut().seed(&state).unwrap();
 
     model.replace_domain(domain);
@@ -122,7 +122,7 @@ fn overlay_prunes_seen_episode_when_revision_no_longer_matches() {
     let stale_episode = state.seen_attention.iter().next().unwrap().clone();
     let mut domain = support::fixture_domain();
     domain.agents.values_mut().next().unwrap().pane_revision += 1;
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.durable_intent_mut().seed(&state).unwrap();
 
     model.replace_domain(domain);
@@ -143,7 +143,7 @@ fn overlay_retains_learned_personas_that_are_not_live() {
     state
         .personas
         .insert(historical.key.clone(), historical.clone());
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.durable_intent_mut().seed(&state).unwrap();
 
     model.replace_domain(support::fixture_domain());
@@ -165,7 +165,7 @@ fn overlay_keeps_a_valid_snapshot_selection_when_persona_is_ambiguous() {
         .agents
         .insert(duplicate.key.clone(), duplicate.clone());
     domain.selected_agent = Some(duplicate.key.clone());
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.durable_intent_mut().seed(&state).unwrap();
 
     model.replace_domain(domain);
@@ -183,7 +183,7 @@ fn overlay_marks_only_unseen_attention_as_seen() {
         since: Timestamp::from_millis(1_000),
         until: Timestamp::from_millis(2_000),
     };
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.durable_intent_mut().seed(&state).unwrap();
 
     model.replace_domain(domain);

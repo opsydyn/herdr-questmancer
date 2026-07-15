@@ -1,10 +1,10 @@
 use std::path::Path;
 
-use herdr_webmaster::{
+use proptest::prelude::*;
+use questmancer::{
     domain::{EventId, Guestbook, GuestbookEntry, GuestbookEvent, Timestamp},
     persistence::{append_guestbook, load_guestbook, replay_guestbook},
 };
-use proptest::prelude::*;
 use tempfile::tempdir;
 
 #[derive(Clone, Debug)]

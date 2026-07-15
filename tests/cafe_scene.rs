@@ -3,11 +3,11 @@ use std::collections::BTreeMap;
 #[allow(dead_code)]
 mod support;
 
-use herdr_webmaster::{
+use proptest::prelude::*;
+use questmancer::{
     domain::{Agent, AgentKey, Site, WorkspaceId},
     ui::cafe_scene::{BayVariant, layout_bays, variant_for_workspace},
 };
-use proptest::prelude::*;
 use ratatui::layout::Rect;
 
 fn site(id: &str, agent_ids: &[&str]) -> Site {
@@ -122,13 +122,13 @@ fn overflowing_workspace_is_split_into_connected_bays_without_losing_agents() {
 
 #[allow(clippy::similar_names)]
 fn overlaps(
-    left: herdr_webmaster::ui::cafe_scene::SeatAnchor,
-    right: herdr_webmaster::ui::cafe_scene::SeatAnchor,
+    left: questmancer::ui::cafe_scene::SeatAnchor,
+    right: questmancer::ui::cafe_scene::SeatAnchor,
 ) -> bool {
-    let x = |seat: &herdr_webmaster::ui::cafe_scene::SeatAnchor| {
+    let x = |seat: &questmancer::ui::cafe_scene::SeatAnchor| {
         (u32::from(seat.x), u32::from(seat.x) + u32::from(seat.width))
     };
-    let y = |seat: &herdr_webmaster::ui::cafe_scene::SeatAnchor| {
+    let y = |seat: &questmancer::ui::cafe_scene::SeatAnchor| {
         (
             u32::from(seat.y),
             u32::from(seat.y) + u32::from(seat.height),

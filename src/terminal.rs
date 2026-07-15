@@ -543,7 +543,7 @@ mod tests {
             .connection_mut()
             .unwrap()
             .schedule([crate::command::DeskCommand::RefreshSnapshot]);
-        let model = Model::new(View::Cafe);
+        let model = Model::new(View::Delve);
         let state = PersistedStateV1::capture(&model);
         let entry = GuestbookEntry {
             id: EventId::new("signal-shutdown"),

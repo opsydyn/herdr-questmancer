@@ -1,4 +1,4 @@
-use herdr_webmaster::{
+use questmancer::{
     app::ConnectionState,
     domain::{DomainState, PaneId, Timestamp, WorkspaceId},
     herdr::{

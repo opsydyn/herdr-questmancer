@@ -3,7 +3,8 @@ mod support;
 
 use std::collections::BTreeMap;
 
-use herdr_webmaster::{
+use proptest::prelude::*;
+use questmancer::{
     app::{Model, View},
     domain::{
         AgentKey, AgentPersona, AttentionReason, DomainState, GuestbookEntry, GuestbookEvent,
@@ -12,7 +13,6 @@ use herdr_webmaster::{
     ui::cafe_scene::layout_bays,
     update::{AppEvent, Command, update},
 };
-use proptest::prelude::*;
 use ratatui::layout::Rect;
 
 proptest! {
@@ -30,7 +30,7 @@ proptest! {
             for agent_index in 0..count {
                 let mut agent = template.clone();
                 agent.key = AgentKey::new(format!("agent-{workspace_index}-{agent_index}"));
-                agent.pane_id = herdr_webmaster::domain::PaneId::new(format!("pane-{workspace_index}-{agent_index}"));
+                agent.pane_id = questmancer::domain::PaneId::new(format!("pane-{workspace_index}-{agent_index}"));
                 agent.workspace_id = workspace_id.clone();
                 keys.push(agent.key.clone());
                 agents.insert(agent.key.clone(), agent);
@@ -70,7 +70,7 @@ proptest! {
     fn managed_pane_is_absent_from_the_cafe_model_and_rendered_surface(
         managed_pane in support::pane_id(),
     ) {
-        let response: herdr_webmaster::herdr::protocol::SuccessResponse<herdr_webmaster::herdr::protocol::SessionSnapshotResult> =
+        let response: questmancer::herdr::protocol::SuccessResponse<questmancer::herdr::protocol::SessionSnapshotResult> =
             serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
         let mut snapshot = response.result.snapshot;
         let mut managed = snapshot.agents[0].clone();
@@ -79,17 +79,17 @@ proptest! {
         snapshot.agents.push(managed);
         let state = DomainState::from_snapshot_excluding(
             &snapshot,
-            herdr_webmaster::domain::Timestamp::from_millis(1_000),
+            questmancer::domain::Timestamp::from_millis(1_000),
             Some(&managed_pane),
         );
         prop_assert!(state.agent_key_for_pane(&managed_pane).is_none());
         prop_assert!(state.agents.values().all(|agent| agent.name != "webmaster-managed-pane"));
 
-        let mut model = Model::new(View::Cafe);
+        let mut model = Model::new(View::Delve);
         model.replace_domain(state);
         let backend = ratatui::backend::TestBackend::new(120, 30);
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
-        terminal.draw(|frame| herdr_webmaster::ui::render(frame, &model)).unwrap();
+        terminal.draw(|frame| questmancer::ui::render(frame, &model)).unwrap();
         let screen = terminal
             .backend()
             .buffer()
@@ -291,7 +291,7 @@ fn assert_topology_commands(
 }
 
 fn expected_site_status(
-    agents: &BTreeMap<herdr_webmaster::domain::AgentKey, herdr_webmaster::domain::Agent>,
+    agents: &BTreeMap<questmancer::domain::AgentKey, questmancer::domain::Agent>,
 ) -> SiteStatus {
     if agents
         .values()

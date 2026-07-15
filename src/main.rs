@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use herdr_webmaster::{
+use questmancer::{
     cli::{Cli, Command},
     terminal,
 };

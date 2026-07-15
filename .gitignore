@@ -1,4 +1,6 @@
 /target/
+/bin/
+/.superpowers/
 /.worktrees/
 *.swp
 .DS_Store

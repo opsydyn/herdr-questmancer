@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
-use herdr_webmaster::herdr::{
+use questmancer::herdr::{
     client::HerdrClient,
     supervisor::{Backoff, ConnectionSupervisor, ConnectionUpdate},
 };

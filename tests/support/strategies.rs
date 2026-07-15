@@ -3,7 +3,8 @@ use std::{
     path::PathBuf,
 };
 
-use herdr_webmaster::{
+use proptest::prelude::*;
+use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View},
     domain::{
         Agent, AgentKey, AgentPersona, Attention, AttentionReason, DomainState, Guestbook,
@@ -13,7 +14,6 @@ use herdr_webmaster::{
     persistence::{AttentionEpisodeKey, PersistedStateV1, STATE_SCHEMA_VERSION},
     update::AppEvent,
 };
-use proptest::prelude::*;
 
 fn id_text() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9-]{0,11}"
@@ -361,7 +361,7 @@ pub(crate) fn domain_state() -> impl Strategy<Value = DomainState> {
 }
 
 fn view() -> impl Strategy<Value = View> {
-    prop_oneof![Just(View::Desk), Just(View::Cafe)]
+    prop_oneof![Just(View::Guild), Just(View::Delve)]
 }
 
 fn preferences() -> impl Strategy<Value = DisplayPreferences> {

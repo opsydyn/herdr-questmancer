@@ -54,8 +54,8 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
     }
 
     match key.code {
-        KeyCode::Char('1') | KeyCode::F(1) => Action::Switch(View::Desk),
-        KeyCode::Char('2') | KeyCode::F(2) => Action::Switch(View::Cafe),
+        KeyCode::Char('1') | KeyCode::F(1) => Action::Switch(View::Guild),
+        KeyCode::Char('2') | KeyCode::F(2) => Action::Switch(View::Delve),
         KeyCode::Char('?') => Action::ShowHelp,
         KeyCode::Esc => Action::Dismiss,
         KeyCode::Char('q') => Action::Quit,

@@ -1,4 +1,4 @@
-use herdr_webmaster::{
+use questmancer::{
     app::{Model, View},
     interaction::reduce_action,
     ui,
@@ -8,7 +8,7 @@ use ratatui::{Terminal, backend::TestBackend};
 
 #[test]
 fn reply_modal_renders_draft_and_contextual_keys() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     model.open_reply();
     for character in "use jsonb".chars() {
         model.push_reply_character(character);
@@ -35,7 +35,7 @@ fn reply_modal_renders_draft_and_contextual_keys() {
 
 #[test]
 fn search_modal_renders_query_status_and_contextual_keys() {
-    let mut model = Model::new(View::Desk);
+    let mut model = Model::new(View::Guild);
     let _ = reduce_action(&mut model, Action::Search);
     for character in "missing".chars() {
         let _ = reduce_action(&mut model, Action::TypeCharacter(character));

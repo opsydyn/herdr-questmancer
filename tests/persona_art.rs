@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use herdr_webmaster::{
+use questmancer::{
     domain::{
         AccentTone, Accessory, BodyProportions, DeskProp, FaceDetail, HairShape, HairTone,
         HeadShape, OutfitBottom, OutfitTop, PersonaAppearance, Shoes, SkinTone,

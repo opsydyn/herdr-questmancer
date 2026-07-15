@@ -1,4 +1,4 @@
-use herdr_webmaster::herdr::protocol::{
+use questmancer::herdr::protocol::{
     AgentStatus, EmptyParams, ErrorResponse, Pong, Request, SessionSnapshotResult, SuccessResponse,
     WireEvent,
 };

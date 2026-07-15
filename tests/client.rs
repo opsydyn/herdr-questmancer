@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use herdr_webmaster::herdr::client::{ClientError, HerdrClient};
+use questmancer::herdr::client::{ClientError, HerdrClient};
 use serde_json::{Value, json};
 use tempfile::TempDir;
 use tokio::{

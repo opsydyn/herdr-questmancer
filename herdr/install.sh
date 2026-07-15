@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 VERSION=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$ROOT/herdr-plugin.toml" | head -n 1)
-REPOSITORY=${HERDR_WEBMASTER_REPOSITORY:-opsydyn/herdr-webmaster}
+REPOSITORY=${QUESTMANCER_REPOSITORY:-opsydyn/herdr-questmancer}
 
 case $(uname -s) in
   Darwin) os=apple-darwin ;;
@@ -18,7 +18,7 @@ case $(uname -m) in
 esac
 
 target="$arch-$os"
-archive="herdr-webmaster-v$VERSION-$target.tar.gz"
+archive="questmancer-v$VERSION-$target.tar.gz"
 base_url="https://github.com/$REPOSITORY/releases/download/v$VERSION"
 temporary=$(mktemp -d)
 trap 'rm -rf "$temporary"' EXIT
@@ -38,5 +38,4 @@ fi
 
 mkdir -p "$ROOT/bin"
 tar -xzf "$temporary/$archive" -C "$temporary"
-install -m 0755 "$temporary/herdr-webmaster" "$ROOT/bin/herdr-webmaster"
-
+install -m 0755 "$temporary/questmancer" "$ROOT/bin/questmancer"
