@@ -154,11 +154,22 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
             styles,
         );
         if let Some(site) = sites.get(&active_bay.workspace_id) {
+            let active_sites =
+                std::collections::BTreeMap::from([(active_bay.workspace_id.clone(), site.clone())]);
+            let remapped = layout_bays(
+                &active_sites,
+                &model.domain().agents,
+                active_area,
+                Some(&active_bay.workspace_id),
+            )
+            .into_iter()
+            .next()
+            .map(|bay| bay.seats)
+            .unwrap_or_default();
             for (index, key) in site.agents.iter().enumerate() {
-                if let (Some(agent), Some(anchor)) = (
-                    model.domain().agents.get(key),
-                    active_bay.seats.get(index).copied(),
-                ) {
+                if let (Some(agent), Some(anchor)) =
+                    (model.domain().agents.get(key), remapped.get(index).copied())
+                {
                     render_workstation(
                         frame,
                         anchor,
@@ -198,12 +209,24 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
         );
         if index > 0 {
             let previous = bays[index - 1].rect;
-            let x = previous.right().saturating_sub(1);
-            let transition = Rect::new(x, bay.rect.y, 1, bay.rect.height);
-            let glyphs = if model.preferences().character_set == crate::app::CharacterSet::Ascii {
-                "|\n|\n+\n|\n|"
+            let (transition, glyphs) = if previous.y == bay.rect.y {
+                let x = previous.right().saturating_sub(1);
+                let glyphs = if model.preferences().character_set == crate::app::CharacterSet::Ascii
+                {
+                    "|\n+\n|"
+                } else {
+                    "│\n╫\n│"
+                };
+                (Rect::new(x, bay.rect.y, 1, bay.rect.height), glyphs)
             } else {
-                "│\n│\n╫\n│\n│"
+                let y = previous.bottom().saturating_sub(1);
+                let glyphs = if model.preferences().character_set == crate::app::CharacterSet::Ascii
+                {
+                    "---+---"
+                } else {
+                    "───╫───"
+                };
+                (Rect::new(bay.rect.x, y, bay.rect.width.min(7), 1), glyphs)
             };
             frame.render_widget(Paragraph::new(glyphs).style(styles.accent), transition);
         }
@@ -293,6 +316,28 @@ fn render_bay_architecture(
             format!(
                 "| {:width$}|",
                 furniture,
+                width = usize::from(area.width.saturating_sub(3))
+            )
+        } else if active && row == 4 {
+            let object = match variant {
+                crate::ui::cafe_scene::BayVariant::WallRow => "==== COUNTER / ALIGNED DESKS ====",
+                crate::ui::cafe_scene::BayVariant::CornerBooth => "#\\____ BOOTH ____/#",
+                crate::ui::cafe_scene::BayVariant::BackRoomLab => "[RACK] [MON] [RACK]",
+            };
+            format!(
+                "| {:width$}|",
+                object,
+                width = usize::from(area.width.saturating_sub(3))
+            )
+        } else if active && row == 5 {
+            let object = match variant {
+                crate::ui::cafe_scene::BayVariant::WallRow => "--+--+--+--+--+--",
+                crate::ui::cafe_scene::BayVariant::CornerBooth => "SIDE WALL / ANGLED AISLE",
+                crate::ui::cafe_scene::BayVariant::BackRoomLab => "CABLE SHELF / MONITOR BLOCKS",
+            };
+            format!(
+                "| {:width$}|",
+                object,
                 width = usize::from(area.width.saturating_sub(3))
             )
         } else {

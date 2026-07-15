@@ -273,6 +273,46 @@ fn ascii_multi_workspace_transitions_remain_ascii_safe() {
 }
 
 #[test]
+fn compact_selected_wrapped_workspace_remaps_seats_into_active_scene() {
+    let mut model = three_agent_model();
+    let gamma = model
+        .domain_mut()
+        .agents
+        .get_mut(&AgentKey::new("agent-c"))
+        .unwrap();
+    gamma.workspace_id = WorkspaceId::new("w2");
+    model.domain_mut().selected_agent = Some(AgentKey::new("agent-c"));
+    model.domain_mut().sites.insert(
+        WorkspaceId::new("w1"),
+        Site {
+            workspace_id: WorkspaceId::new("w1"),
+            label: "w1".into(),
+            cwd: "/tmp/w1".into(),
+            agents: vec![AgentKey::new("agent-a"), AgentKey::new("agent-b")],
+        },
+    );
+    model.domain_mut().sites.insert(
+        WorkspaceId::new("w2"),
+        Site {
+            workspace_id: WorkspaceId::new("w2"),
+            label: "w2".into(),
+            cwd: "/tmp/w2".into(),
+            agents: vec![AgentKey::new("agent-c")],
+        },
+    );
+    let screen = render(&model, 80, 24);
+    assert!(
+        screen.contains("Gamma"),
+        "selected wrapped agent missing:\n{screen}"
+    );
+    assert!(screen.contains("[w1] [w2]"));
+    assert!(
+        !screen.contains("Gamma\n")
+            || screen.find("Gamma").unwrap() < screen.find("[w1] [w2]").unwrap()
+    );
+}
+
+#[test]
 fn eighty_columns_keep_authored_bay_and_actions() {
     let mut model = three_agent_model();
     let screen = render(&model, 80, 24);

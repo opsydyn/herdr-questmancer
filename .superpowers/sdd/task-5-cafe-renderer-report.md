@@ -54,3 +54,12 @@ Final visual/compatibility follow-up:
 - Compact and multi-workspace ASCII tests cover navigation and reachability.
 
 Final verification: 20 café rendering + 4 scene + 15 widget + 11 persona-art + 3 rendering tests passed; `cargo clippy --all-targets --all-features -- -D warnings` passed.
+
+Final fix evidence:
+
+- Compact active-bay seats are recomputed against the compact active rectangle, preventing wrapped/secondary workspaces from rendering under the bay strip.
+- Variant geometry now includes distinct counter/desk alignment, booth enclosure/angled aisle, and rack/monitor/cable-shelf markers.
+- Horizontal transitions are drawn for wrapped bay rows; same-row joins remain vertical, with ASCII-safe alternatives.
+- Added a selected wrapped-workspace 80x24 test and ASCII multi-workspace transition test.
+
+Final verification: 21 café rendering + 4 scene + 15 widget + 11 persona-art + 3 rendering tests passed; Clippy with `-D warnings` passed.
