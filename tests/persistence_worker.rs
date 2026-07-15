@@ -1,5 +1,6 @@
-use std::time::Duration;
+use std::{task::Poll, time::Duration};
 
+use futures_util::{StreamExt, stream::FuturesUnordered};
 use herdr_webmaster::{
     app::{Motion, View},
     domain::{EventId, GuestbookEntry, GuestbookEvent, Timestamp},
@@ -216,6 +217,71 @@ async fn guestbook_append_is_acknowledged_after_the_record_is_durable() {
         replay.guestbook.entries().iter().collect::<Vec<_>>(),
         vec![&entry]
     );
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_expired_state_deadline_precedes_sustained_queued_appends() {
+    let directory = tempfile::tempdir().unwrap();
+    let state_path = directory.path().join("state.json");
+    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let (mut client, _diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
+        Some(state_path.clone()),
+        Some(guestbook_path),
+    ));
+    tokio::task::yield_now().await;
+    let state = fixed_persisted_state(View::Cafe);
+    assert!(client.stage_state(state.clone()).unwrap());
+    tokio::task::yield_now().await;
+
+    let mut appends = FuturesUnordered::new();
+    for index in 0..64 {
+        appends.push(client.append_guestbook(guestbook_entry(&format!("queued-{index}"))));
+    }
+    assert!(matches!(futures_util::poll!(appends.next()), Poll::Pending));
+
+    tokio::time::advance(Duration::from_millis(250)).await;
+    appends.next().await.unwrap().unwrap();
+
+    assert_eq!(load_state(&state_path).await.unwrap(), Some(state));
+    while let Some(result) = appends.next().await {
+        result.unwrap();
+    }
+
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+}
+
+#[tokio::test]
+async fn flush_acknowledges_after_an_earlier_append_and_dirty_state_are_durable() {
+    let directory = tempfile::tempdir().unwrap();
+    let state_path = directory.path().join("state.json");
+    let guestbook_path = directory.path().join("guestbook.jsonl");
+    let (mut client, _diagnostics, worker) = PersistenceWorker::start(WorkerPaths::new(
+        Some(state_path.clone()),
+        Some(guestbook_path.clone()),
+    ));
+    let state = fixed_persisted_state(View::Desk);
+    let entry = guestbook_entry("before-flush");
+    assert!(client.stage_state(state.clone()).unwrap());
+
+    let (append_result, flush_result) = tokio::join!(
+        biased;
+        client.append_guestbook(entry.clone()),
+        client.flush(),
+    );
+    append_result.unwrap();
+    flush_result.unwrap();
+
+    assert_eq!(load_state(&state_path).await.unwrap(), Some(state));
+    let replay = load_guestbook(&guestbook_path, 10).await;
+    assert!(replay.diagnostics.is_empty());
+    assert_eq!(
+        replay.guestbook.entries().iter().collect::<Vec<_>>(),
+        vec![&entry]
+    );
+
     client.shutdown().await.unwrap();
     worker.await.unwrap();
 }

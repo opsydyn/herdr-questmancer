@@ -130,6 +130,13 @@ async fn run(
                     }
                 }
                 Some(PersistenceMessage::AppendGuestbook { entry, acknowledgement }) => {
+                    if debounce
+                        .as_ref()
+                        .is_some_and(|timer| timer.deadline() <= Instant::now())
+                    {
+                        let _ = publish_dirty_state(&paths, &mut dirty_state, &diagnostics).await;
+                        debounce = None;
+                    }
                     let result = append_entry(&paths, &entry, &diagnostics).await;
                     let _ = acknowledgement.send(result);
                 }

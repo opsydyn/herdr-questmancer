@@ -165,3 +165,93 @@ Run from
 No unresolved concern within Task 5 scope. Task 7 must retain the client long
 enough to request and await `shutdown`; simply dropping the client deliberately
 does not flush dirty state.
+
+## Review fix: expired-deadline priority under queued appends
+
+The Task 5 review identified that message-first `tokio::select!` priority could
+starve an already-ready state deadline while append messages remained queued.
+The fix retains message-first receipt so a queued `StageState` can still
+coalesce and reset the debounce, but checks the explicit deadline before
+executing a selected append. When the deadline has arrived, the actor publishes
+and clears dirty state before starting that append. `Flush` and `Shutdown`
+continue to publish dirty state through their existing FIFO message handling.
+
+### Review RED
+
+The regression arms dirty state at virtual time zero, manually polls a
+`FuturesUnordered` of 64 real-filesystem guestbook append operations once so
+all commands are queued without yielding, then advances paused time to exactly
+250 milliseconds. It awaits only the first post-deadline append
+acknowledgement and requires state to be durable already.
+
+Command:
+
+```text
+cargo test --test persistence_worker \
+  an_expired_state_deadline_precedes_sustained_queued_appends -- --exact
+```
+
+Result: exit `101`; the first append had been acknowledged while state still
+loaded as `None`:
+
+```text
+assertion `left == right` failed
+  left: None
+ right: Some(PersistedStateV1 { ... last_view: Cafe ... })
+```
+
+This proved the deadline was delayed behind queued appends rather than merely
+racing final filesystem observation.
+
+### Root-cause refinement
+
+The first minimal hypothesis used `Sleep::is_elapsed()`. The exact regression
+still exited `101` with state `None`. Tokio's `is_elapsed` reports whether the
+timer driver has fired and deregistered the sleep. Because queued messages had
+already woken the actor, it could be polled at virtual 250 milliseconds before
+the driver fired the timer. The contract is instead represented directly by:
+
+```text
+timer.deadline() <= Instant::now()
+```
+
+No production test hook, repeated timer, new channel, or protocol variant was
+introduced.
+
+### Review GREEN
+
+After switching to the explicit clock comparison, the same exact starvation
+command exited `0`; 1 passed, 0 failed. The test proves state is durable before
+the first queued append acknowledgement, not merely after the full queue
+drains.
+
+The local acknowledgement coverage example queues an append before a flush
+with biased `tokio::join!` polling, then proves the flush acknowledgement is
+followed by both a durable state document and the durable JSONL record. This
+characterization passed on its first run against the existing FIFO protocol;
+no production change was needed for the minor finding.
+
+### Review final gates
+
+Commands and results:
+
+- `cargo fmt --all` - exit `0`.
+- `cargo test --test persistence_worker` - exit `0`; 11 passed, 0 failed.
+- `cargo clippy --all-targets --all-features -- -D warnings` - exit `0`.
+- `cargo test --all-targets --all-features` - exit `0`; all 280 tests passed.
+- `git diff --check` - exit `0`.
+
+### Review self-review and concerns
+
+- Only `StageState` can reset the debounce deadline. A state message selected
+  at the boundary still replaces the dirty projection and starts a fresh exact
+  250-millisecond interval.
+- An append selected at or after the deadline cannot run before the attempted
+  dirty state publication. Publication failure remains diagnostic and
+  non-fatal, clears that attempted state, and does not block the append.
+- Appends before the deadline retain FIFO order and execute without an early
+  state write.
+- `Flush` and `Shutdown` retain their prior acknowledged publication and FIFO
+  semantics.
+- The actor remains timer-free while clean.
+- No unresolved concern remains in the Task 5 review-fix scope.
