@@ -70,10 +70,11 @@ links. Do not require synthetic events for ordinary use.
 
 ### 3. Optional manual smoke test
 
-Provide a reproducible test that uses a dedicated source and agent label. It
-will:
+Provide a reproducible test that uses a dedicated, unowned plain pane, a
+dedicated source, and an agent label. It will:
 
-1. choose a pane explicitly;
+1. create or select an unowned plain pane explicitly (never an existing
+   Codex/Claude pane and never webmaster's managed pane);
 2. report a synthetic blocked agent;
 3. confirm unread webmaster mail and a cafe `HELP!` pose appear without
    reopening;
@@ -85,12 +86,14 @@ will:
 Herdr 0.7.3 cannot synthesize `done`, so the walkthrough will say that the
 update-ready path requires a real agent completion event.
 
-The test must not silently choose an arbitrary user pane. It uses
-`HERDR_PANE_ID` only when available and valid; otherwise the operator chooses a
-pane from `herdr pane list`. If a webmaster pane already existed before the
-test, close/reopen requires explicit operator permission; without permission,
-the persistence checkpoint is reported as blocked rather than disturbing the
-existing pane.
+The test must not silently choose an arbitrary user pane. The operator creates
+or selects a dedicated plain pane and captures its ID before calling
+`report-agent`; reporting over an already-owned pane can be accepted by the
+CLI while never appearing in the session snapshot. `HERDR_PANE_ID` identifies
+webmaster's managed pane and must therefore not be used as the synthetic target.
+If a webmaster pane already existed before the test, close/reopen requires
+explicit operator permission; without permission, the persistence checkpoint
+is reported as blocked rather than disturbing the existing pane.
 
 ### 4. Troubleshooting and removal
 

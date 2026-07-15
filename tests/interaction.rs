@@ -201,6 +201,18 @@ fn visit_focuses_selected_pane_and_empty_selection_is_contextual() {
 }
 
 #[test]
+fn managed_pane_selection_never_emits_effect_commands() {
+    let mut model = live_model_with_two_agents();
+    model.set_managed_pane_id(Some(PaneId::new("w1:p1")));
+
+    for action in [Action::Visit, Action::Refresh, Action::Reply] {
+        let reduction = reduce_action(&mut model, action);
+        assert!(reduction.commands.is_empty());
+    }
+    assert_eq!(model.status_message(), Some("no agent selected to reply"));
+}
+
+#[test]
 fn refresh_loads_only_the_selected_output() {
     let mut selected = live_model_with_two_agents();
     let refresh = reduce_action(&mut selected, Action::Refresh);

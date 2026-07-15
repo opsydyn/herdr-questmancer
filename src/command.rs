@@ -46,29 +46,53 @@ pub enum CommandResult {
 #[derive(Clone, Debug)]
 pub struct CommandExecutor {
     client: HerdrClient,
+    managed_pane_id: Option<PaneId>,
 }
 
 impl CommandExecutor {
     #[must_use]
-    pub const fn new(client: HerdrClient) -> Self {
-        Self { client }
+    pub const fn new(client: HerdrClient, managed_pane_id: Option<PaneId>) -> Self {
+        Self {
+            client,
+            managed_pane_id,
+        }
+    }
+
+    fn is_managed_pane(&self, pane_id: &PaneId) -> bool {
+        self.managed_pane_id.as_ref() == Some(pane_id)
+    }
+
+    fn refused_managed_pane(operation: &'static str) -> CommandResult {
+        CommandResult::Failed {
+            operation,
+            message: "refused operation on webmaster pane".to_owned(),
+        }
     }
 
     pub async fn execute(&self, command: DeskCommand) -> CommandResult {
         match command {
             DeskCommand::FocusPane(pane_id) => {
+                if self.is_managed_pane(&pane_id) {
+                    return Self::refused_managed_pane("focus pane");
+                }
                 match self.client.focus_pane(pane_id.as_str()).await {
                     Ok(_) => CommandResult::Focused(pane_id),
                     Err(error) => failed("focus pane", error),
                 }
             }
             DeskCommand::SendReply { pane_id, text } => {
+                if self.is_managed_pane(&pane_id) {
+                    return Self::refused_managed_pane("send reply");
+                }
                 match self.client.send_text(pane_id.as_str(), text).await {
                     Ok(()) => CommandResult::ReplySent(pane_id),
                     Err(error) => failed("send reply", error),
                 }
             }
             DeskCommand::LoadOutput { pane_id, lines } => {
+                if self.is_managed_pane(&pane_id) {
+                    return Self::refused_managed_pane("load output");
+                }
                 match self
                     .client
                     .read_recent_unwrapped(pane_id.as_str(), lines)
@@ -104,6 +128,9 @@ impl CommandExecutor {
                 pane_id,
                 qualified_id,
             } => {
+                if self.is_managed_pane(&pane_id) {
+                    return Self::refused_managed_pane("open reviewr");
+                }
                 let Some((plugin_id, action_id)) = split_qualified_action(&qualified_id) else {
                     return CommandResult::Failed {
                         operation: "open reviewr",

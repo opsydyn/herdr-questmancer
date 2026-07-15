@@ -92,7 +92,11 @@ pub struct RuntimeConnection {
 impl RuntimeConnection {
     pub fn start(environment: &HerdrEnvironment) -> Self {
         let client = HerdrClient::new(environment.socket_path());
-        let executor = CommandExecutor::new(client.clone());
+        let managed_pane_id = std::env::var("HERDR_PANE_ID")
+            .ok()
+            .filter(|value| !value.is_empty())
+            .map(PaneId::new);
+        let executor = CommandExecutor::new(client.clone(), managed_pane_id);
         let supervisor = ConnectionSupervisor::new(client, Backoff::default());
         let (update_tx, update_rx) = mpsc::channel(32);
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
@@ -344,7 +348,7 @@ mod tests {
         });
         let (shutdown_tx, _shutdown_rx) = watch::channel(false);
         let connection = RuntimeConnection {
-            executor: CommandExecutor::new(HerdrClient::new(PathBuf::from("missing.sock"))),
+            executor: CommandExecutor::new(HerdrClient::new(PathBuf::from("missing.sock")), None),
             update_rx,
             updates_open: true,
             shutdown_tx,

@@ -51,7 +51,7 @@ async fn output_load_returns_a_ui_ready_preview() {
         )
         .await;
     });
-    let executor = CommandExecutor::new(HerdrClient::new(path));
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
         .execute(DeskCommand::LoadOutput {
@@ -83,7 +83,7 @@ async fn server_failure_becomes_a_non_blocking_result() {
             .unwrap();
         stream.write_all(b"\n").await.unwrap();
     });
-    let executor = CommandExecutor::new(HerdrClient::new(path));
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
         .execute(DeskCommand::FocusPane(PaneId::new("w1:p9")))
@@ -112,7 +112,7 @@ async fn reviewr_discovery_checks_the_exact_qualified_action() {
         )
         .await;
     });
-    let executor = CommandExecutor::new(HerdrClient::new(path));
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
         .execute(DeskCommand::DiscoverReviewr {
@@ -158,7 +158,7 @@ async fn opening_reviewr_focuses_the_agent_before_invocation() {
         )
         .await;
     });
-    let executor = CommandExecutor::new(HerdrClient::new(path));
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
         .execute(DeskCommand::OpenReviewr {
@@ -175,7 +175,7 @@ async fn opening_reviewr_focuses_the_agent_before_invocation() {
 async fn non_splittable_reviewr_action_is_unavailable_and_invocation_fails_non_fatally() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("missing.sock");
-    let executor = CommandExecutor::new(HerdrClient::new(path));
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let discovery = executor
         .execute(DeskCommand::DiscoverReviewr {
@@ -207,7 +207,7 @@ async fn reply_sends_the_composed_text_to_the_selected_pane() {
         respond(&mut stream, &request, json!({"type": "ok"})).await;
         request
     });
-    let executor = CommandExecutor::new(HerdrClient::new(path));
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor
         .execute(DeskCommand::SendReply {
@@ -232,7 +232,7 @@ async fn snapshot_refresh_returns_a_domain_ready_snapshot() {
             serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
         respond(&mut stream, &request, fixture["result"].clone()).await;
     });
-    let executor = CommandExecutor::new(HerdrClient::new(path));
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
     let result = executor.execute(DeskCommand::RefreshSnapshot).await;
 
@@ -241,4 +241,37 @@ async fn snapshot_refresh_returns_a_domain_ready_snapshot() {
         CommandResult::SnapshotLoaded(snapshot) if snapshot.protocol == 16
     ));
     server.await.unwrap();
+}
+
+#[tokio::test]
+async fn managed_pane_effects_are_refused_before_socket_io() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("missing.sock");
+    let managed = PaneId::new("w2:p3");
+    let executor = CommandExecutor::new(HerdrClient::new(path), Some(managed.clone()));
+
+    let commands = [
+        DeskCommand::FocusPane(managed.clone()),
+        DeskCommand::SendReply {
+            pane_id: managed.clone(),
+            text: "do not send".to_owned(),
+        },
+        DeskCommand::LoadOutput {
+            pane_id: managed.clone(),
+            lines: 80,
+        },
+        DeskCommand::OpenReviewr {
+            pane_id: managed,
+            qualified_id: "acme.diff.inspect".to_owned(),
+        },
+    ];
+
+    for command in commands {
+        let result = executor.execute(command).await;
+        assert!(matches!(
+            result,
+            CommandResult::Failed { message, .. }
+                if message == "refused operation on webmaster pane"
+        ));
+    }
 }

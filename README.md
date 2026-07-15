@@ -237,13 +237,17 @@ herdr plugin link .
 herdr plugin action invoke opsydyn.webmaster.open
 ```
 
-From a different Herdr pane, publish a blocked test agent using that pane's
-real ID:
+Create or select a dedicated, unowned plain Herdr pane for the synthetic
+agent. Do not report over a Codex/Claude pane or webmaster's own managed pane:
+those panes already have an authoritative agent owner and may ignore a second
+synthetic source. Capture the dedicated pane's real ID, then publish a blocked
+test agent:
 
 ```bash
-PANE_ID="$(herdr pane current | jq -r '.result.pane.pane_id')"
+PANE_ID="<dedicated-plain-pane-id>"
+SOURCE_ID="webmaster-manual-$(date +%s)"
 herdr pane report-agent "$PANE_ID" \
-  --source manual-acceptance \
+  --source "$SOURCE_ID" \
   --agent acceptance-agent \
   --state blocked \
   --message "Need webmaster input" \
@@ -278,14 +282,17 @@ Milestone 5 automated gate covers working, blocked, done, idle, exited, reduced
 motion, no motion, Unicode, ASCII, xterm-256, ANSI-16, dense herds, and tiny
 areas; a fresh live cafe smoke is intentionally part of the release acceptance.
 
-Return the synthetic agent to working and close the desk when finished:
+Return the synthetic agent to working and release the source when finished:
 
 ```bash
 herdr pane report-agent "$PANE_ID" \
-  --source manual-acceptance \
+  --source "$SOURCE_ID" \
   --agent acceptance-agent \
   --state working \
   --custom-status "implementing reply"
+herdr pane release-agent "$PANE_ID" \
+  --source "$SOURCE_ID" \
+  --agent acceptance-agent
 herdr plugin action invoke opsydyn.webmaster.close
 ```
 

@@ -137,7 +137,12 @@ fn finish_reduction(
 }
 
 fn selected_pane(model: &Model) -> Option<crate::domain::PaneId> {
-    model.selected_agent().map(|agent| agent.pane_id.clone())
+    model.selected_agent().and_then(|agent| {
+        (model
+            .managed_pane_id()
+            .is_none_or(|managed| managed != &agent.pane_id))
+        .then(|| agent.pane_id.clone())
+    })
 }
 
 fn mark_seen(model: &mut Model) {
