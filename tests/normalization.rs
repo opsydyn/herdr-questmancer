@@ -38,7 +38,22 @@ fn managed_pane_is_excluded_from_snapshot_normalization() {
     let mut managed = snapshot.agents[0].clone();
     managed.pane_id = "w2:p3".to_owned();
     managed.workspace_id = "w2".to_owned();
+    managed.name = Some("webmaster-smoke".to_owned());
+    managed.agent_session = Some(herdr_webmaster::herdr::protocol::AgentSessionInfo {
+        source: "manual-test".to_owned(),
+        agent: "webmaster-smoke".to_owned(),
+        kind: "session".to_owned(),
+        value: "unique-managed-pane".to_owned(),
+    });
     snapshot.agents.push(managed);
+    let mut workspace = snapshot.workspaces[0].clone();
+    workspace.workspace_id = "w2".to_owned();
+    workspace.label = "webmaster-test".to_owned();
+    snapshot.workspaces.push(workspace);
+
+    let unfiltered = DomainState::from_snapshot(&snapshot, Timestamp::from_millis(10_000));
+    assert_eq!(unfiltered.agents.len(), 2);
+    assert!(unfiltered.sites.contains_key(&WorkspaceId::new("w2")));
 
     let state = DomainState::from_snapshot_excluding(
         &snapshot,

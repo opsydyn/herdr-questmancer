@@ -26,3 +26,13 @@ Proptest emitted its existing `SourceParallel` persistence warning because integ
 - Existing callers keep the old `from_snapshot` and `adapt_update` APIs.
 - The reducer still preserves persona, attention, guestbook, and valid selection across resnapshot.
 - No café rendering or command-guard work was included.
+
+## Review follow-up
+
+- Strengthened the normalization fixture with a unique `AgentSessionInfo`, name, and workspace. The test now proves the clone would create a second agent and `w2` site without exclusion before asserting it is removed.
+- Added an explicit `CommandResult::SnapshotLoaded` regression with `Model::managed_pane_id` set; the loaded snapshot cannot reintroduce the managed pane.
+
+Follow-up verification:
+
+- `cargo test --test normalization --test reducer --test runtime_loop -- --nocapture` — 36 passed.
+- `cargo test --test property_domain -- --nocapture` — 7 passed.

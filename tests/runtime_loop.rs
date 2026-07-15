@@ -162,6 +162,26 @@ fn snapshot_result_preserves_persistence_effect_after_durable_overlay() {
 }
 
 #[test]
+fn snapshot_result_excludes_the_managed_webmaster_pane() {
+    let mut model = Model::new(View::Desk);
+    let managed = PaneId::new("w2:p3");
+    model.set_managed_pane_id(Some(managed.clone()));
+    let mut snapshot = snapshot();
+    let mut managed_agent = snapshot.agents[0].clone();
+    managed_agent.pane_id = managed.as_str().to_owned();
+    managed_agent.workspace_id = "w2".to_owned();
+    snapshot.agents.push(managed_agent);
+
+    apply_command_result(
+        &mut model,
+        CommandResult::SnapshotLoaded(Box::new(snapshot)),
+        Timestamp::from_millis(2_000),
+    );
+
+    assert!(model.domain().agent_key_for_pane(&managed).is_none());
+}
+
+#[test]
 fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
     let mut model = Model::new(View::Desk);
     model.set_settings(RuntimeSettings {
