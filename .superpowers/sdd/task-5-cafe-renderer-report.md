@@ -74,3 +74,11 @@ Whole-branch review fix wave:
 - Overflow assignment coverage was added to `cafe_scene` tests.
 
 Final quality gates: `cargo fmt --check` passed; `cargo clippy --all-targets --all-features -- -D warnings` passed; `cargo test --all-targets --all-features` passed.
+
+Final blocker fixes:
+
+- Property ownership now uses chunk-aware `CafeBay.agent_keys`, so overflow bays are validated without repeating the first seat count.
+- Compact selection resolves the bay containing the selected agent key, including overflow bays within one workspace.
+- Added a regression selecting an agent in the second overflow bay at 80x24 and verified it renders above the navigation strip.
+
+Final verification: `cargo fmt --check`, Clippy with `-D warnings`, and `cargo test --all-targets --all-features` all passed. Focused café/property tests: 23 café rendering, 5 scene, and 9 property tests passed.

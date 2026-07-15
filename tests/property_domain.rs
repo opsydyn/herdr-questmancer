@@ -47,8 +47,7 @@ proptest! {
             let bays = layout_bays(&sites, &agents, Rect::new(0, 0, width, height), None);
             let mut ownership = BTreeMap::<AgentKey, usize>::new();
             for bay in &bays {
-                let site = &sites[&bay.workspace_id];
-                for key in site.agents.iter().take(bay.seats.len()) {
+                for key in &bay.agent_keys {
                     *ownership.entry(key.clone()).or_default() += 1;
                 }
             }

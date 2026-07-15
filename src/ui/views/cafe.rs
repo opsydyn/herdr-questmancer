@@ -141,9 +141,14 @@ fn render_connected_bays(frame: &mut Frame<'_>, area: Rect, model: &Model, style
             area.width,
             area.height.saturating_sub(strip_height),
         );
+        let selected_key = model.selected_agent_key();
         let active_bay = bays
             .iter()
-            .find(|bay| selected_workspace.as_ref() == Some(&bay.workspace_id))
+            .find(|bay| selected_key.is_some_and(|key| bay.agent_keys.contains(key)))
+            .or_else(|| {
+                bays.iter()
+                    .find(|bay| selected_workspace.as_ref() == Some(&bay.workspace_id))
+            })
             .unwrap_or(&bays[0]);
         render_bay_architecture(
             frame,

@@ -342,6 +342,37 @@ fn compact_selected_wrapped_workspace_remaps_seats_into_active_scene() {
 }
 
 #[test]
+fn compact_selection_targets_the_selected_overflow_bay() {
+    let mut model = three_agent_model();
+    let template = model.domain().agents.values().next().unwrap().clone();
+    let mut keys = Vec::new();
+    for index in 0..5 {
+        let mut agent = template.clone();
+        agent.key = AgentKey::new(format!("overflow-{index}"));
+        agent.name = format!("Overflow {index}");
+        keys.push(agent.key.clone());
+        model.domain_mut().agents.insert(agent.key.clone(), agent);
+    }
+    model.domain_mut().sites.clear();
+    model.domain_mut().sites.insert(
+        WorkspaceId::new("overflow"),
+        Site {
+            workspace_id: WorkspaceId::new("overflow"),
+            label: "overflow".into(),
+            cwd: "/tmp".into(),
+            agents: keys.clone(),
+        },
+    );
+    model.domain_mut().selected_agent = Some(keys[4].clone());
+    let screen = render(&model, 80, 24);
+    assert!(
+        screen.contains("Overflow 4"),
+        "selected overflow bay not visible above strip:\n{screen}"
+    );
+    assert!(screen.find("Overflow 4").unwrap() < screen.find("[overflow]").unwrap());
+}
+
+#[test]
 fn eighty_columns_keep_authored_bay_and_actions() {
     let mut model = three_agent_model();
     let screen = render(&model, 80, 24);
