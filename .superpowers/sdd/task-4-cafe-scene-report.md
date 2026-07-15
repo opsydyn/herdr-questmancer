@@ -16,7 +16,7 @@ Verification:
 
 ```text
 cargo clippy --all-targets -- -D warnings   PASS
-cargo test --test cafe_scene --test property_domain -- --nocapture   PASS (10 tests)
+cargo test --test cafe_scene --test property_domain -- --nocapture   PASS (11 tests)
 ```
 
 Concern: on very small surfaces, later bays can be off-screen or zero-height;
