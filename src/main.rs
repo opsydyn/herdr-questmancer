@@ -13,8 +13,9 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::Ui { view } => {
-            let _runtime = RuntimeRegistration::from_env(view)?;
-            terminal::run(view).await
+            let initial_view = view.unwrap_or_default();
+            let _runtime = RuntimeRegistration::from_env(initial_view)?;
+            terminal::run(initial_view).await
         }
     }
 }

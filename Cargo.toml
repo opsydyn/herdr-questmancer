@@ -20,7 +20,9 @@ ratatui = "0.30"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+toml = "1.1"
 tokio = { version = "1", features = [
+  "fs",
   "io-util",
   "macros",
   "net",
@@ -32,6 +34,7 @@ tokio = { version = "1", features = [
 ] }
 
 [dev-dependencies]
+proptest = "1.11"
 signal-hook = "0.3"
 tempfile = "3"
 

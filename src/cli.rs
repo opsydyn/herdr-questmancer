@@ -14,7 +14,7 @@ pub enum Command {
     /// Open the interactive webmaster interface.
     Ui {
         /// Initial view to display.
-        #[arg(long, value_enum, default_value_t = View::Desk)]
-        view: View,
+        #[arg(long, value_enum)]
+        view: Option<View>,
     },
 }

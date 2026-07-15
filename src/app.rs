@@ -1,15 +1,18 @@
 use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
 
 use crate::domain::{Agent, AgentKey, DomainState, PaneId, Timestamp};
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, ValueEnum)]
+#[serde(rename_all = "snake_case")]
 pub enum View {
     #[default]
     Desk,
     Cafe,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Motion {
     #[default]
     Full,
@@ -17,21 +20,24 @@ pub enum Motion {
     None,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum CharacterSet {
     #[default]
     Unicode,
     Ascii,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ColorMode {
     #[default]
     Xterm256,
     Ansi16,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub struct DisplayPreferences {
     pub motion: Motion,
     pub character_set: CharacterSet,
