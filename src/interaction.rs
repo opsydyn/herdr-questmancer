@@ -214,9 +214,9 @@ fn submit_search(model: &mut Model, commands: &mut Vec<DeskCommand>) {
 }
 
 fn select_agent(model: &mut Model, select: fn(&mut Model), commands: &mut Vec<DeskCommand>) {
-    let before = model.selected_agent().map(|agent| agent.pane_id.clone());
+    let before = selected_pane(model);
     select(model);
-    let after = model.selected_agent().map(|agent| agent.pane_id.clone());
+    let after = selected_pane(model);
     if after != before
         && let Some(pane_id) = after
     {

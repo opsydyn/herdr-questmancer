@@ -213,6 +213,41 @@ fn managed_pane_selection_never_emits_effect_commands() {
 }
 
 #[test]
+fn navigation_does_not_load_output_for_a_managed_pane() {
+    let mut model = live_model_with_two_agents();
+    model.set_managed_pane_id(Some(PaneId::new("w1:p2")));
+
+    let next = reduce_action(&mut model, Action::Next);
+    assert!(next.commands.is_empty());
+
+    let previous = reduce_action(&mut model, Action::Previous);
+    assert_eq!(
+        previous.commands,
+        vec![DeskCommand::LoadOutput {
+            pane_id: PaneId::new("w1:p1"),
+            lines: 80,
+        }]
+    );
+}
+
+#[test]
+fn navigation_with_only_the_managed_pane_has_no_output_effect() {
+    let mut model = live_model_with_two_agents();
+    model
+        .domain_mut()
+        .agents
+        .retain(|_, agent| agent.pane_id == PaneId::new("w1:p1"));
+    let only_agent = model.domain().agents.keys().next().cloned();
+    model.domain_mut().selected_agent = only_agent;
+    model.set_managed_pane_id(Some(PaneId::new("w1:p1")));
+
+    for action in [Action::First, Action::Last, Action::Next, Action::Previous] {
+        let reduction = reduce_action(&mut model, action);
+        assert!(reduction.commands.is_empty());
+    }
+}
+
+#[test]
 fn refresh_loads_only_the_selected_output() {
     let mut selected = live_model_with_two_agents();
     let refresh = reduce_action(&mut selected, Action::Refresh);

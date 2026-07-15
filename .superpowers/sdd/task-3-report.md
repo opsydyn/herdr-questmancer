@@ -31,3 +31,16 @@ Complete.
 - The command executor constructor now requires an explicit
   `Option<PaneId>`; all in-repository call sites were updated. External users
   should provide `None` for offline or non-plugin use.
+
+## Follow-up review fix
+
+The interaction review found that navigation compared raw selected panes before
+and after `First`, `Last`, `Next`, and `Previous`, bypassing the managed-pane
+guard. `select_agent` now uses the same `selected_pane` predicate as all other
+effects, so selecting webmaster's pane cannot schedule `LoadOutput`.
+
+Added coverage for transitions into a managed pane and a model containing only
+the managed pane. Focused verification after the fix:
+
+- `cargo test --test interaction --test command -- --nocapture`: 33 passed,
+  0 failed.
