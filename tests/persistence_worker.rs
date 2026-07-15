@@ -5,7 +5,7 @@ use questmancer::{
     app::{Model, Motion, View},
     command::AgentCommand,
     config::PersistencePaths,
-    domain::{AgentPersona, ChronicleEntry, ChronicleEvent, EventId, PersonaKey, Timestamp},
+    domain::{AdventurerPersona, ChronicleEntry, ChronicleEvent, EventId, PersonaKey, Timestamp},
     herdr::environment::HerdrEnvironment,
     herdr::{
         protocol::{SessionSnapshot, SessionSnapshotResult, SuccessResponse},
@@ -231,14 +231,9 @@ async fn offline_view_change_preserves_restored_selection_for_reconnect() {
     let state_path = directory.path().join("state.json");
     let selected = PersonaKey::new("remembered-agent");
     let mut restored = fixed_persisted_state(View::Guild);
-    restored.personas.insert(
-        selected.clone(),
-        AgentPersona {
-            appearance: AgentPersona::appearance_for_key(&selected),
-            key: selected.clone(),
-            handle: "remembered".to_owned(),
-        },
-    );
+    let mut remembered = AdventurerPersona::for_key(selected.clone());
+    remembered.name = "Remembered".to_owned();
+    restored.personas.insert(selected.clone(), remembered);
     restored.selected_persona = Some(selected.clone());
     publish_state(&state_path, &restored).await.unwrap();
     let startup = load_startup(

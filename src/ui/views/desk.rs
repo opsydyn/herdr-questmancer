@@ -156,7 +156,7 @@ fn render_agent(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         .map_or("unknown site", |site| site.label.as_str());
     let mut lines = vec![
         Line::styled(agent.name.clone(), ACCENT),
-        Line::from(format!("{site} / {}", agent.persona.handle)),
+        Line::from(format!("{site} / {}", agent.persona.name)),
         Line::from(presence),
     ];
     if let Some(label) = attention_label(agent) {

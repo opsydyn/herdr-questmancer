@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::{
     app::{DisplayPreferences, Model, View},
-    domain::{AgentPersona, DomainState, GuildAttention, GuildSummons, PersonaKey},
+    domain::{AdventurerPersona, DomainState, GuildAttention, GuildSummons, PersonaKey},
 };
 
 pub const STATE_SCHEMA_VERSION: u32 = 1;
@@ -23,14 +23,14 @@ pub struct PersistedStateV1 {
     pub last_view: View,
     pub preferences: DisplayPreferences,
     pub selected_persona: Option<PersonaKey>,
-    pub personas: BTreeMap<PersonaKey, AgentPersona>,
+    pub personas: BTreeMap<PersonaKey, AdventurerPersona>,
     pub seen_attention: BTreeSet<AttentionEpisodeKey>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct DurableIntent {
     selected_persona: Option<PersonaKey>,
-    personas: BTreeMap<PersonaKey, AgentPersona>,
+    personas: BTreeMap<PersonaKey, AdventurerPersona>,
     seen_attention: BTreeSet<AttentionEpisodeKey>,
 }
 

@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::herdr::protocol::{AgentInfo, AgentStatus};
 
 use super::{
-    AgentKey, AgentPersona, GuildAttention, GuildSummons, PaneId, PersonaKey, TabId, Timestamp,
-    WorkspaceId,
+    AdventurerPersona, AgentKey, GuildAttention, GuildSummons, PaneId, PersonaKey, TabId,
+    Timestamp, WorkspaceId,
 };
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -43,7 +43,7 @@ pub struct Agent {
     pub attention: GuildAttention,
     pub focused: bool,
     pub pane_revision: u64,
-    pub persona: AgentPersona,
+    pub persona: AdventurerPersona,
 }
 
 impl Agent {
@@ -53,7 +53,7 @@ impl Agent {
         workspace_root: Option<&str>,
         observed_at: Timestamp,
     ) -> Self {
-        let persona = AgentPersona::for_agent(agent, workspace_root);
+        let persona = AdventurerPersona::for_agent(agent, workspace_root);
         let key = AgentKey::from_persona_key(&persona.key);
         let presence = Presence::from(agent.agent_status);
         let attention = match presence {

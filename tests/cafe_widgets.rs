@@ -1,9 +1,9 @@
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion},
-    domain::{Accessory, Agent, DomainState, PaneId, Presence, Timestamp, WorkspaceId},
+    domain::{Agent, DomainState, Keepsake, PaneId, Presence, Timestamp, WorkspaceId},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::{
-        persona::compose_profile_for_palette,
+        persona::compose_profile_with_gear_for_palette,
         pixel::{ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
         widgets::{render_profile_card, render_workstation},
@@ -384,7 +384,7 @@ fn unicode_scene_composes_a_semantic_chair_behind_done_and_exited_poses() {
 #[test]
 fn profile_card_shows_the_independent_full_figure_and_actionable_details() {
     let mut agent = agent();
-    agent.persona.appearance.accessory = Accessory::ShoulderBag;
+    agent.persona.appearance.keepsake = Keepsake::TinyFamiliar;
     let screen = render_profile_at(
         &agent,
         theatre(TheatrePose::Blocked, 1, true, "HELP!"),
@@ -393,12 +393,12 @@ fn profile_card_shows_the_independent_full_figure_and_actionable_details() {
         20,
     );
 
-    assert!(screen.contains(&agent.persona.handle));
+    assert!(screen.contains(&agent.persona.name));
     assert!(screen.contains("Site: w1"));
     assert!(screen.contains("[!] HELP!"));
-    assert!(screen.contains("Accessory:"));
-    assert!(screen.contains("Accessory: Shoulder"));
-    assert!(screen.contains("Desk prop:"));
+    assert!(screen.contains("Keepsake:"));
+    assert!(screen.contains("Keepsake: Familiar"));
+    assert!(screen.contains("Gear:"));
     assert!(screen.contains("LIVE"));
 
     let rows = screen.lines().collect::<Vec<_>>();
@@ -407,7 +407,11 @@ fn profile_card_shows_the_independent_full_figure_and_actionable_details() {
         .map(|row| row.chars().skip(1).take(16).collect::<String>())
         .collect::<Vec<_>>();
     let expected_figure = pack(
-        &compose_profile_for_palette(&agent.persona.appearance, Palette::Xterm256),
+        &compose_profile_with_gear_for_palette(
+            &agent.persona.appearance,
+            agent.persona.class.gear(),
+            Palette::Xterm256,
+        ),
         &Palette::Xterm256,
         ColorRole::PanelBackground,
     )
@@ -440,12 +444,12 @@ fn profile_card_shows_the_independent_full_figure_and_actionable_details() {
         rows[9..17]
             .iter()
             .any(|row| row.chars().any(|glyph| matches!(glyph, '▀' | '▄' | '█'))),
-        "profile legs/shoes missing:\n{screen}"
+        "profile legs/footwear missing:\n{screen}"
     );
 }
 
 #[test]
-fn minimum_profile_boundary_never_drops_the_handle() {
+fn minimum_profile_boundary_never_drops_the_adventurer_name() {
     let agent = agent();
     let screen = render_profile_at(
         &agent,
@@ -456,8 +460,8 @@ fn minimum_profile_boundary_never_drops_the_handle() {
     );
 
     assert!(
-        screen.contains(&agent.persona.handle),
-        "minimum profile boundary dropped the handle:\n{screen}"
+        screen.contains(&agent.persona.name),
+        "minimum profile boundary dropped the adventurer name:\n{screen}"
     );
 }
 
@@ -473,9 +477,9 @@ fn ascii_widgets_use_labelled_silhouettes_and_no_block_glyphs() {
     assert!(workstation.contains("[!] HELP!"));
 
     let profile = render_profile_at(&agent, blocked, preferences, 40, 20);
-    assert!(profile.contains("AGENT PROFILE"));
+    assert!(profile.contains("ADVENTURER PROFILE"));
     assert!(profile.contains("[!] HELP!"));
-    assert!(profile.contains("Accessory:"));
+    assert!(profile.contains("Keepsake:"));
 
     for screen in [workstation, profile] {
         assert!(
@@ -493,7 +497,7 @@ fn ascii_widgets_use_labelled_silhouettes_and_no_block_glyphs() {
 fn ascii_presentation_sanitizes_domain_text_in_full_and_compact_widgets() {
     let mut agent = agent();
     agent.name = "Café\n主机\t\u{7}".to_owned();
-    agent.persona.handle = "héllø\nroot".to_owned();
+    agent.persona.name = "héllø\nroot".to_owned();
     agent.workspace_id = WorkspaceId::new("sité\n一");
     agent.pane_id = PaneId::new("pane\tß");
     agent.custom_status = Some("naïve\n状态\u{1b}".to_owned());
@@ -523,11 +527,11 @@ fn ascii_presentation_sanitizes_domain_text_in_full_and_compact_widgets() {
     }
     assert!(screens[0].contains("na?ve ???"));
     assert!(screens[1].contains("na?ve ???"));
-    assert!(screens[2].contains("@h?ll? root"));
+    assert!(screens[2].contains("h?ll? root"));
     assert!(screens[2].contains("Site: sit? ?"));
     assert!(screens[2].contains("Pane: pane ?"));
     assert!(screens[2].contains("Status: na?ve ???"));
-    assert!(screens[3].contains("@h?ll? root"));
+    assert!(screens[3].contains("h?ll? root"));
     assert!(screens[3].contains("Site: sit? ?"));
     assert!(screens[3].contains("Pane: pane ?"));
     assert!(screens[3].contains("Status: na?ve ???"));
@@ -537,7 +541,7 @@ fn ascii_presentation_sanitizes_domain_text_in_full_and_compact_widgets() {
 fn unicode_presentation_preserves_printable_text_but_neutralizes_controls() {
     let mut agent = agent();
     agent.name = "Café\nMüller\u{1b}".to_owned();
-    agent.persona.handle = "héllø-root".to_owned();
+    agent.persona.name = "héllø-root".to_owned();
     agent.workspace_id = WorkspaceId::new("sité-é");
     agent.pane_id = PaneId::new("pane-ß");
     agent.custom_status = Some("naïve\trésumé".to_owned());
@@ -550,7 +554,7 @@ fn unicode_presentation_preserves_printable_text_but_neutralizes_controls() {
 
     let profile = render_profile_at(&agent, working, preferences, 60, 20);
     assert!(profile.contains("Café Müller?"));
-    assert!(profile.contains("@héllø-root"));
+    assert!(profile.contains("héllø-root"));
     assert!(profile.contains("Site: sité-é"));
     assert!(profile.contains("Pane: pane-ß"));
     assert!(profile.contains("Status: naïve résumé"));

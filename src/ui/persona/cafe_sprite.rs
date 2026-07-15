@@ -1,5 +1,8 @@
 use crate::{
-    domain::{BodyProportions, FaceDetail, HairShape, OutfitTop, PersonaAppearance, Shoes},
+    domain::{
+        AdventuringGear, BodyProportions, FaceDetail, Footwear, Garb, HairShape, Keepsake,
+        PersonaAppearance,
+    },
     ui::{
         pixel::{Canvas, ColorRole, Palette},
         theatre::TheatreFrame,
@@ -15,7 +18,15 @@ const CAFE_WIDTH: u16 = 10;
 const CAFE_HEIGHT: u16 = 12;
 
 pub fn compose_seated(appearance: &PersonaAppearance, frame: TheatreFrame) -> Canvas {
-    compose_seated_with_roles(appearance, frame, appearance_roles(appearance))
+    compose_seated_with_roles(appearance, None, frame, appearance_roles(appearance))
+}
+
+pub fn compose_seated_with_gear(
+    appearance: &PersonaAppearance,
+    gear: AdventuringGear,
+    frame: TheatreFrame,
+) -> Canvas {
+    compose_seated_with_roles(appearance, Some(gear), frame, appearance_roles(appearance))
 }
 
 pub fn compose_seated_for_palette(
@@ -25,6 +36,21 @@ pub fn compose_seated_for_palette(
 ) -> Canvas {
     compose_seated_with_roles(
         appearance,
+        None,
+        frame,
+        appearance_roles_for_palette(appearance, palette),
+    )
+}
+
+pub fn compose_seated_with_gear_for_palette(
+    appearance: &PersonaAppearance,
+    gear: AdventuringGear,
+    frame: TheatreFrame,
+    palette: Palette,
+) -> Canvas {
+    compose_seated_with_roles(
+        appearance,
+        Some(gear),
         frame,
         appearance_roles_for_palette(appearance, palette),
     )
@@ -32,6 +58,7 @@ pub fn compose_seated_for_palette(
 
 fn compose_seated_with_roles(
     appearance: &PersonaAppearance,
+    gear: Option<AdventuringGear>,
     frame: TheatreFrame,
     roles: AppearanceRoles,
 ) -> Canvas {
@@ -46,7 +73,10 @@ fn compose_seated_with_roles(
     draw_torso(&mut canvas, appearance, roles, layout);
     draw_pose(&mut canvas, roles, layout, pose);
     draw_seated_legs(&mut canvas, appearance, roles, layout);
-    draw_accessory(&mut canvas, appearance, roles, layout);
+    draw_keepsake(&mut canvas, appearance, roles, layout);
+    if let Some(gear) = gear {
+        draw_gear(&mut canvas, gear, roles);
+    }
     canvas
 }
 
@@ -167,10 +197,10 @@ fn draw_torso(
         layout.torso_y,
         layout.torso_width,
         layout.torso_height,
-        roles.top,
+        roles.garb,
     );
-    match appearance.top {
-        OutfitTop::StripeJumper | OutfitTop::TrackTop => {
+    match appearance.garb {
+        Garb::Cloak | Garb::Robes => {
             draw_run(
                 canvas,
                 layout.torso_x,
@@ -186,19 +216,19 @@ fn draw_torso(
                 roles.accent,
             );
         }
-        OutfitTop::HighCollar => draw_run(
+        Garb::Armour => draw_run(
             canvas,
             layout.torso_x + 1,
             layout.torso_y,
             layout.torso_width - 2,
             roles.accent,
         ),
-        OutfitTop::WorkShirt | OutfitTop::Cardigan | OutfitTop::Waistcoat => {
+        Garb::Doublet | Garb::Vestments | Garb::WorkApron => {
             for y in layout.torso_y..layout.torso_y + layout.torso_height {
                 canvas.set(layout.torso_x + layout.torso_width / 2, y, roles.accent);
             }
         }
-        OutfitTop::BandTee | OutfitTop::Hoodie => canvas.set(
+        Garb::Leathers => canvas.set(
             layout.torso_x + layout.torso_width / 2,
             layout.torso_y + 2,
             roles.accent,
@@ -249,7 +279,7 @@ fn draw_seated_legs(
         layout.torso_x,
         hips_y,
         layout.torso_width,
-        roles.bottom,
+        roles.legwear,
     );
 
     let left = match appearance.proportions {
@@ -263,67 +293,115 @@ fn draw_seated_legs(
     };
     let right = 6;
     for y in hips_y.saturating_add(1)..=10 {
-        draw_run(canvas, left, y, leg_width, roles.bottom);
-        draw_run(canvas, right, y, leg_width, roles.bottom);
+        draw_run(canvas, left, y, leg_width, roles.legwear);
+        draw_run(canvas, right, y, leg_width, roles.legwear);
     }
-    let shoe_width = if appearance.shoes == Shoes::Platforms {
+    let shoe_width = if appearance.footwear == Footwear::Sabatons {
         leg_width + 1
     } else {
         leg_width.max(2)
     };
-    draw_run(canvas, left.saturating_sub(1), 11, shoe_width, roles.shoes);
-    draw_run(canvas, right, 11, shoe_width, roles.shoes);
+    draw_run(
+        canvas,
+        left.saturating_sub(1),
+        11,
+        shoe_width,
+        roles.footwear,
+    );
+    draw_run(canvas, right, 11, shoe_width, roles.footwear);
 }
 
-fn draw_accessory(
+fn draw_keepsake(
     canvas: &mut Canvas,
     appearance: &PersonaAppearance,
     roles: AppearanceRoles,
     layout: SeatedLayout,
 ) {
-    use crate::domain::Accessory;
-    match appearance.accessory {
-        Accessory::Headphones => {
+    match appearance.keepsake {
+        Keepsake::TinyFamiliar => {
             canvas.set(
                 layout.head_x.saturating_sub(1),
                 layout.head_y + 2,
-                roles.accessory,
+                roles.keepsake,
             );
             canvas.set(
                 layout.head_x + layout.head_width,
                 layout.head_y + 2,
-                roles.accessory,
+                roles.keepsake,
             );
         }
-        Accessory::Pager | Accessory::Badge | Accessory::PocketPen => canvas.set(
+        Keepsake::Feather | Keepsake::LuckyCoin => canvas.set(
             layout.torso_x + layout.torso_width - 1,
             layout.torso_y + 1,
-            roles.accessory,
+            roles.keepsake,
         ),
-        Accessory::Lanyard => {
-            canvas.set(layout.torso_x + 1, layout.torso_y, roles.accessory);
-            canvas.set(layout.torso_x + 2, layout.torso_y + 1, roles.accessory);
+        Keepsake::Ribbon => {
+            canvas.set(layout.torso_x + 1, layout.torso_y, roles.keepsake);
+            canvas.set(layout.torso_x + 2, layout.torso_y + 1, roles.keepsake);
         }
-        Accessory::Wristband => canvas.set(
+        Keepsake::PressedLeaf => canvas.set(
             layout.torso_x.saturating_sub(1),
             layout.torso_y + 2,
-            roles.accessory,
+            roles.keepsake,
         ),
-        Accessory::Scarf => draw_run(
+        Keepsake::Mug => draw_run(
             canvas,
             layout.torso_x,
             layout.torso_y,
             layout.torso_width,
-            roles.accessory,
+            roles.keepsake,
         ),
-        Accessory::ShoulderBag => {
-            canvas.set(layout.torso_x + 1, layout.torso_y, roles.accessory);
-            canvas.set(layout.torso_x + 2, layout.torso_y + 1, roles.accessory);
-            canvas.set(
-                layout.torso_x + layout.torso_width - 1,
-                layout.torso_y + 3,
-                roles.accessory,
-            );
+    }
+}
+
+fn draw_gear(canvas: &mut Canvas, gear: AdventuringGear, roles: AppearanceRoles) {
+    match gear {
+        AdventuringGear::Axe => {
+            canvas.fill_rect(9, 4, 1, 7, roles.highlight);
+            canvas.fill_rect(8, 4, 1, 2, roles.highlight);
+        }
+        AdventuringGear::BowAndQuiver => {
+            canvas.fill_rect(0, 3, 1, 7, roles.highlight);
+            canvas.set(1, 3, roles.highlight);
+            canvas.set(1, 9, roles.highlight);
+            canvas.set(2, 6, roles.highlight);
+        }
+        AdventuringGear::HolySymbol => {
+            canvas.set(8, 3, roles.highlight);
+            canvas.fill_rect(8, 4, 2, 1, roles.highlight);
+        }
+        AdventuringGear::Lute => {
+            canvas.set(0, 6, roles.highlight);
+            canvas.fill_rect(0, 7, 2, 1, roles.highlight);
+            canvas.set(1, 8, roles.highlight);
+        }
+        AdventuringGear::MapAndCompass => {
+            canvas.fill_rect(0, 3, 2, 2, roles.highlight);
+            canvas.set(2, 4, roles.highlight);
+        }
+        AdventuringGear::RuneChisel => {
+            canvas.set(9, 3, roles.highlight);
+            canvas.set(8, 4, roles.highlight);
+            canvas.set(8, 5, roles.highlight);
+        }
+        AdventuringGear::Shield => {
+            canvas.fill_rect(0, 5, 2, 4, roles.highlight);
+        }
+        AdventuringGear::SpellbookAndStaff => {
+            canvas.fill_rect(9, 2, 1, 9, roles.highlight);
+            canvas.fill_rect(7, 7, 2, 2, roles.highlight);
+        }
+        AdventuringGear::TestKit => {
+            canvas.fill_rect(0, 9, 3, 2, roles.highlight);
+        }
+        AdventuringGear::ThievesTools => {
+            canvas.set(0, 5, roles.highlight);
+            canvas.set(1, 6, roles.highlight);
+            canvas.set(0, 7, roles.highlight);
+            canvas.set(1, 8, roles.highlight);
+        }
+        AdventuringGear::Toolkit => {
+            canvas.fill_rect(8, 8, 2, 3, roles.highlight);
         }
     }
 }

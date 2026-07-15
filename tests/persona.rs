@@ -1,7 +1,7 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 use questmancer::{
-    domain::{AgentPersona, PersonaKey},
+    domain::{AdventurerClass, AdventurerPersona, Ancestry, PersonaKey},
     herdr::protocol::{AgentInfo, SessionSnapshotResult, SuccessResponse},
 };
 
@@ -55,17 +55,16 @@ fn workspace_and_pane_are_the_last_identity_fallback() {
 }
 
 #[test]
-fn persona_generation_is_stable_and_keeps_handle_separate_from_appearance() {
-    let agent = fixture_agent();
-    let first = AgentPersona::for_agent(&agent, Some("/tmp/herdr-questmancer"));
-    let second = AgentPersona::for_agent(&agent, Some("/tmp/herdr-questmancer"));
+fn persona_generation_is_stable_and_independent_of_pane_moves() {
+    let original = fixture_agent();
+    let mut moved_agent = original.clone();
+    moved_agent.pane_id = "w1:p9".to_owned();
+    let first = AdventurerPersona::for_agent(&original, Some("/repo"));
+    let moved = AdventurerPersona::for_agent(&moved_agent, Some("/repo"));
 
-    assert_eq!(first, second);
-    assert!(first.handle.contains("codex"));
-    assert_eq!(
-        first.appearance,
-        AgentPersona::appearance_for_key(&first.key)
-    );
+    assert_eq!(first, moved);
+    assert!(!first.name.trim().is_empty());
+    assert!(!first.epithet.as_str().trim().is_empty());
 }
 
 #[test]
@@ -73,7 +72,7 @@ fn generated_personas_have_meaningful_trait_diversity() {
     let personas = (0..24)
         .map(|index| {
             let key = PersonaKey::new(format!("persona-{index}"));
-            AgentPersona::appearance_for_key(&key)
+            AdventurerPersona::appearance_for_key(&key)
         })
         .collect::<HashSet<_>>();
 
@@ -89,9 +88,35 @@ fn generated_personas_have_meaningful_trait_diversity() {
     assert!(
         personas
             .iter()
-            .map(|persona| persona.accessory)
+            .map(|persona| persona.keepsake)
             .collect::<HashSet<_>>()
             .len()
             >= 5
     );
+}
+
+#[test]
+fn classic_and_questmancer_classes_are_reachable() {
+    let classes = (0..4096)
+        .map(|index| AdventurerPersona::for_key(PersonaKey::new(format!("persona-{index}"))).class)
+        .collect::<BTreeSet<_>>();
+
+    assert!(classes.contains(&AdventurerClass::Wizard));
+    assert!(classes.contains(&AdventurerClass::Rogue));
+    assert!(classes.contains(&AdventurerClass::Cleric));
+    assert!(classes.contains(&AdventurerClass::Runewright));
+    assert!(classes.contains(&AdventurerClass::Testmender));
+}
+
+#[test]
+fn goblins_are_possible_but_rare() {
+    let goblins = (0..16_384)
+        .filter(|index| {
+            AdventurerPersona::for_key(PersonaKey::new(format!("persona-{index}"))).ancestry
+                == Ancestry::Goblin
+        })
+        .count();
+
+    assert!(goblins > 0);
+    assert!(goblins < 256);
 }

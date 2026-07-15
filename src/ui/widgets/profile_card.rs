@@ -20,9 +20,9 @@ const ASCII_BORDER: border::Set<'static> = border::Set {
 
 use crate::{
     app::{CharacterSet, DisplayPreferences},
-    domain::{Accessory, Agent, DeskProp},
+    domain::{AdventurerClass, AdventuringGear, Agent, Ancestry, Keepsake},
     ui::{
-        persona::compose_profile_for_palette,
+        persona::compose_profile_with_gear_for_palette,
         pixel::{ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
     },
@@ -52,8 +52,8 @@ pub fn render_profile_card(
         palette.resolve(ColorRole::CrtCase)
     });
     let title = match (preferences.character_set, theatre.focused) {
-        (CharacterSet::Ascii, true) => " * AGENT PROFILE ",
-        (CharacterSet::Ascii, false) => " AGENT PROFILE ",
+        (CharacterSet::Ascii, true) => " * ADVENTURER PROFILE ",
+        (CharacterSet::Ascii, false) => " ADVENTURER PROFILE ",
         (CharacterSet::Unicode, true) => " * PROFILE ",
         (CharacterSet::Unicode, false) => " PROFILE ",
     };
@@ -74,7 +74,11 @@ pub fn render_profile_card(
 
     match preferences.character_set {
         CharacterSet::Unicode => {
-            let canvas = compose_profile_for_palette(&agent.persona.appearance, palette);
+            let canvas = compose_profile_with_gear_for_palette(
+                &agent.persona.appearance,
+                agent.persona.class.gear(),
+                palette,
+            );
             frame.render_widget(
                 Paragraph::new(pack(&canvas, &palette, ColorRole::PanelBackground)),
                 Rect::new(inner.x, inner.y, inner.width.min(16), inner.height.min(16)),
@@ -102,8 +106,8 @@ pub fn render_profile_card(
     if inner.height > 16 {
         frame.render_widget(
             Paragraph::new(format!(
-                "@{}",
-                present(&agent.persona.handle, preferences.character_set)
+                "{}",
+                present(agent.persona.epithet.as_str(), preferences.character_set)
             ))
             .style(Style::new().fg(palette.resolve(ColorRole::CrtGlow))),
             Rect::new(
@@ -128,7 +132,14 @@ fn render_details(
         return;
     }
     let mut details = vec![
-        Line::from(present(&agent.name, character_set).into_owned()),
+        Line::from(present(&agent.persona.name, character_set).into_owned()),
+        Line::from(format!(
+            "{} {}",
+            ancestry_label(agent.persona.ancestry),
+            class_label(agent.persona.class)
+        )),
+        Line::from(format!("Gear: {}", gear_label(agent.persona.class.gear()))),
+        Line::from(format!("Agent: {}", present(&agent.name, character_set))),
         Line::from(format!(
             "Site: {}",
             present(agent.workspace_id.as_str(), character_set)
@@ -143,12 +154,8 @@ fn render_details(
         details.push(Line::from("(*) LIVE"));
     }
     details.push(Line::from(format!(
-        "Accessory: {}",
-        accessory_label(agent.persona.appearance.accessory)
-    )));
-    details.push(Line::from(format!(
-        "Desk prop: {}",
-        desk_prop_label(agent.persona.appearance.desk_prop)
+        "Keepsake: {}",
+        keepsake_label(agent.persona.appearance.keepsake)
     )));
     if let Some(status) = agent.custom_status.as_deref() {
         details.push(Line::from(format!(
@@ -173,10 +180,7 @@ fn render_compact(
     let live = if theatre.focused { " LIVE" } else { "" };
     let mut lines = vec![
         Line::from(present(&agent.name, character_set).into_owned()),
-        Line::from(format!(
-            "@{}",
-            present(&agent.persona.handle, character_set)
-        )),
+        Line::from(present(&agent.persona.name, character_set).into_owned()),
         Line::from(format!(
             "{} {}{live}",
             state_marker(theatre.pose),
@@ -198,8 +202,8 @@ fn render_compact(
         )));
     } else {
         lines.push(Line::from(format!(
-            "Accessory: {}",
-            accessory_label(agent.persona.appearance.accessory)
+            "Keepsake: {}",
+            keepsake_label(agent.persona.appearance.keepsake)
         )));
     }
     frame.render_widget(Paragraph::new(Text::from(lines)), area);
@@ -207,7 +211,7 @@ fn render_compact(
 
 fn ascii_profile() -> Vec<Line<'static>> {
     [
-        "  AGENT PROFILE ",
+        " ADVENTURER     ",
         "     .----.     ",
         "    / o  o \\    ",
         "    |  --  |    ",
@@ -240,28 +244,57 @@ const fn state_marker(pose: TheatrePose) -> &'static str {
     }
 }
 
-const fn accessory_label(accessory: Accessory) -> &'static str {
-    match accessory {
-        Accessory::Headphones => "Headphones",
-        Accessory::Pager => "Pager",
-        Accessory::Lanyard => "Lanyard",
-        Accessory::Wristband => "Wristband",
-        Accessory::Scarf => "Scarf",
-        Accessory::Badge => "Badge",
-        Accessory::PocketPen => "Pocket pen",
-        Accessory::ShoulderBag => "Shoulder bag",
+const fn ancestry_label(ancestry: Ancestry) -> &'static str {
+    match ancestry {
+        Ancestry::Human => "Human",
+        Ancestry::Dwarf => "Dwarf",
+        Ancestry::Elf => "Elf",
+        Ancestry::Halfling => "Halfling",
+        Ancestry::Orc => "Orc",
+        Ancestry::Gnome => "Gnome",
+        Ancestry::Goblin => "Goblin",
     }
 }
 
-const fn desk_prop_label(prop: DeskProp) -> &'static str {
-    match prop {
-        DeskProp::NoveltyMug => "Novelty mug",
-        DeskProp::FloppyStack => "Floppy stack",
-        DeskProp::DeskFan => "Desk fan",
-        DeskProp::PizzaBox => "Pizza box",
-        DeskProp::Joystick => "Joystick",
-        DeskProp::Phone => "Phone",
-        DeskProp::Manual => "Manual",
-        DeskProp::TinyCactus => "Tiny cactus",
+const fn class_label(class: AdventurerClass) -> &'static str {
+    match class {
+        AdventurerClass::Barbarian => "Barbarian",
+        AdventurerClass::Bard => "Bard",
+        AdventurerClass::Cleric => "Cleric",
+        AdventurerClass::Paladin => "Paladin",
+        AdventurerClass::Ranger => "Ranger",
+        AdventurerClass::Rogue => "Rogue",
+        AdventurerClass::Wizard => "Wizard",
+        AdventurerClass::Artificer => "Artificer",
+        AdventurerClass::Runewright => "Runewright",
+        AdventurerClass::Testmender => "Testmender",
+        AdventurerClass::Pathseeker => "Pathseeker",
+    }
+}
+
+const fn gear_label(gear: AdventuringGear) -> &'static str {
+    match gear {
+        AdventuringGear::Axe => "Axe",
+        AdventuringGear::BowAndQuiver => "Bow and quiver",
+        AdventuringGear::HolySymbol => "Holy symbol",
+        AdventuringGear::Lute => "Lute",
+        AdventuringGear::MapAndCompass => "Map and compass",
+        AdventuringGear::RuneChisel => "Rune chisel",
+        AdventuringGear::Shield => "Shield",
+        AdventuringGear::SpellbookAndStaff => "Spellbook and staff",
+        AdventuringGear::TestKit => "Test kit",
+        AdventuringGear::ThievesTools => "Thieves' tools",
+        AdventuringGear::Toolkit => "Toolkit",
+    }
+}
+
+const fn keepsake_label(keepsake: Keepsake) -> &'static str {
+    match keepsake {
+        Keepsake::Feather => "Feather",
+        Keepsake::LuckyCoin => "Lucky coin",
+        Keepsake::Mug => "Mug",
+        Keepsake::PressedLeaf => "Pressed leaf",
+        Keepsake::Ribbon => "Ribbon",
+        Keepsake::TinyFamiliar => "Familiar",
     }
 }

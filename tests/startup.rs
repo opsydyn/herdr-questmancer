@@ -7,7 +7,7 @@ use proptest::prelude::*;
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View},
     config::PersistencePaths,
-    domain::{AgentPersona, ChronicleEntry, ChronicleEvent, PersonaKey, Timestamp},
+    domain::{AdventurerPersona, ChronicleEntry, ChronicleEvent, PersonaKey, Timestamp},
     persistence::{PersistedStateV1, StartupData, effective_view, load_startup},
 };
 use tempfile::TempDir;
@@ -131,14 +131,11 @@ show_elapsed_time = false
     };
     let mut persisted_state = state(View::Delve, persisted_preferences);
     let persona_key = PersonaKey::new("persona-restored");
-    persisted_state.personas.insert(
-        persona_key.clone(),
-        AgentPersona {
-            appearance: AgentPersona::appearance_for_key(&persona_key),
-            key: persona_key.clone(),
-            handle: "restored_handle".to_owned(),
-        },
-    );
+    let mut restored_persona = AdventurerPersona::for_key(persona_key.clone());
+    restored_persona.name = "Restored Name".to_owned();
+    persisted_state
+        .personas
+        .insert(persona_key.clone(), restored_persona);
     persisted_state.selected_persona = Some(persona_key.clone());
     tokio::fs::write(
         state_dir.path().join("state.json"),
@@ -153,7 +150,7 @@ show_elapsed_time = false
     assert_eq!(startup.model.view(), View::Delve);
     assert_eq!(startup.model.preferences(), &persisted_preferences);
     let captured = PersistedStateV1::capture(&startup.model);
-    assert_eq!(captured.personas[&persona_key].handle, "restored_handle");
+    assert_eq!(captured.personas[&persona_key].name, "Restored Name");
     assert_eq!(startup.model.settings().output_preview_lines, 123);
     assert_eq!(startup.model.settings().reviewr_action, "acme.diff.inspect");
     assert!(!startup.model.settings().show_elapsed_time);

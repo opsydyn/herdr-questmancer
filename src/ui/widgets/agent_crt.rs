@@ -11,7 +11,7 @@ use crate::{
     domain::{Agent, PersonaAppearance},
     ui::{
         cafe_scene::SeatAnchor,
-        persona::compose_seated_for_palette,
+        persona::compose_seated_with_gear_for_palette,
         pixel::{Canvas, ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
     },
@@ -228,7 +228,12 @@ fn render_scene(
     );
     match character_set {
         CharacterSet::Unicode => {
-            let canvas = compose_station_figure(&agent.persona.appearance, theatre, palette);
+            let canvas = compose_station_figure(
+                &agent.persona.appearance,
+                agent.persona.class.gear(),
+                theatre,
+                palette,
+            );
             frame.render_widget(
                 Paragraph::new(pack(&canvas, &palette, ColorRole::PanelBackground)),
                 persona_area,
@@ -243,11 +248,12 @@ fn render_scene(
 
 fn compose_station_figure(
     appearance: &PersonaAppearance,
+    gear: crate::domain::AdventuringGear,
     theatre: TheatreFrame,
     palette: Palette,
 ) -> Canvas {
     let mut station = chair_for_pose(theatre.pose);
-    let persona = compose_seated_for_palette(appearance, theatre, palette);
+    let persona = compose_seated_with_gear_for_palette(appearance, gear, theatre, palette);
     overlay(&mut station, &persona);
     station
 }

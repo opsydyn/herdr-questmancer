@@ -188,7 +188,13 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
             .get(&agent.workspace_id)
             .is_some_and(|campaign| campaign.label.to_lowercase().contains(&query));
         (agent.name.to_lowercase().contains(&query)
-            || agent.persona.handle.to_lowercase().contains(&query)
+            || agent.persona.name.to_lowercase().contains(&query)
+            || agent
+                .persona
+                .epithet
+                .as_str()
+                .to_lowercase()
+                .contains(&query)
             || agent
                 .custom_status
                 .as_ref()

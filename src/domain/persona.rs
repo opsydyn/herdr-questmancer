@@ -5,22 +5,92 @@ use crate::herdr::protocol::AgentInfo;
 use super::PersonaKey;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct AgentPersona {
+pub struct AdventurerPersona {
     pub key: PersonaKey,
-    pub handle: String,
+    pub name: String,
+    pub ancestry: Ancestry,
+    pub class: AdventurerClass,
+    pub epithet: Epithet,
     pub appearance: PersonaAppearance,
 }
 
-impl AgentPersona {
+impl AdventurerPersona {
     #[must_use]
-    pub fn for_agent(agent: &AgentInfo, workspace_root: Option<&str>) -> Self {
-        let key = PersonaKey::for_agent(agent, workspace_root);
-        let name = agent_name(agent).unwrap_or("webmaster");
+    pub fn for_key(key: PersonaKey) -> Self {
+        const COMMON_ANCESTRIES: [Ancestry; 6] = [
+            Ancestry::Human,
+            Ancestry::Dwarf,
+            Ancestry::Elf,
+            Ancestry::Halfling,
+            Ancestry::Orc,
+            Ancestry::Gnome,
+        ];
+        const CLASSES: [AdventurerClass; 11] = [
+            AdventurerClass::Barbarian,
+            AdventurerClass::Bard,
+            AdventurerClass::Cleric,
+            AdventurerClass::Paladin,
+            AdventurerClass::Ranger,
+            AdventurerClass::Rogue,
+            AdventurerClass::Wizard,
+            AdventurerClass::Artificer,
+            AdventurerClass::Runewright,
+            AdventurerClass::Testmender,
+            AdventurerClass::Pathseeker,
+        ];
+        const FIRST_NAMES: [&str; 12] = [
+            "Elowen", "Merrin", "Arnoldus", "Pius", "Rowan", "Tamsin", "Brindle", "Nessa", "Orin",
+            "Sabine", "Alder", "Lyra",
+        ];
+        const BYNAMES: [&str; 12] = [
+            "Typeweaver",
+            "Ironjaw",
+            "Manytools",
+            "Blackquill",
+            "Brightward",
+            "Mossfoot",
+            "Runehand",
+            "Mapkeeper",
+            "Copperkettle",
+            "Longpath",
+            "Softstep",
+            "Embercloak",
+        ];
+        const EPITHETS: [&str; 8] = [
+            "Keeper of Schemas",
+            "Mender of Tests",
+            "Walker of Worktrees",
+            "Delver of Forgotten Modules",
+            "Breaker of Builds",
+            "Reader of Runes",
+            "Warden of Boundaries",
+            "Cartographer of Call Stacks",
+        ];
+
+        let digest = labelled_hash(key.as_str(), "adventurer");
+        let ancestry = if digest[0] == 0 {
+            Ancestry::Goblin
+        } else {
+            COMMON_ANCESTRIES[usize::from(digest[0] - 1) % COMMON_ANCESTRIES.len()]
+        };
+
         Self {
-            handle: handle_for_key(&key, name),
+            name: format!(
+                "{} {}",
+                FIRST_NAMES[usize::from(digest[1]) % FIRST_NAMES.len()],
+                BYNAMES[usize::from(digest[2]) % BYNAMES.len()],
+            ),
+            ancestry,
+            class: CLASSES[usize::from(digest[3]) % CLASSES.len()],
+            epithet: Epithet(EPITHETS[usize::from(digest[4]) % EPITHETS.len()].to_owned()),
             appearance: Self::appearance_for_key(&key),
             key,
         }
+    }
+
+    #[must_use]
+    pub fn for_agent(agent: &AgentInfo, workspace_root: Option<&str>) -> Self {
+        Self::for_key(PersonaKey::for_agent(agent, workspace_root))
     }
 
     #[must_use]
@@ -33,12 +103,11 @@ impl AgentPersona {
             hair: pick(&HAIR_SHAPES, digest[3]),
             hair_tone: pick(&HAIR_TONES, digest[4]),
             face_detail: pick(&FACE_DETAILS, digest[5]),
-            top: pick(&OUTFIT_TOPS, digest[6]),
-            bottom: pick(&OUTFIT_BOTTOMS, digest[7]),
-            shoes: pick(&SHOES, digest[8]),
-            accessory: pick(&ACCESSORIES, digest[9]),
-            desk_prop: pick(&DESK_PROPS, digest[10]),
-            accent: pick(&ACCENT_TONES, digest[11]),
+            garb: pick(&GARBS, digest[6]),
+            legwear: pick(&LEGWEAR, digest[7]),
+            footwear: pick(&FOOTWEAR, digest[8]),
+            keepsake: pick(&KEEPSAKES, digest[9]),
+            accent: pick(&ACCENT_TONES, digest[10]),
         }
     }
 }
@@ -69,39 +138,6 @@ fn agent_name(agent: &AgentInfo) -> Option<&str> {
         .or(agent.display_agent.as_deref())
 }
 
-fn handle_for_key(key: &PersonaKey, agent_name: &str) -> String {
-    const JOINERS: &[&str] = &["web_ring", "master_2000", "online", "dot_com", "56k"];
-    let digest = labelled_hash(key.as_str(), "handle");
-    let base = slug(agent_name);
-    let joiner = JOINERS[usize::from(digest[0]) % JOINERS.len()];
-    let number = u16::from_le_bytes([digest[1], digest[2]]) % 100;
-    match digest[3] % 4 {
-        0 => format!("xX_{base}_{joiner}_Xx"),
-        1 => format!("{base}_{joiner}_{number:02}"),
-        2 => format!("~{base}_{joiner}~"),
-        _ => format!("{base}@mums_house"),
-    }
-}
-
-fn slug(value: &str) -> String {
-    let slug = value
-        .chars()
-        .map(|character| {
-            if character.is_ascii_alphanumeric() {
-                character.to_ascii_lowercase()
-            } else {
-                '_'
-            }
-        })
-        .collect::<String>();
-    let trimmed = slug.trim_matches('_');
-    if trimmed.is_empty() {
-        "agent".to_owned()
-    } else {
-        trimmed.to_owned()
-    }
-}
-
 fn labelled_hash(key: &str, label: &str) -> [u8; 32] {
     let mut hasher = blake3::Hasher::new();
     hasher.update(label.as_bytes());
@@ -122,12 +158,72 @@ pub struct PersonaAppearance {
     pub hair: HairShape,
     pub hair_tone: HairTone,
     pub face_detail: FaceDetail,
-    pub top: OutfitTop,
-    pub bottom: OutfitBottom,
-    pub shoes: Shoes,
-    pub accessory: Accessory,
-    pub desk_prop: DeskProp,
+    pub garb: Garb,
+    pub legwear: Legwear,
+    pub footwear: Footwear,
+    pub keepsake: Keepsake,
     pub accent: AccentTone,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Ancestry {
+    Human,
+    Dwarf,
+    Elf,
+    Halfling,
+    Orc,
+    Gnome,
+    Goblin,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AdventurerClass {
+    Barbarian,
+    Bard,
+    Cleric,
+    Paladin,
+    Ranger,
+    Rogue,
+    Wizard,
+    Artificer,
+    Runewright,
+    Testmender,
+    Pathseeker,
+}
+
+impl AdventurerClass {
+    #[must_use]
+    pub const fn gear(self) -> AdventuringGear {
+        match self {
+            Self::Barbarian => AdventuringGear::Axe,
+            Self::Bard => AdventuringGear::Lute,
+            Self::Cleric => AdventuringGear::HolySymbol,
+            Self::Paladin => AdventuringGear::Shield,
+            Self::Ranger => AdventuringGear::BowAndQuiver,
+            Self::Rogue => AdventuringGear::ThievesTools,
+            Self::Wizard => AdventuringGear::SpellbookAndStaff,
+            Self::Artificer => AdventuringGear::Toolkit,
+            Self::Runewright => AdventuringGear::RuneChisel,
+            Self::Testmender => AdventuringGear::TestKit,
+            Self::Pathseeker => AdventuringGear::MapAndCompass,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct Epithet(String);
+
+impl Epithet {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 macro_rules! trait_enum {
@@ -184,49 +280,47 @@ trait_enum!(FaceDetail {
     Freckles,
     Moustache
 });
-trait_enum!(OutfitTop {
-    BandTee,
-    StripeJumper,
-    HighCollar,
-    WorkShirt,
-    Hoodie,
-    Cardigan,
-    Waistcoat,
-    TrackTop
+trait_enum!(Garb {
+    Armour,
+    Cloak,
+    Doublet,
+    Leathers,
+    Robes,
+    Vestments,
+    WorkApron
 });
-trait_enum!(OutfitBottom {
-    Jeans,
-    Slacks,
-    Cargos,
-    Skirt,
-    Shorts
+trait_enum!(Legwear {
+    BootsAndBreeches,
+    Greaves,
+    RobeHem,
+    TravelingSkirt
 });
-trait_enum!(Shoes {
-    Trainers,
+trait_enum!(Footwear {
     Boots,
-    Loafers,
-    HighTops,
-    Platforms
+    Sabatons,
+    Sandals,
+    SoftShoes
 });
-trait_enum!(Accessory {
-    Headphones,
-    Pager,
-    Lanyard,
-    Wristband,
-    Scarf,
-    Badge,
-    PocketPen,
-    ShoulderBag
+trait_enum!(Keepsake {
+    Feather,
+    LuckyCoin,
+    Mug,
+    PressedLeaf,
+    Ribbon,
+    TinyFamiliar
 });
-trait_enum!(DeskProp {
-    NoveltyMug,
-    FloppyStack,
-    DeskFan,
-    PizzaBox,
-    Joystick,
-    Phone,
-    Manual,
-    TinyCactus
+trait_enum!(AdventuringGear {
+    Axe,
+    BowAndQuiver,
+    HolySymbol,
+    Lute,
+    MapAndCompass,
+    RuneChisel,
+    Shield,
+    SpellbookAndStaff,
+    TestKit,
+    ThievesTools,
+    Toolkit
 });
 trait_enum!(AccentTone {
     Amber,
@@ -285,49 +379,34 @@ const FACE_DETAILS: [FaceDetail; 6] = [
     FaceDetail::Freckles,
     FaceDetail::Moustache,
 ];
-const OUTFIT_TOPS: [OutfitTop; 8] = [
-    OutfitTop::BandTee,
-    OutfitTop::StripeJumper,
-    OutfitTop::HighCollar,
-    OutfitTop::WorkShirt,
-    OutfitTop::Hoodie,
-    OutfitTop::Cardigan,
-    OutfitTop::Waistcoat,
-    OutfitTop::TrackTop,
+const GARBS: [Garb; 7] = [
+    Garb::Armour,
+    Garb::Cloak,
+    Garb::Doublet,
+    Garb::Leathers,
+    Garb::Robes,
+    Garb::Vestments,
+    Garb::WorkApron,
 ];
-const OUTFIT_BOTTOMS: [OutfitBottom; 5] = [
-    OutfitBottom::Jeans,
-    OutfitBottom::Slacks,
-    OutfitBottom::Cargos,
-    OutfitBottom::Skirt,
-    OutfitBottom::Shorts,
+const LEGWEAR: [Legwear; 4] = [
+    Legwear::BootsAndBreeches,
+    Legwear::Greaves,
+    Legwear::RobeHem,
+    Legwear::TravelingSkirt,
 ];
-const SHOES: [Shoes; 5] = [
-    Shoes::Trainers,
-    Shoes::Boots,
-    Shoes::Loafers,
-    Shoes::HighTops,
-    Shoes::Platforms,
+const FOOTWEAR: [Footwear; 4] = [
+    Footwear::Boots,
+    Footwear::Sabatons,
+    Footwear::Sandals,
+    Footwear::SoftShoes,
 ];
-const ACCESSORIES: [Accessory; 8] = [
-    Accessory::Headphones,
-    Accessory::Pager,
-    Accessory::Lanyard,
-    Accessory::Wristband,
-    Accessory::Scarf,
-    Accessory::Badge,
-    Accessory::PocketPen,
-    Accessory::ShoulderBag,
-];
-const DESK_PROPS: [DeskProp; 8] = [
-    DeskProp::NoveltyMug,
-    DeskProp::FloppyStack,
-    DeskProp::DeskFan,
-    DeskProp::PizzaBox,
-    DeskProp::Joystick,
-    DeskProp::Phone,
-    DeskProp::Manual,
-    DeskProp::TinyCactus,
+const KEEPSAKES: [Keepsake; 6] = [
+    Keepsake::Feather,
+    Keepsake::LuckyCoin,
+    Keepsake::Mug,
+    Keepsake::PressedLeaf,
+    Keepsake::Ribbon,
+    Keepsake::TinyFamiliar,
 ];
 const ACCENT_TONES: [AccentTone; 8] = [
     AccentTone::Amber,

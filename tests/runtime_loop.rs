@@ -3,7 +3,7 @@ use questmancer::{
     app::{ConnectionState, DisplayPreferences, Model, Motion, RuntimeSettings, View},
     command::{AgentCommand, CommandResult},
     domain::{
-        Agent, AgentKey, AgentPersona, DomainState, GuildAttention, GuildSummons, PaneId,
+        AdventurerPersona, Agent, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId,
         PersonaKey, Presence, Timestamp,
     },
     herdr::{
@@ -64,11 +64,8 @@ fn model_with_two_distinct_personas() -> Model {
     second.key = AgentKey::new("agent-z");
     second.pane_id = PaneId::new("w1:p2");
     let persona_key = PersonaKey::new("persona-z");
-    second.persona = AgentPersona {
-        appearance: AgentPersona::appearance_for_key(&persona_key),
-        key: persona_key,
-        handle: "second_persona".to_owned(),
-    };
+    second.persona = AdventurerPersona::for_key(persona_key);
+    "second persona".clone_into(&mut second.persona.name);
     domain.agents.insert(second.key.clone(), second);
     let mut model = Model::new(View::Guild);
     model.replace_domain(domain);
@@ -146,7 +143,7 @@ fn explicit_duplicate_and_stale_status_updates_have_no_runtime_effects() {
 #[test]
 fn snapshot_result_preserves_persistence_effect_after_durable_overlay() {
     let mut model = connected_model_with_presence(Presence::Working);
-    let restored_handle = model.selected_agent().unwrap().persona.handle.clone();
+    let restored_name = model.selected_agent().unwrap().persona.name.clone();
 
     let effects = apply_command_result(
         &mut model,
@@ -155,10 +152,7 @@ fn snapshot_result_preserves_persistence_effect_after_durable_overlay() {
     );
 
     assert_eq!(effects.persistence, vec![Command::PersistState]);
-    assert_eq!(
-        model.selected_agent().unwrap().persona.handle,
-        restored_handle
-    );
+    assert_eq!(model.selected_agent().unwrap().persona.name, restored_name);
 }
 
 #[test]

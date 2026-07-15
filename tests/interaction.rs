@@ -3,7 +3,9 @@ use std::ops::ControlFlow;
 use questmancer::{
     app::{Modal, Model, Region, RuntimeSettings, View},
     command::AgentCommand,
-    domain::{AgentKey, AgentPersona, DomainState, PaneId, PersonaKey, Timestamp, WorkspaceId},
+    domain::{
+        AdventurerPersona, AgentKey, DomainState, PaneId, PersonaKey, Timestamp, WorkspaceId,
+    },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::reduce_action,
     ui::input::Action,
@@ -29,11 +31,8 @@ fn live_model_with_two_distinct_personas() -> Model {
     let second_key = model.domain().agents.keys().next_back().unwrap().clone();
     let persona_key = PersonaKey::new("persona-z");
     let second = model.domain_mut().agents.get_mut(&second_key).unwrap();
-    second.persona = AgentPersona {
-        appearance: AgentPersona::appearance_for_key(&persona_key),
-        key: persona_key,
-        handle: "second_persona".to_owned(),
-    };
+    second.persona = AdventurerPersona::for_key(persona_key);
+    "second persona".clone_into(&mut second.persona.name);
     model.replace_domain(model.domain().clone());
     model
 }
@@ -47,12 +46,12 @@ fn searchable_model() -> Model {
         let domain = model.domain_mut();
         let first = domain.agents.get_mut(&first_key).unwrap();
         "Alpha".clone_into(&mut first.name);
-        "one".clone_into(&mut first.persona.handle);
+        "one".clone_into(&mut first.persona.name);
         first.custom_status = Some("waiting".to_owned());
 
         let second = domain.agents.get_mut(&second_key).unwrap();
         "Beta".clone_into(&mut second.name);
-        "two".clone_into(&mut second.persona.handle);
+        "two".clone_into(&mut second.persona.name);
         second.custom_status = Some("deploying".to_owned());
         second.workspace_id = WorkspaceId::new("w2");
 

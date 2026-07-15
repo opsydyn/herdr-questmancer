@@ -7,7 +7,7 @@ use proptest::prelude::*;
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View},
     domain::{
-        Agent, AgentKey, AgentPersona, Campaign, Chronicle, ChronicleEvent, DomainState,
+        AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, ChronicleEvent, DomainState,
         GuildAttention, GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp, WorkspaceId,
     },
     herdr::protocol::{AgentInfo, AgentSessionInfo, AgentStatus, SessionSnapshot, WorkspaceInfo},
@@ -51,12 +51,8 @@ pub(crate) fn guild_summons() -> impl Strategy<Value = GuildSummons> {
     ]
 }
 
-pub(crate) fn persona() -> impl Strategy<Value = AgentPersona> {
-    (persona_key(), display_text()).prop_map(|(key, handle)| AgentPersona {
-        appearance: AgentPersona::appearance_for_key(&key),
-        key,
-        handle,
-    })
+pub(crate) fn persona() -> impl Strategy<Value = AdventurerPersona> {
+    persona_key().prop_map(AdventurerPersona::for_key)
 }
 
 pub(crate) fn timestamp() -> impl Strategy<Value = Timestamp> {

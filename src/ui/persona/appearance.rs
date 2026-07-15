@@ -1,7 +1,6 @@
 use crate::{
     domain::{
-        AccentTone, Accessory, HairTone, OutfitBottom, OutfitTop, PersonaAppearance, Shoes,
-        SkinTone,
+        AccentTone, Footwear, Garb, HairTone, Keepsake, Legwear, PersonaAppearance, SkinTone,
     },
     ui::pixel::{
         AccentShade, ColorRole, FabricShade, FootwearShade, HairShade, Palette, SkinShade,
@@ -12,10 +11,10 @@ use crate::{
 pub struct AppearanceRoles {
     pub skin: ColorRole,
     pub hair: ColorRole,
-    pub top: ColorRole,
-    pub bottom: ColorRole,
-    pub shoes: ColorRole,
-    pub accessory: ColorRole,
+    pub garb: ColorRole,
+    pub legwear: ColorRole,
+    pub footwear: ColorRole,
+    pub keepsake: ColorRole,
     pub accent: ColorRole,
     pub highlight: ColorRole,
     pub shadow: ColorRole,
@@ -24,19 +23,19 @@ pub struct AppearanceRoles {
 pub fn appearance_roles(appearance: &PersonaAppearance) -> AppearanceRoles {
     let skin = ColorRole::SkinTone(skin_shade(appearance.skin_tone));
     let hair = ColorRole::HairTone(hair_shade(appearance.hair_tone));
-    let top = ColorRole::Fabric(top_shade(appearance.top));
-    let bottom = ColorRole::Fabric(bottom_shade(appearance.bottom));
-    let shoes = ColorRole::Footwear(shoe_shade(appearance.shoes));
-    let accessory = ColorRole::AccentTone(accessory_shade(appearance.accessory));
+    let garb = ColorRole::Fabric(garb_shade(appearance.garb));
+    let legwear = ColorRole::Fabric(legwear_shade(appearance.legwear));
+    let footwear = ColorRole::Footwear(footwear_shade(appearance.footwear));
+    let keepsake = ColorRole::AccentTone(keepsake_shade(appearance.keepsake));
     let accent = ColorRole::AccentTone(accent_shade(appearance.accent));
 
     AppearanceRoles {
         skin,
         hair,
-        top,
-        bottom,
-        shoes,
-        accessory,
+        garb,
+        legwear,
+        footwear,
+        keepsake,
         accent,
         highlight: ColorRole::Highlight,
         shadow: ColorRole::Shadow,
@@ -55,23 +54,23 @@ pub fn appearance_roles_for_palette(
         &HAIR_FALLBACKS,
         palette,
     );
-    let top = contrasting(canonical.top, &[skin, hair], &FABRIC_FALLBACKS, palette);
-    let bottom = contrasting(canonical.bottom, &[top], &FABRIC_FALLBACKS, palette);
-    let shoes = contrasting(
-        canonical.shoes,
-        &[bottom, ColorRole::PanelBackground],
+    let garb = contrasting(canonical.garb, &[skin, hair], &FABRIC_FALLBACKS, palette);
+    let legwear = contrasting(canonical.legwear, &[garb], &FABRIC_FALLBACKS, palette);
+    let footwear = contrasting(
+        canonical.footwear,
+        &[legwear, ColorRole::PanelBackground],
         &FOOTWEAR_FALLBACKS,
         palette,
     );
-    let accessory = contrasting(
-        canonical.accessory,
-        &[top, skin, hair],
+    let keepsake = contrasting(
+        canonical.keepsake,
+        &[garb, skin, hair],
         &ACCENT_FALLBACKS,
         palette,
     );
     let accent = contrasting(
         canonical.accent,
-        &[top, skin, hair, accessory],
+        &[garb, skin, hair, keepsake],
         &ACCENT_FALLBACKS,
         palette,
     );
@@ -79,10 +78,10 @@ pub fn appearance_roles_for_palette(
     AppearanceRoles {
         skin,
         hair,
-        top,
-        bottom,
-        shoes,
-        accessory,
+        garb,
+        legwear,
+        footwear,
+        keepsake,
         accent,
         highlight: ColorRole::Highlight,
         shadow: ColorRole::Shadow,
@@ -170,49 +169,44 @@ const fn hair_shade(tone: HairTone) -> HairShade {
     }
 }
 
-const fn top_shade(top: OutfitTop) -> FabricShade {
-    match top {
-        OutfitTop::BandTee => FabricShade::Navy,
-        OutfitTop::StripeJumper => FabricShade::Cobalt,
-        OutfitTop::HighCollar => FabricShade::Teal,
-        OutfitTop::WorkShirt => FabricShade::Green,
-        OutfitTop::Hoodie => FabricShade::Mustard,
-        OutfitTop::Cardigan => FabricShade::Orange,
-        OutfitTop::Waistcoat => FabricShade::Crimson,
-        OutfitTop::TrackTop => FabricShade::Plum,
+const fn garb_shade(garb: Garb) -> FabricShade {
+    match garb {
+        Garb::Armour => FabricShade::Navy,
+        Garb::Cloak => FabricShade::Cobalt,
+        Garb::Doublet => FabricShade::Teal,
+        Garb::Leathers => FabricShade::Green,
+        Garb::Robes => FabricShade::Mustard,
+        Garb::Vestments => FabricShade::Crimson,
+        Garb::WorkApron => FabricShade::Plum,
     }
 }
 
-const fn bottom_shade(bottom: OutfitBottom) -> FabricShade {
-    match bottom {
-        OutfitBottom::Jeans => FabricShade::Navy,
-        OutfitBottom::Slacks => FabricShade::Plum,
-        OutfitBottom::Cargos => FabricShade::Green,
-        OutfitBottom::Skirt => FabricShade::Crimson,
-        OutfitBottom::Shorts => FabricShade::Orange,
+const fn legwear_shade(legwear: Legwear) -> FabricShade {
+    match legwear {
+        Legwear::BootsAndBreeches => FabricShade::Navy,
+        Legwear::Greaves => FabricShade::Plum,
+        Legwear::RobeHem => FabricShade::Green,
+        Legwear::TravelingSkirt => FabricShade::Crimson,
     }
 }
 
-const fn shoe_shade(shoes: Shoes) -> FootwearShade {
-    match shoes {
-        Shoes::Trainers => FootwearShade::White,
-        Shoes::Boots => FootwearShade::Charcoal,
-        Shoes::Loafers => FootwearShade::Black,
-        Shoes::HighTops => FootwearShade::Blue,
-        Shoes::Platforms => FootwearShade::Magenta,
+const fn footwear_shade(footwear: Footwear) -> FootwearShade {
+    match footwear {
+        Footwear::Boots => FootwearShade::Charcoal,
+        Footwear::Sabatons => FootwearShade::White,
+        Footwear::Sandals => FootwearShade::Blue,
+        Footwear::SoftShoes => FootwearShade::Black,
     }
 }
 
-const fn accessory_shade(accessory: Accessory) -> AccentShade {
-    match accessory {
-        Accessory::Headphones => AccentShade::Amber,
-        Accessory::Pager => AccentShade::Cyan,
-        Accessory::Lanyard => AccentShade::Lime,
-        Accessory::Wristband => AccentShade::Magenta,
-        Accessory::Scarf => AccentShade::Red,
-        Accessory::Badge => AccentShade::Blue,
-        Accessory::PocketPen => AccentShade::Violet,
-        Accessory::ShoulderBag => AccentShade::Teal,
+const fn keepsake_shade(keepsake: Keepsake) -> AccentShade {
+    match keepsake {
+        Keepsake::Feather => AccentShade::Amber,
+        Keepsake::LuckyCoin => AccentShade::Cyan,
+        Keepsake::Mug => AccentShade::Lime,
+        Keepsake::PressedLeaf => AccentShade::Red,
+        Keepsake::Ribbon => AccentShade::Violet,
+        Keepsake::TinyFamiliar => AccentShade::Teal,
     }
 }
 

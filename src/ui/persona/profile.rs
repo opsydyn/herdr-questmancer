@@ -1,6 +1,7 @@
 use crate::{
     domain::{
-        Accessory, BodyProportions, FaceDetail, HairShape, HeadShape, OutfitTop, PersonaAppearance,
+        AdventuringGear, BodyProportions, FaceDetail, Garb, HairShape, HeadShape, Keepsake,
+        PersonaAppearance,
     },
     ui::pixel::{Canvas, ColorRole, Palette},
 };
@@ -100,24 +101,48 @@ impl ProfileLayout {
 }
 
 pub fn compose_profile(appearance: &PersonaAppearance) -> Canvas {
-    compose_profile_with_roles(appearance, appearance_roles(appearance))
+    compose_profile_with_roles(appearance, None, appearance_roles(appearance))
+}
+
+pub fn compose_profile_with_gear(appearance: &PersonaAppearance, gear: AdventuringGear) -> Canvas {
+    compose_profile_with_roles(appearance, Some(gear), appearance_roles(appearance))
 }
 
 pub fn compose_profile_for_palette(appearance: &PersonaAppearance, palette: Palette) -> Canvas {
     compose_profile_with_roles(
         appearance,
+        None,
         appearance_roles_for_palette(appearance, palette),
     )
 }
 
-fn compose_profile_with_roles(appearance: &PersonaAppearance, roles: AppearanceRoles) -> Canvas {
+pub fn compose_profile_with_gear_for_palette(
+    appearance: &PersonaAppearance,
+    gear: AdventuringGear,
+    palette: Palette,
+) -> Canvas {
+    compose_profile_with_roles(
+        appearance,
+        Some(gear),
+        appearance_roles_for_palette(appearance, palette),
+    )
+}
+
+fn compose_profile_with_roles(
+    appearance: &PersonaAppearance,
+    gear: Option<AdventuringGear>,
+    roles: AppearanceRoles,
+) -> Canvas {
     let mut canvas = Canvas::new(PROFILE_WIDTH, PROFILE_HEIGHT);
     let layout = ProfileLayout::for_proportions(appearance.proportions);
 
     draw_head(&mut canvas, appearance, roles, layout);
     draw_torso_and_arms(&mut canvas, appearance, roles, layout);
     draw_legs_and_shoes(&mut canvas, roles, layout);
-    draw_accessory(&mut canvas, appearance.accessory, roles, layout);
+    draw_keepsake(&mut canvas, appearance.keepsake, roles, layout);
+    if let Some(gear) = gear {
+        draw_gear(&mut canvas, gear, roles);
+    }
     canvas
 }
 
@@ -346,7 +371,7 @@ fn draw_torso_and_arms(
         layout.torso_y,
         layout.torso_width,
         layout.torso_height,
-        roles.top,
+        roles.garb,
     );
     let arm_width = if appearance.proportions == BodyProportions::Broad {
         2
@@ -370,8 +395,8 @@ fn draw_torso_and_arms(
         roles.skin,
     );
 
-    match appearance.top {
-        OutfitTop::StripeJumper | OutfitTop::TrackTop => {
+    match appearance.garb {
+        Garb::Cloak | Garb::Robes => {
             fill(
                 canvas,
                 layout.torso_x,
@@ -389,7 +414,7 @@ fn draw_torso_and_arms(
                 roles.accent,
             );
         }
-        OutfitTop::HighCollar => fill(
+        Garb::Armour => fill(
             canvas,
             layout.torso_x + 1,
             layout.torso_y,
@@ -397,7 +422,7 @@ fn draw_torso_and_arms(
             2,
             roles.accent,
         ),
-        OutfitTop::WorkShirt | OutfitTop::Cardigan | OutfitTop::Waistcoat => fill(
+        Garb::Doublet | Garb::Vestments | Garb::WorkApron => fill(
             canvas,
             layout.torso_x + layout.torso_width / 2,
             layout.torso_y,
@@ -405,7 +430,7 @@ fn draw_torso_and_arms(
             layout.torso_height,
             roles.accent,
         ),
-        OutfitTop::BandTee | OutfitTop::Hoodie => fill(
+        Garb::Leathers => fill(
             canvas,
             layout.torso_x + layout.torso_width / 2 - 1,
             layout.torso_y + 3,
@@ -420,7 +445,7 @@ fn draw_torso_and_arms(
         layout.hip_y,
         layout.hip_width,
         3,
-        roles.bottom,
+        roles.legwear,
     );
 }
 
@@ -433,7 +458,7 @@ fn draw_legs_and_shoes(canvas: &mut Canvas, roles: AppearanceRoles, layout: Prof
         layout.leg_y,
         layout.leg_width,
         layout.leg_height,
-        roles.bottom,
+        roles.legwear,
     );
     fill(
         canvas,
@@ -441,7 +466,7 @@ fn draw_legs_and_shoes(canvas: &mut Canvas, roles: AppearanceRoles, layout: Prof
         layout.leg_y,
         layout.leg_width,
         layout.leg_height,
-        roles.bottom,
+        roles.legwear,
     );
     let shoe_y = layout.leg_y + layout.leg_height;
     fill(
@@ -450,7 +475,7 @@ fn draw_legs_and_shoes(canvas: &mut Canvas, roles: AppearanceRoles, layout: Prof
         shoe_y,
         layout.leg_width + 2,
         2,
-        roles.shoes,
+        roles.footwear,
     );
     fill(
         canvas,
@@ -458,31 +483,31 @@ fn draw_legs_and_shoes(canvas: &mut Canvas, roles: AppearanceRoles, layout: Prof
         shoe_y,
         layout.leg_width + 2,
         2,
-        roles.shoes,
+        roles.footwear,
     );
 }
 
-fn draw_accessory(
+fn draw_keepsake(
     canvas: &mut Canvas,
-    accessory: Accessory,
+    keepsake: Keepsake,
     roles: AppearanceRoles,
     layout: ProfileLayout,
 ) {
-    match accessory {
-        Accessory::Headphones => draw_headphones(canvas, roles.accessory, layout),
-        Accessory::Pager => fill(
+    match keepsake {
+        Keepsake::TinyFamiliar => draw_familiar(canvas, roles.keepsake, layout),
+        Keepsake::LuckyCoin => fill(
             canvas,
             layout.torso_x + layout.torso_width - 1,
             layout.torso_y + 4,
             2,
             2,
-            roles.accessory,
+            roles.keepsake,
         ),
-        Accessory::Lanyard => {
+        Keepsake::Ribbon => {
             canvas.set(
                 layout.torso_x + layout.torso_width / 2 - 1,
                 layout.torso_y + 1,
-                roles.accessory,
+                roles.keepsake,
             );
             fill(
                 canvas,
@@ -490,25 +515,25 @@ fn draw_accessory(
                 layout.torso_y + 2,
                 1,
                 4,
-                roles.accessory,
+                roles.keepsake,
             );
         }
-        Accessory::Wristband => fill(
+        Keepsake::PressedLeaf => fill(
             canvas,
             layout.torso_x.saturating_sub(1),
             layout.torso_y + 5,
             2,
             1,
-            roles.accessory,
+            roles.keepsake,
         ),
-        Accessory::Scarf => {
+        Keepsake::Mug => {
             fill(
                 canvas,
                 layout.torso_x,
                 layout.torso_y,
                 layout.torso_width,
                 2,
-                roles.accessory,
+                roles.keepsake,
             );
             fill(
                 canvas,
@@ -516,30 +541,21 @@ fn draw_accessory(
                 layout.torso_y + 2,
                 2,
                 4,
-                roles.accessory,
+                roles.keepsake,
             );
         }
-        Accessory::Badge => fill(
+        Keepsake::Feather => fill(
             canvas,
             layout.torso_x + layout.torso_width - 3,
             layout.torso_y + 2,
             2,
             2,
-            roles.accessory,
+            roles.keepsake,
         ),
-        Accessory::PocketPen => fill(
-            canvas,
-            layout.torso_x + layout.torso_width - 2,
-            layout.torso_y + 1,
-            1,
-            3,
-            roles.accessory,
-        ),
-        Accessory::ShoulderBag => draw_shoulder_bag(canvas, roles.accessory, layout),
     }
 }
 
-fn draw_headphones(canvas: &mut Canvas, role: ColorRole, layout: ProfileLayout) {
+fn draw_familiar(canvas: &mut Canvas, role: ColorRole, layout: ProfileLayout) {
     fill(
         canvas,
         layout.head_x.saturating_sub(1),
@@ -558,18 +574,59 @@ fn draw_headphones(canvas: &mut Canvas, role: ColorRole, layout: ProfileLayout) 
     );
 }
 
-fn draw_shoulder_bag(canvas: &mut Canvas, role: ColorRole, layout: ProfileLayout) {
-    for offset in 0..layout.torso_height.min(7) {
-        canvas.set(layout.torso_x + 1 + offset, layout.torso_y + offset, role);
+fn draw_gear(canvas: &mut Canvas, gear: AdventuringGear, roles: AppearanceRoles) {
+    match gear {
+        AdventuringGear::Axe => {
+            fill(canvas, 14, 10, 1, 17, roles.highlight);
+            fill(canvas, 12, 10, 2, 4, roles.highlight);
+        }
+        AdventuringGear::BowAndQuiver => {
+            fill(canvas, 1, 8, 1, 19, roles.highlight);
+            canvas.set(2, 8, roles.highlight);
+            canvas.set(2, 26, roles.highlight);
+            canvas.set(3, 17, roles.highlight);
+        }
+        AdventuringGear::HolySymbol => {
+            fill(canvas, 12, 10, 1, 5, roles.highlight);
+            fill(canvas, 11, 12, 3, 1, roles.highlight);
+        }
+        AdventuringGear::Lute => {
+            fill(canvas, 1, 14, 2, 5, roles.highlight);
+            fill(canvas, 2, 10, 1, 4, roles.highlight);
+        }
+        AdventuringGear::MapAndCompass => {
+            fill(canvas, 1, 9, 3, 5, roles.highlight);
+            canvas.set(4, 13, roles.highlight);
+        }
+        AdventuringGear::RuneChisel => {
+            canvas.set(14, 8, roles.highlight);
+            canvas.set(13, 9, roles.highlight);
+            fill(canvas, 12, 10, 1, 7, roles.highlight);
+        }
+        AdventuringGear::Shield => {
+            fill(canvas, 1, 12, 3, 10, roles.highlight);
+            fill(canvas, 2, 22, 1, 2, roles.highlight);
+        }
+        AdventuringGear::SpellbookAndStaff => {
+            fill(canvas, 14, 5, 1, 24, roles.highlight);
+            fill(canvas, 11, 16, 3, 4, roles.highlight);
+        }
+        AdventuringGear::TestKit => {
+            fill(canvas, 1, 23, 4, 5, roles.highlight);
+            fill(canvas, 2, 22, 2, 1, roles.highlight);
+        }
+        AdventuringGear::ThievesTools => {
+            canvas.set(1, 12, roles.highlight);
+            canvas.set(2, 14, roles.highlight);
+            canvas.set(1, 16, roles.highlight);
+            canvas.set(2, 18, roles.highlight);
+            canvas.set(1, 20, roles.highlight);
+        }
+        AdventuringGear::Toolkit => {
+            fill(canvas, 12, 22, 3, 6, roles.highlight);
+            fill(canvas, 13, 21, 1, 1, roles.highlight);
+        }
     }
-    fill(
-        canvas,
-        layout.torso_x + layout.torso_width - 2,
-        layout.torso_y + layout.torso_height - 3,
-        3,
-        3,
-        role,
-    );
 }
 
 fn fill(canvas: &mut Canvas, x: u16, y: u16, width: u16, height: u16, role: ColorRole) {

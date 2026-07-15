@@ -12,7 +12,8 @@ pub use campaign::{Campaign, CampaignStatus};
 pub use chronicle::{Chronicle, ChronicleEntry, ChronicleEvent};
 pub use ids::{AgentKey, EventId, PaneId, PersonaKey, TabId, Timestamp, WorkspaceId};
 pub use persona::{
-    AccentTone, Accessory, AgentPersona, BodyProportions, DeskProp, FaceDetail, HairShape,
-    HairTone, HeadShape, OutfitBottom, OutfitTop, PersonaAppearance, Shoes, SkinTone,
+    AccentTone, AdventurerClass, AdventurerPersona, AdventuringGear, Ancestry, BodyProportions,
+    Epithet, FaceDetail, Footwear, Garb, HairShape, HairTone, HeadShape, Keepsake, Legwear,
+    PersonaAppearance, SkinTone,
 };
 pub use state::DomainState;

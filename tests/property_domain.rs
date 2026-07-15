@@ -7,7 +7,7 @@ use proptest::prelude::*;
 use questmancer::{
     app::{Model, View},
     domain::{
-        AgentKey, AgentPersona, Campaign, CampaignStatus, ChronicleEntry, ChronicleEvent,
+        AdventurerPersona, AgentKey, Campaign, CampaignStatus, ChronicleEntry, ChronicleEvent,
         DomainState, GuildSummons, PersonaKey, Presence, WorkspaceId,
     },
     ui::cafe_scene::layout_bays,
@@ -106,15 +106,30 @@ proptest! {
     ) {
         let first_key = PersonaKey::for_agent(&agent, workspace_root.as_deref());
         let second_key = PersonaKey::for_agent(&agent, workspace_root.as_deref());
-        let first_persona = AgentPersona::for_agent(&agent, workspace_root.as_deref());
-        let second_persona = AgentPersona::for_agent(&agent, workspace_root.as_deref());
+        let first_persona = AdventurerPersona::for_agent(&agent, workspace_root.as_deref());
+        let second_persona = AdventurerPersona::for_agent(&agent, workspace_root.as_deref());
 
         prop_assert_eq!(&first_key, &second_key);
         prop_assert_eq!(&first_persona, &second_persona);
         prop_assert_eq!(
             first_persona.appearance,
-            AgentPersona::appearance_for_key(&first_key),
+            AdventurerPersona::appearance_for_key(&first_key),
         );
+        prop_assert!(!first_persona.name.trim().is_empty());
+        prop_assert!(first_persona.name.len() <= 64);
+        prop_assert!(!first_persona.epithet.as_str().trim().is_empty());
+        prop_assert!(first_persona.epithet.as_str().len() <= 64);
+
+        let has_named_workspace_identity = workspace_root.is_some()
+            && (agent.name.is_some() || agent.agent.is_some() || agent.display_agent.is_some());
+        if agent.agent_session.is_some() || has_named_workspace_identity {
+            let mut moved = agent.clone();
+            moved.pane_id.push_str("-moved");
+            prop_assert_eq!(
+                AdventurerPersona::for_agent(&moved, workspace_root.as_deref()),
+                first_persona,
+            );
+        }
     }
 
     #[test]

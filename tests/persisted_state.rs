@@ -70,14 +70,14 @@ fn validation_rejects_a_seen_episode_referencing_a_missing_persona() {
 fn failed_seed_is_atomic_and_cannot_cross_persona_identities() {
     let mut valid = captured_state();
     let persona_key = valid.personas.keys().next().unwrap().clone();
-    valid.personas.get_mut(&persona_key).unwrap().handle = "known_safe".to_owned();
+    valid.personas.get_mut(&persona_key).unwrap().name = "Known Safe".to_owned();
     let mut model = Model::new(View::Guild);
     model.durable_intent_mut().seed(&valid).unwrap();
     let before = model.durable_intent().clone();
     let mut invalid = valid;
     let embedded = invalid.personas.get_mut(&persona_key).unwrap();
     embedded.key = PersonaKey::new("persona-crossed");
-    embedded.handle = "wrong_identity".to_owned();
+    embedded.name = "Wrong Identity".to_owned();
 
     let result = model.durable_intent_mut().seed(&invalid);
 
@@ -86,7 +86,7 @@ fn failed_seed_is_atomic_and_cannot_cross_persona_identities() {
     model.replace_domain(support::fixture_domain());
     let persona = &model.selected_agent().unwrap().persona;
     assert_eq!(persona.key, persona_key);
-    assert_eq!(persona.handle, "known_safe");
+    assert_eq!(persona.name, "Known Safe");
 }
 
 #[test]
@@ -101,7 +101,7 @@ fn validation_rejects_an_unsupported_schema_version() {
 fn overlay_restores_matching_persona_selection_and_seen_episode() {
     let mut state = captured_state();
     let selected = state.selected_persona.clone().unwrap();
-    state.personas.get_mut(&selected).unwrap().handle = "authored_handle".to_owned();
+    state.personas.get_mut(&selected).unwrap().name = "Authored Name".to_owned();
     let domain = support::fixture_domain();
     let before = support::live_facts(&domain);
     let mut model = Model::new(View::Guild);
@@ -111,7 +111,7 @@ fn overlay_restores_matching_persona_selection_and_seen_episode() {
 
     let selected_agent = model.selected_agent().unwrap();
     assert_eq!(selected_agent.persona.key, selected);
-    assert_eq!(selected_agent.persona.handle, "authored_handle");
+    assert_eq!(selected_agent.persona.name, "Authored Name");
     assert!(matches!(
         selected_agent.attention,
         GuildAttention::Read { .. }
