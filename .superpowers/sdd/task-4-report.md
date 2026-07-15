@@ -1,114 +1,144 @@
-# Task 4 report: workstation and profile widgets
+# Task 4 report: byte-safe guestbook replay and append
 
 ## Outcome
 
-Implemented pure Ratatui workstation and profile-card renderers in
-`src/ui/widgets`. The public API is:
-
-- `render_workstation(frame, area, agent, theatre, selected, preferences)`
-- `render_profile_card(frame, area, agent, theatre, preferences)`
-
-The widgets consume injected `TheatreFrame` values, render no timers, read no
-output, and mutate neither app nor domain state.
+Implemented tolerant byte-oriented replay and synced append-only publication for
+`guestbook.jsonl`. Replay preserves valid history around damaged records and
+routes every accepted entry through the existing `Guestbook::append` boundary,
+so deterministic-ID deduplication, chronological ordering, and configured
+retention remain the domain object's responsibility.
 
 ## TDD evidence
 
-The work was built in independently verified RED/GREEN increments.
+### Replay RED
 
-1. Initial workstation RED: `cargo test --test cafe_widgets` failed with
-   `E0432` because `herdr_webmaster::ui::widgets` did not exist.
-2. Profile RED: the focused test failed with `E0432` because
-   `render_profile_card` did not exist.
-3. ASCII profile RED: the renderer lacked the required `AGENT PROFILE`
-   silhouette and the test failed at that assertion.
-4. Palette-boundary RED: compilation failed because `ColorMode` and
-   `DisplayPreferences::color_mode` did not exist.
-5. Tiny-profile RED: the 18x4 profile showed only the decorative frame and
-   lost `Codex` plus `[x] BROKEN LINK`.
-6. Confetti-range RED: the deterministic comparison found frames 3, 5, and 8
-   produced no decoration because their selected string columns were outside
-   the row bounds.
-7. Explicit confetti-marker RED: frame 1 contained zero `^` markers before the
-   one-marker contract was implemented.
-8. Minimum-profile RED: a 34x18 card entered full mode but had no remaining row
-   for the handle; compact mode now retains the handle and full mode reserves
-   the required space.
-9. Chair-review RED: done and exited workstations contained no resolved
-   `ColorRole::Chair` cells; the semantic chair style assertion failed.
-10. Selection-review RED: `selected = true` with `focused = false` still
-    rendered the unlit `(.)` lamp.
-11. ASCII-presentation RED: non-ASCII names and status text passed unchanged
-    into full and compact widget buffers.
-12. Unicode-control RED: a printable `Café` name containing an embedded newline
-    and escape byte was not presented as the safe single-line `Café ...?` form.
+Command:
 
-Each failure was observed before its production change, then rerun green.
+```text
+cargo test --test guestbook_persistence
+```
+
+Result: exit `101`. The compiler reported the intended missing API boundary:
+
+```text
+error[E0432]: unresolved imports `herdr_webmaster::persistence::load_guestbook`, `herdr_webmaster::persistence::replay_guestbook`
+ --> tests/guestbook_persistence.rs:5:19
+  |
+5 |     persistence::{load_guestbook, replay_guestbook},
+  |                   ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^ no `replay_guestbook` in `persistence`
+  |                   |
+  |                   no `load_guestbook` in `persistence`
+```
+
+After the minimal byte replay and missing-file loader were implemented, the
+same command exited `0`: 5 passed, 0 failed.
+
+### Append RED
+
+The real-tempfile append tests were added only after replay was green.
+
+Command:
+
+```text
+cargo test --test guestbook_persistence
+```
+
+Result: exit `101`. The compiler reported:
+
+```text
+error[E0432]: unresolved import `herdr_webmaster::persistence::append_guestbook`
+ --> tests/guestbook_persistence.rs:5:19
+  |
+5 |     persistence::{append_guestbook, load_guestbook, replay_guestbook},
+  |                   ^^^^^^^^^^^^^^^^ no `append_guestbook` in `persistence`
+```
+
+After implementing compact serialization, parent creation, one append handle,
+`write_all`, and `sync_data`, the same command exited `0`: 9 passed, 0 failed.
+
+### Pure interleaving property
+
+The final property mixes valid entries, explicit duplicate records, and hostile
+byte records under random bounds `1..100`, then compares replay to an
+independent fold through `Guestbook::append`. It also asserts unique IDs,
+chronological ordering, and the bound directly. No reduced case count is set,
+so Proptest uses its default 256 cases.
+
+The first focused invocation exposed a test-only `prop_assert!` formatting
+limitation around a closure block and exited `101`; moving the expression into a
+named boolean corrected the test harness without changing production code.
+
+Command:
+
+```text
+cargo test --test guestbook_persistence arbitrary_record_interleavings_match_a_guestbook_fold
+```
+
+Final result: exit `0`; 1 passed, 0 failed, 9 filtered out, in 0.27 seconds.
 
 ## Changes
 
-- Added `ColorMode::{Xterm256, Ansi16}` to app display preferences, defaulting
-  to xterm-256. The UI layer alone converts it to `Palette`, preserving the
-  app/domain boundary.
-- Added a full 28x10 workstation with border, name row, six scene rows, state
-  row, CRT, desk, chair/persona, deterministic modem/CRT activity, optional
-  custom status, and focus/selection treatment.
-- Reused `compose_seated_for_palette` and `pack` for the palette-safe 10x12
-  seated persona. A semantic chair canvas is composed first and the existing
-  persona canvas is overlaid without duplicating persona geometry. Exited
-  agents leave the chair visible; done/relaxed poses use shifted, kicked-back
-  chair geometry.
-- Added explicit non-colour pose communication for working, blocked,
-  done-unseen, done-seen, idle, exited, unknown, and focused states.
-- Added deterministic done-unseen confetti only for injected animation frames
-  1 through 8. Stable frame 0 and done-seen contain no confetti marker.
-- Added the full profile card using `compose_profile_for_palette` and `pack`,
-  preserving all 16x32 logical pixels as 16 terminal rows alongside handle,
-  site/pane, state, accessory, desk prop, custom status, and focus details.
-- Added semantic ASCII workstation and profile silhouettes with ASCII borders,
-  explicit action markers, and no block or half-block glyphs.
-- Added compact zero/tiny-safe projections that retain identity and actionable
-  state whenever the area can display them.
-- Selection now lights the desk lamp independently of focus. Only actual focus
-  adds `LIVE`, so selection never claims a state the domain does not own.
-- Added one shared widget presentation boundary. ASCII mode maps non-ASCII and
-  unsafe controls to printable placeholders in every full/compact domain-text
-  path. Unicode preserves printable Unicode while normalizing newline/tab and
-  other controls so domain data cannot alter layout.
+- Added `ReplayResult`, `replay_guestbook`, `load_guestbook`, and
+  `append_guestbook` to the public persistence surface.
+- Replay splits the original byte slice on `b'\n'`; it never decodes the full
+  file or calls `str::lines`.
+- Every complete line is decoded as UTF-8 independently and then deserialized
+  as one `GuestbookEntry`. A malformed line contributes a one-based diagnostic
+  and cannot hide later valid records.
+- A non-empty unterminated final slice is rejected as truncated, even when its
+  bytes would otherwise form valid JSON.
+- At most five individual record diagnostics are retained. Further rejected
+  records are represented by one line-less summary containing the omitted
+  count.
+- Missing files load as an empty bounded guestbook without diagnostics; other
+  read failures return an empty bounded guestbook plus a structured path-bearing
+  diagnostic.
+- Append serializes one compact entry plus exactly one newline before opening
+  the file, creates missing parent directories, opens one create/append handle,
+  writes all bytes, and calls `sync_data` before acknowledging success.
+- Atomic state publication was not changed.
 
-## Verification
+## Files
 
-Final gate run from `/Users/alancurrie/Projects/herdr-web-master`:
+- `src/persistence/guestbook_jsonl.rs` (new)
+- `src/persistence/mod.rs`
+- `tests/guestbook_persistence.rs` (new)
+- `.superpowers/sdd/task-4-report.md`
 
-- `cargo fmt --all --check` — passed.
-- `cargo test --all-targets` — passed, including all 15 `cafe_widgets` tests
-  and the existing suite.
-- `cargo clippy --all-targets --all-features -- -D warnings` — passed.
-- `git diff --check` — passed.
+`src/domain/guestbook.rs` required no change: replay deliberately reuses the
+existing `Guestbook::new` and `Guestbook::append` semantics. The unrelated
+pre-existing modification to `.superpowers/sdd/task-2-report.md` was not edited
+or staged.
 
-Focused coverage includes every theatre pose, focus without state replacement,
-packed seated and full-body figures, xterm-256 and ANSI-16 selection, Unicode
-and ASCII projections, all ASCII action markers, deterministic injected
-frames, exact confetti lifetime, custom status, and zero/tiny safety.
+## Final verification
 
-## Self-review
+- `cargo fmt --all` — exit 0.
+- `git diff --check` — exit 0.
+- `cargo test --test guestbook --test guestbook_persistence` — exit 0;
+  guestbook 3 passed and guestbook persistence 10 passed, with 0 failures.
+- The first `cargo clippy --all-targets --all-features -- -D warnings` found one
+  test-only `clippy::naive_bytecount` warning in a redundant newline-count
+  assertion and exited 101. The exact-byte assertion already proves the
+  serialized record plus one newline, so the redundant count was removed.
+- Fresh `cargo clippy --all-targets --all-features -- -D warnings` — exit 0,
+  no warnings.
+- `cargo test --all-targets` — exit 0; every unit and integration test binary
+  passed, including all 10 guestbook persistence tests and the default-256 pure
+  replay property.
 
-- Rendering remains pure and deterministic; all animation inputs come from
-  `TheatreFrame`.
-- State meaning is duplicated in visible text/markers and scene posture, not
-  conveyed by colour alone.
-- Palette-aware persona composition is reused rather than duplicating geometry
-  in widgets.
-- ASCII output is checked as entirely ASCII, not merely free of half blocks.
-- Selection changes the border, cursor, and lamp. `TheatreFrame::focused`
-  independently controls `LIVE`, leaving Task 5 free to define cafe
-  selection/focus coordination.
+## Self-review and concerns
 
-## Originality and concerns
-
-All workstation composition, CRT text, ASCII silhouettes, profile ASCII art,
-and animation markers were authored for this implementation. Existing original
-persona composers are reused as designed; no supplied character, costume,
-logo, pose, or scene composition was copied.
-
-No blocking concerns remain. Task 5 still owns responsive placement and the
-room-level meaning of selected versus focused agents.
+- Verified replay operates on real byte slices and malformed UTF-8 cannot make
+  the whole history undecodable.
+- Verified valid records on both sides of malformed JSON and malformed UTF-8
+  survive replay with their original one-based line diagnostics.
+- Verified an otherwise valid final JSON record is rejected when its newline is
+  absent.
+- Verified duplicate IDs, out-of-order timestamps, and retention eviction are
+  not reimplemented in persistence and match a direct `Guestbook::append` fold.
+- Verified append tests inspect real tempfile bytes, missing parent creation,
+  sequential order, and a real path-bearing open failure.
+- One-writer serialization remains Task 5's responsibility, as required by the
+  milestone design; this append primitive intentionally adds no locking or
+  retry after ambiguous I/O failure.
+- No unresolved concern remains within Task 4 scope.
