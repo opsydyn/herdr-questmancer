@@ -146,7 +146,6 @@ pub struct AttentionEpisodeKey {
     pub persona: PersonaKey,
     pub pane_revision: u64,
     pub reason: AttentionReason,
-    pub since: Timestamp,
 }
 ```
 
@@ -161,9 +160,11 @@ persona map, and every seen episode to reference a persona in that map. These
 checks make cross-identity corruption fail closed.
 
 `AttentionEpisodeKey` identifies one live attention episode rather than an
-agent forever. A seen marker is restored only when persona, pane revision,
-reason, and `since` all match the fresh snapshot. A later blocked or completed
-episode for the same persona is therefore unseen.
+agent forever. A seen marker is restored only when persona, pane revision, and
+reason all match the fresh snapshot. Herdr snapshots expose the revision but
+not the original status timestamp, so `since` cannot be part of restart-stable
+identity. A later blocked or completed episode advances the pane revision and
+is therefore unseen.
 
 Do not persist:
 
