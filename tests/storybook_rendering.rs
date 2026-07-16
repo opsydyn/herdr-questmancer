@@ -129,7 +129,7 @@ fn motion_stories_share_one_phased_baseline_and_only_change_motion() {
 fn motion_story_production_buffers_are_pairwise_distinct() {
     let render = |id| {
         let model = compatibility_model(id);
-        storybook_ui::render_application_buffer(&model, 130, 34)
+        storybook_ui::render_application_buffer(&model, 60, 34)
     };
     let full = render("compat.motion-full");
     let reduced = render("compat.motion-reduced");

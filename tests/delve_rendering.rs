@@ -894,9 +894,9 @@ fn reduced_motion_animates_only_resting_while_no_motion_remains_stable() {
             motion,
             ..DisplayPreferences::default()
         });
-        let first = render(&model, 120, 30);
+        let first = render(&model, 60, 36);
         model.set_now(Timestamp::from_millis(9_999));
-        let later = render(&model, 120, 30);
+        let later = render(&model, 60, 36);
 
         assert_eq!(first, later, "motion {motion:?} changed with the clock");
         assert!(first.contains("DELVING"));
@@ -910,9 +910,9 @@ fn reduced_motion_animates_only_resting_while_no_motion_remains_stable() {
             .unwrap()
             .presence = Presence::Idle;
         model.set_now(Timestamp::from_millis(2_500));
-        let resting = render(&model, 120, 30);
+        let resting = render(&model, 60, 36);
         model.set_now(Timestamp::from_millis(9_999));
-        let resting_later = render(&model, 120, 30);
+        let resting_later = render(&model, 60, 36);
         match motion {
             Motion::Reduced => assert_ne!(resting, resting_later),
             Motion::None => assert_eq!(resting, resting_later),

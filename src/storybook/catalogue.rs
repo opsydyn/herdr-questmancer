@@ -741,7 +741,11 @@ fn widget_atlas_shows(build: StoryBuilder) -> &'static [AssetId] {
                     &mut shows,
                     &agent.persona,
                     chamber,
-                    persona_render_mode_for_chamber(chamber, preferences.character_set),
+                    persona_render_mode_for_chamber(
+                        chamber,
+                        theatre.pose,
+                        preferences.character_set,
+                    ),
                 );
             }
             AtlasContent::Application { model } => {

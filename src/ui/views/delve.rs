@@ -1,6 +1,6 @@
 use ratatui::{
     Frame,
-    layout::{Alignment, Constraint, Rect},
+    layout::{Alignment, Rect},
     style::Style,
     symbols::border,
     text::{Line, Text},
@@ -9,9 +9,11 @@ use ratatui::{
 
 use crate::{
     app::{CharacterSet, ConnectionState, DisplayPreferences, Model},
-    domain::AgentKey,
     ui::{
-        delve_projection,
+        delve_projection::{
+            CampaignStripProjection, DelveContentProjection, DelveRenderProjection,
+            ProjectedChamber, ProjectedDelve,
+        },
         pixel::{ColorRole, Palette},
         theatre::frame_for,
         widgets::render_chamber,
@@ -62,19 +64,12 @@ impl DelveStyles {
     }
 }
 
-pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
-    let area = frame.area();
+pub(crate) fn render(frame: &mut Frame<'_>, model: &Model, projection: &DelveRenderProjection) {
     let styles = DelveStyles::from_preferences(*model.preferences());
-    if area.width < 4 || area.height < 3 {
+    if let DelveContentProjection::Tiny { area } = projection.content {
         frame.render_widget(Paragraph::new("D").style(styles.accent), area);
         return;
     }
-    let projection = delve_projection::render_projection(model, area);
-
-    let footer_height = u16::try_from(projection.footer_lines.len()).unwrap_or(u16::MAX);
-    let [body, footer] =
-        ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
-            .areas(area);
     let title = format!(
         " QUESTMANCER DELVES - {} ",
         connection_label(model.connection())
@@ -88,212 +83,97 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     if model.preferences().character_set == crate::app::CharacterSet::Ascii {
         block = block.border_set(ASCII_BORDER);
     }
-    let inner = block.inner(body);
-    frame.render_widget(block, body);
+    frame.render_widget(block, projection.body_area);
 
-    if model.domain().agents.is_empty() {
-        render_empty(frame, inner, styles);
-    } else if inner.width >= 78 {
-        render_connected_delves(frame, inner, model, styles, &projection.visible_agent_keys);
-        if !matches!(model.connection(), ConnectionState::Reconnecting { .. }) {
-            render_connection_overlay(frame, inner, model.connection(), styles);
+    match &projection.content {
+        DelveContentProjection::Tiny { .. } => unreachable!("tiny projection returned above"),
+        DelveContentProjection::Empty { area } => render_empty(frame, *area, styles),
+        DelveContentProjection::Compact {
+            chambers,
+            connection_overlay,
+            ..
+        } => {
+            render_compact_list(frame, model, chambers);
+            render_connection_overlay(frame, *connection_overlay, model.connection(), styles);
         }
-    } else {
-        render_compact_list(frame, inner, model, &projection.visible_agent_keys);
-        render_connection_overlay(
+        DelveContentProjection::Connected {
+            delves,
+            campaign_strip,
+            connection_overlay,
+            ..
+        } => {
+            render_connected_delves(frame, model, styles, delves, campaign_strip.as_ref());
+            if let Some(area) = connection_overlay {
+                render_connection_overlay(frame, *area, model.connection(), styles);
+            }
+        }
+    }
+
+    render_footer(
+        frame,
+        projection.footer_area,
+        &projection.footer_lines,
+        styles,
+    );
+}
+
+fn render_connected_delves(
+    frame: &mut Frame<'_>,
+    model: &Model,
+    styles: DelveStyles,
+    delves: &[ProjectedDelve],
+    campaign_strip: Option<&CampaignStripProjection>,
+) {
+    for delve in delves {
+        render_delve_architecture(
             frame,
-            Rect::new(inner.x, inner.y, inner.width, 1),
-            model.connection(),
+            delve.area,
+            &delve.workspace_id,
+            delve.variant,
+            delve.active,
             styles,
         );
     }
-
-    render_footer(frame, footer, &projection.footer_lines, styles);
-}
-
-#[allow(clippy::too_many_lines)]
-fn render_connected_delves(
-    frame: &mut Frame<'_>,
-    area: Rect,
-    model: &Model,
-    styles: DelveStyles,
-    visible_agents: &std::collections::BTreeSet<AgentKey>,
-) {
-    use crate::ui::delve_scene::layout_delves;
-    let sites = if model.domain().campaigns.is_empty() {
-        let mut derived = std::collections::BTreeMap::new();
-        for agent in model.domain().agents.values() {
-            let id = agent.workspace_id.clone();
-            derived
-                .entry(id.clone())
-                .or_insert_with(|| crate::domain::Campaign {
-                    workspace_id: id.clone(),
-                    label: id.to_string(),
-                    cwd: std::path::PathBuf::new(),
-                    party: Vec::new(),
-                })
-                .party
-                .push(agent.key.clone());
-        }
-        derived
-    } else {
-        model.domain().campaigns.clone()
-    };
-    let selected_workspace = model
-        .selected_agent()
-        .map(|agent| agent.workspace_id.clone());
-    let delves = layout_delves(
-        &sites,
-        &model.domain().agents,
-        area,
-        selected_workspace.as_ref(),
-    );
-    if area.width < 116 && delves.len() > 1 {
-        let strip_height = 2.min(area.height);
-        let active_area = Rect::new(
-            area.x,
-            area.y,
-            area.width,
-            area.height.saturating_sub(strip_height),
-        );
-        let active_delve = delves
-            .iter()
-            .find(|delve| {
-                delve
-                    .adventurers
-                    .iter()
-                    .any(|key| visible_agents.contains(key))
-            })
-            .unwrap_or(&delves[0]);
-        render_delve_architecture(
-            frame,
-            active_area,
-            &active_delve.workspace_id,
-            active_delve.variant,
-            true,
-            styles,
-        );
-        if let Some(site) = sites.get(&active_delve.workspace_id) {
-            let mut active_site = site.clone();
-            active_site.party.clone_from(&active_delve.adventurers);
-            let active_sites = std::collections::BTreeMap::from([(
-                active_delve.workspace_id.clone(),
-                active_site,
-            )]);
-            let remapped = layout_delves(
-                &active_sites,
-                &model.domain().agents,
-                active_area,
-                Some(&active_delve.workspace_id),
-            )
-            .into_iter()
-            .next()
-            .map(|delve| delve.chambers)
-            .unwrap_or_default();
-            render_reconnecting_fog_in_room(
-                frame,
-                active_area,
-                &remapped,
-                model.connection(),
-                styles,
-            );
+    render_reconnecting_fog(frame, delves, model.connection(), styles);
+    if campaign_strip.is_some() {
+        if let Some(active) = delves.first() {
             render_route_home(
                 frame,
-                active_area,
-                &remapped,
+                active.area,
+                &active.chambers,
                 model.preferences().character_set,
                 styles,
             );
-            for (index, key) in active_delve.adventurers.iter().enumerate() {
-                if !visible_agents.contains(key) {
-                    continue;
-                }
-                if let (Some(agent), Some(anchor)) =
-                    (model.domain().agents.get(key), remapped.get(index).copied())
-                {
-                    render_chamber(
-                        frame,
-                        anchor,
-                        agent,
-                        frame_for(agent, model.now(), model.preferences()),
-                        model.selected_agent_key() == Some(key),
-                        model.preferences(),
-                    );
-                }
-            }
         }
-        let mut labels = sites
-            .keys()
-            .map(|id| format!("[{}]", id.as_str()))
-            .collect::<Vec<_>>();
-        if delves.len() > sites.len() {
-            labels.push("[more chambers]".to_owned());
-        }
+    } else {
+        render_connected_routes(frame, delves, model.preferences().character_set, styles);
+    }
+    for delve in delves {
+        render_projected_chambers(frame, model, &delve.chambers);
+    }
+    if let Some(strip) = campaign_strip {
         frame.render_widget(
-            Paragraph::new(labels.join(" ")).style(styles.muted),
-            Rect::new(
-                area.x,
-                area.bottom().saturating_sub(strip_height),
-                area.width,
-                strip_height,
-            ),
+            Paragraph::new(strip.labels.join(" ")).style(styles.muted),
+            strip.area,
         );
-        return;
-    }
-    for delve in &delves {
-        let active = selected_workspace.as_ref() == Some(&delve.workspace_id);
-        render_delve_architecture(
-            frame,
-            delve.rect,
-            &delve.workspace_id,
-            delve.variant,
-            active,
-            styles,
-        );
-    }
-    render_reconnecting_fog(frame, &delves, model.connection(), styles);
-    render_connected_routes(frame, &delves, model.preferences().character_set, styles);
-    for delve in &delves {
-        if !sites.contains_key(&delve.workspace_id) {
-            continue;
-        }
-        for (index, key) in delve.adventurers.iter().enumerate() {
-            if !visible_agents.contains(key) {
-                continue;
-            }
-            let Some(agent) = model.domain().agents.get(key) else {
-                continue;
-            };
-            let Some(anchor) = delve.chambers.get(index).copied() else {
-                continue;
-            };
-            render_chamber(
-                frame,
-                anchor,
-                agent,
-                frame_for(agent, model.now(), model.preferences()),
-                model.selected_agent_key() == Some(key),
-                model.preferences(),
-            );
-        }
     }
 }
 
 fn render_reconnecting_fog(
     frame: &mut Frame<'_>,
-    delves: &[crate::ui::delve_scene::CampaignDelve],
+    delves: &[ProjectedDelve],
     connection: &ConnectionState,
     styles: DelveStyles,
 ) {
     for delve in delves {
-        render_reconnecting_fog_in_room(frame, delve.rect, &delve.chambers, connection, styles);
+        render_reconnecting_fog_in_room(frame, delve.area, &delve.chambers, connection, styles);
     }
 }
 
 fn render_reconnecting_fog_in_room(
     frame: &mut Frame<'_>,
     area: Rect,
-    chambers: &[crate::ui::delve_scene::ChamberAnchor],
+    chambers: &[ProjectedChamber],
     connection: &ConnectionState,
     styles: DelveStyles,
 ) {
@@ -322,19 +202,19 @@ fn render_reconnecting_fog_in_room(
 
 fn render_connected_routes(
     frame: &mut Frame<'_>,
-    delves: &[crate::ui::delve_scene::CampaignDelve],
+    delves: &[ProjectedDelve],
     character_set: CharacterSet,
     styles: DelveStyles,
 ) {
     let Some(first) = delves.first() else {
         return;
     };
-    render_route_home(frame, first.rect, &first.chambers, character_set, styles);
+    render_route_home(frame, first.area, &first.chambers, character_set, styles);
     for pair in delves.windows(2) {
         let [previous, next] = pair else {
             continue;
         };
-        if previous.rect.y == next.rect.y {
+        if previous.area.y == next.area.y {
             render_adjacent_opening(frame, previous, next, character_set, styles);
         } else {
             render_row_wrap_corridor(frame, previous, next, character_set, styles);
@@ -345,7 +225,7 @@ fn render_connected_routes(
 fn render_route_home(
     frame: &mut Frame<'_>,
     area: Rect,
-    chambers: &[crate::ui::delve_scene::ChamberAnchor],
+    chambers: &[ProjectedChamber],
     character_set: CharacterSet,
     styles: DelveStyles,
 ) {
@@ -367,19 +247,19 @@ fn render_route_home(
 
 fn render_adjacent_opening(
     frame: &mut Frame<'_>,
-    left: &crate::ui::delve_scene::CampaignDelve,
-    right: &crate::ui::delve_scene::CampaignDelve,
+    left: &ProjectedDelve,
+    right: &ProjectedDelve,
     character_set: CharacterSet,
     styles: DelveStyles,
 ) {
-    if left.rect.right() != right.rect.x || left.rect.width < 2 || right.rect.width < 2 {
+    if left.area.right() != right.area.x || left.area.width < 2 || right.area.width < 2 {
         return;
     }
-    let start_y = left.rect.y.max(right.rect.y).saturating_add(1);
+    let start_y = left.area.y.max(right.area.y).saturating_add(1);
     let end_y = left
-        .rect
+        .area
         .bottom()
-        .min(right.rect.bottom())
+        .min(right.area.bottom())
         .saturating_sub(1);
     let preferred = start_y.saturating_add(end_y.saturating_sub(start_y) / 2);
     let Some(y) = (start_y..end_y)
@@ -396,7 +276,7 @@ fn render_adjacent_opening(
     else {
         return;
     };
-    let x = left.rect.right().saturating_sub(2);
+    let x = left.area.right().saturating_sub(2);
     let glyphs = match character_set {
         CharacterSet::Ascii => "----",
         CharacterSet::Unicode => "────",
@@ -409,15 +289,15 @@ fn render_adjacent_opening(
 
 fn render_row_wrap_corridor(
     frame: &mut Frame<'_>,
-    previous: &crate::ui::delve_scene::CampaignDelve,
-    next: &crate::ui::delve_scene::CampaignDelve,
+    previous: &ProjectedDelve,
+    next: &ProjectedDelve,
     character_set: CharacterSet,
     styles: DelveStyles,
 ) {
-    if previous.rect.bottom() != next.rect.y || previous.rect.height < 3 || next.rect.height < 3 {
+    if previous.area.bottom() != next.area.y || previous.area.height < 3 || next.area.height < 3 {
         return;
     }
-    let seam_y = next.rect.y;
+    let seam_y = next.area.y;
     let previous_rows = [seam_y.saturating_sub(2), seam_y.saturating_sub(1)];
     let next_rows = [seam_y, seam_y.saturating_add(1)];
     let Some(previous_x) = unused_column(previous, &previous_rows) else {
@@ -451,11 +331,7 @@ fn render_row_wrap_corridor(
     );
 }
 
-fn unused_row(
-    area: Rect,
-    chambers: &[crate::ui::delve_scene::ChamberAnchor],
-    preferred: u16,
-) -> Option<u16> {
+fn unused_row(area: Rect, chambers: &[ProjectedChamber], preferred: u16) -> Option<u16> {
     let start = area.y.saturating_add(1);
     let end = area.bottom().saturating_sub(1);
     (start..end)
@@ -463,28 +339,28 @@ fn unused_row(
         .min_by_key(|candidate| candidate.abs_diff(preferred))
 }
 
-fn unused_column(delve: &crate::ui::delve_scene::CampaignDelve, rows: &[u16]) -> Option<u16> {
-    let start = delve.rect.x.saturating_add(2);
-    let end = delve.rect.right().saturating_sub(2);
-    let preferred = delve.rect.x.saturating_add(delve.rect.width / 2);
+fn unused_column(delve: &ProjectedDelve, rows: &[u16]) -> Option<u16> {
+    let start = delve.area.x.saturating_add(2);
+    let end = delve.area.right().saturating_sub(2);
+    let preferred = delve.area.x.saturating_add(delve.area.width / 2);
     (start..end)
         .filter(|candidate| {
             delve.chambers.iter().all(|chamber| {
                 rows.iter().all(|row| {
-                    *candidate < chamber.x
-                        || *candidate >= chamber.x.saturating_add(chamber.width)
-                        || *row < chamber.y
-                        || *row >= chamber.y.saturating_add(chamber.height)
+                    *candidate < chamber.area.x
+                        || *candidate >= chamber.area.right()
+                        || *row < chamber.area.y
+                        || *row >= chamber.area.bottom()
                 })
             })
         })
         .min_by_key(|candidate| candidate.abs_diff(preferred))
 }
 
-fn row_is_unused(y: u16, chambers: &[crate::ui::delve_scene::ChamberAnchor]) -> bool {
+fn row_is_unused(y: u16, chambers: &[ProjectedChamber]) -> bool {
     chambers
         .iter()
-        .all(|chamber| y < chamber.y || y >= chamber.y.saturating_add(chamber.height))
+        .all(|chamber| y < chamber.area.y || y >= chamber.area.bottom())
 }
 
 fn render_delve_architecture(
@@ -592,49 +468,21 @@ fn architecture_row(area: Rect, content: &str) -> String {
     )
 }
 
-fn render_compact_list(
-    frame: &mut Frame<'_>,
-    area: Rect,
-    model: &Model,
-    visible_agents: &std::collections::BTreeSet<AgentKey>,
-) {
-    let count = visible_agents.len();
-    if count == 0 || area.height <= 1 {
-        return;
-    }
-    let list = Rect::new(
-        area.x,
-        area.y.saturating_add(1),
-        area.width,
-        area.height.saturating_sub(1),
-    );
-    let item_height = (list.height / u16::try_from(count).unwrap_or(1)).max(1);
-    for (index, (key, agent)) in model
-        .domain()
-        .agents
-        .iter()
-        .filter(|(key, _agent)| visible_agents.contains(*key))
-        .enumerate()
-    {
-        let y = list.y.saturating_add(
-            u16::try_from(index)
-                .unwrap_or_default()
-                .saturating_mul(item_height),
-        );
-        if y >= list.bottom() {
-            break;
-        }
+fn render_compact_list(frame: &mut Frame<'_>, model: &Model, chambers: &[ProjectedChamber]) {
+    render_projected_chambers(frame, model, chambers);
+}
+
+fn render_projected_chambers(frame: &mut Frame<'_>, model: &Model, chambers: &[ProjectedChamber]) {
+    for chamber in chambers {
+        let Some(agent) = model.domain().agents.get(&chamber.key) else {
+            continue;
+        };
         render_chamber(
             frame,
-            Rect::new(
-                list.x,
-                y,
-                list.width,
-                item_height.min(list.bottom().saturating_sub(y)),
-            ),
+            chamber.area,
             agent,
             frame_for(agent, model.now(), model.preferences()),
-            model.selected_agent_key() == Some(key),
+            model.selected_agent_key() == Some(&chamber.key),
             model.preferences(),
         );
     }

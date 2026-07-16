@@ -36,7 +36,7 @@ pub const fn chamber_presentation(area: Rect) -> ChamberPresentation {
         ChamberPresentation::Hidden
     } else if area.width >= MIN_FULL_WIDTH && area.height >= MIN_FULL_HEIGHT {
         ChamberPresentation::Full
-    } else if area.width >= 14 && area.height >= 6 {
+    } else if area.width >= 14 && area.height >= 8 {
         ChamberPresentation::CompactScene
     } else {
         ChamberPresentation::Text
@@ -70,7 +70,15 @@ pub fn render_chamber<A: ChamberBounds>(
     let area = anchor.rect();
     match chamber_presentation(area) {
         ChamberPresentation::Hidden => {}
-        ChamberPresentation::Text | ChamberPresentation::CompactScene => render_compact(
+        ChamberPresentation::Text => render_text(
+            frame,
+            area,
+            agent,
+            theatre,
+            selected,
+            preferences.character_set,
+        ),
+        ChamberPresentation::CompactScene => render_compact_scene(
             frame,
             area,
             agent,
@@ -137,28 +145,14 @@ fn render_full(
     );
 }
 
-fn render_compact(
+fn render_text(
     frame: &mut Frame<'_>,
     area: Rect,
     agent: &Agent,
     theatre: TheatreFrame,
     selected: bool,
     character_set: CharacterSet,
-    color_mode: ColorMode,
 ) {
-    if area.width >= 14 && area.height >= 6 {
-        render_compact_scene(
-            frame,
-            area,
-            agent,
-            theatre,
-            selected,
-            character_set,
-            color_mode,
-        );
-        return;
-    }
-
     let selection = if selected { ">" } else { " " };
     let live = if theatre.focused { " LIVE" } else { "" };
     let mut lines = vec![
@@ -200,19 +194,6 @@ fn render_compact_scene(
         area,
     );
 
-    let scene_height = area.height.saturating_sub(1);
-    if scene_height > 0 {
-        render_scene(
-            frame,
-            Rect::new(area.x, area.y, area.width, scene_height),
-            agent,
-            theatre,
-            selected,
-            character_set,
-            palette,
-        );
-    }
-
     let selection = if selected { ">" } else { " " };
     frame.render_widget(
         Paragraph::new(format!(
@@ -221,6 +202,16 @@ fn render_compact_scene(
         ))
         .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
         Rect::new(area.x, area.y, area.width, 1),
+    );
+
+    render_scene(
+        frame,
+        Rect::new(area.x, area.y.saturating_add(1), area.width, 6),
+        agent,
+        theatre,
+        selected,
+        character_set,
+        palette,
     );
 
     let state_y = area.y.saturating_add(area.height.saturating_sub(1));

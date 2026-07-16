@@ -759,12 +759,18 @@ fn intermediate_named_delve_branches_are_structural_and_inventoried() {
     let reference = questmancer::ui::render_projection_for(&model, Rect::new(0, 0, 130, 36));
     let minimum = questmancer::ui::render_projection_for(&model, Rect::new(0, 0, 60, 18));
     let intermediate = questmancer::ui::render_projection_for(&model, Rect::new(0, 0, 60, 36));
-    assert!(reference.visible_agents.iter().all(|agent| {
-        agent.chamber == Some(questmancer::ui::ChamberPresentation::CompactScene)
-    }));
-    assert!(minimum.visible_agents.iter().all(|agent| {
-        agent.chamber == Some(questmancer::ui::ChamberPresentation::CompactScene)
-    }));
+    assert!(
+        reference
+            .visible_agents
+            .iter()
+            .all(|agent| { agent.chamber == Some(questmancer::ui::ChamberPresentation::Text) })
+    );
+    assert!(
+        minimum
+            .visible_agents
+            .iter()
+            .all(|agent| { agent.chamber == Some(questmancer::ui::ChamberPresentation::Text) })
+    );
     assert!(
         intermediate
             .visible_agents

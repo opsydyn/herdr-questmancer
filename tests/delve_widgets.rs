@@ -1,6 +1,9 @@
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion},
-    domain::{Agent, DomainState, Keepsake, PaneId, Presence, Timestamp, WorkspaceId},
+    domain::{
+        AdventurerPersona, Agent, DomainState, Footwear, HairShape, Keepsake, PaneId, PersonaKey,
+        Presence, Timestamp, WorkspaceId,
+    },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::{
         persona::compose_profile_adventurer_for_palette,
@@ -128,6 +131,85 @@ fn render_chamber_at(
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn render_chamber_buffer_at(
+    agent: &Agent,
+    theatre: TheatreFrame,
+    preferences: DisplayPreferences,
+    width: u16,
+    height: u16,
+) -> ratatui::buffer::Buffer {
+    let backend = TestBackend::new(width, height);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal
+        .draw(|frame| {
+            render_chamber(
+                frame,
+                Rect::new(0, 0, width, height),
+                agent,
+                theatre,
+                false,
+                &preferences,
+            );
+        })
+        .unwrap();
+    terminal.backend().buffer().clone()
+}
+
+#[test]
+fn departed_chambers_are_persona_independent_at_full_and_compact_scene_sizes() {
+    let first = agent();
+    let mut second = first.clone();
+    second.persona = AdventurerPersona::for_key(PersonaKey::new("a-different-departed-persona"));
+    let departed = theatre(TheatrePose::Departed, 0, false, "DEPARTED");
+
+    for (width, height) in [(28, 10), (20, 8)] {
+        for character_set in [CharacterSet::Unicode, CharacterSet::Ascii] {
+            assert_eq!(
+                render_chamber_buffer_at(
+                    &first,
+                    departed,
+                    preferences(character_set),
+                    width,
+                    height,
+                ),
+                render_chamber_buffer_at(
+                    &second,
+                    departed,
+                    preferences(character_set),
+                    width,
+                    height,
+                ),
+                "Departed {character_set:?} chamber at {width}x{height} leaked persona art"
+            );
+        }
+    }
+}
+
+#[test]
+fn compact_scene_preserves_top_and_bottom_persona_rows() {
+    let mut baseline = agent();
+    let theatre = theatre(TheatrePose::Resting, 1, false, "RESTING");
+    let display = preferences(CharacterSet::Unicode);
+
+    baseline.persona.appearance.footwear = Footwear::Boots;
+    let mut different_footwear = baseline.clone();
+    different_footwear.persona.appearance.footwear = Footwear::Sabatons;
+    assert_ne!(
+        render_chamber_buffer_at(&baseline, theatre, display, 20, 8),
+        render_chamber_buffer_at(&different_footwear, theatre, display, 20, 8),
+        "the compact scene cropped the bottom footwear row"
+    );
+
+    baseline.persona.appearance.hair = HairShape::Shaved;
+    let mut different_hair = baseline.clone();
+    different_hair.persona.appearance.hair = HairShape::Quiff;
+    assert_ne!(
+        render_chamber_buffer_at(&baseline, theatre, display, 20, 8),
+        render_chamber_buffer_at(&different_hair, theatre, display, 20, 8),
+        "the compact scene overwrote the top persona row"
+    );
 }
 
 fn render_profile_at(
@@ -343,7 +425,7 @@ fn compact_unicode_chamber_keeps_the_counsel_seated_sprite_visible() {
         false,
         preferences(CharacterSet::Unicode),
         14,
-        6,
+        8,
     );
 
     assert!(

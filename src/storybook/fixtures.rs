@@ -407,6 +407,22 @@ pub fn compatibility_fixture(preferences: DisplayPreferences) -> Model {
 
 pub fn motion_compatibility_fixture(motion: Motion) -> Model {
     let mut model = connected_delves_fixture(&StoryContext::fixed());
+    let retained = model
+        .domain()
+        .agents
+        .keys()
+        .take(2)
+        .cloned()
+        .collect::<Vec<_>>();
+    {
+        let domain = model.domain_mut();
+        domain.agents.retain(|key, _agent| retained.contains(key));
+        domain.campaigns.retain(|_workspace, campaign| {
+            campaign.party.retain(|key| retained.contains(key));
+            !campaign.party.is_empty()
+        });
+        domain.selected_agent = retained.first().cloned();
+    }
     let mut agents = model.domain_mut().agents.values_mut();
     let working = agents
         .next()

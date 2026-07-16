@@ -20,7 +20,7 @@ use std::collections::BTreeSet;
 
 use crate::{
     app::{CharacterSet, Modal, Model, Region, View},
-    domain::AgentKey,
+    domain::{AgentKey, WorkspaceId},
 };
 
 use self::{
@@ -64,7 +64,16 @@ pub struct ProjectedAgent {
     pub key: AgentKey,
     pub pose: TheatrePose,
     pub chamber: Option<ChamberPresentation>,
+    pub chamber_area: Option<Rect>,
     pub persona: PersonaRenderMode,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectedDelveRegion {
+    pub workspace_id: WorkspaceId,
+    pub area: Rect,
+    pub variant: DelveVariant,
+    pub active: bool,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -75,6 +84,7 @@ pub struct RenderProjection {
     pub guild_profile_agent: Option<AgentKey>,
     pub visible_agents: Vec<ProjectedAgent>,
     pub delve_variants: BTreeSet<DelveVariant>,
+    pub delve_regions: Vec<ProjectedDelveRegion>,
     pub delve_connected_scene_visible: bool,
     pub(crate) guild_presentation: GuildPresentation,
 }
@@ -106,28 +116,56 @@ pub fn render_projection_for(model: &Model, area: Rect) -> RenderProjection {
         View::Guild => project_guild(model, area, &mut projection),
         View::Delve => {
             let delve = delve_projection::render_projection(model, area);
-            projection.delve_variants = delve.visible_variants;
-            projection.delve_connected_scene_visible = delve.connected_scene_visible;
-            projection.visible_agents = delve
-                .chamber_areas
-                .into_iter()
-                .filter_map(|(key, chamber_area)| {
-                    let agent = model.domain().agents.get(&key)?;
-                    let chamber = chamber_presentation(chamber_area);
-                    Some(ProjectedAgent {
-                        key,
-                        pose: frame_for(agent, model.now(), model.preferences()).pose,
-                        chamber: Some(chamber),
-                        persona: persona_render_mode_for_chamber(
-                            chamber,
-                            model.preferences().character_set,
-                        ),
-                    })
-                })
-                .collect();
+            project_delve(model, &delve, &mut projection);
         }
     }
     projection
+}
+
+fn project_delve(
+    model: &Model,
+    delve: &delve_projection::DelveRenderProjection,
+    projection: &mut RenderProjection,
+) {
+    projection.delve_connected_scene_visible = matches!(
+        delve.content,
+        delve_projection::DelveContentProjection::Connected { .. }
+    );
+    projection.delve_regions = delve
+        .delves()
+        .iter()
+        .map(|region| ProjectedDelveRegion {
+            workspace_id: region.workspace_id.clone(),
+            area: region.area,
+            variant: region.variant,
+            active: region.active,
+        })
+        .collect();
+    projection.delve_variants = projection
+        .delve_regions
+        .iter()
+        .map(|region| region.variant)
+        .collect();
+    projection.visible_agents = delve
+        .chambers()
+        .into_iter()
+        .filter_map(|projected| {
+            let agent = model.domain().agents.get(&projected.key)?;
+            let theatre = frame_for(agent, model.now(), model.preferences());
+            let chamber = chamber_presentation(projected.area);
+            Some(ProjectedAgent {
+                key: projected.key.clone(),
+                pose: theatre.pose,
+                chamber: Some(chamber),
+                chamber_area: Some(projected.area),
+                persona: persona_render_mode_for_chamber(
+                    chamber,
+                    theatre.pose,
+                    model.preferences().character_set,
+                ),
+            })
+        })
+        .collect();
 }
 
 fn project_guild(model: &Model, area: Rect, projection: &mut RenderProjection) {
@@ -189,8 +227,12 @@ fn project_guild(model: &Model, area: Rect, projection: &mut RenderProjection) {
 
 pub const fn persona_render_mode_for_chamber(
     chamber: ChamberPresentation,
+    pose: TheatrePose,
     character_set: CharacterSet,
 ) -> PersonaRenderMode {
+    if matches!(pose, TheatrePose::Departed) {
+        return PersonaRenderMode::None;
+    }
     match chamber {
         ChamberPresentation::Full | ChamberPresentation::CompactScene => match character_set {
             CharacterSet::Unicode => PersonaRenderMode::Full,
@@ -260,12 +302,18 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
 }
 
 pub fn render_with_projection(frame: &mut Frame<'_>, model: &Model) -> RenderProjection {
-    let projection = render_projection_for(model, frame.area());
-    let goblin_evidence = match model.view() {
-        View::Guild => views::guild_hall::render(frame, model, &projection),
+    let (projection, goblin_evidence) = match model.view() {
+        View::Guild => {
+            let projection = render_projection_for(model, frame.area());
+            let evidence = views::guild_hall::render(frame, model, &projection);
+            (projection, evidence)
+        }
         View::Delve => {
-            views::delve::render(frame, model);
-            GuildGoblinEvidence::default()
+            let delve = delve_projection::render_projection(model, frame.area());
+            let mut projection = RenderProjection::default();
+            project_delve(model, &delve, &mut projection);
+            views::delve::render(frame, model, &delve);
+            (projection, GuildGoblinEvidence::default())
         }
     };
     if matches!(model.modal(), Modal::Counsel { .. } | Modal::Search { .. }) {
