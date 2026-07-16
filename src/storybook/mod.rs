@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 pub mod assets;
+pub mod atlas;
 pub mod catalogue;
 pub mod fixtures;
 

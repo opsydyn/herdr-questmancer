@@ -5,6 +5,7 @@ use questmancer::{
     app::{Model, View},
     storybook::{
         AssetId, WidgetAsset, asset_inventory,
+        catalogue::catalogue,
         fixtures::{StoryContext, StoryFixture},
     },
 };
@@ -62,4 +63,67 @@ fn authored_inventory_contains_no_duplicate_identifiers() {
         .copied()
         .collect::<std::collections::HashSet<_>>();
     assert_eq!(inventory.len(), unique.len());
+}
+
+#[test]
+fn atlas_catalogue_owns_every_atlas_asset_exactly_once() {
+    let atlas_inventory = asset_inventory()
+        .into_iter()
+        .filter(|asset| {
+            matches!(
+                asset,
+                AssetId::Class(_)
+                    | AssetId::Gear(_)
+                    | AssetId::Ancestry(_)
+                    | AssetId::BodyProportions(_)
+                    | AssetId::HeadShape(_)
+                    | AssetId::SkinTone(_)
+                    | AssetId::HairShape(_)
+                    | AssetId::HairTone(_)
+                    | AssetId::FaceDetail(_)
+                    | AssetId::Garb(_)
+                    | AssetId::Legwear(_)
+                    | AssetId::Footwear(_)
+                    | AssetId::Keepsake(_)
+                    | AssetId::AccentTone(_)
+                    | AssetId::ColorRole(_)
+                    | AssetId::Pose(_)
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let report = validate_coverage(&atlas_inventory, catalogue()).unwrap();
+    assert_eq!(report.owned(), atlas_inventory.len());
+    assert!(catalogue().iter().all(|story| story.shows.is_empty()));
+}
+
+#[test]
+fn atlas_catalogue_uses_canonical_ids_and_viewports() {
+    let ids = catalogue()
+        .iter()
+        .map(|story| story.id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        ids,
+        [
+            "atlas.classes",
+            "atlas.ancestries",
+            "atlas.body-proportions",
+            "atlas.head-shapes",
+            "atlas.skin-tones",
+            "atlas.hair-shapes",
+            "atlas.hair-tones",
+            "atlas.face-details",
+            "atlas.garb",
+            "atlas.legwear",
+            "atlas.footwear",
+            "atlas.keepsakes",
+            "atlas.accent-tones",
+            "atlas.palette-roles",
+            "atlas.poses",
+        ]
+    );
+    assert!(catalogue().iter().all(|story| {
+        story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
+    }));
 }

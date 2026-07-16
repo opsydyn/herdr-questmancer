@@ -289,7 +289,7 @@ impl AssetId {
     }
 }
 
-const CLASSES: &[AssetId] = &[
+pub(super) const CLASSES: &[AssetId] = &[
     AssetId::Class(AdventurerClass::Barbarian),
     AssetId::Class(AdventurerClass::Bard),
     AssetId::Class(AdventurerClass::Cleric),
@@ -302,7 +302,7 @@ const CLASSES: &[AssetId] = &[
     AssetId::Class(AdventurerClass::Testmender),
     AssetId::Class(AdventurerClass::Pathseeker),
 ];
-const GEAR: &[AssetId] = &[
+pub(super) const GEAR: &[AssetId] = &[
     AssetId::Gear(AdventuringGear::Axe),
     AssetId::Gear(AdventuringGear::BowAndQuiver),
     AssetId::Gear(AdventuringGear::HolySymbol),
@@ -315,7 +315,7 @@ const GEAR: &[AssetId] = &[
     AssetId::Gear(AdventuringGear::ThievesTools),
     AssetId::Gear(AdventuringGear::Toolkit),
 ];
-const ANCESTRIES: &[AssetId] = &[
+pub(super) const ANCESTRIES: &[AssetId] = &[
     AssetId::Ancestry(Ancestry::Human),
     AssetId::Ancestry(Ancestry::Dwarf),
     AssetId::Ancestry(Ancestry::Elf),
@@ -324,19 +324,19 @@ const ANCESTRIES: &[AssetId] = &[
     AssetId::Ancestry(Ancestry::Gnome),
     AssetId::Ancestry(Ancestry::Goblin),
 ];
-const BODY_PROPORTIONS: &[AssetId] = &[
+pub(super) const BODY_PROPORTIONS: &[AssetId] = &[
     AssetId::BodyProportions(BodyProportions::Compact),
     AssetId::BodyProportions(BodyProportions::Average),
     AssetId::BodyProportions(BodyProportions::Tall),
     AssetId::BodyProportions(BodyProportions::Broad),
 ];
-const HEAD_SHAPES: &[AssetId] = &[
+pub(super) const HEAD_SHAPES: &[AssetId] = &[
     AssetId::HeadShape(HeadShape::Round),
     AssetId::HeadShape(HeadShape::Square),
     AssetId::HeadShape(HeadShape::Long),
     AssetId::HeadShape(HeadShape::Angular),
 ];
-const SKIN_TONES: &[AssetId] = &[
+pub(super) const SKIN_TONES: &[AssetId] = &[
     AssetId::SkinTone(SkinTone::Porcelain),
     AssetId::SkinTone(SkinTone::Rose),
     AssetId::SkinTone(SkinTone::Sand),
@@ -344,7 +344,7 @@ const SKIN_TONES: &[AssetId] = &[
     AssetId::SkinTone(SkinTone::Sienna),
     AssetId::SkinTone(SkinTone::Ebony),
 ];
-const HAIR_SHAPES: &[AssetId] = &[
+pub(super) const HAIR_SHAPES: &[AssetId] = &[
     AssetId::HairShape(HairShape::Crop),
     AssetId::HairShape(HairShape::Fringe),
     AssetId::HairShape(HairShape::Curls),
@@ -354,7 +354,7 @@ const HAIR_SHAPES: &[AssetId] = &[
     AssetId::HairShape(HairShape::Ponytail),
     AssetId::HairShape(HairShape::Shaved),
 ];
-const HAIR_TONES: &[AssetId] = &[
+pub(super) const HAIR_TONES: &[AssetId] = &[
     AssetId::HairTone(HairTone::Black),
     AssetId::HairTone(HairTone::Espresso),
     AssetId::HairTone(HairTone::Chestnut),
@@ -362,7 +362,7 @@ const HAIR_TONES: &[AssetId] = &[
     AssetId::HairTone(HairTone::Gold),
     AssetId::HairTone(HairTone::Silver),
 ];
-const FACE_DETAILS: &[AssetId] = &[
+pub(super) const FACE_DETAILS: &[AssetId] = &[
     AssetId::FaceDetail(FaceDetail::None),
     AssetId::FaceDetail(FaceDetail::RoundGlasses),
     AssetId::FaceDetail(FaceDetail::SquareGlasses),
@@ -370,7 +370,7 @@ const FACE_DETAILS: &[AssetId] = &[
     AssetId::FaceDetail(FaceDetail::Freckles),
     AssetId::FaceDetail(FaceDetail::Moustache),
 ];
-const GARBS: &[AssetId] = &[
+pub(super) const GARBS: &[AssetId] = &[
     AssetId::Garb(Garb::Armour),
     AssetId::Garb(Garb::Cloak),
     AssetId::Garb(Garb::Doublet),
@@ -379,19 +379,19 @@ const GARBS: &[AssetId] = &[
     AssetId::Garb(Garb::Vestments),
     AssetId::Garb(Garb::WorkApron),
 ];
-const LEGWEAR: &[AssetId] = &[
+pub(super) const LEGWEAR: &[AssetId] = &[
     AssetId::Legwear(Legwear::BootsAndBreeches),
     AssetId::Legwear(Legwear::Greaves),
     AssetId::Legwear(Legwear::RobeHem),
     AssetId::Legwear(Legwear::TravelingSkirt),
 ];
-const FOOTWEAR: &[AssetId] = &[
+pub(super) const FOOTWEAR: &[AssetId] = &[
     AssetId::Footwear(Footwear::Boots),
     AssetId::Footwear(Footwear::Sabatons),
     AssetId::Footwear(Footwear::Sandals),
     AssetId::Footwear(Footwear::SoftShoes),
 ];
-const KEEPSAKES: &[AssetId] = &[
+pub(super) const KEEPSAKES: &[AssetId] = &[
     AssetId::Keepsake(Keepsake::Feather),
     AssetId::Keepsake(Keepsake::LuckyCoin),
     AssetId::Keepsake(Keepsake::Mug),
@@ -399,7 +399,7 @@ const KEEPSAKES: &[AssetId] = &[
     AssetId::Keepsake(Keepsake::Ribbon),
     AssetId::Keepsake(Keepsake::TinyFamiliar),
 ];
-const ACCENT_TONES: &[AssetId] = &[
+pub(super) const ACCENT_TONES: &[AssetId] = &[
     AssetId::AccentTone(AccentTone::Amber),
     AssetId::AccentTone(AccentTone::Cyan),
     AssetId::AccentTone(AccentTone::Lime),
@@ -409,7 +409,7 @@ const ACCENT_TONES: &[AssetId] = &[
     AssetId::AccentTone(AccentTone::Violet),
     AssetId::AccentTone(AccentTone::Teal),
 ];
-const COLOR_ROLES: &[AssetId] = &[
+pub(super) const COLOR_ROLES: &[AssetId] = &[
     AssetId::ColorRole(ColorRole::Stone),
     AssetId::ColorRole(ColorRole::DarkStone),
     AssetId::ColorRole(ColorRole::Timber),
@@ -433,7 +433,7 @@ const COLOR_ROLES: &[AssetId] = &[
     AssetId::ColorRole(ColorRole::ClothWarm),
     AssetId::ColorRole(ColorRole::ClothCool),
 ];
-const POSES: &[AssetId] = &[
+pub(super) const POSES: &[AssetId] = &[
     AssetId::Pose(TheatrePose::Delving),
     AssetId::Pose(TheatrePose::SeekingCounsel),
     AssetId::Pose(TheatrePose::SpoilsUnopened),

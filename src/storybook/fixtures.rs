@@ -318,6 +318,7 @@ pub enum AtlasContent {
         canvas: Canvas,
         palette: Palette,
         background: ColorRole,
+        packed: ratatui::text::Text<'static>,
     },
     AdventurerCard {
         agent: Agent,
@@ -330,6 +331,18 @@ pub enum AtlasContent {
         selected: bool,
         preferences: DisplayPreferences,
     },
+}
+
+impl AtlasContent {
+    pub fn pixel(canvas: Canvas, palette: Palette, background: ColorRole) -> Self {
+        let packed = crate::ui::pixel::pack(&canvas, &palette, background);
+        Self::Pixel {
+            canvas,
+            palette,
+            background,
+            packed,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
