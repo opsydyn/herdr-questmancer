@@ -485,4 +485,9 @@ test_contributor_test_recipes_reference_real_targets
 test_native_archive_installs_after_checksum_verification
 test_current_release_surfaces_have_no_legacy_identity_or_vocabulary
 
+if grep -R -E -q 'questmancer-storybook|storybook' herdr-plugin.toml herdr; then
+  echo "developer Storybook leaked into the plugin release surface" >&2
+  exit 1
+fi
+
 echo "scripts: 20 passed"

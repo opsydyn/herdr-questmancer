@@ -260,6 +260,27 @@ matrix, creates `SHA256SUMS`, and publishes the archives and checksum together.
 `SHA256SUMS`, verifies SHA-256, then installs `bin/questmancer`. Set
 `QUESTMANCER_REPOSITORY=owner/repository` to test the installer against a fork.
 
+## Developer Storybook
+
+Review Questmancer's sprites, widgets, fixed Guild Hall scenes, Delve variants
+and compatibility modes without starting Herdr by running `just storybook`.
+
+```bash
+just storybook
+```
+
+The Storybook is a developer-only Cargo feature. It reads no Herdr environment,
+connects to no socket and writes no plugin state.
+
+Use j/k to move between stories, h/l to change categories, Enter to inspect the
+production canvas, Esc to return, ? for help and q to quit.
+
+Run its focused automated checks with `just storybook-test`.
+
+```bash
+just storybook-test
+```
+
 ## Contributor checks
 
 ```bash
