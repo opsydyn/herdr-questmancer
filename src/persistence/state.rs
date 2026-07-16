@@ -13,7 +13,6 @@ pub const STATE_SCHEMA_VERSION: u32 = 1;
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct AttentionEpisodeKey {
     pub persona: PersonaKey,
-    pub pane_revision: u64,
     pub summons: GuildSummons,
 }
 
@@ -151,7 +150,6 @@ impl DurableIntent {
             };
             let episode = AttentionEpisodeKey {
                 persona: agent.persona.key.clone(),
-                pane_revision: agent.pane_revision,
                 summons,
             };
             if matches!(agent.attention, GuildAttention::Unread { .. })
@@ -190,7 +188,6 @@ impl DurableIntent {
 fn attention_episode(agent: &crate::domain::Agent) -> Option<AttentionEpisodeKey> {
     Some(AttentionEpisodeKey {
         persona: agent.persona.key.clone(),
-        pane_revision: agent.pane_revision,
         summons: agent.attention.summons()?,
     })
 }

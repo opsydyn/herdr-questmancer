@@ -4,7 +4,7 @@ mod support;
 use proptest::prelude::*;
 use questmancer::{
     app::{Model, View},
-    domain::{AgentKey, GuildAttention, PersonaKey, Timestamp},
+    domain::{AgentKey, GuildAttention, GuildSummons, PersonaKey, Timestamp},
     persistence::{AttentionEpisodeKey, DurableIntent, PersistedStateV1},
 };
 
@@ -21,7 +21,6 @@ fn capture_contains_only_durable_intent() {
     model.replace_domain(support::fixture_domain());
     let agent = model.selected_agent().unwrap();
     let expected_persona = agent.persona.key.clone();
-    let expected_revision = agent.pane_revision;
     let expected_summons = agent.attention.summons().unwrap();
     model.mark_selected_attention_read();
 
@@ -32,7 +31,6 @@ fn capture_contains_only_durable_intent() {
     assert_eq!(state.personas[&expected_persona].key, expected_persona);
     assert!(state.seen_attention.contains(&AttentionEpisodeKey {
         persona: expected_persona,
-        pane_revision: expected_revision,
         summons: expected_summons,
     }));
 }
@@ -120,11 +118,56 @@ fn overlay_restores_matching_persona_selection_and_seen_episode() {
 }
 
 #[test]
-fn overlay_prunes_seen_episode_when_revision_no_longer_matches() {
+fn overlay_restores_seen_summons_when_snapshot_revision_changes() {
     let state = captured_state();
-    let stale_episode = state.seen_attention.iter().next().unwrap().clone();
     let mut domain = support::fixture_domain();
-    domain.agents.values_mut().next().unwrap().pane_revision += 1;
+    domain.agents.values_mut().next().unwrap().pane_revision = 0;
+    let mut model = Model::new(View::Guild);
+    model.durable_intent_mut().seed(&state).unwrap();
+
+    model.replace_domain(domain);
+
+    assert!(matches!(
+        model.selected_agent().unwrap().attention,
+        GuildAttention::Read { .. }
+    ));
+}
+
+#[test]
+fn new_state_json_omits_transport_revision_from_seen_attention() {
+    let json = serde_json::to_value(captured_state()).unwrap();
+    let episode = &json["seen_attention"][0];
+    assert!(episode.get("pane_revision").is_none());
+}
+
+#[test]
+fn observed_domain_without_summons_removes_stored_acknowledgement() {
+    let state = captured_state();
+    let mut domain = support::fixture_domain();
+    domain.agents.values_mut().next().unwrap().attention = GuildAttention::Clear;
+    let mut model = Model::new(View::Guild);
+    model.durable_intent_mut().seed(&state).unwrap();
+
+    model.replace_domain(domain);
+
+    assert!(PersistedStateV1::capture(&model).seen_attention.is_empty());
+}
+
+#[test]
+fn different_summons_does_not_inherit_stored_acknowledgement() {
+    let state = captured_state();
+    let stored_episode = state.seen_attention.iter().next().unwrap().clone();
+    let replacement_summons = match stored_episode.summons {
+        GuildSummons::CounselRequested => GuildSummons::SpoilsReturned,
+        GuildSummons::SpoilsReturned | GuildSummons::AdventurerDeparted => {
+            GuildSummons::CounselRequested
+        }
+    };
+    let mut domain = support::fixture_domain();
+    domain.agents.values_mut().next().unwrap().attention = GuildAttention::Unread {
+        summons: replacement_summons,
+        since: Timestamp::from_millis(2_000),
+    };
     let mut model = Model::new(View::Guild);
     model.durable_intent_mut().seed(&state).unwrap();
 
@@ -134,8 +177,20 @@ fn overlay_prunes_seen_episode_when_revision_no_longer_matches() {
     assert!(
         !PersistedStateV1::capture(&model)
             .seen_attention
-            .contains(&stale_episode)
+            .contains(&stored_episode)
     );
+}
+
+#[test]
+fn legacy_seen_attention_with_transport_revision_still_deserializes() {
+    let state = captured_state();
+    let mut json = serde_json::to_value(&state).unwrap();
+    json["seen_attention"][0]["pane_revision"] = serde_json::json!(4_294_967_295_u64);
+
+    let decoded: PersistedStateV1 = serde_json::from_value(json).unwrap();
+
+    assert_eq!(decoded.schema_version, state.schema_version);
+    assert_eq!(decoded.seen_attention.len(), 1);
 }
 
 #[test]

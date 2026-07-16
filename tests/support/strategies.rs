@@ -395,11 +395,7 @@ pub(crate) fn persisted_state() -> impl Strategy<Value = PersistedStateV1> {
             let episodes = if keys.is_empty() {
                 Just(Vec::new()).boxed()
             } else {
-                prop::collection::vec(
-                    (prop::sample::select(keys), any::<u64>(), guild_summons()),
-                    0..=6,
-                )
-                .boxed()
+                prop::collection::vec((prop::sample::select(keys), guild_summons()), 0..=6).boxed()
             };
             (view(), preferences(), Just(personas), selected, episodes)
         })
@@ -412,11 +408,7 @@ pub(crate) fn persisted_state() -> impl Strategy<Value = PersistedStateV1> {
                 personas,
                 seen_attention: episodes
                     .into_iter()
-                    .map(|(persona, pane_revision, summons)| AttentionEpisodeKey {
-                        persona,
-                        pane_revision,
-                        summons,
-                    })
+                    .map(|(persona, summons)| AttentionEpisodeKey { persona, summons })
                     .collect(),
             },
         )
