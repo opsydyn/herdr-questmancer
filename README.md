@@ -208,8 +208,8 @@ herdr pane report-agent "$PANE_ID" \
 herdr pane report-agent "$PANE_ID" \
   --source "$SOURCE_ID" \
   --agent smoke-adventurer \
-  --state idle \
-  --message "resting at camp" \
+  --state working \
+  --message "manual walkthrough complete" \
   --seq 3
 
 herdr pane release-agent "$PANE_ID" \
@@ -218,12 +218,13 @@ herdr pane release-agent "$PANE_ID" \
   --seq 4
 ```
 
-Confirm working, blocked/Summons, reply, acknowledge, search, output refresh,
-and idle behavior in both views. Herdr `0.7.4` can synthesize only `idle`,
-`working`, `blocked`, and `unknown` through `report-agent`; it cannot synthesize
-`done`. Verify returned spoils with a real agent completion or the fixture and
-rendering tests. Do not describe a synthetic `done` walkthrough as live
-acceptance.
+Confirm working, blocked/Summons, reply, acknowledge, search, and output refresh
+in both views. The Herdr `0.7.4` command accepts `idle`, `working`, `blocked`,
+and `unknown`, but the live acceptance run found that a synthetic `idle` report
+was normalized to `done` in `session.snapshot`. It therefore did not prove the
+resting projection. The command does not accept a `done` literal. Verify resting
+and returned spoils with a real agent transition or the fixture and rendering
+tests; do not describe either synthetic path as accepted live behavior.
 
 When finished, release the synthetic source as above. Close only the disposable
 pane you created:
@@ -231,6 +232,10 @@ pane you created:
 ```bash
 herdr pane close "$PANE_ID"
 ```
+
+The guarded Herdr `0.7.4` acceptance record, including the exact pass and
+blocked results, persistence proof, and cleanup audit, is in
+[`docs/manual-test/questmancer-0.1.0.md`](docs/manual-test/questmancer-0.1.0.md).
 
 ## Release packaging
 

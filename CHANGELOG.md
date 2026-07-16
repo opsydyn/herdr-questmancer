@@ -37,6 +37,11 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- Acknowledged Summons now survive a close/reopen while the same stable
+  adventurer still has the same call for counsel; persistence no longer
+  compares Herdr pane/output revisions with synthesized status transitions.
+- Chronicle counsel entries use guild voice (`requested counsel`) throughout
+  the current interface.
 - Completion effects stop at their exact semantic boundary; static,
   reduced-motion, and no-motion sessions do not create needless frame work.
 - Monotonic scheduling prevents render latency and wall-clock adjustments from
