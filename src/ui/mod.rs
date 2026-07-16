@@ -3,6 +3,7 @@ mod views;
 
 pub mod copy;
 pub mod delve_scene;
+pub mod goblins;
 pub mod input;
 pub mod persona;
 pub mod pixel;

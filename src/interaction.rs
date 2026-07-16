@@ -242,6 +242,13 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         return;
     };
     let query = query.trim().to_lowercase();
+    if query == "release the goblins" {
+        let now = model.now();
+        model.goblins_mut().release(now);
+        model.dismiss_modal();
+        model.set_status_message(Some("The goblins deny any involvement.".to_owned()));
+        return;
+    }
     if query.is_empty() {
         model.set_status_message(Some(
             "Enter an adventurer or campaign to search.".to_owned(),

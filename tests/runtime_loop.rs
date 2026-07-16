@@ -548,3 +548,57 @@ async fn event_driven_animation_scheduler_never_wakes_on_time_alone() {
     tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
     assert!(scheduler.wait().now_or_never().is_none());
 }
+
+#[tokio::test(start_paused = true)]
+async fn guild_outbreak_wakes_at_four_fps_then_returns_to_event_driven_rendering() {
+    let clock = RuntimeClock::new(Timestamp::from_millis(0));
+    let mut model = Model::new(View::Guild);
+    model.goblins_mut().release(Timestamp::from_millis(0));
+    let mut scheduler = AnimationScheduler::new();
+
+    scheduler.reset_for(&model, &clock);
+    tokio::time::advance(std::time::Duration::from_millis(249)).await;
+    assert!(scheduler.wait().now_or_never().is_none());
+    tokio::time::advance(std::time::Duration::from_millis(1)).await;
+    assert!(scheduler.wait().now_or_never().is_some());
+
+    tokio::time::advance(std::time::Duration::from_millis(2_749)).await;
+    model.set_now(clock.now());
+    assert_eq!(model.now(), Timestamp::from_millis(2_999));
+    scheduler.reset_for(&model, &clock);
+    assert!(scheduler.wait().now_or_never().is_none());
+    tokio::time::advance(std::time::Duration::from_millis(1)).await;
+    assert!(scheduler.wait().now_or_never().is_some());
+
+    model.set_now(clock.now());
+    assert_eq!(model.now(), Timestamp::from_millis(3_000));
+    scheduler.reset_for(&model, &clock);
+    tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
+    assert!(scheduler.wait().now_or_never().is_none());
+}
+
+#[tokio::test(start_paused = true)]
+async fn static_motion_modes_schedule_only_the_outbreak_terminal_boundary() {
+    for motion in [Motion::Reduced, Motion::None] {
+        let clock = RuntimeClock::new(Timestamp::from_millis(0));
+        let mut model = Model::new(View::Guild);
+        model.set_preferences(DisplayPreferences {
+            motion,
+            ..DisplayPreferences::default()
+        });
+        model.goblins_mut().release(Timestamp::from_millis(0));
+        let mut scheduler = AnimationScheduler::new();
+
+        scheduler.reset_for(&model, &clock);
+        tokio::time::advance(std::time::Duration::from_millis(2_999)).await;
+        assert!(
+            scheduler.wait().now_or_never().is_none(),
+            "motion {motion:?}"
+        );
+        tokio::time::advance(std::time::Duration::from_millis(1)).await;
+        assert!(
+            scheduler.wait().now_or_never().is_some(),
+            "motion {motion:?}"
+        );
+    }
+}

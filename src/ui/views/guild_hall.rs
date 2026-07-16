@@ -11,6 +11,7 @@ use crate::{
     domain::{Agent, CampaignStatus, GuildSummons, Presence},
     ui::{
         copy::{self, EMPTY_GUILD, SCRYING_CLOUDED, SCRYING_STILL},
+        goblins,
         theme::{ACCENT, INK, MUTED},
         widgets::presentation::present,
     },
@@ -66,6 +67,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         render_focused(frame, content, model);
     }
 
+    goblins::render(frame, content, model);
     render_footer(frame, footer, &footer_lines);
 }
 
@@ -307,7 +309,11 @@ fn render_chronicle(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     render_panel(
         frame,
         area,
-        " CHRONICLE ",
+        if model.goblins().is_visible(model.now()) {
+            " CHRONICLE - CREATURES DETECTED "
+        } else {
+            " CHRONICLE "
+        },
         Text::from(lines),
         model.preferences().character_set,
     );

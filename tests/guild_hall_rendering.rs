@@ -1,7 +1,7 @@
 use questmancer::{
     app::{
-        CharacterSet, ConnectionState, DisplayPreferences, Model, OutputPreview, RuntimeSettings,
-        View,
+        CharacterSet, ColorMode, ConnectionState, DisplayPreferences, Model, Motion, OutputPreview,
+        RuntimeSettings, View,
     },
     command::CommandResult,
     domain::{
@@ -473,5 +473,101 @@ fn ascii_guild_hall_sanitizes_all_external_text_and_border_glyphs() {
             screen.contains(sanitized),
             "missing {sanitized:?}\n{screen}"
         );
+    }
+}
+
+#[test]
+fn outbreak_sprites_use_only_unoccupied_architecture() {
+    let baseline_model = live_model();
+    let mut active_model = baseline_model.clone();
+    active_model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        ..DisplayPreferences::default()
+    });
+    let baseline = {
+        let mut baseline_model = baseline_model;
+        baseline_model.set_preferences(DisplayPreferences {
+            character_set: CharacterSet::Ascii,
+            ..DisplayPreferences::default()
+        });
+        render(&baseline_model, 130, 32)
+    };
+    let released_at = active_model.now();
+    active_model.goblins_mut().release(released_at);
+    let active = render(&active_model, 130, 32);
+
+    assert!(active.contains("{g}"), "{active}");
+    for (index, (before, after)) in baseline.chars().zip(active.chars()).enumerate() {
+        if before.is_ascii_alphanumeric() {
+            assert_eq!(before, after, "occupied text changed at character {index}");
+        }
+    }
+}
+
+#[test]
+fn reduced_motion_is_static_and_no_motion_has_notice_without_sprites() {
+    let mut model = live_model();
+    model.set_settings(RuntimeSettings {
+        show_elapsed_time: false,
+        ..RuntimeSettings::default()
+    });
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        motion: Motion::Reduced,
+        ..DisplayPreferences::default()
+    });
+    model.goblins_mut().release(Timestamp::from_millis(121_000));
+    model.set_now(Timestamp::from_millis(121_000));
+    let reduced_first = render(&model, 130, 32);
+    model.set_now(Timestamp::from_millis(122_000));
+    let reduced_later = render(&model, 130, 32);
+    assert_eq!(reduced_first, reduced_later);
+    assert!(reduced_first.contains("{g}"), "{reduced_first}");
+
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        motion: Motion::None,
+        ..DisplayPreferences::default()
+    });
+    let none = render(&model, 130, 32);
+    assert!(none.contains("CREATURES DETECTED"), "{none}");
+    assert!(!none.contains("{g}"), "{none}");
+}
+
+#[test]
+fn full_motion_changes_at_no_more_than_four_frames_per_second() {
+    let mut model = Model::new(View::Guild);
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        motion: Motion::Full,
+        ..DisplayPreferences::default()
+    });
+    model.goblins_mut().release(Timestamp::from_millis(1_000));
+
+    model.set_now(Timestamp::from_millis(1_000));
+    let start = render(&model, 80, 24);
+    model.set_now(Timestamp::from_millis(1_249));
+    assert_eq!(render(&model, 80, 24), start);
+    model.set_now(Timestamp::from_millis(1_250));
+    assert_ne!(render(&model, 80, 24), start);
+}
+
+#[test]
+fn goblins_are_ascii_ansi_and_tiny_terminal_safe() {
+    let mut model = live_model();
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        color_mode: ColorMode::Ansi16,
+        motion: Motion::Full,
+    });
+    let released_at = model.now();
+    model.goblins_mut().release(released_at);
+
+    let screen = render(&model, 130, 32);
+    assert!(screen.is_ascii(), "{screen:?}");
+    assert!(screen.contains("{g}"), "{screen}");
+
+    for (width, height) in [(0, 0), (1, 1), (2, 2), (3, 3), (4, 3), (8, 5)] {
+        let _ = render(&model, width, height);
     }
 }

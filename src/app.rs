@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     domain::{Agent, AgentKey, DomainState, PaneId, Timestamp},
     persistence::DurableIntent,
+    ui::goblins::GoblinState,
     update::{AppEvent, update},
 };
 
@@ -127,6 +128,7 @@ pub struct Model {
     settings: RuntimeSettings,
     durable_intent: DurableIntent,
     managed_pane_id: Option<PaneId>,
+    goblins: GoblinState,
 }
 
 impl Model {
@@ -145,6 +147,7 @@ impl Model {
             settings: RuntimeSettings::default(),
             durable_intent: DurableIntent::default(),
             managed_pane_id: None,
+            goblins: GoblinState::default(),
         }
     }
 
@@ -415,5 +418,13 @@ impl Model {
 
     pub fn set_managed_pane_id(&mut self, pane_id: Option<PaneId>) {
         self.managed_pane_id = pane_id;
+    }
+
+    pub const fn goblins(&self) -> &GoblinState {
+        &self.goblins
+    }
+
+    pub const fn goblins_mut(&mut self) -> &mut GoblinState {
+        &mut self.goblins
     }
 }

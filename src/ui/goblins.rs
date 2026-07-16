@@ -1,0 +1,189 @@
+use std::time::Duration;
+
+use ratatui::{Frame, buffer::Buffer, layout::Rect, style::Style};
+
+use crate::{
+    app::{CharacterSet, Model, Motion},
+    domain::{Timestamp, WorkspaceId},
+    ui::pixel::{ColorRole, Palette},
+};
+
+const OUTBREAK_FPS: u8 = 4;
+const ASCII_GOBLIN: [&str; 2] = ["/{g}\\", " /|\\ "];
+const UNICODE_GOBLIN: [&str; 2] = ["╭g╮", "╰┬╯"];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GoblinSighting {
+    ChestEyes,
+    ChronicleHand,
+    RaftersScroll,
+    StolenBiscuit,
+}
+
+#[must_use]
+pub fn sighting_for_campaign(workspace_id: &WorkspaceId) -> Option<GoblinSighting> {
+    let digest = labelled_campaign_hash("questmancer-goblin-sighting", workspace_id);
+    (digest[0] == 0).then(|| match digest[1] % 4 {
+        0 => GoblinSighting::ChestEyes,
+        1 => GoblinSighting::ChronicleHand,
+        2 => GoblinSighting::RaftersScroll,
+        _ => GoblinSighting::StolenBiscuit,
+    })
+}
+
+fn labelled_campaign_hash(label: &str, workspace_id: &WorkspaceId) -> [u8; 32] {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(label.as_bytes());
+    hasher.update(&[0]);
+    hasher.update(workspace_id.as_str().as_bytes());
+    *hasher.finalize().as_bytes()
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct GoblinState {
+    released_at: Option<Timestamp>,
+}
+
+impl GoblinState {
+    pub const OUTBREAK_DURATION: Duration = Duration::from_secs(3);
+
+    pub const fn release(&mut self, now: Timestamp) {
+        self.released_at = Some(now);
+    }
+
+    #[must_use]
+    pub fn is_visible(self, now: Timestamp) -> bool {
+        self.released_at
+            .is_some_and(|start| now >= start && start.elapsed_until(now) < Self::OUTBREAK_DURATION)
+    }
+
+    pub(crate) fn next_visible_frame_in(self, now: Timestamp, motion: Motion) -> Option<Duration> {
+        let start = self.released_at?;
+        if now < start {
+            return None;
+        }
+        let elapsed = start.elapsed_until(now);
+        if elapsed >= Self::OUTBREAK_DURATION {
+            return None;
+        }
+        let remaining = Self::OUTBREAK_DURATION.saturating_sub(elapsed);
+        match motion {
+            Motion::Full => Some(next_step_delay(elapsed, OUTBREAK_FPS).min(remaining)),
+            Motion::Reduced | Motion::None => Some(remaining),
+        }
+    }
+
+    fn animation_frame(self, now: Timestamp) -> usize {
+        self.released_at.map_or(0, |start| {
+            let elapsed = start.elapsed_until(now).as_millis();
+            usize::try_from(elapsed * u128::from(OUTBREAK_FPS) / 1_000).unwrap_or(usize::MAX)
+        })
+    }
+}
+
+pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) {
+    if area.width == 0 || area.height == 0 || model.preferences().motion == Motion::None {
+        return;
+    }
+
+    let outbreak = model.goblins().is_visible(model.now());
+    let sighting = (!outbreak)
+        .then(|| {
+            model
+                .domain()
+                .campaigns
+                .keys()
+                .find_map(sighting_for_campaign)
+        })
+        .flatten();
+    if !outbreak && sighting.is_none() {
+        return;
+    }
+
+    let pattern = match model.preferences().character_set {
+        CharacterSet::Ascii => &ASCII_GOBLIN,
+        CharacterSet::Unicode => &UNICODE_GOBLIN,
+    };
+    let frame_index = if outbreak && model.preferences().motion == Motion::Full {
+        model.goblins().animation_frame(model.now())
+    } else {
+        sighting.map_or(0, |kind| kind as usize)
+    };
+    let count = if outbreak && model.preferences().motion == Motion::Full {
+        3
+    } else {
+        1
+    };
+    let style =
+        Style::new().fg(Palette::from(model.preferences().color_mode).resolve(ColorRole::Goblin));
+    let mut offset = frame_index.saturating_mul(17);
+    for _ in 0..count {
+        let Some(origin) = blank_origin(frame.buffer_mut(), area, pattern, offset) else {
+            break;
+        };
+        paint(frame.buffer_mut(), origin, pattern, style);
+        offset = offset.saturating_add(31);
+    }
+}
+
+fn blank_origin(
+    buffer: &Buffer,
+    area: Rect,
+    pattern: &[&str],
+    offset: usize,
+) -> Option<(u16, u16)> {
+    let width = pattern.iter().map(|line| line.chars().count()).max()?;
+    let width = u16::try_from(width).ok()?;
+    let height = u16::try_from(pattern.len()).ok()?;
+    if width == 0 || height == 0 || area.width < width || area.height < height {
+        return None;
+    }
+
+    let x_count = area.width - width + 1;
+    let y_count = area.height - height + 1;
+    let candidate_count = usize::from(x_count) * usize::from(y_count);
+    for step in 0..candidate_count {
+        let candidate = (offset + step) % candidate_count;
+        let x = area.x + u16::try_from(candidate % usize::from(x_count)).ok()?;
+        let y = area.y + u16::try_from(candidate / usize::from(x_count)).ok()?;
+        if pattern.iter().enumerate().all(|(row, line)| {
+            line.chars().enumerate().all(|(column, glyph)| {
+                glyph == ' '
+                    || buffer
+                        .cell((
+                            x + u16::try_from(column).unwrap_or(u16::MAX),
+                            y + u16::try_from(row).unwrap_or(u16::MAX),
+                        ))
+                        .is_some_and(|cell| cell.symbol() == " ")
+            })
+        }) {
+            return Some((x, y));
+        }
+    }
+    None
+}
+
+fn paint(buffer: &mut Buffer, origin: (u16, u16), pattern: &[&str], style: Style) {
+    for (row, line) in pattern.iter().enumerate() {
+        for (column, glyph) in line.chars().enumerate() {
+            if glyph == ' ' {
+                continue;
+            }
+            let Some(cell) = buffer.cell_mut((
+                origin.0 + u16::try_from(column).unwrap_or(u16::MAX),
+                origin.1 + u16::try_from(row).unwrap_or(u16::MAX),
+            )) else {
+                continue;
+            };
+            cell.set_char(glyph).set_style(style);
+        }
+    }
+}
+
+fn next_step_delay(elapsed: Duration, fps: u8) -> Duration {
+    let elapsed_millis = elapsed.as_millis();
+    let completed_steps = elapsed_millis * u128::from(fps) / 1_000;
+    let next_boundary = ((completed_steps + 1) * 1_000).div_ceil(u128::from(fps));
+    let delay = next_boundary.saturating_sub(elapsed_millis).max(1);
+    Duration::from_millis(u64::try_from(delay).unwrap_or(u64::MAX))
+}
