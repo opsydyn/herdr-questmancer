@@ -121,14 +121,13 @@ fn move_category(app: &mut StorybookApp, stories: &[Story], direction: Direction
         .iter()
         .position(|category| *category == app.selected_story(stories).category)
         .expect("selected story category must be in Category::ALL");
-    let target = match direction {
-        Direction::Next => (current + 1).min(Category::ALL.len() - 1),
-        Direction::Previous => current.saturating_sub(1),
+    let first_story =
+        |category: &Category| stories.iter().position(|story| story.category == *category);
+    let destination = match direction {
+        Direction::Next => Category::ALL[current + 1..].iter().find_map(first_story),
+        Direction::Previous => Category::ALL[..current].iter().rev().find_map(first_story),
     };
-    if let Some(index) = stories
-        .iter()
-        .position(|story| story.category == Category::ALL[target])
-    {
+    if let Some(index) = destination {
         app.select(index, stories);
     }
 }
