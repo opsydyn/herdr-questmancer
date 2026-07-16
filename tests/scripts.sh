@@ -16,27 +16,6 @@ assert_contains() {
   grep -F -- "$expected" "$file" >/dev/null || fail "$file did not contain: $expected"
 }
 
-workflow_job_block() {
-  local workflow=$1
-  local job=$2
-  awk -v job="$job" '
-    $0 == "  " job ":" { in_job = 1; next }
-    in_job && /^  [[:alnum:]_-]+:$/ { exit }
-    in_job { print }
-  ' "$workflow"
-}
-
-assert_workflow_job_contains() {
-  local workflow=$1
-  local job=$2
-  local expected=$3
-  local block="$TMP/workflow-$job"
-
-  workflow_job_block "$workflow" "$job" >"$block"
-  [[ -s $block ]] || fail "$workflow did not define job: $job"
-  assert_contains "$block" "$expected"
-}
-
 make_binary() {
   local path=$1
   mkdir -p "$(dirname "$path")"
@@ -283,20 +262,6 @@ test_release_packaging_contract() {
   version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$ROOT/herdr-plugin.toml" | head -n 1)
 
   [[ -f $workflow ]] || fail "$workflow does not exist"
-  assert_workflow_job_contains "$workflow" verify "cargo fmt --all --check"
-  assert_workflow_job_contains "$workflow" verify "cargo clippy --all-targets --all-features -- -D warnings"
-  assert_workflow_job_contains "$workflow" verify "cargo test --all-targets --all-features"
-  assert_workflow_job_contains "$workflow" verify "bash tests/scripts.sh"
-  assert_workflow_job_contains "$workflow" verify "bash -n herdr/install.sh herdr/run.sh herdr/control.sh"
-  assert_workflow_job_contains "$workflow" verify "cargo build --release"
-  assert_workflow_job_contains "$workflow" verify 'git diff --check "${base_sha}"...HEAD'
-  assert_workflow_job_contains "$workflow" build "needs: verify"
-  assert_workflow_job_contains "$workflow" publish "needs: build"
-  assert_contains "$workflow" "actions/upload-artifact@v7"
-  assert_contains "$workflow" "actions/download-artifact@v8"
-  assert_contains "$workflow" "softprops/action-gh-release@v3"
-  assert_contains "$workflow" 'archive="questmancer-v${version}-${target}.tar.gz"'
-  assert_contains "$workflow" "SHA256SUMS"
   assert_contains "$ROOT/herdr/install.sh" "QUESTMANCER_REPOSITORY"
   assert_contains "$ROOT/herdr/install.sh" "bin/questmancer"
 
@@ -304,7 +269,6 @@ test_release_packaging_contract() {
   while IFS='|' read -r target expected; do
     archive="questmancer-v$version-$target.tar.gz"
     [[ $archive == "$expected" ]] || fail "release asset was $archive, expected $expected"
-    assert_contains "$workflow" "target: $target"
   done <<'TARGETS'
 x86_64-unknown-linux-gnu|questmancer-v0.1.0-x86_64-unknown-linux-gnu.tar.gz
 aarch64-unknown-linux-gnu|questmancer-v0.1.0-aarch64-unknown-linux-gnu.tar.gz
@@ -319,6 +283,7 @@ TARGETS
   assert_contains "$ROOT/README.md" '.name == "webmaster"'
   assert_contains "$ROOT/README.md" '.source.kind == "local"'
   assert_contains "$ROOT/README.md" '[[ -n $previous_plugin ]]'
+  assert_contains "$ROOT/README.md" 'SOURCE_ID="questmancer-smoke-$(date +%s)-$$-$RANDOM"'
 
   assert_contains "$ROOT/justfile" "guild-test:"
   assert_contains "$ROOT/justfile" "delve-test:"
@@ -328,6 +293,31 @@ TARGETS
   if rg -n 'guestbook|desk-test|cafe-test|view="desk"' "$ROOT/justfile" >"$TMP/stale-recipes"; then
     cat "$TMP/stale-recipes" >&2
     fail "contributor recipes retain superseded test or view names"
+  fi
+}
+
+test_workflow_yaml_contract_and_comment_mutations() {
+  local validator="$ROOT/tests/workflow_contract.rb"
+  local release="$ROOT/.github/workflows/release.yml"
+  local ci="$ROOT/.github/workflows/ci.yml"
+  local mutated="$TMP/release-mutated.yml"
+
+  [[ -f $validator ]] || fail "$validator does not exist"
+  ruby "$validator" "$release" "$ci"
+
+  sed 's/^    needs: verify$/    # needs: verify/' "$release" >"$mutated"
+  if ruby "$validator" "$mutated" "$ci" >"$TMP/commented-needs.log" 2>&1; then
+    fail "workflow validator accepted a commented-out build verification dependency"
+  fi
+
+  sed 's/^          cargo test --all-targets --all-features$/          # cargo test --all-targets --all-features/' "$release" >"$mutated"
+  if ruby "$validator" "$mutated" "$ci" >"$TMP/commented-command.log" 2>&1; then
+    fail "workflow validator accepted a commented-out verification command"
+  fi
+
+  sed 's|^        uses: actions/upload-artifact@v7$|        # uses: actions/upload-artifact@v7|' "$release" >"$mutated"
+  if ruby "$validator" "$mutated" "$ci" >"$TMP/commented-action.log" 2>&1; then
+    fail "workflow validator accepted a commented-out release action"
   fi
 }
 
@@ -413,13 +403,6 @@ SH
   [[ ! -e "$plugin_root/bin/questmancer" ]] || fail "checksum failure installed an executable"
 }
 
-test_ci_checks_committed_whitespace() {
-  local workflow="$ROOT/.github/workflows/ci.yml"
-
-  assert_contains "$workflow" "fetch-depth: 0"
-  assert_contains "$workflow" 'git diff --check "${base_sha}"...HEAD'
-}
-
 test_current_release_surfaces_have_no_webmaster_identity() {
   local -a surfaces=(
     "$ROOT/Cargo.toml"
@@ -456,9 +439,9 @@ test_failed_close_preserves_singleton_state
 test_stale_state_is_replaced
 test_busy_control_lock_refuses_a_second_action
 test_release_packaging_contract
+test_workflow_yaml_contract_and_comment_mutations
 test_contributor_test_recipes_reference_real_targets
 test_native_archive_installs_after_checksum_verification
-test_ci_checks_committed_whitespace
 test_current_release_surfaces_have_no_webmaster_identity
 
 echo "scripts: 20 passed"

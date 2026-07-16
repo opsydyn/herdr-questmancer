@@ -28,6 +28,7 @@ first-class fallbacks.
 - Rust `1.90.0` (selected by `rust-toolchain.toml`)
 - `jq` for older-link migration and the optional fake-agent walkthrough below
 - `just` only if you want the contributor shortcuts
+- Ruby with standard-library YAML support only for contributor workflow checks
 
 Questmancer currently ships from source. From this checkout:
 
@@ -188,7 +189,7 @@ rules keep that synthetic source out of the session snapshot.
 
 ```bash
 PANE_ID=$(herdr pane current | jq -r '.result.pane.pane_id')
-SOURCE_ID="questmancer-smoke-$(date +%s)-$$"
+SOURCE_ID="questmancer-smoke-$(date +%s)-$$-$RANDOM"
 
 herdr pane report-agent "$PANE_ID" \
   --source "$SOURCE_ID" \
@@ -264,7 +265,9 @@ git diff --check
 Focused shortcuts include `just protocol-test`, `just domain-test`,
 `just guild-test`, `just delve-test`, `just persistence-test`, and
 `just property-test`. `just verify` runs the normal local gate; `just
-release-check` adds the release build and whitespace check.
+release-check` adds the release build and whitespace check. The shell gate uses
+Ruby's standard-library YAML parser to validate active CI and release workflow
+semantics; GitHub-hosted runners already provide it.
 
 ## Unlink and clean up
 
