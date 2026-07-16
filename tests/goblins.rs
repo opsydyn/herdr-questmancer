@@ -4,7 +4,11 @@ use questmancer::{
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::reduce_action,
     persistence::PersistedStateV1,
-    ui::{self, goblins::sighting_for_campaign, input::Action},
+    ui::{
+        self,
+        goblins::{GoblinSighting, sighting_for_campaign},
+        input::Action,
+    },
 };
 use ratatui::{Terminal, backend::TestBackend};
 use std::path::PathBuf;
@@ -46,24 +50,51 @@ fn render(model: &Model, width: u16, height: u16) -> String {
 }
 
 #[test]
-fn sightings_are_deterministic_and_non_semantic() {
-    let workspace = WorkspaceId::new("w1");
-    let first = sighting_for_campaign(&workspace);
-    let second = sighting_for_campaign(&workspace);
+fn fixed_sighting_fixtures_lock_the_label_delimiter_gate_and_variant_byte() {
+    let fixtures = [
+        ("goblin-fixture-0", [0x6b, 0x78], None),
+        (
+            "goblin-fixture-32",
+            [0x00, 0xd8],
+            Some(GoblinSighting::ChestEyes),
+        ),
+        (
+            "goblin-fixture-2901",
+            [0x00, 0x51],
+            Some(GoblinSighting::ChronicleHand),
+        ),
+        (
+            "goblin-fixture-330",
+            [0x00, 0x0e],
+            Some(GoblinSighting::RaftersScroll),
+        ),
+        (
+            "goblin-fixture-801",
+            [0x00, 0x97],
+            Some(GoblinSighting::StolenBiscuit),
+        ),
+    ];
 
-    assert_eq!(first, second);
+    for (workspace_id, expected_bytes, expected_sighting) in fixtures {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"questmancer-goblin-sighting");
+        hasher.update(&[0]);
+        hasher.update(workspace_id.as_bytes());
+        let digest = hasher.finalize();
+
+        assert_eq!(digest.as_bytes()[..2], expected_bytes, "{workspace_id}");
+        assert_eq!(
+            sighting_for_campaign(&WorkspaceId::new(workspace_id)),
+            expected_sighting,
+            "{workspace_id}"
+        );
+    }
 }
 
 #[test]
 fn rare_sightings_are_visible_without_changing_campaign_meaning() {
-    let rare = (0..4_096)
-        .map(|index| WorkspaceId::new(format!("goblin-candidate-{index}")))
-        .find(|workspace| sighting_for_campaign(workspace).is_some())
-        .expect("the one-in-256 sighting rate yields a fixture");
-    let common = (0..4_096)
-        .map(|index| WorkspaceId::new(format!("ordinary-candidate-{index}")))
-        .find(|workspace| sighting_for_campaign(workspace).is_none())
-        .expect("a common campaign fixture exists");
+    let rare = WorkspaceId::new("goblin-fixture-32");
+    let common = WorkspaceId::new("goblin-fixture-0");
     let campaign = |workspace_id: WorkspaceId| Campaign {
         workspace_id,
         label: "The Same Campaign".to_owned(),

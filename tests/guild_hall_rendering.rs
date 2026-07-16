@@ -17,7 +17,11 @@ use questmancer::{
     ui,
     ui::input::Action,
 };
-use ratatui::{Terminal, backend::TestBackend};
+use ratatui::{
+    Terminal,
+    backend::TestBackend,
+    buffer::{Buffer, CellWidth},
+};
 use std::time::Duration;
 
 fn live_model() -> Model {
@@ -60,10 +64,7 @@ fn model_with_presence(presence: Presence, attention: GuildAttention) -> Model {
 }
 
 fn render(model: &Model, width: u16, height: u16) -> String {
-    let backend = TestBackend::new(width, height);
-    let mut terminal = Terminal::new(backend).unwrap();
-    terminal.draw(|frame| ui::render(frame, model)).unwrap();
-    let buffer = terminal.backend().buffer();
+    let buffer = render_buffer(model, width, height);
     (0..height)
         .map(|y| {
             (0..width)
@@ -72,6 +73,13 @@ fn render(model: &Model, width: u16, height: u16) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn render_buffer(model: &Model, width: u16, height: u16) -> Buffer {
+    let backend = TestBackend::new(width, height);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal.draw(|frame| ui::render(frame, model)).unwrap();
+    terminal.backend().buffer().clone()
 }
 
 #[test]
@@ -500,6 +508,80 @@ fn outbreak_sprites_use_only_unoccupied_architecture() {
     for (index, (before, after)) in baseline.chars().zip(active.chars()).enumerate() {
         if before.is_ascii_alphanumeric() {
             assert_eq!(before, after, "occupied text changed at character {index}");
+        }
+    }
+}
+
+#[test]
+fn goblins_preserve_every_cell_covered_by_wide_guild_text() {
+    let mut common = live_model();
+    common.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Unicode,
+        motion: Motion::Full,
+        ..DisplayPreferences::default()
+    });
+    let (_, campaign) = common.domain_mut().campaigns.pop_first().unwrap();
+    let mut campaign = campaign;
+    campaign.label = "界  🧙  界  🧙".to_owned();
+    common.domain_mut().campaigns.insert(
+        questmancer::domain::WorkspaceId::new("goblin-fixture-0"),
+        campaign.clone(),
+    );
+
+    let mut rare = common.clone();
+    rare.domain_mut().campaigns.clear();
+    rare.domain_mut().campaigns.insert(
+        questmancer::domain::WorkspaceId::new("goblin-fixture-32"),
+        campaign,
+    );
+
+    let mut outbreak = common.clone();
+    let released_at = outbreak.now();
+    outbreak.goblins_mut().release(released_at);
+
+    let baseline = render_buffer(&common, 130, 32);
+    let wide_rows = baseline
+        .content
+        .iter()
+        .enumerate()
+        .filter(|(_, cell)| cell.cell_width() > 1)
+        .map(|(index, _)| u16::try_from(index / usize::from(baseline.area.width)).unwrap())
+        .collect::<Vec<_>>();
+    let mut protected = Vec::new();
+    for y in &wide_rows {
+        for x in 0..baseline.area.width {
+            let cell = baseline.cell((x, *y)).unwrap();
+            if cell.symbol() != " " {
+                protected.extend((0..cell.cell_width()).map(|offset| (x + offset, *y)));
+            }
+        }
+    }
+    protected.sort_unstable();
+    protected.dedup();
+    assert!(
+        baseline.content.iter().any(|cell| cell.symbol() == "界")
+            && baseline.content.iter().any(|cell| cell.symbol() == "🧙"),
+        "fixture must render both CJK and emoji wide graphemes"
+    );
+    assert!(!wide_rows.is_empty());
+    assert!(!protected.is_empty());
+
+    for (scenario, active) in [
+        ("rare sighting", render_buffer(&rare, 130, 32)),
+        ("outbreak", render_buffer(&outbreak, 130, 32)),
+    ] {
+        let changed = active
+            .content
+            .iter()
+            .zip(&baseline.content)
+            .any(|(after, before)| after != before);
+        assert!(changed, "{scenario} must render goblins");
+        for (x, y) in &protected {
+            assert_eq!(
+                active.cell((*x, *y)),
+                baseline.cell((*x, *y)),
+                "{scenario} changed wide grapheme cell ({x}, {y})"
+            );
         }
     }
 }

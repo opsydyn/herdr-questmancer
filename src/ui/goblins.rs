@@ -1,6 +1,11 @@
 use std::time::Duration;
 
-use ratatui::{Frame, buffer::Buffer, layout::Rect, style::Style};
+use ratatui::{
+    Frame,
+    buffer::{Buffer, CellWidth},
+    layout::Rect,
+    style::Style,
+};
 
 use crate::{
     app::{CharacterSet, Model, Motion},
@@ -142,25 +147,50 @@ fn blank_origin(
     let x_count = area.width - width + 1;
     let y_count = area.height - height + 1;
     let candidate_count = usize::from(x_count) * usize::from(y_count);
+    let occupied = occupied_cells(buffer, area);
     for step in 0..candidate_count {
         let candidate = (offset + step) % candidate_count;
         let x = area.x + u16::try_from(candidate % usize::from(x_count)).ok()?;
         let y = area.y + u16::try_from(candidate / usize::from(x_count)).ok()?;
         if pattern.iter().enumerate().all(|(row, line)| {
             line.chars().enumerate().all(|(column, glyph)| {
-                glyph == ' '
-                    || buffer
-                        .cell((
-                            x + u16::try_from(column).unwrap_or(u16::MAX),
-                            y + u16::try_from(row).unwrap_or(u16::MAX),
-                        ))
-                        .is_some_and(|cell| cell.symbol() == " ")
+                if glyph == ' ' {
+                    return true;
+                }
+                let cell_x = x + u16::try_from(column).unwrap_or(u16::MAX);
+                let cell_y = y + u16::try_from(row).unwrap_or(u16::MAX);
+                !occupied[cell_index(area, cell_x, cell_y)]
             })
         }) {
             return Some((x, y));
         }
     }
     None
+}
+
+fn occupied_cells(buffer: &Buffer, area: Rect) -> Vec<bool> {
+    let mut occupied = vec![false; usize::from(area.width) * usize::from(area.height)];
+    for y in area.y..area.bottom() {
+        for x in buffer.area.x..area.right() {
+            let Some(cell) = buffer.cell((x, y)) else {
+                continue;
+            };
+            let span = cell.cell_width();
+            if cell.symbol() == " " && span <= 1 {
+                continue;
+            }
+            let start = x.max(area.x);
+            let end = x.saturating_add(span).min(area.right());
+            for covered_x in start..end {
+                occupied[cell_index(area, covered_x, y)] = true;
+            }
+        }
+    }
+    occupied
+}
+
+fn cell_index(area: Rect, x: u16, y: u16) -> usize {
+    usize::from(y - area.y) * usize::from(area.width) + usize::from(x - area.x)
 }
 
 fn paint(buffer: &mut Buffer, origin: (u16, u16), pattern: &[&str], style: Style) {
@@ -186,4 +216,18 @@ fn next_step_delay(elapsed: Duration, fps: u8) -> Duration {
     let next_boundary = ((completed_steps + 1) * 1_000).div_ceil(u128::from(fps));
     let delay = next_boundary.saturating_sub(elapsed_millis).max(1);
     Duration::from_millis(u64::try_from(delay).unwrap_or(u64::MAX))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn blank_origin_skips_cells_covered_by_a_wide_grapheme() {
+        let area = Rect::new(0, 0, 5, 1);
+        let mut buffer = Buffer::empty(area);
+        buffer.set_string(0, 0, "界   ", Style::new());
+
+        assert_eq!(blank_origin(&buffer, area, &["g"], 1), Some((2, 0)));
+    }
 }
