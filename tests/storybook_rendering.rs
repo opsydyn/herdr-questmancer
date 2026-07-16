@@ -1,13 +1,13 @@
 #![cfg(feature = "storybook")]
 
 use questmancer::{
-    domain::{AdventurerPersona, PersonaKey},
+    domain::{AdventurerClass, AdventurerPersona, PersonaKey},
     storybook::{
-        AssetId,
+        AssetId, SceneAsset,
         app::{Action, StorybookApp, reduce},
         asset_inventory,
-        catalogue::{Category, Story, StoryId, Viewport, catalogue},
-        fixtures::{AtlasContent, StoryContext, StoryFixture, guild_fixture},
+        catalogue::{Category, Story, StoryId, Viewport, catalogue, validate_coverage},
+        fixtures::{AtlasContent, StoryContext, StoryFixture, delve_fixture, guild_fixture},
         ui as storybook_ui,
     },
     ui::{
@@ -48,6 +48,14 @@ fn application_fixture(context: &StoryContext) -> StoryFixture {
     StoryFixture::Application(guild_fixture(context))
 }
 
+#[allow(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "StoryBuilder requires a borrowed StoryContext"
+)]
+fn delve_application_fixture(context: &StoryContext) -> StoryFixture {
+    StoryFixture::Application(delve_fixture(context))
+}
+
 fn application_story() -> Story {
     Story::new(
         StoryId::new("scene.guild-hall"),
@@ -56,6 +64,19 @@ fn application_story() -> Story {
         "The production Guild Hall with deterministic adventurers.",
         Viewport::new(130, 32, 60, 18),
         application_fixture,
+        &[],
+        &[],
+    )
+}
+
+fn delve_application_story() -> Story {
+    Story::new(
+        StoryId::new("scene.delves"),
+        "Delves",
+        Category::FullScenes,
+        "The production Delves with deterministic adventurers.",
+        Viewport::new(130, 32, 60, 18),
+        delve_application_fixture,
         &[],
         &[],
     )
@@ -82,6 +103,23 @@ fn medium_shell_stacks_evidence_below_the_catalogue() {
     assert!(screen.contains("PRODUCTION CANVAS"));
     assert!(screen.contains("COVERAGE"));
     assert!(screen.contains("Classes and Gear"));
+    assert!(screen.contains("Every adventurer class"));
+    assert!(screen.contains("production class gear."));
+    assert!(screen.contains(&format!("owns: {}", stories[0].owns.len())));
+    assert!(screen.contains(&format!("shows: {}", stories[0].shows.len())));
+    assert!(
+        screen.contains(&format!(
+            "total owned: {}",
+            storybook_ui::known_unique_owned_count(&asset_inventory(), stories)
+        )),
+        "{screen}"
+    );
+    let validation = if validate_coverage(&asset_inventory(), stories).is_ok() {
+        "PASS"
+    } else {
+        "FAIL"
+    };
+    assert!(screen.contains(&format!("validation: {validation}")));
 }
 
 #[test]
@@ -93,6 +131,7 @@ fn narrow_shell_uses_a_one_line_story_selector() {
     assert!(screen.contains("PRODUCTION CANVAS"));
     assert!(!screen.contains("STORIES"));
     assert!(!screen.contains("COVERAGE"));
+    assert_compact_chrome_is_complete(&screen);
 }
 
 #[test]
@@ -101,7 +140,96 @@ fn tiny_canvas_explains_the_selected_story_minimum() {
     let app = StorybookApp::new(stories);
     let screen = render_storybook(&app, stories, 48, 12);
     assert!(screen.contains("This story needs at least 60x18."));
-    assert!(screen.contains("Canvas available: 46x7."));
+    assert!(screen.contains("Canvas available: 46x5."));
+    assert_compact_chrome_is_complete(&screen);
+}
+
+fn assert_compact_chrome_is_complete(screen: &str) {
+    for metadata in [
+        "Storybook",
+        "offline fixture realm",
+        "ref 120x36",
+        "Unicode",
+        "Xterm-256",
+        "motion full",
+    ] {
+        assert!(screen.contains(metadata), "missing {metadata}: {screen}");
+    }
+    for action in [
+        "[j/k] story",
+        "[h/l] cat",
+        "[enter] inspect",
+        "[?] help",
+        "[esc/q/^c] quit",
+    ] {
+        assert!(screen.contains(action), "missing {action}: {screen}");
+    }
+}
+
+#[test]
+fn wide_shell_layout_has_exact_twenty_two_fifty_six_twenty_two_geometry() {
+    let layout = storybook_ui::shell_layout(Rect::new(0, 0, 140, 40));
+
+    assert_eq!(layout.header, Rect::new(0, 0, 140, 1));
+    assert_eq!(layout.catalogue, Some(Rect::new(0, 1, 31, 38)));
+    assert_eq!(layout.canvas, Rect::new(31, 1, 78, 38));
+    assert_eq!(layout.evidence, Some(Rect::new(109, 1, 31, 38)));
+    assert_eq!(layout.selector, None);
+    assert_eq!(layout.footer, Rect::new(0, 39, 140, 1));
+}
+
+#[test]
+fn medium_shell_layout_has_thirty_seventy_columns_and_evidence_below_catalogue() {
+    let layout = storybook_ui::shell_layout(Rect::new(0, 0, 100, 36));
+
+    assert_eq!(layout.header, Rect::new(0, 0, 100, 1));
+    assert_eq!(layout.catalogue, Some(Rect::new(0, 1, 30, 19)));
+    assert_eq!(layout.evidence, Some(Rect::new(0, 20, 30, 15)));
+    assert_eq!(layout.canvas, Rect::new(30, 1, 70, 34));
+    assert_eq!(layout.selector, None);
+    assert_eq!(layout.footer, Rect::new(0, 35, 100, 1));
+}
+
+const TEST_INVENTORY: &[AssetId] = &[
+    AssetId::Class(AdventurerClass::Barbarian),
+    AssetId::Class(AdventurerClass::Bard),
+];
+const FIRST_TEST_OWNERS: &[AssetId] = &[
+    AssetId::Class(AdventurerClass::Barbarian),
+    AssetId::Class(AdventurerClass::Bard),
+    AssetId::Scene(SceneAsset::GuildEmpty),
+];
+const SECOND_TEST_OWNERS: &[AssetId] = &[AssetId::Class(AdventurerClass::Barbarian)];
+
+#[test]
+fn total_owned_counts_only_known_assets_with_exactly_one_declaration() {
+    let stories = [
+        Story::new(
+            StoryId::new("coverage.first"),
+            "First",
+            Category::AssetAtlas,
+            "First ownership declaration.",
+            Viewport::new(80, 24, 1, 1),
+            application_fixture,
+            FIRST_TEST_OWNERS,
+            &[],
+        ),
+        Story::new(
+            StoryId::new("coverage.second"),
+            "Second",
+            Category::AssetAtlas,
+            "Duplicate ownership declaration.",
+            Viewport::new(80, 24, 1, 1),
+            application_fixture,
+            SECOND_TEST_OWNERS,
+            &[],
+        ),
+    ];
+
+    assert_eq!(
+        storybook_ui::known_unique_owned_count(TEST_INVENTORY, &stories),
+        1
+    );
 }
 
 #[test]
@@ -136,7 +264,7 @@ fn application_story_blits_production_render_without_overwriting_shell() {
     assert!(screen.contains("STORIES"));
     assert!(screen.contains("COVERAGE"));
     assert!(screen.contains("QUESTMANCER'S GUILD HALL"));
-    assert!(screen.contains("Forgotten Library"));
+    assert!(screen.contains("Forgotten Library"), "{screen}");
 }
 
 #[test]
@@ -148,6 +276,17 @@ fn inspection_application_story_uses_the_full_production_renderer() {
     assert!(screen.contains("QUESTMANCER'S GUILD HALL"));
     assert!(screen.contains("PARTY ROSTER"));
     assert!(screen.contains("CALLS FOR COUNSEL"));
+    assert!(screen.contains("[esc] catalogue"));
+}
+
+#[test]
+fn inspection_delve_story_uses_the_same_full_production_renderer_bridge() {
+    let stories = [delve_application_story()];
+    let mut app = StorybookApp::new(&stories);
+    reduce(&mut app, Action::Inspect, &stories);
+    let screen = render_storybook(&app, &stories, 130, 33);
+    assert!(screen.contains("QUESTMANCER DELVES"));
+    assert!(screen.contains("FORGOTTEN LIBRARY"), "{screen}");
     assert!(screen.contains("[esc] catalogue"));
 }
 
@@ -164,6 +303,58 @@ fn blit_clips_at_the_target_edge_and_preserves_the_requested_offset() {
     assert_eq!(target.cell((3, 2)).unwrap().symbol(), "A");
     assert_eq!(target.cell((4, 2)).unwrap().symbol(), "B");
     assert!(!target.content().iter().any(|cell| cell.symbol() == "C"));
+}
+
+#[test]
+fn blit_respects_nonzero_source_and_target_buffer_origins() {
+    let mut source = Buffer::empty(Rect::new(5, 7, 3, 2));
+    source.cell_mut((5, 7)).unwrap().set_symbol("A");
+    source.cell_mut((6, 7)).unwrap().set_symbol("B");
+    let mut target = Buffer::empty(Rect::new(10, 20, 4, 3));
+
+    storybook_ui::blit(&source, &mut target, Rect::new(11, 21, 2, 1));
+
+    assert_eq!(target.cell((11, 21)).unwrap().symbol(), "A");
+    assert_eq!(target.cell((12, 21)).unwrap().symbol(), "B");
+}
+
+#[test]
+fn blit_clips_left_and_top_relative_to_the_requested_area_origin() {
+    let mut source = Buffer::empty(Rect::new(5, 7, 4, 3));
+    source.cell_mut((5, 7)).unwrap().set_symbol("A");
+    source.cell_mut((7, 9)).unwrap().set_symbol("Z");
+    let mut target = Buffer::empty(Rect::new(10, 20, 2, 2));
+
+    storybook_ui::blit(&source, &mut target, Rect::new(8, 18, 4, 4));
+
+    assert_eq!(target.cell((10, 20)).unwrap().symbol(), "Z");
+    assert!(!target.content().iter().any(|cell| cell.symbol() == "A"));
+}
+
+#[test]
+fn blit_clips_to_a_smaller_requested_area_before_copying() {
+    let mut source = Buffer::empty(Rect::new(0, 0, 3, 2));
+    source.cell_mut((0, 0)).unwrap().set_symbol("A");
+    source.cell_mut((1, 0)).unwrap().set_symbol("B");
+    let mut target = Buffer::empty(Rect::new(0, 0, 4, 3));
+
+    storybook_ui::blit(&source, &mut target, Rect::new(2, 1, 1, 1));
+
+    assert_eq!(target.cell((2, 1)).unwrap().symbol(), "A");
+    assert!(!target.content().iter().any(|cell| cell.symbol() == "B"));
+}
+
+#[test]
+fn blit_handles_zero_and_one_cell_requested_areas() {
+    let mut source = Buffer::empty(Rect::new(0, 0, 1, 1));
+    source.cell_mut((0, 0)).unwrap().set_symbol("X");
+    let mut target = Buffer::empty(Rect::new(0, 0, 1, 1));
+
+    storybook_ui::blit(&source, &mut target, Rect::new(0, 0, 0, 0));
+    assert_eq!(target.cell((0, 0)).unwrap().symbol(), " ");
+
+    storybook_ui::blit(&source, &mut target, Rect::new(0, 0, 1, 1));
+    assert_eq!(target.cell((0, 0)).unwrap().symbol(), "X");
 }
 
 #[test]

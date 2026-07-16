@@ -25,6 +25,77 @@ use super::{
 
 const WIDE_MINIMUM: u16 = 120;
 const MEDIUM_MINIMUM: u16 = 80;
+const TWO_LINE_CHROME_MAXIMUM: u16 = 59;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ShellLayout {
+    pub header: Rect,
+    pub catalogue: Option<Rect>,
+    pub canvas: Rect,
+    pub evidence: Option<Rect>,
+    pub selector: Option<Rect>,
+    pub footer: Rect,
+}
+
+pub fn shell_layout(area: Rect) -> ShellLayout {
+    let chrome_height = u16::from(area.width <= TWO_LINE_CHROME_MAXIMUM) + 1;
+    let outer = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(chrome_height),
+            Constraint::Min(0),
+            Constraint::Length(chrome_height),
+        ])
+        .split(area);
+    if area.width >= WIDE_MINIMUM {
+        let columns = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(22),
+                Constraint::Percentage(56),
+                Constraint::Percentage(22),
+            ])
+            .split(outer[1]);
+        ShellLayout {
+            header: outer[0],
+            catalogue: Some(columns[0]),
+            canvas: columns[1],
+            evidence: Some(columns[2]),
+            selector: None,
+            footer: outer[2],
+        }
+    } else if area.width >= MEDIUM_MINIMUM {
+        let columns = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
+            .split(outer[1]);
+        let evidence = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
+            .split(columns[0]);
+        ShellLayout {
+            header: outer[0],
+            catalogue: Some(evidence[0]),
+            canvas: columns[1],
+            evidence: Some(evidence[1]),
+            selector: None,
+            footer: outer[2],
+        }
+    } else {
+        let rows = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(1), Constraint::Min(0)])
+            .split(outer[1]);
+        ShellLayout {
+            header: outer[0],
+            catalogue: None,
+            canvas: rows[1],
+            evidence: None,
+            selector: Some(rows[0]),
+            footer: outer[2],
+        }
+    }
+}
 
 pub fn render(
     frame: &mut Frame<'_>,
@@ -51,17 +122,10 @@ fn render_catalogue(
     story: &Story,
     fixture: &StoryFixture,
 ) {
-    let outer = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Min(0),
-            Constraint::Length(1),
-        ])
-        .split(frame.area());
-    render_header(frame, outer[0], story, fixture_preferences(fixture));
-    render_catalogue_body(frame, outer[1], app, stories, story, fixture);
-    render_catalogue_footer(frame, outer[2]);
+    let layout = shell_layout(frame.area());
+    render_header(frame, layout.header, story, fixture_preferences(fixture));
+    render_catalogue_body(frame, layout, app, stories, story, fixture);
+    render_catalogue_footer(frame, layout.footer);
 }
 
 fn render_header(
@@ -70,14 +134,33 @@ fn render_header(
     story: &Story,
     preferences: DisplayPreferences,
 ) {
-    let header = format!(
-        "QUESTMANCER STORYBOOK | offline fixture realm | ref {}x{} | {} | {} | motion {}",
-        story.viewport.reference_width,
-        story.viewport.reference_height,
+    let reference = format!(
+        "ref {}x{}",
+        story.viewport.reference_width, story.viewport.reference_height
+    );
+    let modes = format!(
+        "{} | {} | motion {}",
         character_set_label(preferences.character_set),
         color_mode_label(preferences.color_mode),
-        motion_label(preferences.motion),
+        motion_label(preferences.motion)
     );
+    let header = if area.height > 1 {
+        Text::from(vec![
+            Line::from(format!("Storybook | offline fixture realm | {reference}")),
+            Line::from(modes),
+        ])
+    } else if area.width < WIDE_MINIMUM {
+        Text::from(format!(
+            "Storybook offline fixture realm {reference} {} {} motion {}",
+            character_set_label(preferences.character_set),
+            color_mode_label(preferences.color_mode),
+            motion_label(preferences.motion)
+        ))
+    } else {
+        Text::from(format!(
+            "QUESTMANCER STORYBOOK | offline fixture realm | {reference} | {modes}"
+        ))
+    };
     frame.render_widget(
         Paragraph::new(header).style(Style::new().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
         area,
@@ -86,41 +169,19 @@ fn render_header(
 
 fn render_catalogue_body(
     frame: &mut Frame<'_>,
-    area: Rect,
+    layout: ShellLayout,
     app: &StorybookApp,
     stories: &[Story],
     story: &Story,
     fixture: &StoryFixture,
 ) {
-    if area.width >= WIDE_MINIMUM {
-        let columns = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(22),
-                Constraint::Percentage(56),
-                Constraint::Percentage(22),
-            ])
-            .split(area);
-        render_story_list(frame, columns[0], app, stories);
-        render_canvas(frame, columns[1], story, fixture);
-        render_evidence(frame, columns[2], story, stories);
-    } else if area.width >= MEDIUM_MINIMUM {
-        let columns = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
-            .split(area);
-        let evidence = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
-            .split(columns[0]);
-        render_story_list(frame, evidence[0], app, stories);
-        render_evidence(frame, evidence[1], story, stories);
-        render_canvas(frame, columns[1], story, fixture);
-    } else {
-        let rows = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(1), Constraint::Min(0)])
-            .split(area);
+    if let Some(catalogue) = layout.catalogue {
+        render_story_list(frame, catalogue, app, stories);
+    }
+    if let Some(evidence) = layout.evidence {
+        render_evidence(frame, evidence, story, stories);
+    }
+    if let Some(selector) = layout.selector {
         frame.render_widget(
             Paragraph::new(format!(
                 "{}/{} {}",
@@ -128,10 +189,10 @@ fn render_catalogue_body(
                 stories.len(),
                 story.title
             )),
-            rows[0],
+            selector,
         );
-        render_canvas(frame, rows[1], story, fixture);
     }
+    render_canvas(frame, layout.canvas, story, fixture);
 }
 
 fn render_story_list(frame: &mut Frame<'_>, area: Rect, app: &StorybookApp, stories: &[Story]) {
@@ -160,17 +221,26 @@ fn render_story_list(frame: &mut Frame<'_>, area: Rect, app: &StorybookApp, stor
 
 fn render_evidence(frame: &mut Frame<'_>, area: Rect, story: &Story, stories: &[Story]) {
     let inventory = asset_inventory();
-    let (owned, validation) = match validate_coverage(&inventory, stories) {
-        Ok(report) => (report.owned(), "PASS".to_owned()),
+    let owned = known_unique_owned_count(&inventory, stories);
+    let (validation, issues) = match validate_coverage(&inventory, stories) {
+        Ok(_) => ("PASS", None),
         Err(error) => (
-            stories.iter().map(|candidate| candidate.owns.len()).sum(),
-            format!("FAIL ({error})"),
+            "FAIL",
+            Some(format!(
+                "issues: {} missing / {} duplicate / {} unknown",
+                error.missing().len(),
+                error.duplicates().len(),
+                error.unknown().len()
+            )),
         ),
     };
     let mut lines = vec![
         Line::from(story.description),
-        Line::from(""),
-        Line::from(format!("owns ({})", story.owns.len())),
+        Line::from(format!("owns: {}", story.owns.len())),
+        Line::from(format!("shows: {}", story.shows.len())),
+        Line::from(format!("total owned: {owned}")),
+        Line::from(format!("validation: {validation}")),
+        Line::from("owned assets:"),
     ];
     lines.extend(
         story
@@ -178,22 +248,36 @@ fn render_evidence(frame: &mut Frame<'_>, area: Rect, story: &Story, stories: &[
             .iter()
             .map(|asset| Line::from(format!("  {}", asset.label()))),
     );
-    lines.push(Line::from(format!("shows ({})", story.shows.len())));
+    lines.push(Line::from("shown assets:"));
     lines.extend(
         story
             .shows
             .iter()
             .map(|asset| Line::from(format!("  {}", asset.label()))),
     );
-    lines.push(Line::from(""));
-    lines.push(Line::from(format!("total owned: {owned}")));
-    lines.push(Line::from(format!("validation: {validation}")));
+    if let Some(issues) = issues {
+        lines.push(Line::from(issues));
+    }
     frame.render_widget(
         Paragraph::new(Text::from(lines))
             .block(Block::default().borders(Borders::ALL).title(" COVERAGE "))
             .wrap(Wrap { trim: true }),
         area,
     );
+}
+
+pub fn known_unique_owned_count(inventory: &[super::AssetId], stories: &[Story]) -> usize {
+    inventory
+        .iter()
+        .filter(|asset| {
+            stories
+                .iter()
+                .flat_map(|story| story.owns)
+                .filter(|owned| *owned == *asset)
+                .count()
+                == 1
+        })
+        .count()
 }
 
 fn render_canvas(frame: &mut Frame<'_>, area: Rect, story: &Story, fixture: &StoryFixture) {
@@ -362,11 +446,15 @@ fn render_atlas_tile(frame: &mut Frame<'_>, area: Rect, tile: &AtlasTile) {
 }
 
 fn render_catalogue_footer(frame: &mut Frame<'_>, area: Rect) {
-    frame.render_widget(
-        Paragraph::new("[j/k] story  [h/l] category  [enter] inspect  [?] help  [esc/q] quit")
-            .alignment(Alignment::Center),
-        area,
-    );
+    let footer = if area.height > 1 {
+        Text::from(vec![
+            Line::from("[j/k] story [h/l] cat [enter] inspect"),
+            Line::from("[?] help [esc/q/^c] quit"),
+        ])
+    } else {
+        Text::from("[j/k] story [h/l] category [enter] inspect [?] help [esc/q/^c] quit")
+    };
+    frame.render_widget(Paragraph::new(footer).alignment(Alignment::Center), area);
 }
 
 fn render_help(frame: &mut Frame<'_>) {
