@@ -5,9 +5,9 @@ use questmancer::{
         WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
-    ui,
+    ui::{self, delve_scene::layout_delves},
 };
-use ratatui::{Terminal, backend::TestBackend, style::Color};
+use ratatui::{Terminal, backend::TestBackend, layout::Rect, style::Color};
 
 fn three_agent_model() -> Model {
     let response: SuccessResponse<SessionSnapshotResult> =
@@ -91,6 +91,41 @@ fn assert_every_agent_is_visible(screen: &str) {
     for name in ["Alpha", "Beta", "Gamma"] {
         assert!(screen.contains(name), "missing {name}:\n{screen}");
     }
+}
+
+fn four_campaign_ascii_model() -> Model {
+    let mut model = three_agent_model();
+    let alpha = WorkspaceId::new("alpha");
+    for agent in model.domain_mut().agents.values_mut() {
+        agent.workspace_id = alpha.clone();
+    }
+    let party = model.domain().agents.keys().cloned().collect::<Vec<_>>();
+    model.domain_mut().campaigns.clear();
+    for id in ["alpha", "beta", "gamma", "zeta"] {
+        let workspace_id = WorkspaceId::new(id);
+        model.domain_mut().campaigns.insert(
+            workspace_id.clone(),
+            Campaign {
+                workspace_id,
+                label: id.to_owned(),
+                cwd: format!("/tmp/{id}").into(),
+                party: if id == "alpha" {
+                    party.clone()
+                } else {
+                    Vec::new()
+                },
+            },
+        );
+    }
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        ..DisplayPreferences::default()
+    });
+    model
+}
+
+fn ascii_cell(screen: &str, x: u16, y: u16) -> u8 {
+    screen.lines().nth(usize::from(y)).unwrap().as_bytes()[usize::from(x)]
 }
 
 #[test]
@@ -214,6 +249,128 @@ fn multiple_campaigns_render_as_connected_delves_with_deterministic_variant_cues
         "missing connected-room cue:\n{screen}"
     );
     assert_every_agent_is_visible(&screen);
+}
+
+#[test]
+fn adjacent_delves_share_a_coordinate_continuous_opening() {
+    let model = four_campaign_ascii_model();
+    let area = Rect::new(1, 1, 158, 37);
+    let delves = layout_delves(
+        &model.domain().campaigns,
+        &model.domain().agents,
+        area,
+        None,
+    );
+    let left = &delves[0];
+    let right = &delves[1];
+    assert_eq!(left.rect.right(), right.rect.x);
+
+    let screen = render(&model, 160, 40);
+    let opening =
+        (left.rect.y.saturating_add(1)..left.rect.bottom().saturating_sub(1)).find(|&y| {
+            [
+                left.rect.right().saturating_sub(2),
+                left.rect.right().saturating_sub(1),
+                right.rect.x,
+                right.rect.x.saturating_add(1),
+            ]
+            .into_iter()
+            .all(|x| ascii_cell(&screen, x, y) == b'-')
+        });
+
+    assert!(
+        opening.is_some(),
+        "adjacent Delves have sealed borders instead of a continuous opening:\n{screen}"
+    );
+    assert!(screen.contains("Alpha") && screen.contains("[!] COUNSEL REQUESTED"));
+    assert!(screen.contains("[1] guild") && screen.contains("[2] delves"));
+}
+
+#[test]
+fn row_wrap_delves_have_a_continuous_turn_across_the_shared_seam() {
+    let model = four_campaign_ascii_model();
+    let area = Rect::new(1, 1, 158, 37);
+    let delves = layout_delves(
+        &model.domain().campaigns,
+        &model.domain().agents,
+        area,
+        None,
+    );
+    let [previous, next] = delves
+        .windows(2)
+        .find(|pair| pair[0].rect.x > pair[1].rect.x)
+        .expect("test requires a row wrap")
+    else {
+        unreachable!()
+    };
+    assert_eq!(previous.rect.bottom(), next.rect.y);
+    let previous_x = previous.rect.x + previous.rect.width / 2;
+    let next_x = next.rect.x + next.rect.width / 2;
+    let seam_y = next.rect.y;
+
+    let screen = render(&model, 160, 40);
+    assert_eq!(ascii_cell(&screen, previous_x, seam_y - 2), b'|');
+    assert_eq!(ascii_cell(&screen, previous_x, seam_y - 1), b'+');
+    assert_eq!(ascii_cell(&screen, next_x, seam_y - 1), b'+');
+    assert_eq!(ascii_cell(&screen, next_x, seam_y), b'|');
+    assert_eq!(ascii_cell(&screen, next_x, seam_y + 1), b'|');
+    assert!(
+        (next_x + 1..previous_x).all(|x| ascii_cell(&screen, x, seam_y - 1) == b'-'),
+        "row-wrap corridor is not continuous across the seam:\n{screen}"
+    );
+    assert!(screen.contains("Alpha") && screen.contains("[!] COUNSEL REQUESTED"));
+}
+
+#[test]
+fn first_delve_has_a_coordinate_visible_route_home() {
+    let model = four_campaign_ascii_model();
+    let area = Rect::new(1, 1, 158, 37);
+    let first = layout_delves(
+        &model.domain().campaigns,
+        &model.domain().agents,
+        area,
+        None,
+    )
+    .remove(0);
+    let screen = render(&model, 160, 40);
+    let route_y =
+        (first.rect.y.saturating_add(1)..first.rect.bottom().saturating_sub(1)).find(|&y| {
+            ascii_cell(&screen, first.rect.x, y) == b'<'
+                && (1..=3).all(|offset| {
+                    ascii_cell(&screen, first.rect.x.saturating_add(offset), y) == b'-'
+                })
+        });
+
+    let route_y = route_y.expect("route home must open the first Delve's outer wall");
+    let row = screen.lines().nth(usize::from(route_y)).unwrap();
+    assert!(
+        row.contains("HOME"),
+        "route lacks its HOME landmark:\n{screen}"
+    );
+    assert!(screen.contains("Alpha") && screen.contains("[!] COUNSEL REQUESTED"));
+}
+
+#[test]
+fn compact_active_delve_keeps_the_route_home_open() {
+    let model = four_campaign_ascii_model();
+    let screen = render(&model, 80, 24);
+    let route_y = (2..18).find(|&y| {
+        ascii_cell(&screen, 1, y) == b'<' && (2..=4).all(|x| ascii_cell(&screen, x, y) == b'-')
+    });
+
+    let route_y = route_y.expect("compact active Delve must retain the route home");
+    assert!(
+        screen
+            .lines()
+            .nth(usize::from(route_y))
+            .unwrap()
+            .contains("HOME")
+    );
+    assert!(screen.contains("[alpha] [beta] [gamma] [zeta]"));
+    assert!(
+        screen.contains("[!] COUNSEL REQUESTED"),
+        "selected state was obscured:\n{screen}"
+    );
 }
 
 #[test]
@@ -571,13 +728,9 @@ fn footer_advertises_only_available_delve_actions() {
 }
 
 #[test]
-fn connection_overlays_preserve_the_last_visible_agent_poses() {
+fn offline_and_incompatible_overlays_preserve_the_last_visible_adventurer_states() {
     let cases = [
         (ConnectionState::Offline, "DISCONNECTED"),
-        (
-            ConnectionState::Reconnecting { attempt: 3 },
-            "RECONNECTING #3",
-        ),
         (
             ConnectionState::Incompatible {
                 expected: 1,
@@ -602,6 +755,65 @@ fn connection_overlays_preserve_the_last_visible_agent_poses() {
             screen.contains("COUNSEL REQUESTED"),
             "missing preserved pose:\n{screen}"
         );
+    }
+}
+
+#[test]
+fn reconnecting_fog_occupies_unused_architecture_and_preserves_actionable_state() {
+    for (character_set, motion) in [
+        (CharacterSet::Unicode, Motion::Full),
+        (CharacterSet::Ascii, Motion::Reduced),
+        (CharacterSet::Ascii, Motion::None),
+    ] {
+        let mut model = three_agent_model();
+        let workspace_id = WorkspaceId::new("w1");
+        let party = model.domain().agents.keys().cloned().collect::<Vec<_>>();
+        model.domain_mut().campaigns.insert(
+            workspace_id.clone(),
+            Campaign {
+                workspace_id,
+                label: "w1".to_owned(),
+                cwd: "/tmp/w1".into(),
+                party,
+            },
+        );
+        model.set_connection(ConnectionState::Reconnecting { attempt: 3 });
+        model.set_preferences(DisplayPreferences {
+            character_set,
+            motion,
+            ..DisplayPreferences::default()
+        });
+
+        let area = Rect::new(1, 1, 118, 27);
+        let delve = layout_delves(
+            &model.domain().campaigns,
+            &model.domain().agents,
+            area,
+            None,
+        )
+        .remove(0);
+        let first = render(&model, 120, 30);
+        let fog_row = (delve.rect.y.saturating_add(1)..delve.rect.bottom().saturating_sub(1))
+            .find(|&y| first.lines().nth(usize::from(y)).unwrap().contains("FOG"))
+            .expect("FOG must occupy an interior architecture row");
+
+        assert!(delve.chambers.iter().all(|chamber| {
+            fog_row < chamber.y || fog_row >= chamber.y.saturating_add(chamber.height)
+        }));
+        assert!(first.contains("FOG") && first.contains("RECONNECTING #3"));
+        assert!(first.contains("LAST TALES PRESERVED"));
+        assert_every_agent_is_visible(&first);
+        assert!(first.contains("[>] DELVING"));
+        assert!(first.contains("[!] COUNSEL REQUESTED"));
+        assert!(first.contains("[x] DEPARTED"));
+        assert!(first.contains("[1] guild") && first.contains("[2] delves"));
+        if character_set == CharacterSet::Ascii {
+            assert!(first.is_ascii(), "ASCII Fog emitted Unicode:\n{first}");
+        }
+        if motion != Motion::Full {
+            model.set_now(Timestamp::from_millis(9_999));
+            assert_eq!(first, render(&model, 120, 30));
+        }
     }
 }
 

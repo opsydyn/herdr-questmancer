@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{ConnectionState, DisplayPreferences, Model},
+    app::{CharacterSet, ConnectionState, DisplayPreferences, Model},
     ui::{
         pixel::{ColorRole, Palette},
         theatre::frame_for,
@@ -90,13 +90,19 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
 
     if model.domain().agents.is_empty() {
         render_empty(frame, inner, styles);
-    } else {
-        if inner.width >= 78 {
-            render_connected_delves(frame, inner, model, styles);
-        } else {
-            render_compact_list(frame, inner, model);
+    } else if inner.width >= 78 {
+        render_connected_delves(frame, inner, model, styles);
+        if !matches!(model.connection(), ConnectionState::Reconnecting { .. }) {
+            render_connection_overlay(frame, inner, model.connection(), styles);
         }
-        render_connection_overlay(frame, inner, model.connection(), styles);
+    } else {
+        render_compact_list(frame, inner, model);
+        render_connection_overlay(
+            frame,
+            Rect::new(inner.x, inner.y, inner.width, 1),
+            model.connection(),
+            styles,
+        );
     }
 
     render_footer(frame, footer, model, styles);
@@ -160,9 +166,11 @@ fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, sty
             styles,
         );
         if let Some(site) = sites.get(&active_delve.workspace_id) {
+            let mut active_site = site.clone();
+            active_site.party.clone_from(&active_delve.adventurers);
             let active_sites = std::collections::BTreeMap::from([(
                 active_delve.workspace_id.clone(),
-                site.clone(),
+                active_site,
             )]);
             let remapped = layout_delves(
                 &active_sites,
@@ -174,6 +182,20 @@ fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, sty
             .next()
             .map(|delve| delve.chambers)
             .unwrap_or_default();
+            render_reconnecting_fog_in_room(
+                frame,
+                active_area,
+                &remapped,
+                model.connection(),
+                styles,
+            );
+            render_route_home(
+                frame,
+                active_area,
+                &remapped,
+                model.preferences().character_set,
+                styles,
+            );
             for (index, key) in active_delve.adventurers.iter().enumerate() {
                 if let (Some(agent), Some(anchor)) =
                     (model.domain().agents.get(key), remapped.get(index).copied())
@@ -207,7 +229,7 @@ fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, sty
         );
         return;
     }
-    for (index, delve) in delves.iter().enumerate() {
+    for delve in &delves {
         let active = selected_workspace.as_ref() == Some(&delve.workspace_id);
         render_delve_architecture(
             frame,
@@ -217,32 +239,10 @@ fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, sty
             active,
             styles,
         );
-        if index > 0 {
-            let previous = delves[index - 1].rect;
-            let (transition, glyphs) = if previous.y == delve.rect.y {
-                let x = previous.right().saturating_sub(1);
-                let glyphs = if model.preferences().character_set == crate::app::CharacterSet::Ascii
-                {
-                    "|\n+\n|"
-                } else {
-                    "│\n╫\n│"
-                };
-                (Rect::new(x, delve.rect.y, 1, delve.rect.height), glyphs)
-            } else {
-                let y = previous.bottom().saturating_sub(1);
-                let glyphs = if model.preferences().character_set == crate::app::CharacterSet::Ascii
-                {
-                    "---+---"
-                } else {
-                    "───╫───"
-                };
-                (
-                    Rect::new(delve.rect.x, y, delve.rect.width.min(7), 1),
-                    glyphs,
-                )
-            };
-            frame.render_widget(Paragraph::new(glyphs).style(styles.accent), transition);
-        }
+    }
+    render_reconnecting_fog(frame, &delves, model.connection(), styles);
+    render_connected_routes(frame, &delves, model.preferences().character_set, styles);
+    for delve in &delves {
         if !sites.contains_key(&delve.workspace_id) {
             continue;
         }
@@ -263,6 +263,214 @@ fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, sty
             );
         }
     }
+}
+
+fn render_reconnecting_fog(
+    frame: &mut Frame<'_>,
+    delves: &[crate::ui::delve_scene::CampaignDelve],
+    connection: &ConnectionState,
+    styles: DelveStyles,
+) {
+    for delve in delves {
+        render_reconnecting_fog_in_room(frame, delve.rect, &delve.chambers, connection, styles);
+    }
+}
+
+fn render_reconnecting_fog_in_room(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    chambers: &[crate::ui::delve_scene::ChamberAnchor],
+    connection: &ConnectionState,
+    styles: DelveStyles,
+) {
+    let ConnectionState::Reconnecting { attempt } = connection else {
+        return;
+    };
+    if area.width < 9 || area.height < 5 {
+        return;
+    }
+    let home_row = unused_row(area, chambers, area.y.saturating_add(2));
+    let preferred = area.y.saturating_add(3);
+    let start = area.y.saturating_add(1);
+    let end = area.bottom().saturating_sub(1);
+    let Some(y) = (start..end)
+        .filter(|candidate| Some(*candidate) != home_row && row_is_unused(*candidate, chambers))
+        .min_by_key(|candidate| candidate.abs_diff(preferred))
+    else {
+        return;
+    };
+    let fog = format!("~ FOG ~ RECONNECTING #{attempt} ~ LAST TALES PRESERVED ~");
+    frame.render_widget(
+        Paragraph::new(fog).style(styles.muted),
+        Rect::new(area.x.saturating_add(2), y, area.width.saturating_sub(4), 1),
+    );
+}
+
+fn render_connected_routes(
+    frame: &mut Frame<'_>,
+    delves: &[crate::ui::delve_scene::CampaignDelve],
+    character_set: CharacterSet,
+    styles: DelveStyles,
+) {
+    let Some(first) = delves.first() else {
+        return;
+    };
+    render_route_home(frame, first.rect, &first.chambers, character_set, styles);
+    for pair in delves.windows(2) {
+        let [previous, next] = pair else {
+            continue;
+        };
+        if previous.rect.y == next.rect.y {
+            render_adjacent_opening(frame, previous, next, character_set, styles);
+        } else {
+            render_row_wrap_corridor(frame, previous, next, character_set, styles);
+        }
+    }
+}
+
+fn render_route_home(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    chambers: &[crate::ui::delve_scene::ChamberAnchor],
+    character_set: CharacterSet,
+    styles: DelveStyles,
+) {
+    if area.width < 9 || area.height < 4 {
+        return;
+    }
+    let Some(y) = unused_row(area, chambers, area.y.saturating_add(2)) else {
+        return;
+    };
+    let path = match character_set {
+        CharacterSet::Ascii => "<--- HOME",
+        CharacterSet::Unicode => "◄─── HOME",
+    };
+    frame.render_widget(
+        Paragraph::new(path).style(styles.accent),
+        Rect::new(area.x, y, area.width.min(9), 1),
+    );
+}
+
+fn render_adjacent_opening(
+    frame: &mut Frame<'_>,
+    left: &crate::ui::delve_scene::CampaignDelve,
+    right: &crate::ui::delve_scene::CampaignDelve,
+    character_set: CharacterSet,
+    styles: DelveStyles,
+) {
+    if left.rect.right() != right.rect.x || left.rect.width < 2 || right.rect.width < 2 {
+        return;
+    }
+    let start_y = left.rect.y.max(right.rect.y).saturating_add(1);
+    let end_y = left
+        .rect
+        .bottom()
+        .min(right.rect.bottom())
+        .saturating_sub(1);
+    let preferred = start_y.saturating_add(end_y.saturating_sub(start_y) / 2);
+    let Some(y) = (start_y..end_y)
+        .min_by_key(|candidate| candidate.abs_diff(preferred))
+        .filter(|candidate| {
+            row_is_unused(*candidate, &left.chambers) && row_is_unused(*candidate, &right.chambers)
+        })
+        .or_else(|| {
+            (start_y..end_y).find(|candidate| {
+                row_is_unused(*candidate, &left.chambers)
+                    && row_is_unused(*candidate, &right.chambers)
+            })
+        })
+    else {
+        return;
+    };
+    let x = left.rect.right().saturating_sub(2);
+    let glyphs = match character_set {
+        CharacterSet::Ascii => "----",
+        CharacterSet::Unicode => "────",
+    };
+    frame.render_widget(
+        Paragraph::new(glyphs).style(styles.accent),
+        Rect::new(x, y, 4, 1),
+    );
+}
+
+fn render_row_wrap_corridor(
+    frame: &mut Frame<'_>,
+    previous: &crate::ui::delve_scene::CampaignDelve,
+    next: &crate::ui::delve_scene::CampaignDelve,
+    character_set: CharacterSet,
+    styles: DelveStyles,
+) {
+    if previous.rect.bottom() != next.rect.y || previous.rect.height < 3 || next.rect.height < 3 {
+        return;
+    }
+    let seam_y = next.rect.y;
+    let previous_rows = [seam_y.saturating_sub(2), seam_y.saturating_sub(1)];
+    let next_rows = [seam_y, seam_y.saturating_add(1)];
+    let Some(previous_x) = unused_column(previous, &previous_rows) else {
+        return;
+    };
+    let Some(next_x) = unused_column(next, &next_rows) else {
+        return;
+    };
+    let start_x = previous_x.min(next_x);
+    let end_x = previous_x.max(next_x);
+    let width = end_x.saturating_sub(start_x).saturating_add(1);
+    let horizontal = match character_set {
+        CharacterSet::Ascii => "-".repeat(usize::from(width)),
+        CharacterSet::Unicode => "─".repeat(usize::from(width)),
+    };
+    frame.render_widget(
+        Paragraph::new(horizontal).style(styles.accent),
+        Rect::new(start_x, seam_y.saturating_sub(1), width, 1),
+    );
+    let (previous_turn, next_turn) = match character_set {
+        CharacterSet::Ascii => ("|\n+", "+\n|\n|"),
+        CharacterSet::Unicode => ("│\n└", "┐\n│\n│"),
+    };
+    frame.render_widget(
+        Paragraph::new(previous_turn).style(styles.accent),
+        Rect::new(previous_x, seam_y.saturating_sub(2), 1, 2),
+    );
+    frame.render_widget(
+        Paragraph::new(next_turn).style(styles.accent),
+        Rect::new(next_x, seam_y.saturating_sub(1), 1, 3),
+    );
+}
+
+fn unused_row(
+    area: Rect,
+    chambers: &[crate::ui::delve_scene::ChamberAnchor],
+    preferred: u16,
+) -> Option<u16> {
+    let start = area.y.saturating_add(1);
+    let end = area.bottom().saturating_sub(1);
+    (start..end)
+        .filter(|candidate| row_is_unused(*candidate, chambers))
+        .min_by_key(|candidate| candidate.abs_diff(preferred))
+}
+
+fn unused_column(delve: &crate::ui::delve_scene::CampaignDelve, rows: &[u16]) -> Option<u16> {
+    let start = delve.rect.x.saturating_add(2);
+    let end = delve.rect.right().saturating_sub(2);
+    let preferred = delve.rect.x.saturating_add(delve.rect.width / 2);
+    (start..end)
+        .filter(|candidate| {
+            delve.chambers.iter().all(|chamber| {
+                rows.iter().all(|row| {
+                    *candidate < chamber.x
+                        || *candidate >= chamber.x.saturating_add(chamber.width)
+                        || *row < chamber.y
+                        || *row >= chamber.y.saturating_add(chamber.height)
+                })
+            })
+        })
+        .min_by_key(|candidate| candidate.abs_diff(preferred))
+}
+
+fn row_is_unused(y: u16, chambers: &[crate::ui::delve_scene::ChamberAnchor]) -> bool {
+    chambers
+        .iter()
+        .all(|chamber| y < chamber.y || y >= chamber.y.saturating_add(chamber.height))
 }
 
 fn render_delve_architecture(
@@ -510,9 +718,9 @@ fn render_connection_overlay(
 ) {
     let label = match connection {
         ConnectionState::Offline => Some("DISCONNECTED - LAST TALES PRESERVED".to_owned()),
-        ConnectionState::Reconnecting { attempt } => {
-            Some(format!("RECONNECTING #{attempt} - LAST TALES PRESERVED"))
-        }
+        ConnectionState::Reconnecting { attempt } => Some(format!(
+            "FOG - RECONNECTING #{attempt} - LAST TALES PRESERVED"
+        )),
         ConnectionState::Incompatible { expected, actual } => Some(format!(
             "INCOMPATIBLE PROTOCOL {actual} - NEED {expected} - LAST TALES PRESERVED"
         )),

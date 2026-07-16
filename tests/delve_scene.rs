@@ -163,8 +163,10 @@ proptest! {
     fn generated_delves_are_stable_and_non_overlapping(
         workspace in "[a-z0-9_-]{1,16}",
         count in 0usize..=12,
-        width in 0u16..=8,
-        height in 0u16..=8,
+        x in 0u16..=40,
+        y in 0u16..=40,
+        width in 0u16..=160,
+        height in 0u16..=60,
     ) {
         let workspace_id = WorkspaceId::new(workspace);
         let mut site_agents = Vec::new();
@@ -183,15 +185,27 @@ proptest! {
             cwd: "/tmp".into(),
             party: site_agents,
         })]);
-        let area = Rect::new(0, 0, width, height);
+        let area = Rect::new(x, y, width, height);
         let first = layout_delves(&sites, &agents, area, None);
         let second = layout_delves(&sites, &agents, area, None);
         prop_assert_eq!(&first, &second);
         prop_assume!(!first.is_empty());
-        let chambers = &first[0].chambers;
-        for (index, chamber) in chambers.iter().enumerate() {
-            for other in chambers.iter().skip(index + 1) {
-                prop_assert!(!overlaps(*chamber, *other));
+        for (delve_index, delve) in first.iter().enumerate() {
+            for other_delve in first.iter().skip(delve_index + 1) {
+                let delve_overlaps = delve.rect.x < other_delve.rect.right()
+                    && other_delve.rect.x < delve.rect.right()
+                    && delve.rect.y < other_delve.rect.bottom()
+                    && other_delve.rect.y < delve.rect.bottom();
+                prop_assert!(!delve_overlaps, "Delves overlap: {delve:?} and {other_delve:?}");
+            }
+            for (index, chamber) in delve.chambers.iter().enumerate() {
+                prop_assert!(chamber.x >= delve.rect.x, "left escape: {chamber:?} from {delve:?}");
+                prop_assert!(chamber.y >= delve.rect.y, "top escape: {chamber:?} from {delve:?}");
+                prop_assert!(chamber.x.saturating_add(chamber.width) <= delve.rect.right(), "right escape: {chamber:?} from {delve:?}");
+                prop_assert!(chamber.y.saturating_add(chamber.height) <= delve.rect.bottom(), "bottom escape: {chamber:?} from {delve:?}");
+                for other in delve.chambers.iter().skip(index + 1) {
+                    prop_assert!(!overlaps(*chamber, *other), "Chambers overlap in {delve:?}: {chamber:?} and {other:?}");
+                }
             }
         }
     }

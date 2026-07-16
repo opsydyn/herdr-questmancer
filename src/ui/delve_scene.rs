@@ -164,25 +164,26 @@ fn authored_chambers(variant: DelveVariant, count: usize, delve: Rect) -> Vec<Ch
         } else {
             row
         };
-        let base_x = u32::from(delve.x) + width * col / columns;
-        let base_y = u32::from(delve.y) + height * row / rows;
+        let cell_x = u32::from(delve.x) + width * col / columns;
+        let cell_right = u32::from(delve.x) + width * (col + 1) / columns;
+        let cell_y = u32::from(delve.y) + height * row / rows;
+        let cell_bottom = u32::from(delve.y) + height * (row + 1) / rows;
+        let cell_width = cell_right.saturating_sub(cell_x);
+        let cell_height = cell_bottom.saturating_sub(cell_y);
         let (x, y) = if width <= 8 || height <= 8 {
-            (base_x, base_y)
+            (cell_x, cell_y)
         } else {
             match variant {
-                DelveVariant::ForgottenLibrary => (base_x, base_y.saturating_add(height / 3)),
+                DelveVariant::ForgottenLibrary => (cell_x, cell_y.saturating_add(cell_height / 3)),
                 DelveVariant::MossyUndercroft => (
-                    base_x.saturating_add(width / 8),
-                    base_y.saturating_add(height / 5),
+                    cell_x.saturating_add(cell_width / 8),
+                    cell_y.saturating_add(cell_height / 5),
                 ),
-                DelveVariant::OldWatchtower => (
-                    base_x.saturating_add(width / 10),
-                    base_y.saturating_sub(height / 8),
-                ),
+                DelveVariant::OldWatchtower => (cell_x.saturating_add(cell_width / 10), cell_y),
             }
         };
-        let x = x.min(u32::from(delve.right()).saturating_sub(chamber_width));
-        let y = y.min(u32::from(delve.bottom()).saturating_sub(chamber_height));
+        let x = x.min(cell_right.saturating_sub(chamber_width));
+        let y = y.min(cell_bottom.saturating_sub(chamber_height));
         chambers.push(ChamberAnchor {
             x: u16::try_from(x).unwrap_or(u16::MAX),
             y: u16::try_from(y).unwrap_or(u16::MAX),
