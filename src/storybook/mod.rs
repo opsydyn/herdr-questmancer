@@ -6,6 +6,7 @@ pub mod atlas;
 pub mod catalogue;
 pub mod fixtures;
 pub mod input;
+pub mod ui;
 
 pub use assets::{AssetId, CompatibilityAsset, SceneAsset, WidgetAsset, asset_inventory};
 
