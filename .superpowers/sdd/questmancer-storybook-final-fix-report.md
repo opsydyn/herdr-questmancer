@@ -288,3 +288,190 @@ exhaustive boundary tests together.
 
 Delivery state: after committing this report, the final worktree status was
 rechecked clean.
+
+## Second final-review wave
+
+Implementation commit: `9274bf2` (`fix: make Delve projection render-authoritative`).
+
+### Finding 1: chamber persona projection overstated visible art
+
+RED:
+
+- `cargo test --test delve_widgets compact_scene_preserves_top_and_bottom_persona_rows -- --exact`
+  failed because the Boots and Sabatons 20x8 buffers were identical. The old
+  compact chamber gave the packed sprite only five rows, then overwrote its top
+  row with the name and clipped its bottom footwear row.
+- The production persona projection was size-aware but not pose-aware, so a
+  Departed chamber could still claim full or silhouette persona assets even
+  though the renderer deliberately replaces the adventurer with departure art.
+
+GREEN:
+
+- `CompactScene` now begins at 14x8 and reserves one name row, all six packed
+  sprite rows, and one state row. Smaller chambers use `Text` honestly.
+- Persona projection now accepts the production `TheatrePose`; Departed always
+  reports `PersonaRenderMode::None` in Unicode and ASCII.
+- Full-buffer tests prove Departed output is persona-independent, footwear and
+  hair traits survive at the bottom and top of a compact scene, and exact
+  14x7/14x8 and full-size thresholds are reported correctly.
+- Storybook ownership uses the same pose-aware production projection, and the
+  intermediate catalogue assertions now report their actual textual chambers.
+
+```text
+cargo test --test delve_widgets
+20 passed; 0 failed
+
+cargo test --features storybook --test render_projection
+8 passed; 0 failed
+
+cargo test --features storybook --test storybook_catalogue
+21 passed; 0 failed
+```
+
+### Finding 2: Delve renderer recomputed structural layout
+
+RED:
+
+`cargo test --features storybook --test render_projection` failed to compile
+the new structural assertions with six `E0609` errors because `ProjectedAgent`
+had no `chamber_area` and `RenderProjection` had no `delve_regions`. The public
+semantic projection could not describe the architecture and chamber rectangles
+actually consumed by the renderer.
+
+GREEN:
+
+- The production Delve projection now owns body/footer geometry, responsive
+  content mode, exact chamber rectangles, exact Delve rectangles and variants,
+  active selection, compact paging, campaign-strip geometry, and connection
+  overlay geometry.
+- `render_with_projection` creates that structure once, maps semantic metadata
+  from it, and passes the same projection to the Delve renderer.
+- `src/ui/views/delve.rs` consumes projected structures and contains no
+  independent campaign derivation, `layout_delves` call, active-Delve remap,
+  compact paging, or chamber-rectangle calculation.
+- Buffer-backed structural tests cover compact, intermediate, connected,
+  multi-Delve, and changed-selection branches. They prove each projected
+  chamber contains its rendered adventurer name and each projected Delve region
+  contains its production variant architecture marker.
+- The motion compatibility fixture was narrowed to a deterministic two-agent
+  production layout, and its buffer distinction is tested at a supported
+  compact size where the honest full chambers can render motion cues.
+
+```text
+cargo test --test delve_rendering
+29 passed; 0 failed
+
+cargo test --test persona_art
+18 passed; 0 failed
+
+cargo test --features storybook --test storybook_fixtures
+6 passed; 0 failed
+
+cargo test --features storybook --test storybook_rendering
+29 passed; 0 failed
+```
+
+## Second-wave final verification matrix
+
+All required automated checks were rerun after the production changes:
+
+```text
+cargo fmt --all --check
+PASS
+
+cargo clippy --all-targets --all-features -- -D warnings
+PASS
+
+cargo test --all-targets --all-features
+PASS
+
+PROPTEST_CASES=1024 cargo test --features storybook --test storybook_properties
+4 passed; 0 failed
+
+cargo test --all-targets
+PASS (feature-off; Storybook-gated integration targets ran 0 tests as expected)
+
+bash tests/scripts.sh
+workflow contracts: valid
+scripts: 20 passed
+
+bash -n tests/scripts.sh herdr/install.sh herdr/run.sh herdr/control.sh
+PASS
+
+cargo build --release
+PASS
+
+git diff --check
+PASS
+```
+
+After the matrix, the Departed regression assertion was strengthened from
+glyph-string equality to complete terminal-buffer equality. The affected check
+was rerun:
+
+```text
+cargo fmt --all --check
+PASS
+
+cargo test --test delve_widgets departed_chambers_are_persona_independent_at_full_and_compact_scene_sizes -- --exact
+1 passed; 0 failed
+
+git diff --check
+PASS
+```
+
+## Second-wave Herdr-free PTY smoke
+
+The real PTY smoke used the Storybook binary with every discovered Herdr
+variable explicitly unset:
+
+```text
+env -u HERDR_BIN_PATH -u HERDR_PANE_ID -u HERDR_PLUGIN_ID \
+  -u HERDR_PLUGIN_STATE_DIR -u HERDR_PLUGIN_ROOT \
+  -u HERDR_PLUGIN_CONFIG_DIR -u HERDR_SOCKET_PATH \
+  cargo run --features storybook --bin questmancer-storybook
+```
+
+Observed actions:
+
+1. The offline catalogue launched with `validation: PASS` and 158 owned assets.
+2. `lljjjjj` navigated from the Atlas through Widgets to Full Scenes and selected
+   the named Forgotten Library Delve story.
+3. Enter inspected the production Delve at the actual 80x24 PTY size. The
+   connected architecture, two honest textual chambers, agent states, and
+   footer rendered correctly; the height-six connected anchors did not claim
+   cropped persona art.
+4. `?` opened and closed the help overlay.
+5. Escape returned to the catalogue.
+6. `q` exited with status 0 and emitted cursor, mouse-capture, and
+   alternate-screen restoration sequences.
+
+No Herdr service, Herdr environment, persistence, network, or filesystem write
+was used by the Storybook session.
+
+## Second-wave self-review
+
+Reviewed the complete second-wave implementation before committing:
+
+- confirmed Delve architecture, chamber, selection, strip, and overlay geometry
+  are calculated only in `src/ui/delve_projection.rs` and consumed directly by
+  the renderer;
+- confirmed compact, active intermediate, and multi-Delve rendering retain the
+  previous draw ordering for architecture, fog, routes, chambers, strip, and
+  connection overlays;
+- confirmed high-level semantic projection is derived from the same internal
+  structure used for the actual frame render;
+- confirmed Departed never claims or leaks persona traits, while compact
+  Unicode scenes dedicate all six packed rows and ASCII projection remains an
+  honest silhouette claim;
+- confirmed no Storybook story ID/order or total ownership change was
+  introduced; the validated totals remain 44 stories and 158 owned assets;
+- confirmed no new dependency, unsafe code, or Storybook-to-production
+  dependency was introduced;
+- confirmed `git diff --check` and the focused post-matrix regression rerun
+  pass.
+
+Remaining concern: none known. The chamber atlas's existing 26x9 outer tile has
+a 24x7 inner chamber and now truthfully presents text rather than claiming a
+cropped compact persona scene; exact compact persona coverage is exercised by
+the dedicated 20x8 production-buffer tests.
