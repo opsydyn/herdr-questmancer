@@ -12,8 +12,12 @@ use std::{
 use crate::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Modal, Motion},
     domain::{AdventurerClass, AdventurerPersona, AdventuringGear, PersonaKey},
-    ui::{delve_scene::DelveVariant, goblins::GoblinSighting, theatre::frame_for},
+    ui::{
+        delve_projection::visible_agent_keys, delve_scene::DelveVariant, goblins::GoblinSighting,
+        theatre::frame_for,
+    },
 };
+use ratatui::layout::Rect;
 
 use super::{
     AssetId, CompatibilityAsset, SceneAsset, WidgetAsset,
@@ -243,6 +247,7 @@ fn labels(assets: &[AssetId]) -> String {
 
 const ATLAS_VIEWPORT: Viewport = Viewport::new(120, 36, 60, 18);
 const WIDGET_VIEWPORT: Viewport = Viewport::new(120, 36, 60, 18);
+const GUILD_REGIONS_VIEWPORT: Viewport = Viewport::new(122, 36, 122, 36);
 const SCENE_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
 const NARROW_VIEWPORT: Viewport = Viewport::new(64, 24, 48, 18);
 const COMPATIBILITY_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
@@ -307,20 +312,42 @@ const GUILD_REGIONS: &[AssetId] = &[
 const COUNSEL: &[AssetId] = &[AssetId::Widget(WidgetAsset::Counsel)];
 const SEARCH: &[AssetId] = &[AssetId::Widget(WidgetAsset::Search)];
 const HELP: &[AssetId] = &[AssetId::Widget(WidgetAsset::Help)];
-const DELVE_REUSES: &[AssetId] = &[
-    AssetId::Widget(WidgetAsset::ChamberFull),
+const NAMED_DELVE_REUSES: &[AssetId] = &[
+    AssetId::Scene(SceneAsset::ConnectedDelves),
     AssetId::Widget(WidgetAsset::ChamberCompact),
 ];
 const CONNECTED_DELVE_REUSES: &[AssetId] = &[
     AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
     AssetId::DelveVariant(DelveVariant::MossyUndercroft),
     AssetId::DelveVariant(DelveVariant::OldWatchtower),
-    AssetId::Widget(WidgetAsset::ChamberFull),
     AssetId::Widget(WidgetAsset::ChamberCompact),
 ];
 const GUILD_REUSES: &[AssetId] = GUILD_REGIONS;
+const NARROW_GUILD_REUSES: &[AssetId] = &[AssetId::Widget(WidgetAsset::QuestBoard)];
+const NARROW_DELVE_REUSES: &[AssetId] = &[AssetId::Widget(WidgetAsset::ChamberCompact)];
+const GUILD_REGION_SHOWS: &[AssetId] = &[AssetId::Scene(SceneAsset::GuildPopulated)];
+const MODAL_GUILD_REUSES: &[AssetId] = &[
+    AssetId::Scene(SceneAsset::GuildMixedAttention),
+    AssetId::Widget(WidgetAsset::QuestBoard),
+    AssetId::Widget(WidgetAsset::Party),
+    AssetId::Widget(WidgetAsset::Summons),
+    AssetId::Widget(WidgetAsset::Chronicle),
+    AssetId::Widget(WidgetAsset::AdventurerProfile),
+    AssetId::Widget(WidgetAsset::Scrying),
+    AssetId::Widget(WidgetAsset::Spoils),
+];
 const GOBLIN_REUSES: &[AssetId] = &[
     AssetId::Scene(SceneAsset::GuildPopulated),
+    AssetId::Widget(WidgetAsset::QuestBoard),
+    AssetId::Widget(WidgetAsset::Party),
+    AssetId::Widget(WidgetAsset::Summons),
+    AssetId::Widget(WidgetAsset::Chronicle),
+    AssetId::Widget(WidgetAsset::AdventurerProfile),
+    AssetId::Widget(WidgetAsset::Scrying),
+    AssetId::Widget(WidgetAsset::Spoils),
+];
+const GOBLIN_OUTBREAK_REUSES: &[AssetId] = &[
+    AssetId::Scene(SceneAsset::GuildMixedAttention),
     AssetId::Widget(WidgetAsset::QuestBoard),
     AssetId::Widget(WidgetAsset::Party),
     AssetId::Widget(WidgetAsset::Summons),
@@ -334,7 +361,6 @@ const COMPATIBILITY_REUSES: &[AssetId] = &[
     AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
     AssetId::DelveVariant(DelveVariant::MossyUndercroft),
     AssetId::DelveVariant(DelveVariant::OldWatchtower),
-    AssetId::Widget(WidgetAsset::ChamberFull),
     AssetId::Widget(WidgetAsset::ChamberCompact),
 ];
 
@@ -345,6 +371,22 @@ const COMPATIBILITY_REUSES: &[AssetId] = &[
 fn build_catalogue() -> Vec<Story> {
     let profile_reuses = persona_reuses("storybook-atlas");
     let pose_reuses = persona_reuses("storybook-pose-atlas");
+    let adventurer_card_reuses = widget_atlas_shows(atlas::adventurer_cards);
+    let chamber_reuses = widget_atlas_shows(atlas::chambers);
+    let connected_delves_reuses = delve_shows(
+        connected_delves,
+        SCENE_VIEWPORT,
+        CONNECTED_DELVE_REUSES,
+        true,
+    );
+    let mixed_state_delve_reuses = delve_shows(
+        mixed_state_delve,
+        SCENE_VIEWPORT,
+        CONNECTED_DELVE_REUSES,
+        true,
+    );
+    let narrow_delve_reuses =
+        delve_shows(narrow_delve, NARROW_VIEWPORT, NARROW_DELVE_REUSES, false);
     let mut stories = vec![
         atlas_story!(
             "atlas.classes",
@@ -477,7 +519,7 @@ fn build_catalogue() -> Vec<Story> {
             WIDGET_VIEWPORT,
             atlas::adventurer_cards,
             ADVENTURER_CARDS,
-            &[],
+            adventurer_card_reuses,
         ),
         complete_story(
             "widgets.chambers",
@@ -487,17 +529,17 @@ fn build_catalogue() -> Vec<Story> {
             WIDGET_VIEWPORT,
             atlas::chambers,
             CHAMBERS,
-            &[],
+            chamber_reuses,
         ),
         complete_story(
             "widgets.guild-regions",
             "Guild Regions",
             Category::Widgets,
             "Every fixed production Guild region in one populated hall.",
-            WIDGET_VIEWPORT,
-            guild_regions,
+            GUILD_REGIONS_VIEWPORT,
+            atlas::guild_regions,
             GUILD_REGIONS,
-            &[AssetId::Scene(SceneAsset::GuildPopulated)],
+            GUILD_REGION_SHOWS,
         ),
         complete_story(
             "widgets.counsel",
@@ -507,7 +549,7 @@ fn build_catalogue() -> Vec<Story> {
             WIDGET_VIEWPORT,
             counsel,
             COUNSEL,
-            &[AssetId::Scene(SceneAsset::GuildMixedAttention)],
+            MODAL_GUILD_REUSES,
         ),
         complete_story(
             "widgets.search",
@@ -517,7 +559,7 @@ fn build_catalogue() -> Vec<Story> {
             WIDGET_VIEWPORT,
             search,
             SEARCH,
-            &[AssetId::Scene(SceneAsset::GuildMixedAttention)],
+            MODAL_GUILD_REUSES,
         ),
         complete_story(
             "widgets.help",
@@ -527,7 +569,7 @@ fn build_catalogue() -> Vec<Story> {
             WIDGET_VIEWPORT,
             help,
             HELP,
-            &[AssetId::Scene(SceneAsset::GuildMixedAttention)],
+            MODAL_GUILD_REUSES,
         ),
         scene_story(
             "scenes.guild-empty",
@@ -593,7 +635,7 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::ConnectedDelves,
             connected_delves,
             SCENE_VIEWPORT,
-            CONNECTED_DELVE_REUSES,
+            connected_delves_reuses,
         ),
         scene_story(
             "scenes.mixed-state-delve",
@@ -601,7 +643,7 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::MixedStateDelve,
             mixed_state_delve,
             SCENE_VIEWPORT,
-            CONNECTED_DELVE_REUSES,
+            mixed_state_delve_reuses,
         ),
         scene_story(
             "scenes.narrow-guild",
@@ -609,7 +651,7 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::NarrowGuild,
             narrow_guild,
             NARROW_VIEWPORT,
-            GUILD_REUSES,
+            NARROW_GUILD_REUSES,
         ),
         scene_story(
             "scenes.narrow-delve",
@@ -617,37 +659,42 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::NarrowDelve,
             narrow_delve,
             NARROW_VIEWPORT,
-            CONNECTED_DELVE_REUSES,
+            narrow_delve_reuses,
         ),
         goblin_story(
             "goblins.chest-eyes",
             "Chest Eyes",
             AssetId::GoblinSighting(GoblinSighting::ChestEyes),
             goblin_chest,
+            GOBLIN_REUSES,
         ),
         goblin_story(
             "goblins.chronicle-hand",
             "Chronicle Hand",
             AssetId::GoblinSighting(GoblinSighting::ChronicleHand),
             goblin_hand,
+            GOBLIN_REUSES,
         ),
         goblin_story(
             "goblins.rafters-scroll",
             "Rafters Scroll",
             AssetId::GoblinSighting(GoblinSighting::RaftersScroll),
             goblin_scroll,
+            GOBLIN_REUSES,
         ),
         goblin_story(
             "goblins.stolen-biscuit",
             "Stolen Biscuit",
             AssetId::GoblinSighting(GoblinSighting::StolenBiscuit),
             goblin_biscuit,
+            GOBLIN_REUSES,
         ),
         goblin_story(
             "goblins.outbreak",
             "Goblin Outbreak",
             AssetId::GoblinOutbreak,
             goblin_outbreak,
+            GOBLIN_OUTBREAK_REUSES,
         ),
         compatibility_story(
             "compat.unicode-xterm256",
@@ -715,7 +762,7 @@ fn complete_story(
     owns: &'static [AssetId],
     reused: &'static [AssetId],
 ) -> Story {
-    let shows = fixture_shows(build, owns, reused);
+    let shows = canonical_shows(owns, reused);
     Story::new(
         StoryId::new(id),
         title,
@@ -728,36 +775,73 @@ fn complete_story(
     )
 }
 
-fn fixture_shows(build: StoryBuilder, owns: &[AssetId], reused: &[AssetId]) -> &'static [AssetId] {
+fn canonical_shows(owns: &[AssetId], reused: &[AssetId]) -> &'static [AssetId] {
     let mut shows = reused.to_vec();
-    match build(&StoryContext::fixed()) {
-        StoryFixture::Application(model) => {
-            for agent in model.domain().agents.values() {
-                shows.push(AssetId::Class(agent.persona.class));
-                shows.push(AssetId::Ancestry(agent.persona.ancestry));
-                shows.push(AssetId::Pose(
-                    frame_for(agent, model.now(), model.preferences()).pose,
-                ));
-            }
-        }
-        StoryFixture::AssetAtlas(atlas) => {
-            for tile in atlas.tiles {
-                match tile.content {
-                    AtlasContent::AdventurerCard { agent, theatre, .. }
-                    | AtlasContent::Chamber { agent, theatre, .. } => {
-                        shows.push(AssetId::Class(agent.persona.class));
-                        shows.push(AssetId::Ancestry(agent.persona.ancestry));
-                        shows.push(AssetId::Pose(theatre.pose));
-                    }
-                    AtlasContent::Pixel { .. } => {}
-                }
-            }
-        }
-    }
     shows.retain(|asset| !owns.contains(asset));
     sort_assets(&mut shows);
     shows.dedup();
     Box::leak(shows.into_boxed_slice())
+}
+
+fn widget_atlas_shows(build: StoryBuilder) -> &'static [AssetId] {
+    let StoryFixture::AssetAtlas(atlas) = build(&StoryContext::fixed()) else {
+        unreachable!("widget atlas builders must produce AssetAtlas fixtures");
+    };
+    let mut shows = Vec::new();
+    for tile in atlas.tiles {
+        match tile.content {
+            AtlasContent::AdventurerCard { agent, theatre, .. }
+            | AtlasContent::Chamber { agent, theatre, .. } => {
+                shows.push(AssetId::Class(agent.persona.class));
+                shows.push(AssetId::Ancestry(agent.persona.ancestry));
+                shows.push(AssetId::Pose(theatre.pose));
+            }
+            AtlasContent::Pixel { .. } | AtlasContent::Application { .. } => {}
+        }
+    }
+    canonical_shows(&[], &shows)
+}
+
+fn delve_shows(
+    build: StoryBuilder,
+    viewport: Viewport,
+    fixed: &[AssetId],
+    reference_has_persona_sprites: bool,
+) -> &'static [AssetId] {
+    let StoryFixture::Application(model) = build(&StoryContext::fixed()) else {
+        unreachable!("Delve stories must produce Application fixtures");
+    };
+    let reference = Rect::new(0, 0, viewport.reference_width, viewport.reference_height);
+    let minimum = Rect::new(0, 0, viewport.minimum_width, viewport.minimum_height);
+    let reference_agents = visible_agent_keys(&model, reference);
+    let visible_agents = reference_agents
+        .iter()
+        .chain(visible_agent_keys(&model, minimum).iter())
+        .cloned()
+        .collect::<HashSet<_>>();
+    let mut shows = fixed.to_vec();
+    for key in &visible_agents {
+        let agent = model
+            .domain()
+            .agents
+            .get(key)
+            .expect("the production visibility projection returns known agents");
+        shows.push(AssetId::Pose(
+            frame_for(agent, model.now(), model.preferences()).pose,
+        ));
+    }
+    if reference_has_persona_sprites && model.preferences().character_set == CharacterSet::Unicode {
+        for key in reference_agents {
+            let agent = model
+                .domain()
+                .agents
+                .get(&key)
+                .expect("the production visibility projection returns known agents");
+            shows.push(AssetId::Class(agent.persona.class));
+            shows.push(AssetId::Ancestry(agent.persona.ancestry));
+        }
+    }
+    canonical_shows(&[], &shows)
 }
 
 fn scene_story(
@@ -788,6 +872,7 @@ fn delve_variant_story(
     build: StoryBuilder,
 ) -> Story {
     let owns = Box::leak(vec![AssetId::DelveVariant(asset)].into_boxed_slice());
+    let reused = delve_shows(build, SCENE_VIEWPORT, NAMED_DELVE_REUSES, true);
     complete_story(
         id,
         title,
@@ -796,7 +881,7 @@ fn delve_variant_story(
         SCENE_VIEWPORT,
         build,
         owns,
-        DELVE_REUSES,
+        reused,
     )
 }
 
@@ -805,6 +890,7 @@ fn goblin_story(
     title: &'static str,
     asset: AssetId,
     build: StoryBuilder,
+    reused: &'static [AssetId],
 ) -> Story {
     let owns = Box::leak(vec![asset].into_boxed_slice());
     complete_story(
@@ -815,7 +901,7 @@ fn goblin_story(
         SCENE_VIEWPORT,
         build,
         owns,
-        GOBLIN_REUSES,
+        reused,
     )
 }
 
@@ -826,6 +912,7 @@ fn compatibility_story(
     build: StoryBuilder,
 ) -> Story {
     let owns = Box::leak(vec![AssetId::Compatibility(asset)].into_boxed_slice());
+    let reused = delve_shows(build, COMPATIBILITY_VIEWPORT, COMPATIBILITY_REUSES, true);
     complete_story(
         id,
         title,
@@ -834,7 +921,7 @@ fn compatibility_story(
         COMPATIBILITY_VIEWPORT,
         build,
         owns,
-        COMPATIBILITY_REUSES,
+        reused,
     )
 }
 
@@ -842,9 +929,6 @@ fn application(model: crate::app::Model) -> StoryFixture {
     StoryFixture::Application(model)
 }
 
-fn guild_regions(context: &StoryContext) -> StoryFixture {
-    application(fixtures::guild_populated_fixture(context))
-}
 fn counsel(_: &StoryContext) -> StoryFixture {
     application(fixtures::modal_fixture(Modal::Counsel {
         draft: String::new(),

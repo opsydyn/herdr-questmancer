@@ -1,6 +1,7 @@
 #![cfg(feature = "storybook")]
 
 use questmancer::{
+    app::{Modal, View},
     domain::{AdventurerClass, AdventurerPersona, PersonaKey},
     storybook::{
         AssetId, SceneAsset,
@@ -45,6 +46,10 @@ fn render_storybook_buffer(
         })
         .unwrap();
     terminal.backend().buffer().clone()
+}
+
+fn buffer_text(buffer: &Buffer) -> String {
+    buffer.content().iter().map(Cell::symbol).collect()
 }
 
 #[allow(
@@ -323,6 +328,50 @@ fn inspection_delve_story_uses_the_same_full_production_renderer_bridge() {
 }
 
 #[test]
+fn guild_regions_atlas_exercises_every_region_through_one_production_application_tile() {
+    let story = catalogue()
+        .iter()
+        .find(|story| story.id.as_str() == "widgets.guild-regions")
+        .unwrap();
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("Guild regions must be grouped in an asset atlas");
+    };
+    assert_eq!(atlas.tiles.len(), 1);
+    let tile = &atlas.tiles[0];
+    assert_eq!((tile.preferred_width, tile.preferred_height), (122, 36));
+    let AtlasContent::Application { model } = &tile.content else {
+        panic!("Guild regions must use the production application renderer");
+    };
+    let screen = buffer_text(&storybook_ui::render_application_buffer(model, 120, 34));
+    for marker in [
+        "QUEST BOARD",
+        "PARTY ROSTER",
+        "CALLS FOR COUNSEL",
+        "CHRONICLE",
+        "ADVENTURER",
+        "SCRYING TABLE",
+        "SPOILS VAULT",
+    ] {
+        assert!(screen.contains(marker), "missing {marker}: {screen}");
+    }
+}
+
+#[test]
+fn connected_delves_render_has_no_stale_blocked_or_counsel_evidence() {
+    let story = catalogue()
+        .iter()
+        .find(|story| story.id.as_str() == "scenes.connected-delves")
+        .unwrap();
+    let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
+        panic!("connected Delves must be an application fixture");
+    };
+    let screen = buffer_text(&storybook_ui::render_application_buffer(&model, 130, 36));
+    for stale in ["COUNSEL REQUESTED", "sealed gate", "SPOILS RETURNED"] {
+        assert!(!screen.contains(stale), "stale {stale}: {screen}");
+    }
+}
+
+#[test]
 fn blit_clips_at_the_target_edge_and_preserves_the_requested_offset() {
     let mut source = Buffer::empty(Rect::new(0, 0, 4, 2));
     source.cell_mut((0, 0)).unwrap().set_symbol("A");
@@ -474,6 +523,27 @@ fn every_completed_story_renders_at_reference_and_minimum_viewports() {
     for (index, story) in stories.iter().enumerate() {
         let mut app = StorybookApp::new(stories);
         app.select(index, stories);
+        reduce(&mut app, Action::Inspect, stories);
+        let marker = match (story.build)(&StoryContext::fixed()) {
+            StoryFixture::AssetAtlas(atlas) => atlas
+                .tiles
+                .first()
+                .expect("every fixed atlas has at least one tile")
+                .label
+                .split_whitespace()
+                .next()
+                .expect("every fixed atlas tile has a visible label")
+                .to_owned(),
+            StoryFixture::Application(model) => match model.modal() {
+                Modal::Counsel { .. } => "ISSUE COUNSEL".to_owned(),
+                Modal::Search { .. } => "SEARCH ADVENTURERS".to_owned(),
+                Modal::Help => "QUESTMANCER'S FIELD GUIDE".to_owned(),
+                Modal::None => match model.view() {
+                    View::Guild => "QUESTMANCER'S GUILD HALL".to_owned(),
+                    View::Delve => "QUESTMANCER DELVES".to_owned(),
+                },
+            },
+        };
         for (label, width, height) in [
             (
                 "reference",
@@ -486,14 +556,31 @@ fn every_completed_story_renders_at_reference_and_minimum_viewports() {
                 story.viewport.minimum_height,
             ),
         ] {
-            let buffer = render_storybook_buffer(&app, stories, width, height);
-            let canvas = storybook_ui::shell_layout(Rect::new(0, 0, width, height)).canvas;
-            let content = Rect::new(
-                canvas.x.saturating_add(1),
-                canvas.y.saturating_add(1),
-                canvas.width.saturating_sub(2),
-                canvas.height.saturating_sub(2),
+            let outer_height = height.saturating_add(1);
+            let buffer = render_storybook_buffer(&app, stories, width, outer_height);
+            let screen = buffer
+                .content()
+                .iter()
+                .map(Cell::symbol)
+                .collect::<String>();
+            assert!(
+                !screen.contains("This story needs at least"),
+                "{} rendered the size warning at its {label} fixture viewport {width}x{height}",
+                story.id.as_str()
             );
+            for dashboard_chrome in ["STORIES", "COVERAGE", "PRODUCTION CANVAS"] {
+                assert!(
+                    !screen.contains(dashboard_chrome),
+                    "{} retained dashboard chrome {dashboard_chrome:?} at its {label} fixture viewport {width}x{height}",
+                    story.id.as_str()
+                );
+            }
+            assert!(
+                screen.contains(&marker),
+                "{} did not render fixture marker {marker:?} at its {label} fixture viewport {width}x{height}",
+                story.id.as_str()
+            );
+            let content = Rect::new(0, 0, width, height);
             assert!(
                 (content.y..content.bottom()).any(|y| {
                     (content.x..content.right()).any(|x| {
@@ -502,7 +589,7 @@ fn every_completed_story_renders_at_reference_and_minimum_viewports() {
                             .is_some_and(|cell| !cell.symbol().trim().is_empty())
                     })
                 }),
-                "{} rendered only spaces in the production canvas at its {label} viewport {width}x{height}",
+                "{} rendered only spaces in the production fixture at its {label} viewport {width}x{height}",
                 story.id.as_str()
             );
         }

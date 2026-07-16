@@ -14,7 +14,10 @@ use super::{
         ACCENT_TONES, ANCESTRIES, BODY_PROPORTIONS, CLASSES, COLOR_ROLES, FACE_DETAILS, FOOTWEAR,
         GARBS, HAIR_SHAPES, HAIR_TONES, HEAD_SHAPES, KEEPSAKES, LEGWEAR, POSES, SKIN_TONES,
     },
-    fixtures::{AssetAtlas, AtlasContent, AtlasTile, StoryContext, StoryFixture, guild_fixture},
+    fixtures::{
+        AssetAtlas, AtlasContent, AtlasTile, StoryContext, StoryFixture, guild_fixture,
+        guild_populated_fixture,
+    },
 };
 
 pub fn profile_tile(label: &'static str, mutate: impl FnOnce(&mut AdventurerPersona)) -> AtlasTile {
@@ -215,6 +218,17 @@ pub fn chambers(context: &StoryContext) -> StoryFixture {
             },
         },
     ])
+}
+
+pub fn guild_regions(context: &StoryContext) -> StoryFixture {
+    atlas(vec![AtlasTile {
+        label: "All Guild regions",
+        preferred_width: 122,
+        preferred_height: 36,
+        content: AtlasContent::Application {
+            model: guild_populated_fixture(context),
+        },
+    }])
 }
 
 fn widget_inputs(

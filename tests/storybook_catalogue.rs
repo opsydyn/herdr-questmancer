@@ -1,9 +1,11 @@
 #![cfg(feature = "storybook")]
 
+use std::collections::HashSet;
+
 use questmancer::app::{Model, View};
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion},
-    domain::{AdventurerPersona, PersonaKey, Presence},
+    domain::{AdventurerPersona, GuildAttention, PersonaKey, Presence},
     storybook::{
         AssetId, CompatibilityAsset, SceneAsset, WidgetAsset, asset_inventory,
         catalogue::{
@@ -11,8 +13,12 @@ use questmancer::{
         },
         fixtures::{AtlasContent, StoryContext, StoryFixture},
     },
-    ui::{delve_scene::DelveVariant, goblins::GoblinSighting},
+    ui::{
+        delve_projection::visible_agent_keys, delve_scene::DelveVariant, goblins::GoblinSighting,
+        theatre::frame_for,
+    },
 };
+use ratatui::layout::Rect;
 
 #[allow(
     clippy::trivially_copy_pass_by_ref,
@@ -510,12 +516,39 @@ fn compatibility_stories_apply_the_exact_fixed_preferences() {
 }
 
 #[test]
+fn compatibility_stories_use_the_clean_connected_delves_baseline() {
+    for story in catalogue()
+        .iter()
+        .filter(|story| story.category == Category::Compatibility)
+    {
+        let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
+            panic!("{} must use the application renderer", story.id.as_str());
+        };
+        assert!(
+            model.domain().agents.values().all(|agent| {
+                agent.presence == Presence::Working
+                    && agent.attention == GuildAttention::Clear
+                    && agent.custom_status.is_none()
+            }),
+            "{}",
+            story.id.as_str()
+        );
+        assert!(model.output_preview().is_none(), "{}", story.id.as_str());
+        assert!(
+            model.domain().chronicle.entries().is_empty(),
+            "{}",
+            story.id.as_str()
+        );
+    }
+}
+
+#[test]
 fn every_non_atlas_application_story_uses_the_production_fixture_bridge() {
     for story in catalogue() {
         let fixture = (story.build)(&StoryContext::fixed());
         let is_widget_atlas = matches!(
             story.id.as_str(),
-            "widgets.adventurer-cards" | "widgets.chambers"
+            "widgets.adventurer-cards" | "widgets.chambers" | "widgets.guild-regions"
         );
         if story.category == Category::AssetAtlas || is_widget_atlas {
             assert!(
@@ -560,11 +593,240 @@ fn connected_and_mixed_state_delves_use_distinct_canonical_models() {
             .all(|agent| agent.presence == Presence::Working)
     );
     assert!(
+        connected
+            .domain()
+            .agents
+            .values()
+            .all(|agent| agent.attention == GuildAttention::Clear && agent.custom_status.is_none())
+    );
+    assert!(connected.output_preview().is_none());
+    assert!(connected.domain().chronicle.entries().is_empty());
+    assert!(
+        connected
+            .selected_agent_key()
+            .is_some_and(|selected| connected.domain().agents.contains_key(selected))
+    );
+    assert!(
         mixed
             .domain()
             .agents
             .values()
             .any(|agent| agent.presence != Presence::Working)
+    );
+    let mixed_domain = mixed.domain();
+    assert!(mixed.output_preview().is_some_and(|preview| {
+        mixed_domain
+            .agents
+            .values()
+            .any(|agent| agent.pane_id == preview.pane_id)
+    }));
+    for entry in mixed_domain.chronicle.entries() {
+        assert!(
+            entry
+                .adventurer
+                .as_ref()
+                .is_none_or(|key| mixed_domain.agents.contains_key(key))
+        );
+        assert!(
+            entry
+                .campaign
+                .as_ref()
+                .is_none_or(|key| mixed_domain.campaigns.contains_key(key))
+        );
+        assert!(entry.pane.as_ref().is_none_or(|pane| {
+            mixed_domain
+                .agents
+                .values()
+                .any(|agent| &agent.pane_id == pane)
+        }));
+    }
+}
+
+#[test]
+#[allow(
+    clippy::too_many_lines,
+    reason = "one exhaustive table keeps every completed semantic story family auditable"
+)]
+fn shows_are_the_exact_assets_rendered_across_declared_viewports() {
+    let story = |id: &str| {
+        catalogue()
+            .iter()
+            .find(|story| story.id.as_str() == id)
+            .unwrap()
+    };
+
+    let assert_exact = |id: &str, expected: &[AssetId]| {
+        assert_eq!(
+            story(id).shows.iter().copied().collect::<HashSet<_>>(),
+            expected.iter().copied().collect(),
+            "{id}"
+        );
+    };
+    let guild_regions = [
+        AssetId::Widget(WidgetAsset::QuestBoard),
+        AssetId::Widget(WidgetAsset::Party),
+        AssetId::Widget(WidgetAsset::Summons),
+        AssetId::Widget(WidgetAsset::Chronicle),
+        AssetId::Widget(WidgetAsset::AdventurerProfile),
+        AssetId::Widget(WidgetAsset::Scrying),
+        AssetId::Widget(WidgetAsset::Spoils),
+    ];
+    let modal_guild = std::iter::once(AssetId::Scene(SceneAsset::GuildMixedAttention))
+        .chain(guild_regions)
+        .collect::<Vec<_>>();
+    for id in ["widgets.counsel", "widgets.search", "widgets.help"] {
+        assert_exact(id, &modal_guild);
+    }
+    assert_exact(
+        "widgets.guild-regions",
+        &[AssetId::Scene(SceneAsset::GuildPopulated)],
+    );
+    assert_exact("scenes.guild-empty", &[]);
+    for id in [
+        "scenes.guild-populated",
+        "scenes.guild-mixed-attention",
+        "scenes.guild-disconnected",
+        "scenes.guild-reconnecting",
+    ] {
+        assert_exact(id, &guild_regions);
+    }
+    assert_exact(
+        "scenes.narrow-guild",
+        &[AssetId::Widget(WidgetAsset::QuestBoard)],
+    );
+    for id in [
+        "goblins.chest-eyes",
+        "goblins.chronicle-hand",
+        "goblins.rafters-scroll",
+        "goblins.stolen-biscuit",
+    ] {
+        let expected = std::iter::once(AssetId::Scene(SceneAsset::GuildPopulated))
+            .chain(guild_regions)
+            .collect::<Vec<_>>();
+        assert_exact(id, &expected);
+    }
+    let outbreak = std::iter::once(AssetId::Scene(SceneAsset::GuildMixedAttention))
+        .chain(guild_regions)
+        .collect::<Vec<_>>();
+    assert_exact("goblins.outbreak", &outbreak);
+
+    for id in ["widgets.adventurer-cards", "widgets.chambers"] {
+        let StoryFixture::AssetAtlas(atlas) = (story(id).build)(&StoryContext::fixed()) else {
+            panic!("{id} must be an asset atlas");
+        };
+        let expected = atlas
+            .tiles
+            .into_iter()
+            .flat_map(|tile| match tile.content {
+                AtlasContent::AdventurerCard { agent, theatre, .. }
+                | AtlasContent::Chamber { agent, theatre, .. } => vec![
+                    AssetId::Class(agent.persona.class),
+                    AssetId::Ancestry(agent.persona.ancestry),
+                    AssetId::Pose(theatre.pose),
+                ],
+                AtlasContent::Pixel { .. } | AtlasContent::Application { .. } => vec![],
+            })
+            .collect::<Vec<_>>();
+        assert_exact(id, &expected);
+    }
+
+    let named_fixed = [
+        AssetId::Scene(SceneAsset::ConnectedDelves),
+        AssetId::Widget(WidgetAsset::ChamberCompact),
+    ];
+    for id in [
+        "scenes.delve-library",
+        "scenes.delve-undercroft",
+        "scenes.delve-watchtower",
+    ] {
+        assert_delve_shows_match_production_projection(story(id), &named_fixed, true);
+    }
+    let connected_fixed = [
+        AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
+        AssetId::DelveVariant(DelveVariant::MossyUndercroft),
+        AssetId::DelveVariant(DelveVariant::OldWatchtower),
+        AssetId::Widget(WidgetAsset::ChamberCompact),
+    ];
+    for id in ["scenes.connected-delves", "scenes.mixed-state-delve"] {
+        assert_delve_shows_match_production_projection(story(id), &connected_fixed, true);
+    }
+    assert_delve_shows_match_production_projection(
+        story("scenes.narrow-delve"),
+        &[AssetId::Widget(WidgetAsset::ChamberCompact)],
+        false,
+    );
+    let compatibility_fixed = std::iter::once(AssetId::Scene(SceneAsset::ConnectedDelves))
+        .chain(connected_fixed)
+        .collect::<Vec<_>>();
+    for id in [
+        "compat.unicode-xterm256",
+        "compat.unicode-ansi16",
+        "compat.ascii-ansi16",
+        "compat.motion-full",
+        "compat.motion-reduced",
+        "compat.motion-none",
+    ] {
+        assert_delve_shows_match_production_projection(story(id), &compatibility_fixed, true);
+    }
+    assert!(
+        story("compat.ascii-ansi16")
+            .shows
+            .iter()
+            .all(|asset| { !matches!(asset, AssetId::Class(_) | AssetId::Ancestry(_)) })
+    );
+    assert!(
+        story("compat.unicode-xterm256")
+            .shows
+            .iter()
+            .any(|asset| matches!(asset, AssetId::Class(_) | AssetId::Ancestry(_)))
+    );
+}
+
+fn assert_delve_shows_match_production_projection(
+    story: &Story,
+    fixed: &[AssetId],
+    reference_has_persona_sprites: bool,
+) {
+    let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
+        panic!("{} must be an application fixture", story.id.as_str());
+    };
+    let reference = Rect::new(
+        0,
+        0,
+        story.viewport.reference_width,
+        story.viewport.reference_height,
+    );
+    let minimum = Rect::new(
+        0,
+        0,
+        story.viewport.minimum_width,
+        story.viewport.minimum_height,
+    );
+    let reference_agents = visible_agent_keys(&model, reference);
+    let visible_agents = reference_agents
+        .iter()
+        .cloned()
+        .chain(visible_agent_keys(&model, minimum))
+        .collect::<HashSet<_>>();
+    let mut expected = fixed.to_vec();
+    for key in visible_agents {
+        let agent = model.domain().agents.get(&key).unwrap();
+        expected.push(AssetId::Pose(
+            frame_for(agent, model.now(), model.preferences()).pose,
+        ));
+    }
+    if reference_has_persona_sprites && model.preferences().character_set == CharacterSet::Unicode {
+        for key in reference_agents {
+            let agent = model.domain().agents.get(&key).unwrap();
+            expected.push(AssetId::Class(agent.persona.class));
+            expected.push(AssetId::Ancestry(agent.persona.ancestry));
+        }
+    }
+    assert_eq!(
+        story.shows.iter().copied().collect::<HashSet<_>>(),
+        expected.into_iter().collect(),
+        "{}",
+        story.id.as_str()
     );
 }
 

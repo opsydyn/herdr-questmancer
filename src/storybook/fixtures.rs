@@ -262,8 +262,12 @@ pub fn connected_delves_fixture(context: &StoryContext) -> Model {
     let mut model = delve_fixture(context);
     for agent in model.domain_mut().agents.values_mut() {
         agent.presence = Presence::Working;
+        agent.presence_since = context.now;
         agent.attention = GuildAttention::Clear;
+        agent.custom_status = None;
     }
+    model.domain_mut().chronicle = Chronicle::new(5);
+    model.set_output_preview(None);
     model
 }
 
@@ -396,7 +400,7 @@ pub fn modal_fixture(modal: Modal) -> Model {
 }
 
 pub fn compatibility_fixture(preferences: DisplayPreferences) -> Model {
-    let mut model = delve_fixture(&StoryContext::fixed());
+    let mut model = connected_delves_fixture(&StoryContext::fixed());
     model.set_preferences(preferences);
     model
 }
@@ -444,6 +448,9 @@ pub enum AtlasContent {
         theatre: TheatreFrame,
         selected: bool,
         preferences: DisplayPreferences,
+    },
+    Application {
+        model: Model,
     },
 }
 

@@ -449,6 +449,10 @@ fn render_atlas_tile(frame: &mut Frame<'_>, area: Rect, tile: &AtlasTile) {
             selected,
             preferences,
         } => render_chamber(frame, content_area, agent, *theatre, *selected, preferences),
+        AtlasContent::Application { model } => {
+            let source = render_application_buffer(model, content_area.width, content_area.height);
+            blit(&source, frame.buffer_mut(), content_area);
+        }
     }
 }
 
