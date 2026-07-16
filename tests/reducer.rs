@@ -27,6 +27,71 @@ fn status(status: AgentStatus, revision: u64, at: i64) -> AppEvent {
     }
 }
 
+fn transition_to_status(target_status: AgentStatus) -> DomainState {
+    let (initial, revision) = if target_status == AgentStatus::Blocked {
+        (update(state(), status(AgentStatus::Working, 8, 2_000)).0, 9)
+    } else {
+        (state(), 8)
+    };
+
+    update(initial, status(target_status, revision, 3_000)).0
+}
+
+fn assert_latest_chronicle_entry(
+    state: &DomainState,
+    expected_event: ChronicleEvent,
+    expected_summary: &str,
+) {
+    let entry = state.chronicle.entries().back().unwrap();
+    assert_eq!(entry.event, expected_event);
+    assert_eq!(entry.summary, expected_summary);
+}
+
+#[test]
+fn working_status_records_delve_began_summary() {
+    assert_latest_chronicle_entry(
+        &transition_to_status(AgentStatus::Working),
+        ChronicleEvent::DelveBegan,
+        "Codex began a delve",
+    );
+}
+
+#[test]
+fn blocked_status_records_counsel_requested_summary() {
+    assert_latest_chronicle_entry(
+        &transition_to_status(AgentStatus::Blocked),
+        ChronicleEvent::CounselRequested,
+        "Codex requested counsel",
+    );
+}
+
+#[test]
+fn done_status_records_spoils_returned_summary() {
+    assert_latest_chronicle_entry(
+        &transition_to_status(AgentStatus::Done),
+        ChronicleEvent::SpoilsReturned,
+        "Codex returned with spoils",
+    );
+}
+
+#[test]
+fn idle_status_records_adventurer_rested_summary() {
+    assert_latest_chronicle_entry(
+        &transition_to_status(AgentStatus::Idle),
+        ChronicleEvent::AdventurerRested,
+        "Codex made camp",
+    );
+}
+
+#[test]
+fn unknown_status_records_adventurer_joined_summary() {
+    assert_latest_chronicle_entry(
+        &transition_to_status(AgentStatus::Unknown),
+        ChronicleEvent::AdventurerJoined,
+        "Codex whereabouts unknown",
+    );
+}
+
 #[test]
 fn working_to_blocked_creates_unread_counsel_summons() {
     let (working, _) = update(state(), status(AgentStatus::Working, 8, 2_000));
@@ -107,6 +172,11 @@ fn pane_exit_becomes_attention_and_history() {
         Some(GuildSummons::AdventurerDeparted)
     );
     assert!(commands.iter().any(Command::is_chronicle_append));
+    assert_latest_chronicle_entry(
+        &exited,
+        ChronicleEvent::AdventurerDeparted,
+        "Codex departed the guild",
+    );
 }
 
 #[test]

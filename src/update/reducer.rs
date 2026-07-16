@@ -102,32 +102,32 @@ fn change_status(
         Presence::Working => (
             GuildAttention::Clear,
             ChronicleEvent::DelveBegan,
-            "started updating",
+            "began a delve",
         ),
         Presence::Blocked => (
             GuildAttention::unread(GuildSummons::CounselRequested, occurred_at),
             ChronicleEvent::CounselRequested,
-            "contacted the webmaster",
+            "requested counsel",
         ),
         Presence::Done => (
             GuildAttention::unread(GuildSummons::SpoilsReturned, occurred_at),
             ChronicleEvent::SpoilsReturned,
-            "published a site update",
+            "returned with spoils",
         ),
         Presence::Idle => (
             GuildAttention::Clear,
             ChronicleEvent::AdventurerRested,
-            "went idle",
+            "made camp",
         ),
         Presence::Exited => (
             GuildAttention::unread(GuildSummons::AdventurerDeparted, occurred_at),
             ChronicleEvent::AdventurerDeparted,
-            "left a broken link",
+            "departed the guild",
         ),
         Presence::Unknown => (
             GuildAttention::Clear,
             ChronicleEvent::AdventurerJoined,
-            "status unknown",
+            "whereabouts unknown",
         ),
     };
     agent.attention = attention;
@@ -155,7 +155,7 @@ fn exit_pane(
         state,
         &key,
         ChronicleEvent::AdventurerDeparted,
-        "left a broken link",
+        "departed the guild",
         occurred_at,
     )
 }
