@@ -1,9 +1,10 @@
 use crate::{
+    app::DisplayPreferences,
     domain::{AdventurerPersona, PersonaKey},
     ui::{
         persona::{compose_chamber_adventurer_for_palette, compose_profile_adventurer},
         pixel::{Canvas, ColorRole, Palette},
-        theatre::{TheatreFrame, TheatrePose},
+        theatre::{TheatreFrame, TheatrePose, frame_for},
     },
 };
 
@@ -13,7 +14,7 @@ use super::{
         ACCENT_TONES, ANCESTRIES, BODY_PROPORTIONS, CLASSES, COLOR_ROLES, FACE_DETAILS, FOOTWEAR,
         GARBS, HAIR_SHAPES, HAIR_TONES, HEAD_SHAPES, KEEPSAKES, LEGWEAR, POSES, SKIN_TONES,
     },
-    fixtures::{AssetAtlas, AtlasContent, AtlasTile, StoryContext, StoryFixture},
+    fixtures::{AssetAtlas, AtlasContent, AtlasTile, StoryContext, StoryFixture, guild_fixture},
 };
 
 pub fn profile_tile(label: &'static str, mutate: impl FnOnce(&mut AdventurerPersona)) -> AtlasTile {
@@ -160,4 +161,71 @@ pub fn poses(_: &StoryContext) -> StoryFixture {
             })
             .collect(),
     )
+}
+
+pub fn adventurer_cards(context: &StoryContext) -> StoryFixture {
+    let (agent, theatre, preferences) = widget_inputs(*context);
+    atlas(vec![
+        AtlasTile {
+            label: "Full adventurer card",
+            preferred_width: 36,
+            preferred_height: 21,
+            content: AtlasContent::AdventurerCard {
+                agent: agent.clone(),
+                theatre,
+                preferences,
+            },
+        },
+        AtlasTile {
+            label: "Compact adventurer card",
+            preferred_width: 30,
+            preferred_height: 12,
+            content: AtlasContent::AdventurerCard {
+                agent,
+                theatre,
+                preferences,
+            },
+        },
+    ])
+}
+
+pub fn chambers(context: &StoryContext) -> StoryFixture {
+    let (agent, theatre, preferences) = widget_inputs(*context);
+    atlas(vec![
+        AtlasTile {
+            label: "Full chamber",
+            preferred_width: 30,
+            preferred_height: 12,
+            content: AtlasContent::Chamber {
+                agent: agent.clone(),
+                theatre,
+                selected: true,
+                preferences,
+            },
+        },
+        AtlasTile {
+            label: "Compact chamber",
+            preferred_width: 26,
+            preferred_height: 9,
+            content: AtlasContent::Chamber {
+                agent,
+                theatre,
+                selected: false,
+                preferences,
+            },
+        },
+    ])
+}
+
+fn widget_inputs(
+    context: StoryContext,
+) -> (crate::domain::Agent, TheatreFrame, DisplayPreferences) {
+    let model = guild_fixture(&context);
+    let preferences = *model.preferences();
+    let agent = model
+        .selected_agent()
+        .expect("the fixed guild fixture has a selected adventurer")
+        .clone();
+    let theatre = frame_for(&agent, model.now(), &preferences);
+    (agent, theatre, preferences)
 }

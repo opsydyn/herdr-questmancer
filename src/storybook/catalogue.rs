@@ -1,17 +1,28 @@
+#![allow(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "StoryBuilder intentionally accepts a borrowed fixed StoryContext"
+)]
+
 use std::{
     collections::{HashMap, HashSet},
     fmt,
+    sync::OnceLock,
 };
 
-use crate::domain::{AdventurerClass, AdventuringGear};
+use crate::{
+    app::{CharacterSet, ColorMode, DisplayPreferences, Modal, Motion},
+    domain::{AdventurerClass, AdventurerPersona, AdventuringGear, PersonaKey},
+    ui::{delve_scene::DelveVariant, goblins::GoblinSighting, theatre::frame_for},
+};
 
 use super::{
-    AssetId,
+    AssetId, CompatibilityAsset, SceneAsset, WidgetAsset,
     assets::{
         ACCENT_TONES, ANCESTRIES, BODY_PROPORTIONS, CLASSES, COLOR_ROLES, FACE_DETAILS, FOOTWEAR,
         GARBS, GEAR, HAIR_SHAPES, HAIR_TONES, HEAD_SHAPES, KEEPSAKES, LEGWEAR, POSES, SKIN_TONES,
     },
     atlas,
+    fixtures::{self, AtlasContent, StoryContext, StoryFixture},
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -231,6 +242,10 @@ fn labels(assets: &[AssetId]) -> String {
 }
 
 const ATLAS_VIEWPORT: Viewport = Viewport::new(120, 36, 60, 18);
+const WIDGET_VIEWPORT: Viewport = Viewport::new(120, 36, 60, 18);
+const SCENE_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
+const NARROW_VIEWPORT: Viewport = Viewport::new(64, 24, 48, 18);
+const COMPATIBILITY_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
 
 const CLASS_AND_GEAR: &[AssetId] = &[
     AssetId::Class(AdventurerClass::Barbarian),
@@ -258,130 +273,708 @@ const CLASS_AND_GEAR: &[AssetId] = &[
 ];
 
 macro_rules! atlas_story {
-    ($id:literal, $title:literal, $description:literal, $builder:path, $owns:expr) => {
-        Story::new(
-            StoryId::new($id),
+    ($id:literal, $title:literal, $description:literal, $builder:path, $owns:expr, $reused:expr) => {
+        complete_story(
+            $id,
             $title,
             Category::AssetAtlas,
             $description,
             ATLAS_VIEWPORT,
             $builder,
             $owns,
-            &[],
+            $reused,
         )
     };
 }
 
-static STORIES: [Story; 15] = [
-    atlas_story!(
-        "atlas.classes",
-        "Classes and Gear",
-        "Every adventurer class with its production class gear.",
-        atlas::classes,
-        CLASS_AND_GEAR
-    ),
-    atlas_story!(
-        "atlas.ancestries",
-        "Ancestries",
-        "Every production adventurer ancestry.",
-        atlas::ancestries,
-        ANCESTRIES
-    ),
-    atlas_story!(
-        "atlas.body-proportions",
-        "Body Proportions",
-        "Every production adventurer body proportion.",
-        atlas::body_proportions,
-        BODY_PROPORTIONS
-    ),
-    atlas_story!(
-        "atlas.head-shapes",
-        "Head Shapes",
-        "Every production adventurer head shape.",
-        atlas::head_shapes,
-        HEAD_SHAPES
-    ),
-    atlas_story!(
-        "atlas.skin-tones",
-        "Skin Tones",
-        "Every production adventurer skin tone.",
-        atlas::skin_tones,
-        SKIN_TONES
-    ),
-    atlas_story!(
-        "atlas.hair-shapes",
-        "Hair Shapes",
-        "Every production adventurer hair shape.",
-        atlas::hair_shapes,
-        HAIR_SHAPES
-    ),
-    atlas_story!(
-        "atlas.hair-tones",
-        "Hair Tones",
-        "Every production adventurer hair tone.",
-        atlas::hair_tones,
-        HAIR_TONES
-    ),
-    atlas_story!(
-        "atlas.face-details",
-        "Face Details",
-        "Every production adventurer face detail.",
-        atlas::face_details,
-        FACE_DETAILS
-    ),
-    atlas_story!(
-        "atlas.garb",
-        "Garb",
-        "Every production adventurer garb style.",
-        atlas::garb,
-        GARBS
-    ),
-    atlas_story!(
-        "atlas.legwear",
-        "Legwear",
-        "Every production adventurer legwear style.",
-        atlas::legwear,
-        LEGWEAR
-    ),
-    atlas_story!(
-        "atlas.footwear",
-        "Footwear",
-        "Every production adventurer footwear style.",
-        atlas::footwear,
-        FOOTWEAR
-    ),
-    atlas_story!(
-        "atlas.keepsakes",
-        "Keepsakes",
-        "Every production adventurer keepsake.",
-        atlas::keepsakes,
-        KEEPSAKES
-    ),
-    atlas_story!(
-        "atlas.accent-tones",
-        "Accent Tones",
-        "Every production adventurer accent tone.",
-        atlas::accent_tones,
-        ACCENT_TONES
-    ),
-    atlas_story!(
-        "atlas.palette-roles",
-        "Palette Roles",
-        "Every production colour role in the Xterm-256 palette.",
-        atlas::palette_roles,
-        COLOR_ROLES
-    ),
-    atlas_story!(
-        "atlas.poses",
-        "Theatre Poses",
-        "Every production adventurer theatre pose.",
-        atlas::poses,
-        POSES
-    ),
+const ADVENTURER_CARDS: &[AssetId] = &[
+    AssetId::Widget(WidgetAsset::AdventurerCardFull),
+    AssetId::Widget(WidgetAsset::AdventurerCardCompact),
+];
+const CHAMBERS: &[AssetId] = &[
+    AssetId::Widget(WidgetAsset::ChamberFull),
+    AssetId::Widget(WidgetAsset::ChamberCompact),
+];
+const GUILD_REGIONS: &[AssetId] = &[
+    AssetId::Widget(WidgetAsset::QuestBoard),
+    AssetId::Widget(WidgetAsset::Party),
+    AssetId::Widget(WidgetAsset::Summons),
+    AssetId::Widget(WidgetAsset::Chronicle),
+    AssetId::Widget(WidgetAsset::AdventurerProfile),
+    AssetId::Widget(WidgetAsset::Scrying),
+    AssetId::Widget(WidgetAsset::Spoils),
+];
+const COUNSEL: &[AssetId] = &[AssetId::Widget(WidgetAsset::Counsel)];
+const SEARCH: &[AssetId] = &[AssetId::Widget(WidgetAsset::Search)];
+const HELP: &[AssetId] = &[AssetId::Widget(WidgetAsset::Help)];
+const DELVE_REUSES: &[AssetId] = &[
+    AssetId::Widget(WidgetAsset::ChamberFull),
+    AssetId::Widget(WidgetAsset::ChamberCompact),
+];
+const CONNECTED_DELVE_REUSES: &[AssetId] = &[
+    AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
+    AssetId::DelveVariant(DelveVariant::MossyUndercroft),
+    AssetId::DelveVariant(DelveVariant::OldWatchtower),
+    AssetId::Widget(WidgetAsset::ChamberFull),
+    AssetId::Widget(WidgetAsset::ChamberCompact),
+];
+const GUILD_REUSES: &[AssetId] = GUILD_REGIONS;
+const GOBLIN_REUSES: &[AssetId] = &[
+    AssetId::Scene(SceneAsset::GuildPopulated),
+    AssetId::Widget(WidgetAsset::QuestBoard),
+    AssetId::Widget(WidgetAsset::Party),
+    AssetId::Widget(WidgetAsset::Summons),
+    AssetId::Widget(WidgetAsset::Chronicle),
+    AssetId::Widget(WidgetAsset::AdventurerProfile),
+    AssetId::Widget(WidgetAsset::Scrying),
+    AssetId::Widget(WidgetAsset::Spoils),
+];
+const COMPATIBILITY_REUSES: &[AssetId] = &[
+    AssetId::Scene(SceneAsset::ConnectedDelves),
+    AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
+    AssetId::DelveVariant(DelveVariant::MossyUndercroft),
+    AssetId::DelveVariant(DelveVariant::OldWatchtower),
+    AssetId::Widget(WidgetAsset::ChamberFull),
+    AssetId::Widget(WidgetAsset::ChamberCompact),
 ];
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "the complete fixed catalogue keeps its prescribed order visible in one table"
+)]
+fn build_catalogue() -> Vec<Story> {
+    let profile_reuses = persona_reuses("storybook-atlas");
+    let pose_reuses = persona_reuses("storybook-pose-atlas");
+    let mut stories = vec![
+        atlas_story!(
+            "atlas.classes",
+            "Classes and Gear",
+            "Every adventurer class with its production class gear.",
+            atlas::classes,
+            CLASS_AND_GEAR,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.ancestries",
+            "Ancestries",
+            "Every production adventurer ancestry.",
+            atlas::ancestries,
+            ANCESTRIES,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.body-proportions",
+            "Body Proportions",
+            "Every production adventurer body proportion.",
+            atlas::body_proportions,
+            BODY_PROPORTIONS,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.head-shapes",
+            "Head Shapes",
+            "Every production adventurer head shape.",
+            atlas::head_shapes,
+            HEAD_SHAPES,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.skin-tones",
+            "Skin Tones",
+            "Every production adventurer skin tone.",
+            atlas::skin_tones,
+            SKIN_TONES,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.hair-shapes",
+            "Hair Shapes",
+            "Every production adventurer hair shape.",
+            atlas::hair_shapes,
+            HAIR_SHAPES,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.hair-tones",
+            "Hair Tones",
+            "Every production adventurer hair tone.",
+            atlas::hair_tones,
+            HAIR_TONES,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.face-details",
+            "Face Details",
+            "Every production adventurer face detail.",
+            atlas::face_details,
+            FACE_DETAILS,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.garb",
+            "Garb",
+            "Every production adventurer garb style.",
+            atlas::garb,
+            GARBS,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.legwear",
+            "Legwear",
+            "Every production adventurer legwear style.",
+            atlas::legwear,
+            LEGWEAR,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.footwear",
+            "Footwear",
+            "Every production adventurer footwear style.",
+            atlas::footwear,
+            FOOTWEAR,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.keepsakes",
+            "Keepsakes",
+            "Every production adventurer keepsake.",
+            atlas::keepsakes,
+            KEEPSAKES,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.accent-tones",
+            "Accent Tones",
+            "Every production adventurer accent tone.",
+            atlas::accent_tones,
+            ACCENT_TONES,
+            profile_reuses
+        ),
+        atlas_story!(
+            "atlas.palette-roles",
+            "Palette Roles",
+            "Every production colour role in the Xterm-256 palette.",
+            atlas::palette_roles,
+            COLOR_ROLES,
+            &[]
+        ),
+        atlas_story!(
+            "atlas.poses",
+            "Theatre Poses",
+            "Every production adventurer theatre pose.",
+            atlas::poses,
+            POSES,
+            pose_reuses
+        ),
+    ];
+
+    stories.extend([
+        complete_story(
+            "widgets.adventurer-cards",
+            "Adventurer Cards",
+            Category::Widgets,
+            "Full and compact production adventurer cards.",
+            WIDGET_VIEWPORT,
+            atlas::adventurer_cards,
+            ADVENTURER_CARDS,
+            &[],
+        ),
+        complete_story(
+            "widgets.chambers",
+            "Chambers",
+            Category::Widgets,
+            "Full and compact production Delve chambers.",
+            WIDGET_VIEWPORT,
+            atlas::chambers,
+            CHAMBERS,
+            &[],
+        ),
+        complete_story(
+            "widgets.guild-regions",
+            "Guild Regions",
+            Category::Widgets,
+            "Every fixed production Guild region in one populated hall.",
+            WIDGET_VIEWPORT,
+            guild_regions,
+            GUILD_REGIONS,
+            &[AssetId::Scene(SceneAsset::GuildPopulated)],
+        ),
+        complete_story(
+            "widgets.counsel",
+            "Counsel",
+            Category::Widgets,
+            "The production counsel modal with a fixed draft.",
+            WIDGET_VIEWPORT,
+            counsel,
+            COUNSEL,
+            &[AssetId::Scene(SceneAsset::GuildMixedAttention)],
+        ),
+        complete_story(
+            "widgets.search",
+            "Search",
+            Category::Widgets,
+            "The production search modal with a fixed query.",
+            WIDGET_VIEWPORT,
+            search,
+            SEARCH,
+            &[AssetId::Scene(SceneAsset::GuildMixedAttention)],
+        ),
+        complete_story(
+            "widgets.help",
+            "Help",
+            Category::Widgets,
+            "The production help modal over a fixed Guild hall.",
+            WIDGET_VIEWPORT,
+            help,
+            HELP,
+            &[AssetId::Scene(SceneAsset::GuildMixedAttention)],
+        ),
+        scene_story(
+            "scenes.guild-empty",
+            "Guild Empty",
+            SceneAsset::GuildEmpty,
+            guild_empty,
+            SCENE_VIEWPORT,
+            &[],
+        ),
+        scene_story(
+            "scenes.guild-populated",
+            "Guild Populated",
+            SceneAsset::GuildPopulated,
+            guild_populated,
+            SCENE_VIEWPORT,
+            GUILD_REUSES,
+        ),
+        scene_story(
+            "scenes.guild-mixed-attention",
+            "Guild Mixed Attention",
+            SceneAsset::GuildMixedAttention,
+            guild_mixed_attention,
+            SCENE_VIEWPORT,
+            GUILD_REUSES,
+        ),
+        scene_story(
+            "scenes.guild-disconnected",
+            "Guild Disconnected",
+            SceneAsset::GuildDisconnected,
+            guild_disconnected,
+            SCENE_VIEWPORT,
+            GUILD_REUSES,
+        ),
+        scene_story(
+            "scenes.guild-reconnecting",
+            "Guild Reconnecting",
+            SceneAsset::GuildReconnecting,
+            guild_reconnecting,
+            SCENE_VIEWPORT,
+            GUILD_REUSES,
+        ),
+        delve_variant_story(
+            "scenes.delve-library",
+            "Forgotten Library",
+            DelveVariant::ForgottenLibrary,
+            delve_library,
+        ),
+        delve_variant_story(
+            "scenes.delve-undercroft",
+            "Mossy Undercroft",
+            DelveVariant::MossyUndercroft,
+            delve_undercroft,
+        ),
+        delve_variant_story(
+            "scenes.delve-watchtower",
+            "Old Watchtower",
+            DelveVariant::OldWatchtower,
+            delve_watchtower,
+        ),
+        scene_story(
+            "scenes.connected-delves",
+            "Connected Delves",
+            SceneAsset::ConnectedDelves,
+            connected_delves,
+            SCENE_VIEWPORT,
+            CONNECTED_DELVE_REUSES,
+        ),
+        scene_story(
+            "scenes.mixed-state-delve",
+            "Mixed-State Delve",
+            SceneAsset::MixedStateDelve,
+            mixed_state_delve,
+            SCENE_VIEWPORT,
+            CONNECTED_DELVE_REUSES,
+        ),
+        scene_story(
+            "scenes.narrow-guild",
+            "Narrow Guild",
+            SceneAsset::NarrowGuild,
+            narrow_guild,
+            NARROW_VIEWPORT,
+            GUILD_REUSES,
+        ),
+        scene_story(
+            "scenes.narrow-delve",
+            "Narrow Delve",
+            SceneAsset::NarrowDelve,
+            narrow_delve,
+            NARROW_VIEWPORT,
+            CONNECTED_DELVE_REUSES,
+        ),
+        goblin_story(
+            "goblins.chest-eyes",
+            "Chest Eyes",
+            AssetId::GoblinSighting(GoblinSighting::ChestEyes),
+            goblin_chest,
+        ),
+        goblin_story(
+            "goblins.chronicle-hand",
+            "Chronicle Hand",
+            AssetId::GoblinSighting(GoblinSighting::ChronicleHand),
+            goblin_hand,
+        ),
+        goblin_story(
+            "goblins.rafters-scroll",
+            "Rafters Scroll",
+            AssetId::GoblinSighting(GoblinSighting::RaftersScroll),
+            goblin_scroll,
+        ),
+        goblin_story(
+            "goblins.stolen-biscuit",
+            "Stolen Biscuit",
+            AssetId::GoblinSighting(GoblinSighting::StolenBiscuit),
+            goblin_biscuit,
+        ),
+        goblin_story(
+            "goblins.outbreak",
+            "Goblin Outbreak",
+            AssetId::GoblinOutbreak,
+            goblin_outbreak,
+        ),
+        compatibility_story(
+            "compat.unicode-xterm256",
+            "Unicode / Xterm-256",
+            CompatibilityAsset::UnicodeXterm256,
+            unicode_xterm256,
+        ),
+        compatibility_story(
+            "compat.unicode-ansi16",
+            "Unicode / ANSI-16",
+            CompatibilityAsset::UnicodeAnsi16,
+            unicode_ansi16,
+        ),
+        compatibility_story(
+            "compat.ascii-ansi16",
+            "ASCII / ANSI-16",
+            CompatibilityAsset::AsciiAnsi16,
+            ascii_ansi16,
+        ),
+        compatibility_story(
+            "compat.motion-full",
+            "Full Motion",
+            CompatibilityAsset::MotionFull,
+            motion_full,
+        ),
+        compatibility_story(
+            "compat.motion-reduced",
+            "Reduced Motion",
+            CompatibilityAsset::MotionReduced,
+            motion_reduced,
+        ),
+        compatibility_story(
+            "compat.motion-none",
+            "No Motion",
+            CompatibilityAsset::MotionNone,
+            motion_none,
+        ),
+    ]);
+
+    stories
+}
+
+fn persona_reuses(key: &'static str) -> &'static [AssetId] {
+    let persona = AdventurerPersona::for_key(PersonaKey::new(key));
+    Box::leak(
+        vec![
+            AssetId::Class(persona.class),
+            AssetId::Ancestry(persona.ancestry),
+        ]
+        .into_boxed_slice(),
+    )
+}
+
+#[allow(
+    clippy::too_many_arguments,
+    reason = "fixed story metadata is intentionally explicit"
+)]
+fn complete_story(
+    id: &'static str,
+    title: &'static str,
+    category: Category,
+    description: &'static str,
+    viewport: Viewport,
+    build: StoryBuilder,
+    owns: &'static [AssetId],
+    reused: &'static [AssetId],
+) -> Story {
+    let shows = fixture_shows(build, owns, reused);
+    Story::new(
+        StoryId::new(id),
+        title,
+        category,
+        description,
+        viewport,
+        build,
+        owns,
+        shows,
+    )
+}
+
+fn fixture_shows(build: StoryBuilder, owns: &[AssetId], reused: &[AssetId]) -> &'static [AssetId] {
+    let mut shows = reused.to_vec();
+    match build(&StoryContext::fixed()) {
+        StoryFixture::Application(model) => {
+            for agent in model.domain().agents.values() {
+                shows.push(AssetId::Class(agent.persona.class));
+                shows.push(AssetId::Ancestry(agent.persona.ancestry));
+                shows.push(AssetId::Pose(
+                    frame_for(agent, model.now(), model.preferences()).pose,
+                ));
+            }
+        }
+        StoryFixture::AssetAtlas(atlas) => {
+            for tile in atlas.tiles {
+                match tile.content {
+                    AtlasContent::AdventurerCard { agent, theatre, .. }
+                    | AtlasContent::Chamber { agent, theatre, .. } => {
+                        shows.push(AssetId::Class(agent.persona.class));
+                        shows.push(AssetId::Ancestry(agent.persona.ancestry));
+                        shows.push(AssetId::Pose(theatre.pose));
+                    }
+                    AtlasContent::Pixel { .. } => {}
+                }
+            }
+        }
+    }
+    shows.retain(|asset| !owns.contains(asset));
+    sort_assets(&mut shows);
+    shows.dedup();
+    Box::leak(shows.into_boxed_slice())
+}
+
+fn scene_story(
+    id: &'static str,
+    title: &'static str,
+    asset: SceneAsset,
+    build: StoryBuilder,
+    viewport: Viewport,
+    reused: &'static [AssetId],
+) -> Story {
+    let owns = Box::leak(vec![AssetId::Scene(asset)].into_boxed_slice());
+    complete_story(
+        id,
+        title,
+        Category::FullScenes,
+        "A fixed production application scene.",
+        viewport,
+        build,
+        owns,
+        reused,
+    )
+}
+
+fn delve_variant_story(
+    id: &'static str,
+    title: &'static str,
+    asset: DelveVariant,
+    build: StoryBuilder,
+) -> Story {
+    let owns = Box::leak(vec![AssetId::DelveVariant(asset)].into_boxed_slice());
+    complete_story(
+        id,
+        title,
+        Category::FullScenes,
+        "One named production Delve variant.",
+        SCENE_VIEWPORT,
+        build,
+        owns,
+        DELVE_REUSES,
+    )
+}
+
+fn goblin_story(
+    id: &'static str,
+    title: &'static str,
+    asset: AssetId,
+    build: StoryBuilder,
+) -> Story {
+    let owns = Box::leak(vec![asset].into_boxed_slice());
+    complete_story(
+        id,
+        title,
+        Category::FullScenes,
+        "A fixed goblin interruption in the production Guild hall.",
+        SCENE_VIEWPORT,
+        build,
+        owns,
+        GOBLIN_REUSES,
+    )
+}
+
+fn compatibility_story(
+    id: &'static str,
+    title: &'static str,
+    asset: CompatibilityAsset,
+    build: StoryBuilder,
+) -> Story {
+    let owns = Box::leak(vec![AssetId::Compatibility(asset)].into_boxed_slice());
+    complete_story(
+        id,
+        title,
+        Category::Compatibility,
+        "The fixed production Delve under one display preference profile.",
+        COMPATIBILITY_VIEWPORT,
+        build,
+        owns,
+        COMPATIBILITY_REUSES,
+    )
+}
+
+fn application(model: crate::app::Model) -> StoryFixture {
+    StoryFixture::Application(model)
+}
+
+fn guild_regions(context: &StoryContext) -> StoryFixture {
+    application(fixtures::guild_populated_fixture(context))
+}
+fn counsel(_: &StoryContext) -> StoryFixture {
+    application(fixtures::modal_fixture(Modal::Counsel {
+        draft: String::new(),
+    }))
+}
+fn search(_: &StoryContext) -> StoryFixture {
+    application(fixtures::modal_fixture(Modal::Search {
+        query: String::new(),
+    }))
+}
+fn help(_: &StoryContext) -> StoryFixture {
+    application(fixtures::modal_fixture(Modal::Help))
+}
+fn guild_empty(context: &StoryContext) -> StoryFixture {
+    application(fixtures::guild_empty_fixture(context))
+}
+fn guild_populated(context: &StoryContext) -> StoryFixture {
+    application(fixtures::guild_populated_fixture(context))
+}
+fn guild_mixed_attention(context: &StoryContext) -> StoryFixture {
+    application(fixtures::guild_fixture(context))
+}
+fn guild_disconnected(context: &StoryContext) -> StoryFixture {
+    application(fixtures::guild_disconnected_fixture(context))
+}
+fn guild_reconnecting(context: &StoryContext) -> StoryFixture {
+    application(fixtures::guild_reconnecting_fixture(context))
+}
+fn delve_library(context: &StoryContext) -> StoryFixture {
+    application(fixtures::library_delve_fixture(context))
+}
+fn delve_undercroft(context: &StoryContext) -> StoryFixture {
+    application(fixtures::undercroft_delve_fixture(context))
+}
+fn delve_watchtower(context: &StoryContext) -> StoryFixture {
+    application(fixtures::watchtower_delve_fixture(context))
+}
+fn connected_delves(context: &StoryContext) -> StoryFixture {
+    application(fixtures::connected_delves_fixture(context))
+}
+fn mixed_state_delve(context: &StoryContext) -> StoryFixture {
+    application(fixtures::delve_fixture(context))
+}
+fn narrow_guild(context: &StoryContext) -> StoryFixture {
+    application(fixtures::guild_fixture(context))
+}
+fn narrow_delve(context: &StoryContext) -> StoryFixture {
+    application(fixtures::delve_fixture(context))
+}
+fn goblin_chest(context: &StoryContext) -> StoryFixture {
+    application(fixtures::goblin_chest_fixture(context))
+}
+fn goblin_hand(context: &StoryContext) -> StoryFixture {
+    application(fixtures::goblin_hand_fixture(context))
+}
+fn goblin_scroll(context: &StoryContext) -> StoryFixture {
+    application(fixtures::goblin_scroll_fixture(context))
+}
+fn goblin_biscuit(context: &StoryContext) -> StoryFixture {
+    application(fixtures::goblin_biscuit_fixture(context))
+}
+fn goblin_outbreak(context: &StoryContext) -> StoryFixture {
+    application(fixtures::goblin_outbreak_fixture(context))
+}
+
+const fn preferences(
+    motion: Motion,
+    character_set: CharacterSet,
+    color_mode: ColorMode,
+) -> DisplayPreferences {
+    DisplayPreferences {
+        motion,
+        character_set,
+        color_mode,
+    }
+}
+
+fn compatible(preferences: DisplayPreferences) -> StoryFixture {
+    application(fixtures::compatibility_fixture(preferences))
+}
+fn unicode_xterm256(_: &StoryContext) -> StoryFixture {
+    compatible(preferences(
+        Motion::Full,
+        CharacterSet::Unicode,
+        ColorMode::Xterm256,
+    ))
+}
+fn unicode_ansi16(_: &StoryContext) -> StoryFixture {
+    compatible(preferences(
+        Motion::Full,
+        CharacterSet::Unicode,
+        ColorMode::Ansi16,
+    ))
+}
+fn ascii_ansi16(_: &StoryContext) -> StoryFixture {
+    compatible(preferences(
+        Motion::Full,
+        CharacterSet::Ascii,
+        ColorMode::Ansi16,
+    ))
+}
+fn motion_full(_: &StoryContext) -> StoryFixture {
+    compatible(preferences(
+        Motion::Full,
+        CharacterSet::Unicode,
+        ColorMode::Xterm256,
+    ))
+}
+fn motion_reduced(_: &StoryContext) -> StoryFixture {
+    compatible(preferences(
+        Motion::Reduced,
+        CharacterSet::Unicode,
+        ColorMode::Xterm256,
+    ))
+}
+fn motion_none(_: &StoryContext) -> StoryFixture {
+    compatible(preferences(
+        Motion::None,
+        CharacterSet::Unicode,
+        ColorMode::Xterm256,
+    ))
+}
+
 pub fn catalogue() -> &'static [Story] {
+    static CATALOGUE: OnceLock<Vec<Story>> = OnceLock::new();
     debug_assert!(CLASS_AND_GEAR.starts_with(CLASSES));
     debug_assert!(CLASS_AND_GEAR.ends_with(GEAR));
-    &STORIES
+    CATALOGUE.get_or_init(build_catalogue).as_slice()
+}
+
+pub fn validate_catalogue() -> Result<CoverageReport, CoverageError> {
+    validate_coverage(&super::asset_inventory(), catalogue())
 }

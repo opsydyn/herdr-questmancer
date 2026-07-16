@@ -258,6 +258,120 @@ pub fn delve_fixture(context: &StoryContext) -> Model {
     model
 }
 
+pub fn connected_delves_fixture(context: &StoryContext) -> Model {
+    let mut model = delve_fixture(context);
+    for agent in model.domain_mut().agents.values_mut() {
+        agent.presence = Presence::Working;
+        agent.attention = GuildAttention::Clear;
+    }
+    model
+}
+
+pub fn guild_empty_fixture(context: &StoryContext) -> Model {
+    let mut model = Model::new(View::Guild);
+    model.set_connection(ConnectionState::Connected);
+    model.set_now(context.now);
+    model
+}
+
+pub fn guild_populated_fixture(context: &StoryContext) -> Model {
+    let mut model = guild_fixture(context);
+    for agent in model.domain_mut().agents.values_mut() {
+        agent.attention = GuildAttention::Clear;
+    }
+    model.set_output_preview(None);
+    model
+}
+
+pub fn guild_disconnected_fixture(context: &StoryContext) -> Model {
+    let mut model = guild_fixture(context);
+    model.set_connection(ConnectionState::Offline);
+    model
+}
+
+pub fn guild_reconnecting_fixture(context: &StoryContext) -> Model {
+    let mut model = guild_fixture(context);
+    model.set_connection(ConnectionState::Reconnecting { attempt: 3 });
+    model
+}
+
+pub fn library_delve_fixture(context: &StoryContext) -> Model {
+    isolated_delve_fixture(*context, &library_id())
+}
+
+pub fn undercroft_delve_fixture(context: &StoryContext) -> Model {
+    isolated_delve_fixture(*context, &undercroft_id())
+}
+
+pub fn watchtower_delve_fixture(context: &StoryContext) -> Model {
+    isolated_delve_fixture(*context, &watchtower_id())
+}
+
+fn isolated_delve_fixture(context: StoryContext, workspace_id: &WorkspaceId) -> Model {
+    let mut model = delve_fixture(&context);
+    {
+        let domain = model.domain_mut();
+        domain
+            .campaigns
+            .retain(|candidate, _| candidate == workspace_id);
+        domain
+            .agents
+            .retain(|_, agent| &agent.workspace_id == workspace_id);
+        domain.selected_agent = domain.agents.keys().next().cloned();
+        domain.chronicle = Chronicle::new(5);
+    }
+    model.set_output_preview(None);
+    model
+}
+
+pub fn goblin_chest_fixture(context: &StoryContext) -> Model {
+    goblin_sighting_fixture(*context, goblin_chest_id(), "Chest-Peeker")
+}
+
+pub fn goblin_hand_fixture(context: &StoryContext) -> Model {
+    goblin_sighting_fixture(*context, goblin_hand_id(), "Chronicle-Snatcher")
+}
+
+pub fn goblin_scroll_fixture(context: &StoryContext) -> Model {
+    goblin_sighting_fixture(*context, goblin_scroll_id(), "Rafter-Skulker")
+}
+
+pub fn goblin_biscuit_fixture(context: &StoryContext) -> Model {
+    goblin_sighting_fixture(*context, goblin_biscuit_id(), "Biscuit-Thief")
+}
+
+fn goblin_sighting_fixture(
+    context: StoryContext,
+    workspace_id: WorkspaceId,
+    agent_id: &'static str,
+) -> Model {
+    let mut model = guild_empty_fixture(&context);
+    let agent = agent_fixture(
+        agent_id,
+        workspace_id.clone(),
+        Presence::Working,
+        GuildAttention::Clear,
+        false,
+    );
+    let agent_key = agent.key.clone();
+    let campaign = campaign_fixture(
+        workspace_id.clone(),
+        "Goblin Watch",
+        vec![agent_key.clone()],
+    );
+    let domain = model.domain_mut();
+    domain.campaigns.insert(workspace_id, campaign);
+    domain.agents.insert(agent_key.clone(), agent);
+    domain.selected_agent = Some(agent_key);
+    model
+}
+
+pub fn goblin_outbreak_fixture(context: &StoryContext) -> Model {
+    let mut model = guild_fixture(context);
+    model.goblins_mut().release(context.now);
+    model
+}
+
 pub fn modal_fixture(modal: Modal) -> Model {
     let mut application = guild_fixture(&StoryContext::fixed());
     match modal {
