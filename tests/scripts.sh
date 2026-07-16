@@ -16,6 +16,27 @@ assert_contains() {
   grep -F -- "$expected" "$file" >/dev/null || fail "$file did not contain: $expected"
 }
 
+workflow_job_block() {
+  local workflow=$1
+  local job=$2
+  awk -v job="$job" '
+    $0 == "  " job ":" { in_job = 1; next }
+    in_job && /^  [[:alnum:]_-]+:$/ { exit }
+    in_job { print }
+  ' "$workflow"
+}
+
+assert_workflow_job_contains() {
+  local workflow=$1
+  local job=$2
+  local expected=$3
+  local block="$TMP/workflow-$job"
+
+  workflow_job_block "$workflow" "$job" >"$block"
+  [[ -s $block ]] || fail "$workflow did not define job: $job"
+  assert_contains "$block" "$expected"
+}
+
 make_binary() {
   local path=$1
   mkdir -p "$(dirname "$path")"
@@ -262,6 +283,18 @@ test_release_packaging_contract() {
   version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$ROOT/herdr-plugin.toml" | head -n 1)
 
   [[ -f $workflow ]] || fail "$workflow does not exist"
+  assert_workflow_job_contains "$workflow" verify "cargo fmt --all --check"
+  assert_workflow_job_contains "$workflow" verify "cargo clippy --all-targets --all-features -- -D warnings"
+  assert_workflow_job_contains "$workflow" verify "cargo test --all-targets --all-features"
+  assert_workflow_job_contains "$workflow" verify "bash tests/scripts.sh"
+  assert_workflow_job_contains "$workflow" verify "bash -n herdr/install.sh herdr/run.sh herdr/control.sh"
+  assert_workflow_job_contains "$workflow" verify "cargo build --release"
+  assert_workflow_job_contains "$workflow" verify 'git diff --check "${base_sha}"...HEAD'
+  assert_workflow_job_contains "$workflow" build "needs: verify"
+  assert_workflow_job_contains "$workflow" publish "needs: build"
+  assert_contains "$workflow" "actions/upload-artifact@v7"
+  assert_contains "$workflow" "actions/download-artifact@v8"
+  assert_contains "$workflow" "softprops/action-gh-release@v3"
   assert_contains "$workflow" 'archive="questmancer-v${version}-${target}.tar.gz"'
   assert_contains "$workflow" "SHA256SUMS"
   assert_contains "$ROOT/herdr/install.sh" "QUESTMANCER_REPOSITORY"
@@ -296,6 +329,95 @@ TARGETS
     cat "$TMP/stale-recipes" >&2
     fail "contributor recipes retain superseded test or view names"
   fi
+}
+
+test_contributor_test_recipes_reference_real_targets() {
+  local name count=0
+
+  while IFS= read -r name; do
+    [[ -f "$ROOT/tests/$name.rs" ]] || fail "justfile references missing integration test: tests/$name.rs"
+    count=$((count + 1))
+  done < <(rg -o -- '--test[[:space:]]+[[:alnum:]_-]+' "$ROOT/justfile" | awk '{print $2}' | sort -u)
+
+  (( count > 0 )) || fail "justfile did not contain any focused --test targets"
+}
+
+test_native_archive_installs_after_checksum_verification() {
+  local fixture="$TMP/native-release"
+  local plugin_root="$TMP/native-plugin"
+  local fake_bin="$TMP/native-bin"
+  local os arch target version archive checksum
+
+  case $(uname -s) in
+    Darwin) os=apple-darwin ;;
+    Linux) os=unknown-linux-gnu ;;
+    *) fail "test host has unsupported operating system" ;;
+  esac
+  case $(uname -m) in
+    x86_64|amd64) arch=x86_64 ;;
+    arm64|aarch64) arch=aarch64 ;;
+    *) fail "test host has unsupported architecture" ;;
+  esac
+
+  target="$arch-$os"
+  version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$ROOT/herdr-plugin.toml" | head -n 1)
+  archive="questmancer-v$version-$target.tar.gz"
+  mkdir -p "$fixture/staging" "$plugin_root/herdr" "$fake_bin"
+  printf '#!/usr/bin/env bash\nprintf "questmancer fixture\\n"\n' >"$fixture/staging/questmancer"
+  chmod +x "$fixture/staging/questmancer"
+  tar -C "$fixture/staging" -czf "$fixture/$archive" questmancer
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    checksum=$(sha256sum "$fixture/$archive" | awk '{print $1}')
+  else
+    checksum=$(shasum -a 256 "$fixture/$archive" | awk '{print $1}')
+  fi
+  printf '%s  %s\n' "$checksum" "$archive" >"$fixture/SHA256SUMS"
+
+  cp "$ROOT/herdr/install.sh" "$plugin_root/herdr/install.sh"
+  cp "$ROOT/herdr-plugin.toml" "$plugin_root/herdr-plugin.toml"
+  cat >"$fake_bin/curl" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+output=
+url=
+while (($#)); do
+  case $1 in
+    -o) output=$2; shift 2 ;;
+    --fail|--location|--silent|--show-error) shift ;;
+    *) url=$1; shift ;;
+  esac
+done
+cp "$QUESTMANCER_TEST_RELEASE_FIXTURES/${url##*/}" "$output"
+SH
+  chmod +x "$fake_bin/curl"
+
+  PATH="$fake_bin:$PATH" \
+    QUESTMANCER_REPOSITORY=example/questmancer \
+    QUESTMANCER_TEST_RELEASE_FIXTURES="$fixture" \
+    bash "$plugin_root/herdr/install.sh"
+
+  [[ -x "$plugin_root/bin/questmancer" ]] || fail "installer did not create an executable"
+  [[ $("$plugin_root/bin/questmancer") == "questmancer fixture" ]] || fail "installed archive payload was incorrect"
+  [[ $(tar -tzf "$fixture/$archive") == questmancer ]] || fail "native archive layout was not root-level questmancer"
+
+  printf '%064d  %s\n' 0 "$archive" >"$fixture/SHA256SUMS"
+  rm -f "$plugin_root/bin/questmancer"
+  if PATH="$fake_bin:$PATH" \
+    QUESTMANCER_REPOSITORY=example/questmancer \
+    QUESTMANCER_TEST_RELEASE_FIXTURES="$fixture" \
+    bash "$plugin_root/herdr/install.sh" >"$TMP/checksum-rejection.log" 2>&1; then
+    fail "installer accepted an archive with a mismatched checksum"
+  fi
+  assert_contains "$TMP/checksum-rejection.log" "checksum mismatch for $archive"
+  [[ ! -e "$plugin_root/bin/questmancer" ]] || fail "checksum failure installed an executable"
+}
+
+test_ci_checks_committed_whitespace() {
+  local workflow="$ROOT/.github/workflows/ci.yml"
+
+  assert_contains "$workflow" "fetch-depth: 0"
+  assert_contains "$workflow" 'git diff --check "${base_sha}"...HEAD'
 }
 
 test_current_release_surfaces_have_no_webmaster_identity() {
@@ -334,6 +456,9 @@ test_failed_close_preserves_singleton_state
 test_stale_state_is_replaced
 test_busy_control_lock_refuses_a_second_action
 test_release_packaging_contract
+test_contributor_test_recipes_reference_real_targets
+test_native_archive_installs_after_checksum_verification
+test_ci_checks_committed_whitespace
 test_current_release_surfaces_have_no_webmaster_identity
 
-echo "scripts: 17 passed"
+echo "scripts: 20 passed"

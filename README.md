@@ -170,10 +170,11 @@ original somewhere safe first. Removing `state.json` resets saved intent,
 removing `chronicle.jsonl` clears history, and removing stale `runtime.json`
 allows the next `open` action to recreate the pane registration.
 
-Questmancer is local-only. It has no telemetry, cloud sync, or network service.
-Runtime communication stays on Herdr's local socket. The only internet access
-in this repository is `herdr/install.sh` downloading a release archive and its
-checksum from the explicitly configured GitHub repository.
+Questmancer is local-only at runtime. The application has no telemetry, cloud
+sync, or network service, and its runtime communication stays on Herdr's local
+socket. Source builds may download Rust dependencies, CI downloads actions and
+toolchains, and `herdr/install.sh` downloads a release archive and its checksum
+from the explicitly configured GitHub repository.
 
 ## Fake-agent walkthrough
 
@@ -187,7 +188,7 @@ rules keep that synthetic source out of the session snapshot.
 
 ```bash
 PANE_ID=$(herdr pane current | jq -r '.result.pane.pane_id')
-SOURCE_ID=questmancer-smoke
+SOURCE_ID="questmancer-smoke-$(date +%s)-$$"
 
 herdr pane report-agent "$PANE_ID" \
   --source "$SOURCE_ID" \
