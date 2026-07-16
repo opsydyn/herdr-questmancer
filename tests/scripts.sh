@@ -451,7 +451,7 @@ test_current_release_surfaces_have_no_legacy_identity_or_vocabulary() {
     "$ROOT/docs/manual-test"
   )
 
-  rg -n -i 'webmaster|Site: |\[r\] reply|send reply|replying to|, reply,' "${surfaces[@]}" \
+  rg -n -i 'webmaster|Site: |\[r\] reply|send reply|replying to|, reply,|animated cafe|unchanged desk|no-motion cafe|\[enter\] visit|\[space\] seen|\[v\] reviewr|Action::(Visit|MarkSeen|Reviewr)|pub desk:|effects\.desk|SPOILS DESK|"visited ' "${surfaces[@]}" \
     | grep -vF '.name == "webmaster" and .source.kind == "local"' \
     >"$TMP/legacy-release-surfaces" || true
   if [[ -s "$TMP/legacy-release-surfaces" ]]; then

@@ -13,11 +13,11 @@ pub enum Action {
     Previous,
     First,
     Last,
-    Visit,
+    Observe,
     Counsel,
-    MarkSeen,
+    AcknowledgeSummons,
     Refresh,
-    Reviewr,
+    InspectSpoils,
     CycleRegion,
     Search,
     TypeCharacter(char),
@@ -46,6 +46,13 @@ pub fn action_for(key: KeyEvent) -> Action {
 }
 
 fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
+    if matches!(modal, Modal::Help) {
+        return match key.code {
+            KeyCode::Esc => Action::Dismiss,
+            KeyCode::Char('?') => Action::ShowHelp,
+            _ => Action::None,
+        };
+    }
     if matches!(modal, Modal::Counsel { .. } | Modal::Search { .. }) {
         return modal_action(key);
     }
@@ -63,11 +70,11 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         KeyCode::Char('k') | KeyCode::Up => Action::Previous,
         KeyCode::Char('g') => Action::First,
         KeyCode::Char('G') => Action::Last,
-        KeyCode::Enter => Action::Visit,
+        KeyCode::Enter => Action::Observe,
         KeyCode::Char('r') => Action::Counsel,
-        KeyCode::Char(' ') => Action::MarkSeen,
+        KeyCode::Char(' ') => Action::AcknowledgeSummons,
         KeyCode::Char('o') => Action::Refresh,
-        KeyCode::Char('v') => Action::Reviewr,
+        KeyCode::Char('v') => Action::InspectSpoils,
         KeyCode::Tab => Action::CycleRegion,
         KeyCode::Char('/') => Action::Search,
         _ => Action::None,

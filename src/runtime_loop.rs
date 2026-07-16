@@ -27,7 +27,7 @@ pub enum RuntimeEvent {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RuntimeEffects {
-    pub desk: Vec<AgentCommand>,
+    pub agent_commands: Vec<AgentCommand>,
     pub persistence: Vec<Command>,
 }
 
@@ -40,7 +40,7 @@ pub enum RuntimeExit {
 
 #[derive(Debug)]
 pub struct ActionRuntimeEffects {
-    pub desk: Vec<AgentCommand>,
+    pub agent_commands: Vec<AgentCommand>,
     pub persistence_errors: Vec<PersistenceError>,
     pub exit: Option<RuntimeExit>,
 }
@@ -53,7 +53,7 @@ pub async fn dispatch_action_effects(
     let persistence_errors =
         dispatch_persistence_effects(client, model, reduction.persistence).await;
     ActionRuntimeEffects {
-        desk: reduction.commands,
+        agent_commands: reduction.commands,
         persistence_errors,
         exit: reduction.control.is_break().then_some(RuntimeExit::Quit),
     }
@@ -218,7 +218,7 @@ pub fn apply_connection_update(
                 apply_domain_event(model, *event, &mut effects);
             }
             AdapterAction::SetConnection(connection) => model.set_connection(connection),
-            AdapterAction::RequestSnapshot => push_unique_refresh(&mut effects.desk),
+            AdapterAction::RequestSnapshot => push_unique_refresh(&mut effects.agent_commands),
             AdapterAction::Diagnostic(message) => model.set_status_message(Some(message)),
         }
     }
@@ -227,13 +227,13 @@ pub fn apply_connection_update(
     if after != before
         && let Some((pane_id, _)) = after
     {
-        effects.desk.push(AgentCommand::LoadOutput {
+        effects.agent_commands.push(AgentCommand::LoadOutput {
             pane_id,
             lines: model.settings().output_preview_lines,
         });
     }
     if discover_reviewr {
-        effects.desk.push(AgentCommand::DiscoverReviewr {
+        effects.agent_commands.push(AgentCommand::DiscoverReviewr {
             qualified_id: model.settings().reviewr_action.clone(),
         });
     }
@@ -248,7 +248,7 @@ pub fn apply_command_result(
     let mut effects = RuntimeEffects::default();
     match result {
         CommandResult::Focused(pane_id) => {
-            model.set_status_message(Some(format!("visited {pane_id}")));
+            model.set_status_message(Some(format!("observing {pane_id}")));
         }
         CommandResult::CounselSent(_) => {
             model.set_status_message(Some(COUNSEL_ISSUED.to_owned()));
@@ -305,7 +305,7 @@ fn apply_domain_event(model: &mut Model, event: AppEvent, effects: &mut RuntimeE
     model.replace_domain(state);
     for command in domain_commands {
         if command == Command::RequestSnapshot {
-            push_unique_refresh(&mut effects.desk);
+            push_unique_refresh(&mut effects.agent_commands);
         } else {
             effects.persistence.push(command);
         }

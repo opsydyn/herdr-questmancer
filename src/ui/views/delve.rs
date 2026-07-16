@@ -11,7 +11,7 @@ use crate::{
     app::{CharacterSet, ConnectionState, DisplayPreferences, Model},
     domain::AgentKey,
     ui::{
-        delve_projection::visible_agent_keys,
+        delve_projection::{footer_height, visible_agent_keys},
         pixel::{ColorRole, Palette},
         theatre::frame_for,
         widgets::render_chamber,
@@ -71,7 +71,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     }
     let visible_agents = visible_agent_keys(model, area);
 
-    let footer_height = if area.width <= 80 { 2 } else { 1 };
+    let footer_height = footer_height(area.width);
     let [body, footer] =
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(area);
@@ -664,15 +664,15 @@ fn render_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: Delve
     if !model.domain().agents.is_empty() {
         actions.push("[j/k] navigate");
         if model.selected_agent().is_some() {
-            actions.extend(["[enter] visit", "[r] counsel", "[o] refresh"]);
+            actions.extend(["[enter] observe", "[r] counsel", "[o] refresh"]);
             if model
                 .selected_agent()
                 .is_some_and(|agent| agent.attention.is_unread())
             {
-                actions.push("[space] seen");
+                actions.push("[space] acknowledge summons");
             }
             if model.reviewr_available() {
-                actions.push("[v] reviewr");
+                actions.push("[v] inspect spoils");
             }
         }
         actions.push("[/] search");
@@ -695,26 +695,52 @@ fn render_narrow_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles
     if !model.domain().agents.is_empty() {
         global.extend(["[j/k] navigate", "[/] search"]);
         if model.selected_agent().is_some() {
-            selected.extend(["[enter] visit", "[r] counsel", "[o] refresh"]);
+            selected.extend(["[enter] observe", "[r] counsel", "[o] refresh"]);
             if model
                 .selected_agent()
                 .is_some_and(|agent| agent.attention.is_unread())
             {
-                selected.push("[space] seen");
+                selected.push("[space] acknowledge summons");
             }
             if model.reviewr_available() {
-                global.push("[v] reviewr");
+                global.push("[v] inspect spoils");
             }
         }
     }
+    let mut lines = pack_footer_actions(&global, area.width);
+    lines.extend(pack_footer_actions(&selected, area.width));
     frame.render_widget(
-        Paragraph::new(Text::from(vec![
-            Line::from(global.join(" ")),
-            Line::from(selected.join(" ")),
-        ]))
+        Paragraph::new(Text::from(
+            lines.into_iter().map(Line::from).collect::<Vec<_>>(),
+        ))
         .style(styles.muted),
         area,
     );
+}
+
+fn pack_footer_actions(actions: &[&str], width: u16) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    for action in actions {
+        let separator = usize::from(!line.is_empty());
+        if !line.is_empty()
+            && line
+                .len()
+                .saturating_add(separator)
+                .saturating_add(action.len())
+                > usize::from(width)
+        {
+            lines.push(std::mem::take(&mut line));
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(action);
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    lines
 }
 
 fn render_connection_overlay(

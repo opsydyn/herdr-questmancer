@@ -440,7 +440,7 @@ fn eighty_by_twenty_four_keeps_a_compact_delve_strip_and_actions() {
         "missing compact Delve strip:\n{screen}"
     );
     assert!(screen.contains("[j/k] navigate"));
-    assert!(screen.contains("[enter] visit"));
+    assert!(screen.contains("[enter] observe"));
 }
 
 #[test]
@@ -570,19 +570,19 @@ fn eighty_columns_keep_authored_delve_and_actions() {
         "[1] guild",
         "[2] delves",
         "[j/k] navigate",
-        "[enter] visit",
+        "[enter] observe",
         "[r] counsel",
         "[o] refresh",
-        "[space] seen",
+        "[space] acknowledge summons",
         "[/] search",
     ] {
         assert!(screen.contains(action), "missing {action}:\n{screen}");
     }
-    assert!(!screen.contains("[v] reviewr"));
+    assert!(!screen.contains("[v] inspect spoils"));
 
     model.set_reviewr_available(true);
     let with_reviewr = render(&model, 80, 24);
-    assert!(with_reviewr.contains("[v] reviewr"));
+    assert!(with_reviewr.contains("[v] inspect spoils"));
 }
 
 #[test]
@@ -598,10 +598,10 @@ fn sixty_columns_use_an_actionable_vertical_chamber_list() {
     assert!(screen.contains("COUNSEL REQUESTED"));
     assert!(screen.contains("DEPARTED"));
     for action in [
-        "[enter] visit",
+        "[enter] observe",
         "[r] counsel",
         "[o] refresh",
-        "[space] seen",
+        "[space] acknowledge summons",
         "[/] search",
     ] {
         assert!(screen.contains(action), "missing {action}:\n{screen}");
@@ -695,12 +695,12 @@ fn empty_delve_keeps_helpful_navigation_without_invalid_adventurer_actions() {
     assert!(screen.contains("All Delves await a party"));
     assert!(screen.contains("Start an adventurer"));
     assert!(screen.contains("[1] guild"));
-    assert!(!screen.contains("[enter] visit"));
+    assert!(!screen.contains("[enter] observe"));
     assert!(!screen.contains("[r] counsel"));
     assert!(!screen.contains("[o] refresh"));
-    assert!(!screen.contains("[space] seen"));
+    assert!(!screen.contains("[space] acknowledge summons"));
     assert!(!screen.contains("[/] search"));
-    assert!(!screen.contains("[v] reviewr"));
+    assert!(!screen.contains("[v] inspect spoils"));
 }
 
 #[test]
@@ -712,19 +712,19 @@ fn footer_advertises_only_available_delve_actions() {
         "[1] guild",
         "[2] delves",
         "[j/k] navigate",
-        "[enter] visit",
+        "[enter] observe",
         "[r] counsel",
         "[o] refresh",
-        "[space] seen",
+        "[space] acknowledge summons",
         "[/] search",
     ] {
         assert!(screen.contains(action), "missing {action}:\n{screen}");
     }
-    assert!(!screen.contains("[v] reviewr"));
+    assert!(!screen.contains("[v] inspect spoils"));
 
     model.set_reviewr_available(true);
     let with_reviewr = render(&model, 160, 50);
-    assert!(with_reviewr.contains("[v] reviewr"));
+    assert!(with_reviewr.contains("[v] inspect spoils"));
 }
 
 #[test]

@@ -91,7 +91,7 @@ fn wide_guild_hall_renders_every_operational_region() {
     assert!(screen.contains("PARTY ROSTER"));
     assert!(screen.contains("CALLS FOR COUNSEL"));
     assert!(screen.contains("SCRYING TABLE"));
-    assert!(screen.contains("SPOILS DESK"));
+    assert!(screen.contains("SPOILS VAULT"));
     assert!(screen.contains("CHRONICLE"));
     assert!(screen.contains("Elowen"));
     assert!(screen.contains("requests counsel"));
@@ -299,13 +299,13 @@ fn footer_advertises_only_actions_valid_for_the_current_context() {
     assert!(!selected.contains("Open Chronicle"));
     assert!(!selected.contains("Inspect spoils"));
 
-    let _ = reduce_action(&mut live, Action::Reviewr);
+    let _ = reduce_action(&mut live, Action::InspectSpoils);
     let unavailable = render(&live, 160, 24);
     assert!(unavailable.contains("The spoils cannot be inspected here"));
     let unavailable_medium = render(&live, 80, 24);
     assert!(unavailable_medium.contains("The spoils cannot be inspected here"));
 
-    let _ = reduce_action(&mut live, Action::MarkSeen);
+    let _ = reduce_action(&mut live, Action::AcknowledgeSummons);
     live.set_reviewr_available(true);
     let seen = render(&live, 160, 24);
     assert!(!seen.contains("Acknowledge summons"));
@@ -387,7 +387,7 @@ fn narrow_diagnostics_remain_visible_in_every_focused_region() {
     ];
 
     for title in titles {
-        let _ = reduce_action(&mut model, Action::Reviewr);
+        let _ = reduce_action(&mut model, Action::InspectSpoils);
         let unavailable = render(&model, 79, 24);
         assert!(
             unavailable.contains(title),

@@ -31,7 +31,7 @@ use crate::{
         apply_connection_update, bootstrap_model, dispatch_action_effects,
         dispatch_persistence_effects,
     },
-    ui::{self, theatre::next_visible_frame_in},
+    ui::{self, RenderProjection, theatre::next_projected_frame_in},
 };
 
 type Tui = Terminal<CrosstermBackend<Stdout>>;
@@ -128,11 +128,11 @@ fn timestamp_after(timestamp: Timestamp, duration: Duration) -> Timestamp {
     Timestamp::from_millis(timestamp.as_millis().saturating_add(milliseconds))
 }
 
-/// Owns the single resettable timer used to invalidate animated cafe frames.
+/// Owns the single resettable timer used to invalidate visible scene effects.
 ///
-/// Event-driven rendering deliberately stores no timer, so an unchanged desk
-/// or no-motion cafe cannot wake because time passed. `wait` is cancellation
-/// safe: cancelling it from `tokio::select!` does not consume an armed sleep.
+/// Event-driven rendering deliberately stores no timer, so a static Guild Hall
+/// or Delve cannot wake merely because time passed. `wait` is cancellation safe:
+/// cancelling it from `tokio::select!` does not consume an armed sleep.
 #[derive(Debug, Default)]
 pub struct AnimationScheduler {
     sleep: Option<std::pin::Pin<Box<tokio::time::Sleep>>>,
@@ -147,9 +147,14 @@ impl AnimationScheduler {
         &mut self,
         model: &Model,
         render_area: ratatui::layout::Rect,
+        projection: RenderProjection,
         clock: &RuntimeClock,
     ) {
-        let Some(period) = next_visible_frame_in(model, render_area) else {
+        let Some(period) = next_projected_frame_in(
+            model,
+            render_area,
+            projection.guild_goblin_motion(model.preferences().motion),
+        ) else {
             self.sleep = None;
             return;
         };
@@ -282,8 +287,11 @@ async fn run_live_loop(
     let mut render_invalidation = AnimationScheduler::new();
 
     loop {
-        let render_area = terminal.draw(|frame| ui::render(frame, model))?.area;
-        render_invalidation.reset_for(model, render_area, clock);
+        let mut projection = RenderProjection::default();
+        let render_area = terminal
+            .draw(|frame| projection = ui::render_with_projection(frame, model))?
+            .area;
+        render_invalidation.reset_for(model, render_area, projection, clock);
 
         tokio::select! {
             event = input.next() => {
@@ -297,7 +305,7 @@ async fn run_live_loop(
                     ui::input::action_for_event_in(&event, model.modal()),
                 );
                 let effects = dispatch_action_effects(persistence, model, reduction).await;
-                connection.schedule(effects.desk);
+                connection.schedule(effects.agent_commands);
                 record_dispatch_errors(
                     model,
                     collected_diagnostics,
@@ -313,7 +321,7 @@ async fn run_live_loop(
                 match runtime_event {
                     RuntimeEvent::Connection(update) => {
                         let effects = apply_connection_update(model, update, observed_at);
-                        connection.schedule(effects.desk);
+                        connection.schedule(effects.agent_commands);
                         record_dispatch_errors(
                             model,
                             collected_diagnostics,
@@ -322,7 +330,7 @@ async fn run_live_loop(
                     }
                     RuntimeEvent::Command(result) => {
                         let effects = apply_command_result(model, result, observed_at);
-                        connection.schedule(effects.desk);
+                        connection.schedule(effects.agent_commands);
                         record_dispatch_errors(
                             model,
                             collected_diagnostics,
@@ -358,8 +366,11 @@ async fn run_offline_loop(
     let mut render_invalidation = AnimationScheduler::new();
 
     loop {
-        let render_area = terminal.draw(|frame| ui::render(frame, model))?.area;
-        render_invalidation.reset_for(model, render_area, clock);
+        let mut projection = RenderProjection::default();
+        let render_area = terminal
+            .draw(|frame| projection = ui::render_with_projection(frame, model))?
+            .area;
+        render_invalidation.reset_for(model, render_area, projection, clock);
 
         tokio::select! {
             event = input.next() => {
@@ -373,7 +384,7 @@ async fn run_offline_loop(
                     ui::input::action_for_event_in(&event, model.modal()),
                 );
                 let effects = dispatch_action_effects(persistence, model, reduction).await;
-                if !effects.desk.is_empty() {
+                if !effects.agent_commands.is_empty() {
                     model.set_status_message(Some(
                         "offline: action unavailable until connected to Herdr".to_owned(),
                     ));

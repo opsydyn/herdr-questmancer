@@ -22,7 +22,7 @@ Questmancer remained linked from the feature worktree after cleanup.
 | Blocked projection | PASS | Snapshot reported `blocked`; Delve rendered `SEALED`, `SIGNAL LANTERN`, and `[!] COUNSEL REQUESTED \| LIVE`. |
 | Chronicle voice | PASS | `chronicle.jsonl` contained exactly one counsel event: `questmancer-smoke requested counsel`; no superseded product wording appeared. |
 | Search and selection | PASS | `/ questmancer-smoke` selected only the disposable agent, rendered as `Sabine Copperkettle`, Gnome Testmender. |
-| Acknowledge | PASS | Space removed the `[space] seen` footer and rendered `Summons acknowledged.` for the selected agent. |
+| Acknowledge | PASS | Space removed the Summons acknowledgement footer and rendered `Summons acknowledged.` for the selected agent. |
 | Persisted key | PASS | Before restart, `seen_attention` contained only `persona-6be30b4fc2d45dbf918410eb` plus `counsel_requested`; it had no `pane_revision`. |
 | Restart persistence | PASS | While the agent stayed blocked, close/reopen changed the managed pane from `w2:pG` to `w2:pJ`; Guild Hall, Sabine, the acknowledgement, and the two-field key survived even though the snapshot revision was `0`. |
 | Goblin containment | PASS | The exact incantation produced `The goblins deny any involvement.`; after reopen, neither the outbreak nor its status returned, and no goblin state was persisted. |
@@ -37,10 +37,13 @@ Questmancer remained linked from the feature worktree after cleanup.
 
 ## Automated gate
 
-The final tracked checkout passed all 393 all-target/all-feature Rust tests and
-all 20 shell workflow tests. The focused 4,096-case property and persistence
-run passed all 26 tests. Formatting, clippy with warnings denied, shell syntax,
-the release build, executable check, and whitespace check also passed:
+The guarded live-acceptance checkout at `841ff5f` passed 393
+all-target/all-feature Rust tests and all 20 shell workflow tests. The focused
+4,096-case property and persistence run passed all 26 tests. These counts record
+that acceptance checkout, not later branch HEADs; subsequent correction reports
+carry their own fresh automated counts. Formatting, clippy with warnings denied,
+shell syntax, the release build, executable check, and whitespace check also
+passed at `841ff5f`:
 
 ```bash
 cargo fmt --all --check

@@ -295,6 +295,14 @@ impl Model {
         };
     }
 
+    pub fn toggle_help(&mut self) {
+        self.modal = if self.modal == Modal::Help {
+            Modal::None
+        } else {
+            Modal::Help
+        };
+    }
+
     pub fn counsel_draft(&self) -> Option<&str> {
         match &self.modal {
             Modal::Counsel { draft } => Some(draft),

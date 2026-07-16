@@ -22,7 +22,7 @@ pub fn visible_agent_keys(model: &Model, terminal_area: Rect) -> BTreeSet<AgentK
         return BTreeSet::new();
     }
 
-    let footer_height = if terminal_area.width <= 80 { 2 } else { 1 };
+    let footer_height = footer_height(terminal_area.width);
     let [body, _footer] =
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(terminal_area);
@@ -32,6 +32,16 @@ pub fn visible_agent_keys(model: &Model, terminal_area: Rect) -> BTreeSet<AgentK
         visible_connected_agents(model, inner)
     } else {
         visible_compact_agents(model, inner)
+    }
+}
+
+pub(crate) const fn footer_height(width: u16) -> u16 {
+    if width <= 70 {
+        3
+    } else if width <= 80 {
+        2
+    } else {
+        1
     }
 }
 

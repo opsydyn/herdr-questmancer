@@ -81,10 +81,17 @@ pub fn cadence_for(model: &Model) -> RenderCadence {
 /// nominal FPS. Different agents can have interleaved boundaries, and a done
 /// transition has an exact terminal boundary at one second.
 pub fn next_visible_frame_in(model: &Model, render_area: Rect) -> Option<Duration> {
+    next_projected_frame_in(model, render_area, Some(model.preferences().motion))
+}
+
+pub(crate) fn next_projected_frame_in(
+    model: &Model,
+    render_area: Rect,
+    guild_goblin_motion: Option<Motion>,
+) -> Option<Duration> {
     if model.view() == View::Guild {
-        let goblins = model
-            .goblins()
-            .next_visible_frame_in(model.now(), model.preferences().motion);
+        let goblins = guild_goblin_motion
+            .and_then(|motion| model.goblins().next_visible_frame_in(model.now(), motion));
         let elapsed = next_elapsed_label_in(model, render_area);
         return goblins.into_iter().chain(elapsed).min();
     }

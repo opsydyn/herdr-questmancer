@@ -29,11 +29,11 @@ const ASCII_BORDER: border::Set<'static> = border::Set {
     horizontal_bottom: "-",
 };
 
-pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
+pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) -> (bool, bool) {
     let area = frame.area();
     if area.width < 4 || area.height < 3 {
         frame.render_widget(Paragraph::new("G").style(ACCENT), area);
-        return;
+        return (false, false);
     }
 
     let footer_lines = footer_lines(model, area.width);
@@ -58,18 +58,21 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     frame.render_widget(outer, body);
 
     let content = render_connection_banner(frame, inner, model);
-    if model.domain().agents.is_empty() {
+    let marginalia_visible = if model.domain().agents.is_empty() {
         render_empty(frame, content);
+        false
     } else if area.width >= 120 {
-        render_wide(frame, content, model);
+        render_wide(frame, content, model)
     } else if area.width >= 80 {
         render_medium(frame, content, model);
+        false
     } else {
-        render_focused(frame, content, model);
-    }
+        render_focused(frame, content, model)
+    };
 
-    goblins::render(frame, content, model);
+    let sprite_visible = goblins::render(frame, content, model);
     render_footer(frame, footer, &footer_lines);
+    (marginalia_visible, sprite_visible)
 }
 
 fn render_connection_banner(frame: &mut Frame<'_>, area: Rect, model: &Model) -> Rect {
@@ -126,7 +129,7 @@ fn render_empty(frame: &mut Frame<'_>, area: Rect) {
     );
 }
 
-fn render_wide(frame: &mut Frame<'_>, area: Rect, model: &Model) {
+fn render_wide(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
     let [board, guild, selected] = ratatui::layout::Layout::horizontal([
         Constraint::Percentage(25),
         Constraint::Percentage(36),
@@ -143,7 +146,7 @@ fn render_wide(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     .areas(guild);
     render_party(frame, party, model);
     render_summons(frame, summons, model);
-    render_chronicle(frame, chronicle, model);
+    let marginalia_visible = render_chronicle(frame, chronicle, model);
 
     let [adventurer, scrying, spoils] = ratatui::layout::Layout::vertical([
         Constraint::Length(selected.height.min(9)),
@@ -154,6 +157,7 @@ fn render_wide(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     render_adventurer(frame, adventurer, model, true);
     render_scrying(frame, scrying, model, true);
     render_spoils(frame, spoils, model);
+    marginalia_visible
 }
 
 fn render_medium(frame: &mut Frame<'_>, area: Rect, model: &Model) {
@@ -175,16 +179,25 @@ fn render_medium(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     render_scrying(frame, scrying, model, true);
 }
 
-fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) {
+fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
     let [primary, diagnostic] = if model.status_message().is_some() {
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(2)]).areas(area)
     } else {
         [area, Rect::default()]
     };
-    match model.region() {
-        Region::QuestBoard => render_quest_board(frame, primary, model),
-        Region::Party => render_party(frame, primary, model),
-        Region::Summons => render_summons(frame, primary, model),
+    let marginalia_visible = match model.region() {
+        Region::QuestBoard => {
+            render_quest_board(frame, primary, model);
+            false
+        }
+        Region::Party => {
+            render_party(frame, primary, model);
+            false
+        }
+        Region::Summons => {
+            render_summons(frame, primary, model);
+            false
+        }
         Region::Chronicle => render_chronicle(frame, primary, model),
         Region::Adventurer => {
             let card_height = primary.height.saturating_sub(4).min(7);
@@ -195,8 +208,9 @@ fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) {
             .areas(primary);
             render_adventurer(frame, adventurer, model, false);
             render_scrying(frame, scrying, model, false);
+            false
         }
-    }
+    };
     if let Some(status) = model.status_message() {
         frame.render_widget(
             Paragraph::new(present(status, model.preferences().character_set).into_owned())
@@ -204,6 +218,7 @@ fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) {
             diagnostic,
         );
     }
+    marginalia_visible
 }
 
 fn render_quest_board(frame: &mut Frame<'_>, area: Rect, model: &Model) {
@@ -305,7 +320,7 @@ fn summons_line(agent: &Agent, character_set: CharacterSet) -> Option<Line<'stat
     ))
 }
 
-fn render_chronicle(frame: &mut Frame<'_>, area: Rect, model: &Model) {
+fn render_chronicle(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
     let mut lines = model
         .domain()
         .chronicle
@@ -323,14 +338,22 @@ fn render_chronicle(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     render_panel(
         frame,
         area,
-        if model.goblins().is_visible(model.now()) {
-            " CHRONICLE - CREATURES DETECTED "
-        } else {
-            " CHRONICLE "
-        },
+        " CHRONICLE ",
+        Text::from(lines.clone()),
+        model.preferences().character_set,
+    );
+    if !model.goblins().is_visible(model.now()) {
+        return false;
+    }
+    let baseline = frame.buffer_mut().clone();
+    render_panel(
+        frame,
+        area,
+        " CHRONICLE - CREATURES DETECTED ",
         Text::from(lines),
         model.preferences().character_set,
     );
+    frame.buffer_mut() != &baseline
 }
 
 fn render_adventurer(frame: &mut Frame<'_>, area: Rect, model: &Model, include_summons: bool) {
@@ -485,7 +508,7 @@ fn render_spoils(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     render_panel(
         frame,
         area,
-        " SPOILS DESK ",
+        " SPOILS VAULT ",
         Text::from(lines),
         model.preferences().character_set,
     );

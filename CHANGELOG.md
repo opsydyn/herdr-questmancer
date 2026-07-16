@@ -10,7 +10,7 @@ All notable changes to this project will be documented here.
   model, with responsive wide, compact, and tiny-terminal layouts.
 - Campaign, adventurer, presence, attention, persona, Summons, Chronicle, and
   returned-spoils domain language with deterministic reduction.
-- Selection, search, pane visit, counsel, local acknowledgement, lazy recent
+- Selection, search, pane observation, counsel, local acknowledgement, lazy recent
   output, and optional Reviewr actions shared by both views.
 - Original deterministic fantasy adventurers with ancestry, class, keepsake,
   chamber, and profile recognition anchors in Unicode and ASCII modes.

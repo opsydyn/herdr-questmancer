@@ -48,11 +48,14 @@ fn guild_hall_navigation_and_actions_have_explicit_keys() {
     assert_eq!(action_for(key(KeyCode::Char('j'))), Action::Next);
     assert_eq!(action_for(key(KeyCode::Down)), Action::Next);
     assert_eq!(action_for(key(KeyCode::Char('k'))), Action::Previous);
-    assert_eq!(action_for(key(KeyCode::Enter)), Action::Visit);
+    assert_eq!(action_for(key(KeyCode::Enter)), Action::Observe);
     assert_eq!(action_for(key(KeyCode::Char('r'))), Action::Counsel);
-    assert_eq!(action_for(key(KeyCode::Char(' '))), Action::MarkSeen);
+    assert_eq!(
+        action_for(key(KeyCode::Char(' '))),
+        Action::AcknowledgeSummons
+    );
     assert_eq!(action_for(key(KeyCode::Char('o'))), Action::Refresh);
-    assert_eq!(action_for(key(KeyCode::Char('v'))), Action::Reviewr);
+    assert_eq!(action_for(key(KeyCode::Char('v'))), Action::InspectSpoils);
     assert_eq!(action_for(key(KeyCode::Tab)), Action::CycleRegion);
     assert_eq!(action_for(key(KeyCode::Char('g'))), Action::First);
     assert_eq!(action_for(key(KeyCode::Char('G'))), Action::Last);
@@ -87,5 +90,30 @@ fn counsel_modal_treats_global_shortcuts_as_composed_text() {
     assert_eq!(
         action_for_event_in(&Event::Key(key(KeyCode::Esc)), &modal),
         Action::Dismiss
+    );
+}
+
+#[test]
+fn help_modal_accepts_only_dismissal_keys() {
+    for code in [
+        KeyCode::Char('q'),
+        KeyCode::Char('j'),
+        KeyCode::Enter,
+        KeyCode::Char('/'),
+        KeyCode::Char('r'),
+    ] {
+        assert_eq!(
+            action_for_event_in(&Event::Key(key(code)), &Modal::Help),
+            Action::None,
+            "help leaked {code:?}"
+        );
+    }
+    assert_eq!(
+        action_for_event_in(&Event::Key(key(KeyCode::Esc)), &Modal::Help),
+        Action::Dismiss
+    );
+    assert_eq!(
+        action_for_event_in(&Event::Key(key(KeyCode::Char('?'))), &Modal::Help),
+        Action::ShowHelp
     );
 }

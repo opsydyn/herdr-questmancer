@@ -29,7 +29,7 @@ Herdr snapshot + events
           +----> Guild Hall
           +----> Delve
           |
-          +----> commands: visit, counsel, output, optional Reviewr
+          +----> commands: observe, counsel, output, optional Spoils inspection
 ```
 
 Presence and attention are distinct. Rendering never owns domain truth. The
@@ -64,7 +64,7 @@ copying Herdr topology, agent output, or live state.
 ### 4. Guild Hall — complete
 
 - Quest board, party, Summons, Chronicle, selected adventurer, and scrying table
-- Selection, search, visit, counsel, acknowledgement, output refresh, and
+- Selection, search, observation, counsel, acknowledgement, output refresh, and
   optional Reviewr integration
 - Wide, narrow, ASCII, ANSI-16, reduced-motion, and reconnect-safe projections
 

@@ -1,6 +1,6 @@
 use futures_util::FutureExt;
 use questmancer::{
-    app::{ConnectionState, DisplayPreferences, Model, Motion, RuntimeSettings, View},
+    app::{ConnectionState, DisplayPreferences, Model, Motion, Region, RuntimeSettings, View},
     command::{AgentCommand, CommandResult},
     domain::{
         AdventurerPersona, Agent, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId,
@@ -20,6 +20,7 @@ use questmancer::{
     update::Command,
 };
 use ratatui::layout::Rect;
+use ratatui::{Terminal, backend::TestBackend};
 use serde_json::json;
 use std::future::Future;
 use tempfile::tempdir;
@@ -61,6 +62,16 @@ fn animated_model(agents: impl IntoIterator<Item = Agent>, now: i64, motion: Mot
 
 fn render_area() -> Rect {
     Rect::new(0, 0, 120, 24)
+}
+
+fn render_projection(model: &Model, area: Rect) -> questmancer::ui::RenderProjection {
+    let backend = TestBackend::new(area.width, area.height);
+    let mut terminal = Terminal::new(backend).unwrap();
+    let mut projection = questmancer::ui::RenderProjection::default();
+    terminal
+        .draw(|frame| projection = questmancer::ui::render_with_projection(frame, model))
+        .unwrap();
+    projection
 }
 
 fn model_with_two_distinct_personas() -> Model {
@@ -140,7 +151,7 @@ fn explicit_duplicate_and_stale_status_updates_have_no_runtime_effects() {
             Timestamp::from_millis(2_000),
         );
 
-        assert!(effects.desk.is_empty(), "revision {revision}");
+        assert!(effects.agent_commands.is_empty(), "revision {revision}");
         assert!(effects.persistence.is_empty(), "revision {revision}");
     }
 }
@@ -197,14 +208,18 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
 
     assert_eq!(model.connection(), &ConnectionState::Connected);
     assert_eq!(model.domain().agents.len(), 1);
-    assert!(effects.desk.iter().any(|command| matches!(
+    assert!(effects.agent_commands.iter().any(|command| matches!(
         command,
         AgentCommand::LoadOutput { pane_id, lines: 123 }
             if pane_id.as_str() == "w1:p1"
     )));
-    assert!(effects.desk.contains(&AgentCommand::DiscoverReviewr {
-        qualified_id: "acme.diff.inspect".to_owned(),
-    }));
+    assert!(
+        effects
+            .agent_commands
+            .contains(&AgentCommand::DiscoverReviewr {
+                qualified_id: "acme.diff.inspect".to_owned(),
+            })
+    );
 }
 
 #[test]
@@ -245,9 +260,9 @@ fn selected_status_change_refreshes_only_that_output() {
         Timestamp::from_millis(2_000),
     );
 
-    assert_eq!(effects.desk.len(), 1);
+    assert_eq!(effects.agent_commands.len(), 1);
     assert!(matches!(
-        &effects.desk[0],
+        &effects.agent_commands[0],
         AgentCommand::LoadOutput { pane_id, .. } if pane_id.as_str() == "w1:p1"
     ));
 }
@@ -465,7 +480,12 @@ async fn stale_999ms_model_resets_to_the_absolute_done_boundary_after_slow_rende
     assert_eq!(model.now(), Timestamp::from_millis(999));
 
     tokio::time::advance(std::time::Duration::from_millis(20)).await;
-    scheduler.reset_for(&model, render_area(), &clock);
+    scheduler.reset_for(
+        &model,
+        render_area(),
+        render_projection(&model, render_area()),
+        &clock,
+    );
     assert!(scheduler.wait().now_or_never().is_some());
 
     model.set_now(clock.now());
@@ -475,7 +495,12 @@ async fn stale_999ms_model_resets_to_the_absolute_done_boundary_after_slow_rende
     assert_eq!(frame.pose, TheatrePose::SpoilsUnopened);
     assert_eq!(frame.animation_frame, 0);
 
-    scheduler.reset_for(&model, render_area(), &clock);
+    scheduler.reset_for(
+        &model,
+        render_area(),
+        render_projection(&model, render_area()),
+        &clock,
+    );
     tokio::time::advance(std::time::Duration::from_secs(24 * 60 * 60)).await;
     assert!(scheduler.wait().now_or_never().is_none());
 }
@@ -491,7 +516,12 @@ async fn prolonged_six_fps_animation_tracks_phase_without_drift_or_skips() {
     let mut previous = 0;
 
     for (boundary, expected_frame) in boundaries.into_iter().zip(expected_frames) {
-        scheduler.reset_for(&model, render_area(), &clock);
+        scheduler.reset_for(
+            &model,
+            render_area(),
+            render_projection(&model, render_area()),
+            &clock,
+        );
         tokio::time::advance(std::time::Duration::from_millis(
             u64::try_from(boundary - previous).unwrap(),
         ))
@@ -521,7 +551,12 @@ async fn mixed_six_and_eight_fps_agents_choose_each_earliest_boundary() {
     let mut previous = 0;
 
     for boundary in boundaries {
-        scheduler.reset_for(&model, render_area(), &clock);
+        scheduler.reset_for(
+            &model,
+            render_area(),
+            render_projection(&model, render_area()),
+            &clock,
+        );
         tokio::time::advance(std::time::Duration::from_millis(
             u64::try_from(boundary - previous).unwrap(),
         ))
@@ -535,7 +570,12 @@ async fn mixed_six_and_eight_fps_agents_choose_each_earliest_boundary() {
         previous = boundary;
     }
 
-    scheduler.reset_for(&model, render_area(), &clock);
+    scheduler.reset_for(
+        &model,
+        render_area(),
+        render_projection(&model, render_area()),
+        &clock,
+    );
     tokio::time::advance(std::time::Duration::from_millis(166)).await;
     assert!(scheduler.wait().now_or_never().is_none());
     tokio::time::advance(std::time::Duration::from_millis(1)).await;
@@ -548,7 +588,12 @@ async fn event_driven_animation_scheduler_never_wakes_on_time_alone() {
     let working = animated_agent("working", Presence::Working, 0);
     let model = animated_model([working], 0, Motion::None);
     let mut scheduler = AnimationScheduler::new();
-    scheduler.reset_for(&model, render_area(), &clock);
+    scheduler.reset_for(
+        &model,
+        render_area(),
+        render_projection(&model, render_area()),
+        &clock,
+    );
 
     tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
     assert!(scheduler.wait().now_or_never().is_none());
@@ -561,7 +606,12 @@ async fn guild_outbreak_wakes_at_four_fps_then_returns_to_event_driven_rendering
     model.goblins_mut().release(Timestamp::from_millis(0));
     let mut scheduler = AnimationScheduler::new();
 
-    scheduler.reset_for(&model, render_area(), &clock);
+    scheduler.reset_for(
+        &model,
+        render_area(),
+        render_projection(&model, render_area()),
+        &clock,
+    );
     tokio::time::advance(std::time::Duration::from_millis(249)).await;
     assert!(scheduler.wait().now_or_never().is_none());
     tokio::time::advance(std::time::Duration::from_millis(1)).await;
@@ -570,40 +620,136 @@ async fn guild_outbreak_wakes_at_four_fps_then_returns_to_event_driven_rendering
     tokio::time::advance(std::time::Duration::from_millis(2_749)).await;
     model.set_now(clock.now());
     assert_eq!(model.now(), Timestamp::from_millis(2_999));
-    scheduler.reset_for(&model, render_area(), &clock);
+    scheduler.reset_for(
+        &model,
+        render_area(),
+        render_projection(&model, render_area()),
+        &clock,
+    );
     assert!(scheduler.wait().now_or_never().is_none());
     tokio::time::advance(std::time::Duration::from_millis(1)).await;
     assert!(scheduler.wait().now_or_never().is_some());
 
     model.set_now(clock.now());
     assert_eq!(model.now(), Timestamp::from_millis(3_000));
-    scheduler.reset_for(&model, render_area(), &clock);
+    scheduler.reset_for(
+        &model,
+        render_area(),
+        render_projection(&model, render_area()),
+        &clock,
+    );
     tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
     assert!(scheduler.wait().now_or_never().is_none());
 }
 
 #[tokio::test(start_paused = true)]
-async fn static_motion_modes_schedule_only_the_outbreak_terminal_boundary() {
-    for motion in [Motion::Reduced, Motion::None] {
+async fn static_motion_schedules_only_rendered_outbreak_terminal_boundaries() {
+    for (motion, visible) in [(Motion::Reduced, true), (Motion::None, false)] {
         let clock = RuntimeClock::new(Timestamp::from_millis(0));
         let mut model = Model::new(View::Guild);
         model.set_preferences(DisplayPreferences {
             motion,
             ..DisplayPreferences::default()
         });
+        model.set_settings(RuntimeSettings {
+            show_elapsed_time: false,
+            ..RuntimeSettings::default()
+        });
         model.goblins_mut().release(Timestamp::from_millis(0));
         let mut scheduler = AnimationScheduler::new();
 
-        scheduler.reset_for(&model, render_area(), &clock);
+        scheduler.reset_for(
+            &model,
+            render_area(),
+            render_projection(&model, render_area()),
+            &clock,
+        );
         tokio::time::advance(std::time::Duration::from_millis(2_999)).await;
         assert!(
             scheduler.wait().now_or_never().is_none(),
             "motion {motion:?}"
         );
         tokio::time::advance(std::time::Duration::from_millis(1)).await;
-        assert!(
+        assert_eq!(
             scheduler.wait().now_or_never().is_some(),
+            visible,
             "motion {motion:?}"
         );
     }
+}
+
+#[tokio::test(start_paused = true)]
+async fn guild_outbreak_scheduling_requires_an_exact_rendered_effect() {
+    let invisible = [
+        (Rect::new(0, 0, 3, 2), Motion::Full, Region::QuestBoard),
+        (Rect::new(0, 0, 100, 24), Motion::None, Region::QuestBoard),
+        (Rect::new(0, 0, 100, 3), Motion::Full, Region::QuestBoard),
+        (Rect::new(0, 0, 79, 24), Motion::None, Region::Party),
+    ];
+    for (area, motion, region) in invisible {
+        let clock = RuntimeClock::new(Timestamp::from_millis(0));
+        let mut model = connected_model_with_presence(Presence::Working);
+        model.set_preferences(DisplayPreferences {
+            motion,
+            ..DisplayPreferences::default()
+        });
+        model.set_settings(RuntimeSettings {
+            show_elapsed_time: false,
+            ..RuntimeSettings::default()
+        });
+        model.set_region(region);
+        model.goblins_mut().release(Timestamp::from_millis(0));
+        let projection = render_projection(&model, area);
+        assert!(
+            !projection.guild_goblin_effect_visible(),
+            "{area:?} {motion:?} {region:?}"
+        );
+
+        let mut scheduler = AnimationScheduler::new();
+        scheduler.reset_for(&model, area, projection, &clock);
+        tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
+        assert!(
+            scheduler.wait().now_or_never().is_none(),
+            "{area:?} {motion:?} {region:?}"
+        );
+    }
+}
+
+#[tokio::test(start_paused = true)]
+async fn visible_guild_sprite_and_marginalia_arm_their_exact_boundaries() {
+    let area = Rect::new(0, 0, 130, 32);
+
+    let sprite_clock = RuntimeClock::new(Timestamp::from_millis(0));
+    let mut sprite_model = Model::new(View::Guild);
+    sprite_model
+        .goblins_mut()
+        .release(Timestamp::from_millis(0));
+    let sprite_projection = render_projection(&sprite_model, area);
+    assert!(sprite_projection.guild_goblin_effect_visible());
+    let mut sprite_scheduler = AnimationScheduler::new();
+    sprite_scheduler.reset_for(&sprite_model, area, sprite_projection, &sprite_clock);
+    tokio::time::advance(std::time::Duration::from_millis(250)).await;
+    assert!(sprite_scheduler.wait().now_or_never().is_some());
+
+    let notice_clock = RuntimeClock::new(Timestamp::from_millis(0));
+    let mut notice_model = connected_model_with_presence(Presence::Working);
+    notice_model.set_preferences(DisplayPreferences {
+        motion: Motion::None,
+        ..DisplayPreferences::default()
+    });
+    notice_model.set_settings(RuntimeSettings {
+        show_elapsed_time: false,
+        ..RuntimeSettings::default()
+    });
+    notice_model
+        .goblins_mut()
+        .release(Timestamp::from_millis(0));
+    let notice_projection = render_projection(&notice_model, area);
+    assert!(notice_projection.guild_goblin_effect_visible());
+    let mut notice_scheduler = AnimationScheduler::new();
+    notice_scheduler.reset_for(&notice_model, area, notice_projection, &notice_clock);
+    tokio::time::advance(std::time::Duration::from_millis(2_999)).await;
+    assert!(notice_scheduler.wait().now_or_never().is_none());
+    tokio::time::advance(std::time::Duration::from_millis(1)).await;
+    assert!(notice_scheduler.wait().now_or_never().is_some());
 }

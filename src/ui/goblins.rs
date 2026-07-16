@@ -86,9 +86,9 @@ impl GoblinState {
     }
 }
 
-pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) {
+pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
     if area.width == 0 || area.height == 0 || model.preferences().motion == Motion::None {
-        return;
+        return false;
     }
 
     let outbreak = model.goblins().is_visible(model.now());
@@ -102,7 +102,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         })
         .flatten();
     if !outbreak && sighting.is_none() {
-        return;
+        return false;
     }
 
     let pattern = match model.preferences().character_set {
@@ -122,13 +122,16 @@ pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     let style =
         Style::new().fg(Palette::from(model.preferences().color_mode).resolve(ColorRole::Goblin));
     let mut offset = frame_index.saturating_mul(17);
+    let mut rendered = false;
     for _ in 0..count {
         let Some(origin) = blank_origin(frame.buffer_mut(), area, pattern, offset) else {
             break;
         };
         paint(frame.buffer_mut(), origin, pattern, style);
+        rendered = true;
         offset = offset.saturating_add(31);
     }
+    outbreak && rendered
 }
 
 fn blank_origin(

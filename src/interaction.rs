@@ -3,6 +3,7 @@ use std::ops::ControlFlow;
 use crate::{
     app::{Modal, Model},
     command::AgentCommand,
+    domain::{Agent, Presence},
     persistence::PersistedStateV1,
     ui::{
         copy::{SUMMONS_ACKNOWLEDGED, no_match},
@@ -22,6 +23,9 @@ pub struct ActionReduction {
 pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
     let before = PersistedStateV1::capture(model);
     let mut commands = Vec::new();
+    if intercept_help_modal(model, action) {
+        return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
+    }
     let control = match action {
         Action::Quit => ControlFlow::Break(()),
         Action::Switch(view) => {
@@ -48,33 +52,15 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             select_agent(model, Model::select_previous_agent, &mut commands);
             ControlFlow::Continue(())
         }
-        Action::Visit => {
-            match selected_pane_state(model) {
-                SelectedPane::Available(pane_id) => {
-                    commands.push(AgentCommand::FocusPane(pane_id));
-                }
-                SelectedPane::Managed => model.set_status_message(Some(
-                    "The Questmancer cannot observe its own managed pane.".to_owned(),
-                )),
-                SelectedPane::Missing => model
-                    .set_status_message(Some("No adventurer is selected to observe.".to_owned())),
-            }
+        Action::Observe => {
+            observe_selected(model, &mut commands);
             ControlFlow::Continue(())
         }
         Action::Refresh => {
-            match selected_pane_state(model) {
-                SelectedPane::Available(pane_id) => commands.push(load_output(model, pane_id)),
-                SelectedPane::Managed => model.set_status_message(Some(
-                    "The scrying table cannot observe the Questmancer's own managed pane."
-                        .to_owned(),
-                )),
-                SelectedPane::Missing => {
-                    model.set_status_message(Some("No adventurer is selected to scry.".to_owned()));
-                }
-            }
+            refresh_selected(model, &mut commands);
             ControlFlow::Continue(())
         }
-        Action::Reviewr => {
+        Action::InspectSpoils => {
             inspect_spoils(model, &mut commands);
             ControlFlow::Continue(())
         }
@@ -82,12 +68,16 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             open_counsel(model);
             ControlFlow::Continue(())
         }
-        Action::MarkSeen => {
+        Action::AcknowledgeSummons => {
             mark_read(model);
             ControlFlow::Continue(())
         }
         Action::Search => {
             model.open_search();
+            ControlFlow::Continue(())
+        }
+        Action::ShowHelp => {
+            model.toggle_help();
             ControlFlow::Continue(())
         }
         Action::TypeCharacter(character) => {
@@ -114,9 +104,43 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             }
             ControlFlow::Continue(())
         }
-        _ => ControlFlow::Continue(()),
+        Action::Redraw | Action::None => ControlFlow::Continue(()),
     };
     finish_reduction(model, &before, control, commands)
+}
+
+fn observe_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
+    match selected_pane_state(model) {
+        SelectedPane::Available(pane_id) => commands.push(AgentCommand::FocusPane(pane_id)),
+        SelectedPane::Managed => model.set_status_message(Some(
+            "The Questmancer cannot observe its own managed pane.".to_owned(),
+        )),
+        SelectedPane::Missing => {
+            model.set_status_message(Some("No adventurer is selected to observe.".to_owned()));
+        }
+    }
+}
+
+fn refresh_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
+    match selected_pane_state(model) {
+        SelectedPane::Available(pane_id) => commands.push(load_output(model, pane_id)),
+        SelectedPane::Managed => model.set_status_message(Some(
+            "The scrying table cannot observe the Questmancer's own managed pane.".to_owned(),
+        )),
+        SelectedPane::Missing => {
+            model.set_status_message(Some("No adventurer is selected to scry.".to_owned()));
+        }
+    }
+}
+
+fn intercept_help_modal(model: &mut Model, action: Action) -> bool {
+    if model.modal() != &Modal::Help {
+        return false;
+    }
+    if matches!(action, Action::ShowHelp | Action::Dismiss) {
+        model.dismiss_modal();
+    }
+    true
 }
 
 fn finish_reduction(
@@ -261,20 +285,7 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
             .campaigns
             .get(&agent.workspace_id)
             .is_some_and(|campaign| campaign.label.to_lowercase().contains(&query));
-        (agent.name.to_lowercase().contains(&query)
-            || agent.persona.name.to_lowercase().contains(&query)
-            || agent
-                .persona
-                .epithet
-                .as_str()
-                .to_lowercase()
-                .contains(&query)
-            || agent
-                .custom_status
-                .as_ref()
-                .is_some_and(|status| status.to_lowercase().contains(&query))
-            || site_matches)
-            .then(|| key.clone())
+        (agent_matches_search(agent, &query) || site_matches).then(|| key.clone())
     });
 
     let Some(agent_key) = matched else {
@@ -290,6 +301,44 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         && let Some(pane_id) = after
     {
         commands.push(load_output(model, pane_id));
+    }
+}
+
+fn agent_matches_search(agent: &Agent, query: &str) -> bool {
+    agent.name.to_lowercase().contains(query)
+        || agent.persona.name.to_lowercase().contains(query)
+        || agent
+            .persona
+            .epithet
+            .as_str()
+            .to_lowercase()
+            .contains(query)
+        || agent
+            .custom_status
+            .as_ref()
+            .is_some_and(|status| status.to_lowercase().contains(query))
+        || format!("{:?}", agent.persona.class)
+            .to_lowercase()
+            .contains(query)
+        || format!("{:?}", agent.persona.ancestry)
+            .to_lowercase()
+            .contains(query)
+        || visible_presence_terms(agent)
+            .iter()
+            .any(|term| term.contains(query))
+}
+
+fn visible_presence_terms(agent: &Agent) -> &'static [&'static str] {
+    match agent.presence {
+        Presence::Working => &["working", "delving"],
+        Presence::Blocked => &["blocked", "counsel", "counsel requested"],
+        Presence::Done if agent.attention.is_unread() => {
+            &["completed", "spoils", "spoils returned"]
+        }
+        Presence::Done => &["completed", "victory", "victory recorded"],
+        Presence::Idle => &["resting"],
+        Presence::Exited => &["departed"],
+        Presence::Unknown => &["unknown"],
     }
 }
 

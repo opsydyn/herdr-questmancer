@@ -82,6 +82,48 @@ fn quit_is_an_explicit_typed_loop_outcome() {
 }
 
 #[test]
+fn help_opens_toggles_and_blocks_normal_model_actions() {
+    let mut model = live_model_with_two_agents();
+    let selected = model.selected_agent_key().cloned();
+
+    let opened = reduce_action(&mut model, Action::ShowHelp);
+    assert_eq!(model.modal(), &Modal::Help);
+    assert!(opened.commands.is_empty());
+    assert!(opened.persistence.is_empty());
+
+    for action in [
+        Action::Next,
+        Action::Switch(View::Delve),
+        Action::CycleRegion,
+        Action::Counsel,
+        Action::Search,
+    ] {
+        let blocked = reduce_action(&mut model, action);
+        assert_eq!(model.view(), View::Guild, "help leaked {action:?}");
+        assert_eq!(model.region(), Region::QuestBoard, "help leaked {action:?}");
+        assert_eq!(
+            model.selected_agent_key(),
+            selected.as_ref(),
+            "help leaked {action:?}"
+        );
+        assert_eq!(model.modal(), &Modal::Help, "help leaked {action:?}");
+        assert!(blocked.commands.is_empty(), "help leaked {action:?}");
+        assert!(blocked.persistence.is_empty(), "help leaked {action:?}");
+    }
+
+    let closed = reduce_action(&mut model, Action::ShowHelp);
+    assert_eq!(model.modal(), &Modal::None);
+    assert!(closed.commands.is_empty());
+    assert!(closed.persistence.is_empty());
+
+    let _ = reduce_action(&mut model, Action::ShowHelp);
+    let dismissed = reduce_action(&mut model, Action::Dismiss);
+    assert_eq!(model.modal(), &Modal::None);
+    assert!(dismissed.commands.is_empty());
+    assert!(dismissed.persistence.is_empty());
+}
+
+#[test]
 fn view_switch_is_reduced_without_effect_commands() {
     let mut model = Model::new(View::Guild);
 
@@ -202,14 +244,14 @@ fn relative_selection_loads_one_preview_per_change() {
 #[test]
 fn visit_focuses_selected_pane_and_empty_selection_is_contextual() {
     let mut selected = live_model_with_two_agents();
-    let visit = reduce_action(&mut selected, Action::Visit);
+    let visit = reduce_action(&mut selected, Action::Observe);
     assert_eq!(
         visit.commands,
         vec![AgentCommand::FocusPane(PaneId::new("w1:p1"))]
     );
 
     let mut empty = Model::new(View::Guild);
-    let no_visit = reduce_action(&mut empty, Action::Visit);
+    let no_visit = reduce_action(&mut empty, Action::Observe);
     assert!(no_visit.commands.is_empty());
     assert_eq!(
         empty.status_message(),
@@ -221,7 +263,7 @@ fn visit_focuses_selected_pane_and_empty_selection_is_contextual() {
 fn managed_pane_selection_never_emits_effect_commands() {
     for (action, expected) in [
         (
-            Action::Visit,
+            Action::Observe,
             "The Questmancer cannot observe its own managed pane.",
         ),
         (
@@ -233,7 +275,7 @@ fn managed_pane_selection_never_emits_effect_commands() {
             "Counsel cannot be issued to the Questmancer's own managed pane.",
         ),
         (
-            Action::Reviewr,
+            Action::InspectSpoils,
             "The spoils cannot be inspected for the Questmancer's own managed pane.",
         ),
     ] {
@@ -321,7 +363,7 @@ fn configured_runtime_settings_drive_output_and_reviewr_commands() {
     );
 
     model.set_reviewr_available(true);
-    let reviewr = reduce_action(&mut model, Action::Reviewr);
+    let reviewr = reduce_action(&mut model, Action::InspectSpoils);
     assert_eq!(
         reviewr.commands,
         vec![AgentCommand::InspectSpoils {
@@ -335,7 +377,7 @@ fn configured_runtime_settings_drive_output_and_reviewr_commands() {
 fn reviewr_opens_only_when_available_for_a_selection() {
     let mut available = live_model_with_two_agents();
     available.set_reviewr_available(true);
-    let open = reduce_action(&mut available, Action::Reviewr);
+    let open = reduce_action(&mut available, Action::InspectSpoils);
     assert_eq!(
         open.commands,
         vec![AgentCommand::InspectSpoils {
@@ -345,7 +387,7 @@ fn reviewr_opens_only_when_available_for_a_selection() {
     );
 
     let mut unavailable = live_model_with_two_agents();
-    let no_open = reduce_action(&mut unavailable, Action::Reviewr);
+    let no_open = reduce_action(&mut unavailable, Action::InspectSpoils);
     assert!(no_open.commands.is_empty());
     assert_eq!(
         unavailable.status_message(),
@@ -354,7 +396,7 @@ fn reviewr_opens_only_when_available_for_a_selection() {
 
     let mut empty = Model::new(View::Guild);
     empty.set_reviewr_available(true);
-    let no_selection = reduce_action(&mut empty, Action::Reviewr);
+    let no_selection = reduce_action(&mut empty, Action::InspectSpoils);
     assert!(no_selection.commands.is_empty());
     assert_eq!(
         empty.status_message(),
@@ -433,7 +475,7 @@ fn mark_seen_uses_the_domain_reducer_for_the_selected_agent() {
     let mut model = live_model_with_two_agents();
     assert!(model.selected_agent().unwrap().attention.is_unread());
 
-    let marked = reduce_action(&mut model, Action::MarkSeen);
+    let marked = reduce_action(&mut model, Action::AcknowledgeSummons);
 
     assert!(marked.commands.is_empty());
     assert_eq!(marked.persistence, vec![Command::PersistState]);
@@ -441,7 +483,7 @@ fn mark_seen_uses_the_domain_reducer_for_the_selected_agent() {
     assert_eq!(model.status_message(), Some("Summons acknowledged."));
 
     let mut empty = Model::new(View::Guild);
-    let no_mark = reduce_action(&mut empty, Action::MarkSeen);
+    let no_mark = reduce_action(&mut empty, Action::AcknowledgeSummons);
     assert!(no_mark.commands.is_empty());
     assert!(no_mark.persistence.is_empty());
     assert_eq!(
@@ -462,7 +504,7 @@ fn acknowledgement_claims_success_only_for_an_unread_summons() {
         .attention = GuildAttention::Clear;
     clear.set_status_message(None);
 
-    let clear_result = reduce_action(&mut clear, Action::MarkSeen);
+    let clear_result = reduce_action(&mut clear, Action::AcknowledgeSummons);
 
     assert!(clear_result.persistence.is_empty());
     assert_ne!(clear.status_message(), Some("Summons acknowledged."));
@@ -479,7 +521,7 @@ fn acknowledgement_claims_success_only_for_an_unread_summons() {
     };
     read.set_status_message(None);
 
-    let read_result = reduce_action(&mut read, Action::MarkSeen);
+    let read_result = reduce_action(&mut read, Action::AcknowledgeSummons);
 
     assert!(read_result.persistence.is_empty());
     assert_ne!(read.status_message(), Some("Summons acknowledged."));
@@ -487,7 +529,7 @@ fn acknowledgement_claims_success_only_for_an_unread_summons() {
     let mut unread = live_model_with_two_agents();
     unread.set_status_message(None);
 
-    let unread_result = reduce_action(&mut unread, Action::MarkSeen);
+    let unread_result = reduce_action(&mut unread, Action::AcknowledgeSummons);
 
     assert_eq!(unread_result.persistence, vec![Command::PersistState]);
     assert_eq!(unread.status_message(), Some("Summons acknowledged."));
@@ -500,7 +542,7 @@ fn mark_seen_keeps_the_newly_selected_distinct_persona_selected() {
     model.select_last_agent();
     let selected = model.selected_agent_key().unwrap().clone();
 
-    let marked = reduce_action(&mut model, Action::MarkSeen);
+    let marked = reduce_action(&mut model, Action::AcknowledgeSummons);
 
     assert!(marked.commands.is_empty());
     assert_eq!(model.selected_agent_key(), Some(&selected));
@@ -566,6 +608,91 @@ fn search_is_case_insensitive_across_agent_fields() {
             }],
             "query {query}"
         );
+    }
+}
+
+#[test]
+fn search_matches_visible_presence_class_and_ancestry_terms() {
+    use questmancer::domain::{AdventurerClass, Ancestry, Presence};
+
+    for query in [
+        "delving", "working", "counsel", "blocked", "wizard", "dwarf",
+    ] {
+        let mut model = searchable_model();
+        let first_key = model.domain().agents.keys().next().unwrap().clone();
+        let second_key = model.domain().agents.keys().next_back().unwrap().clone();
+        let non_target = model.domain_mut().agents.get_mut(&first_key).unwrap();
+        non_target.presence = Presence::Idle;
+        non_target.persona.class = AdventurerClass::Barbarian;
+        non_target.persona.ancestry = Ancestry::Human;
+        let target = model.domain_mut().agents.get_mut(&second_key).unwrap();
+        target.presence = if matches!(query, "counsel" | "blocked") {
+            Presence::Blocked
+        } else {
+            Presence::Working
+        };
+        target.persona.class = AdventurerClass::Wizard;
+        target.persona.ancestry = Ancestry::Dwarf;
+
+        let _ = reduce_action(&mut model, Action::Search);
+        for character in query.chars() {
+            let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+        }
+        let submitted = reduce_action(&mut model, Action::Submit);
+
+        assert_eq!(
+            model.selected_agent_key(),
+            Some(&second_key),
+            "query {query}"
+        );
+        assert_eq!(model.modal(), &Modal::None, "query {query}");
+        assert_eq!(submitted.commands.len(), 1, "query {query}");
+    }
+
+    for query in ["resting", "spoils returned", "victory recorded", "departed"] {
+        let mut model = searchable_model();
+        let first_key = model.domain().agents.keys().next().unwrap().clone();
+        let second_key = model.domain().agents.keys().next_back().unwrap().clone();
+        model
+            .domain_mut()
+            .agents
+            .get_mut(&first_key)
+            .unwrap()
+            .presence = Presence::Working;
+        let target = model.domain_mut().agents.get_mut(&second_key).unwrap();
+        match query {
+            "resting" => target.presence = Presence::Idle,
+            "spoils returned" => {
+                target.presence = Presence::Done;
+                target.attention = GuildAttention::unread(
+                    GuildSummons::SpoilsReturned,
+                    Timestamp::from_millis(1_000),
+                );
+            }
+            "victory recorded" => {
+                target.presence = Presence::Done;
+                target.attention = GuildAttention::Read {
+                    summons: GuildSummons::SpoilsReturned,
+                    since: Timestamp::from_millis(1_000),
+                };
+            }
+            "departed" => target.presence = Presence::Exited,
+            _ => unreachable!(),
+        }
+
+        let _ = reduce_action(&mut model, Action::Search);
+        for character in query.chars() {
+            let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+        }
+        let submitted = reduce_action(&mut model, Action::Submit);
+
+        assert_eq!(
+            model.selected_agent_key(),
+            Some(&second_key),
+            "query {query}"
+        );
+        assert_eq!(model.modal(), &Modal::None, "query {query}");
+        assert_eq!(submitted.commands.len(), 1, "query {query}");
     }
 }
 
@@ -642,7 +769,7 @@ fn delve_selection_reuses_the_guild_commands_and_loads_once_per_change() {
 
 #[test]
 fn delve_visit_refresh_and_optional_reviewr_reuse_typed_guild_commands() {
-    for action in [Action::Visit, Action::Refresh] {
+    for action in [Action::Observe, Action::Refresh] {
         let mut guild = live_model_with_two_agents();
         let mut delve = delve_twin(&guild);
 
@@ -655,8 +782,8 @@ fn delve_visit_refresh_and_optional_reviewr_reuse_typed_guild_commands() {
     let mut guild = live_model_with_two_agents();
     guild.set_reviewr_available(true);
     let mut delve = delve_twin(&guild);
-    let guild_reduction = reduce_action(&mut guild, Action::Reviewr);
-    let delve_reduction = reduce_action(&mut delve, Action::Reviewr);
+    let guild_reduction = reduce_action(&mut guild, Action::InspectSpoils);
+    let delve_reduction = reduce_action(&mut delve, Action::InspectSpoils);
 
     assert_eq!(delve_reduction, guild_reduction);
     assert_eq!(
@@ -686,8 +813,8 @@ fn delve_counsel_and_acknowledgement_reuse_the_existing_local_and_command_bounda
 
     let mut guild = live_model_with_two_agents();
     let mut delve = delve_twin(&guild);
-    let guild_seen = reduce_action(&mut guild, Action::MarkSeen);
-    let delve_seen = reduce_action(&mut delve, Action::MarkSeen);
+    let guild_seen = reduce_action(&mut guild, Action::AcknowledgeSummons);
+    let delve_seen = reduce_action(&mut delve, Action::AcknowledgeSummons);
 
     assert_eq!(delve_seen, guild_seen);
     assert_eq!(

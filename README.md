@@ -99,12 +99,12 @@ cargo run -- ui --view delve
 | `j` / `Down` | Select the next adventurer |
 | `k` / `Up` | Select the previous adventurer |
 | `g` / `G` | Select the first / last adventurer |
-| `Enter` | Visit the selected adventurer's pane |
+| `Enter` | Observe the selected adventurer's pane |
 | `r` | Compose counsel for the selected adventurer |
 | `Space` | Acknowledge the selected unread Summons locally |
 | `o` | Refresh the selected adventurer's recent output |
-| `/` | Search adventurer, handle, state, or campaign |
-| `v` | Visit, then open configured Reviewr when available |
+| `/` | Search adventurer, handle, visible presence, class, ancestry, or campaign |
+| `v` | Inspect Spoils with the configured Reviewr action when available |
 | `?` | Show in-app help |
 | `Esc` | Dismiss the active modal |
 | `q` / `Ctrl-C` | Close Questmancer when no text modal is open |
