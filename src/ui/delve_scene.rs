@@ -6,7 +6,7 @@ use ratatui::layout::Rect;
 
 use crate::domain::{Agent, AgentKey, Campaign, WorkspaceId};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum DelveVariant {
     ForgottenLibrary,
     MossyUndercroft,

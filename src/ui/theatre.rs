@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use super::{delve_projection::visible_agent_keys, views::guild_hall::next_elapsed_label_in};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TheatrePose {
     Delving,
     SeekingCounsel,

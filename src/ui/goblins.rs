@@ -20,7 +20,7 @@ const OUTBREAK_FPS: u8 = 4;
 const ASCII_GOBLIN: [&str; 2] = ["/{g}\\", " /|\\ "];
 const UNICODE_GOBLIN: [&str; 2] = ["╭g╮", "╰┬╯"];
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum GoblinSighting {
     ChestEyes,
     ChronicleHand,
