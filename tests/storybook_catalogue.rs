@@ -43,11 +43,13 @@ fn coverage_accepts_exactly_one_owner_per_asset() {
 fn coverage_rejects_missing_duplicate_and_unknown_ownership() {
     const BOARD: AssetId = AssetId::Widget(WidgetAsset::QuestBoard);
     const PARTY: AssetId = AssetId::Widget(WidgetAsset::Party);
+    const SUMMONS: AssetId = AssetId::Widget(WidgetAsset::Summons);
     let error = validate_coverage(
-        &[BOARD],
+        &[BOARD, SUMMONS],
         &[story("one", &[BOARD, PARTY]), story("two", &[BOARD])],
     )
     .unwrap_err();
+    assert_eq!(error.missing(), &[SUMMONS]);
     assert_eq!(error.duplicates(), &[BOARD]);
     assert_eq!(error.unknown(), &[PARTY]);
 }
