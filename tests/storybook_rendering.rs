@@ -167,6 +167,31 @@ fn assert_compact_chrome_is_complete(screen: &str) {
 }
 
 #[test]
+fn compact_chrome_is_complete_at_every_supported_narrow_width() {
+    let stories = catalogue();
+    let app = StorybookApp::new(stories);
+
+    for width in 48..=79 {
+        let screen = render_storybook(&app, stories, width, 24);
+        assert_compact_chrome_is_complete(&screen);
+    }
+}
+
+#[test]
+fn compact_chrome_uses_two_rows_until_the_longest_header_fits() {
+    for width in 48..75 {
+        let layout = storybook_ui::shell_layout(Rect::new(0, 0, width, 24));
+        assert_eq!(layout.header.height, 2, "header at width {width}");
+        assert_eq!(layout.footer.height, 2, "footer at width {width}");
+    }
+    for width in 75..=79 {
+        let layout = storybook_ui::shell_layout(Rect::new(0, 0, width, 24));
+        assert_eq!(layout.header.height, 1, "header at width {width}");
+        assert_eq!(layout.footer.height, 1, "footer at width {width}");
+    }
+}
+
+#[test]
 fn wide_shell_layout_has_exact_twenty_two_fifty_six_twenty_two_geometry() {
     let layout = storybook_ui::shell_layout(Rect::new(0, 0, 140, 40));
 

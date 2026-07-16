@@ -25,7 +25,14 @@ use super::{
 
 const WIDE_MINIMUM: u16 = 120;
 const MEDIUM_MINIMUM: u16 = 80;
-const TWO_LINE_CHROME_MAXIMUM: u16 = 59;
+const LONGEST_COMPACT_HEADER: &str =
+    "Storybook offline fixture realm ref 120x36 Unicode Xterm-256 motion reduced";
+const COMPACT_FOOTER: &str = "[j/k] story [h/l] category [enter] inspect [?] help [esc/q/^c] quit";
+const SINGLE_ROW_CHROME_MINIMUM: usize = if LONGEST_COMPACT_HEADER.len() > COMPACT_FOOTER.len() {
+    LONGEST_COMPACT_HEADER.len()
+} else {
+    COMPACT_FOOTER.len()
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ShellLayout {
@@ -38,7 +45,7 @@ pub struct ShellLayout {
 }
 
 pub fn shell_layout(area: Rect) -> ShellLayout {
-    let chrome_height = u16::from(area.width <= TWO_LINE_CHROME_MAXIMUM) + 1;
+    let chrome_height = u16::from(usize::from(area.width) < SINGLE_ROW_CHROME_MINIMUM) + 1;
     let outer = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -452,7 +459,7 @@ fn render_catalogue_footer(frame: &mut Frame<'_>, area: Rect) {
             Line::from("[?] help [esc/q/^c] quit"),
         ])
     } else {
-        Text::from("[j/k] story [h/l] category [enter] inspect [?] help [esc/q/^c] quit")
+        Text::from(COMPACT_FOOTER)
     };
     frame.render_widget(Paragraph::new(footer).alignment(Alignment::Center), area);
 }
