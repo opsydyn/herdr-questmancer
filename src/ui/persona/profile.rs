@@ -262,20 +262,27 @@ fn overlay_keepsake(canvas: &mut Canvas, keepsake: Keepsake, roles: AppearanceRo
             canvas.set(14, 14, roles.keepsake);
         }
         Keepsake::PressedLeaf => {
-            canvas.set(2, 15, roles.keepsake);
-            canvas.set(1, 16, roles.keepsake);
-            canvas.set(2, 17, roles.keepsake);
+            canvas.set(3, 7, roles.keepsake);
+            canvas.set(2, 8, roles.keepsake);
+            canvas.set(3, 8, roles.keepsake);
+            canvas.set(4, 8, roles.keepsake);
+            canvas.set(3, 9, roles.keepsake);
+            canvas.set(3, 10, roles.keepsake);
         }
         Keepsake::Ribbon => {
-            canvas.set(3, 10, roles.keepsake);
-            canvas.set(2, 11, roles.keepsake);
-            canvas.set(4, 11, roles.keepsake);
-            canvas.set(3, 12, roles.keepsake);
+            canvas.set(12, 2, roles.keepsake);
+            canvas.set(11, 3, roles.keepsake);
+            canvas.set(12, 3, roles.keepsake);
+            canvas.set(11, 4, roles.keepsake);
+            canvas.set(12, 4, roles.keepsake);
+            canvas.set(11, 5, roles.keepsake);
         }
         Keepsake::TinyFamiliar => {
             canvas.set(1, 25, roles.keepsake);
             canvas.fill_rect(0, 26, 3, 1, roles.keepsake);
-            canvas.set(2, 27, roles.keepsake);
+            canvas.fill_rect(2, 27, 1, 4, roles.keepsake);
+            canvas.fill_rect(2, 30, 4, 1, roles.keepsake);
+            canvas.set(2, 31, roles.keepsake);
         }
     }
 }
@@ -398,9 +405,10 @@ fn overlay_class_gear(canvas: &mut Canvas, class: AdventurerClass, gear: Adventu
             canvas.fill_rect(11, 12, 4, 1, ColorRole::Counsel);
         }
         AdventuringGear::Lute => {
-            canvas.fill_rect(0, 13, 3, 7, ColorRole::Timber);
-            canvas.fill_rect(2, 8, 1, 5, ColorRole::Timber);
-            canvas.set(1, 20, ColorRole::Timber);
+            canvas.fill_rect(0, 13, 2, 7, ColorRole::Timber);
+            canvas.fill_rect(2, 13, 1, 7, ColorRole::Leather);
+            canvas.fill_rect(2, 8, 1, 5, ColorRole::Leather);
+            canvas.set(1, 20, ColorRole::Leather);
         }
         AdventuringGear::MapAndCompass => {
             canvas.fill_rect(0, 8, 4, 7, ColorRole::Parchment);

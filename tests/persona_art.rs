@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use questmancer::{
     domain::{
-        AccentTone, AdventurerClass, AdventurerPersona, Ancestry, Footwear, Garb, HairTone,
-        Keepsake, Legwear, PersonaKey, SkinTone,
+        AccentTone, AdventurerClass, AdventurerPersona, Ancestry, BodyProportions, Footwear, Garb,
+        HairTone, Keepsake, Legwear, PersonaKey, SkinTone,
     },
     ui::{
         persona::{
@@ -40,6 +40,15 @@ fn silhouette(canvas: &Canvas) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn owns_unique_geometry(target: &Canvas, alternatives: &[&Canvas]) -> bool {
+    target.pixels().iter().enumerate().any(|(index, pixel)| {
+        pixel.is_some()
+            && alternatives
+                .iter()
+                .all(|alternative| alternative.pixels()[index].is_none())
+    })
 }
 
 fn assert_composed_adjacency_contrast(canvas: &Canvas, palette: Palette) {
@@ -246,6 +255,70 @@ fn every_keepsake_has_distinct_profile_and_chamber_geometry() {
 }
 
 #[test]
+fn every_class_keeps_every_keepsake_as_owned_profile_and_chamber_geometry() {
+    let classes = [
+        AdventurerClass::Barbarian,
+        AdventurerClass::Bard,
+        AdventurerClass::Cleric,
+        AdventurerClass::Paladin,
+        AdventurerClass::Ranger,
+        AdventurerClass::Rogue,
+        AdventurerClass::Wizard,
+        AdventurerClass::Artificer,
+        AdventurerClass::Runewright,
+        AdventurerClass::Testmender,
+        AdventurerClass::Pathseeker,
+    ];
+    let keepsakes = [
+        Keepsake::Feather,
+        Keepsake::LuckyCoin,
+        Keepsake::Mug,
+        Keepsake::PressedLeaf,
+        Keepsake::Ribbon,
+        Keepsake::TinyFamiliar,
+    ];
+
+    for class in classes {
+        let personas = keepsakes.map(|keepsake| {
+            let mut persona = fixed_persona("keepsake-ownership-fixture");
+            persona.class = class;
+            persona.appearance.keepsake = keepsake;
+            persona
+        });
+        let profiles = personas
+            .iter()
+            .map(compose_profile_adventurer)
+            .collect::<Vec<_>>();
+        let chambers = personas
+            .iter()
+            .map(|persona| compose_chamber_adventurer(persona, frame(TheatrePose::Delving, 0)))
+            .collect::<Vec<_>>();
+
+        for (index, keepsake) in keepsakes.into_iter().enumerate() {
+            let other_profiles = profiles
+                .iter()
+                .enumerate()
+                .filter_map(|(other, canvas)| (other != index).then_some(canvas))
+                .collect::<Vec<_>>();
+            let other_chambers = chambers
+                .iter()
+                .enumerate()
+                .filter_map(|(other, canvas)| (other != index).then_some(canvas))
+                .collect::<Vec<_>>();
+
+            assert!(
+                owns_unique_geometry(&profiles[index], &other_profiles),
+                "{class:?} {keepsake:?} profile keepsake was swallowed by class gear"
+            );
+            assert!(
+                owns_unique_geometry(&chambers[index], &other_chambers),
+                "{class:?} {keepsake:?} chamber keepsake was swallowed by class gear"
+            );
+        }
+    }
+}
+
+#[test]
 fn chamber_states_have_explicit_non_colour_props() {
     let persona = fixed_persona("art-fixture");
     let states = [
@@ -300,9 +373,25 @@ fn spoils_sparkle_is_deterministic_and_bounded() {
         )
     };
 
-    assert_eq!(render(0), render(8));
-    assert_eq!(render(1), render(9));
-    assert_ne!(render(0), render(1));
+    let chest_only = render(0);
+    assert_eq!(chest_only, render(9));
+    assert_eq!(chest_only, render(u8::MAX));
+
+    for transition_frame in 1..=8 {
+        let sparkling = render(transition_frame);
+        assert_ne!(
+            chest_only, sparkling,
+            "frame {transition_frame} lost its sparkle"
+        );
+        assert!(
+            sparkling
+                .pixels()
+                .iter()
+                .zip(chest_only.pixels())
+                .any(|(during, stable)| during.is_some() && stable.is_none()),
+            "frame {transition_frame} sparkle did not add logical geometry"
+        );
+    }
 }
 
 #[test]
@@ -475,32 +564,51 @@ fn composed_class_ancestry_and_state_layers_never_collapse_adjacent_roles() {
         for skin_tone in [SkinTone::Porcelain, SkinTone::Umber, SkinTone::Ebony] {
             for class in classes {
                 for ancestry in ancestries {
-                    for keepsake in [
-                        Keepsake::Feather,
-                        Keepsake::LuckyCoin,
-                        Keepsake::Mug,
-                        Keepsake::PressedLeaf,
-                        Keepsake::Ribbon,
-                        Keepsake::TinyFamiliar,
+                    for proportions in [
+                        BodyProportions::Compact,
+                        BodyProportions::Average,
+                        BodyProportions::Tall,
+                        BodyProportions::Broad,
                     ] {
-                        let mut persona = fixed_persona("composed-palette-fixture");
-                        persona.class = class;
-                        persona.ancestry = ancestry;
-                        persona.appearance.skin_tone = skin_tone;
-                        persona.appearance.keepsake = keepsake;
-                        assert_composed_adjacency_contrast(
-                            &compose_profile_adventurer_for_palette(&persona, palette),
-                            palette,
-                        );
-                        for pose in poses {
-                            assert_composed_adjacency_contrast(
-                                &compose_chamber_adventurer_for_palette(
-                                    &persona,
-                                    frame(pose, 0),
+                        for garb in [
+                            Garb::Armour,
+                            Garb::Cloak,
+                            Garb::Doublet,
+                            Garb::Leathers,
+                            Garb::Robes,
+                            Garb::Vestments,
+                            Garb::WorkApron,
+                        ] {
+                            for keepsake in [
+                                Keepsake::Feather,
+                                Keepsake::LuckyCoin,
+                                Keepsake::Mug,
+                                Keepsake::PressedLeaf,
+                                Keepsake::Ribbon,
+                                Keepsake::TinyFamiliar,
+                            ] {
+                                let mut persona = fixed_persona("composed-palette-fixture");
+                                persona.class = class;
+                                persona.ancestry = ancestry;
+                                persona.appearance.skin_tone = skin_tone;
+                                persona.appearance.proportions = proportions;
+                                persona.appearance.garb = garb;
+                                persona.appearance.keepsake = keepsake;
+                                assert_composed_adjacency_contrast(
+                                    &compose_profile_adventurer_for_palette(&persona, palette),
                                     palette,
-                                ),
-                                palette,
-                            );
+                                );
+                                for pose in poses {
+                                    assert_composed_adjacency_contrast(
+                                        &compose_chamber_adventurer_for_palette(
+                                            &persona,
+                                            frame(pose, 0),
+                                            palette,
+                                        ),
+                                        palette,
+                                    );
+                                }
+                            }
                         }
                     }
                 }

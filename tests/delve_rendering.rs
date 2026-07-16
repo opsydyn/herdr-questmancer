@@ -875,6 +875,22 @@ fn reduced_and_no_motion_delves_are_stable_across_clock_changes() {
         assert!(first.contains("DELVING"));
         assert!(first.contains("COUNSEL REQUESTED"));
         assert!(first.contains("DEPARTED"));
+
+        model
+            .domain_mut()
+            .agents
+            .get_mut(&AgentKey::new("agent-c"))
+            .unwrap()
+            .presence = Presence::Idle;
+        model.set_now(Timestamp::from_millis(2_500));
+        let resting = render(&model, 120, 30);
+        model.set_now(Timestamp::from_millis(9_999));
+        let resting_later = render(&model, 120, 30);
+        assert_eq!(
+            resting, resting_later,
+            "Resting changed with the clock under motion {motion:?}"
+        );
+        assert!(resting.contains("RESTING"));
     }
 }
 

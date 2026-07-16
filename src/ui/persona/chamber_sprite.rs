@@ -112,21 +112,30 @@ fn overlay_keepsake(canvas: &mut Canvas, keepsake: Keepsake, roles: AppearanceRo
             canvas.set(1, 1, roles.keepsake);
             canvas.set(1, 2, roles.keepsake);
         }
-        Keepsake::LuckyCoin => canvas.set(7, 7, roles.keepsake),
+        Keepsake::LuckyCoin => {
+            canvas.set(9, 0, roles.keepsake);
+            canvas.set(8, 1, roles.keepsake);
+            canvas.set(9, 1, roles.keepsake);
+        }
         Keepsake::Mug => {
             canvas.fill_rect(8, 5, 2, 2, roles.keepsake);
             canvas.set(7, 6, roles.keepsake);
         }
         Keepsake::PressedLeaf => {
+            canvas.set(0, 0, roles.keepsake);
+            canvas.set(0, 1, roles.keepsake);
+            canvas.set(1, 2, roles.keepsake);
+            canvas.set(1, 3, roles.keepsake);
+            canvas.set(1, 4, roles.keepsake);
             canvas.set(1, 5, roles.keepsake);
             canvas.set(2, 6, roles.keepsake);
             canvas.set(1, 7, roles.keepsake);
         }
         Keepsake::Ribbon => {
-            canvas.set(1, 3, roles.keepsake);
-            canvas.set(1, 4, roles.keepsake);
-            canvas.set(2, 4, roles.keepsake);
-            canvas.set(2, 5, roles.keepsake);
+            canvas.set(8, 0, roles.keepsake);
+            canvas.set(8, 1, roles.keepsake);
+            canvas.set(7, 1, roles.keepsake);
+            canvas.set(7, 2, roles.keepsake);
         }
         Keepsake::TinyFamiliar => {
             canvas.set(1, 7, roles.keepsake);
@@ -196,9 +205,10 @@ fn overlay_class_gear(canvas: &mut Canvas, class: AdventurerClass, gear: Adventu
             canvas.fill_rect(7, 4, 3, 1, ColorRole::Counsel);
         }
         AdventuringGear::Lute => {
-            canvas.set(1, 3, ColorRole::Timber);
-            canvas.fill_rect(0, 4, 2, 4, ColorRole::Timber);
-            canvas.set(1, 8, ColorRole::Timber);
+            canvas.set(1, 3, ColorRole::Leather);
+            canvas.fill_rect(0, 4, 1, 4, ColorRole::Timber);
+            canvas.fill_rect(1, 4, 1, 4, ColorRole::Leather);
+            canvas.set(1, 8, ColorRole::Leather);
         }
         AdventuringGear::MapAndCompass => {
             canvas.fill_rect(0, 2, 3, 3, ColorRole::Parchment);
@@ -252,7 +262,20 @@ fn overlay_state_prop(canvas: &mut Canvas, pose: TheatrePose, frame: u8) {
         }
         TheatrePose::SpoilsUnopened => {
             canvas.fill_rect(0, 9, 4, 3, ColorRole::Spoils);
-            canvas.set(u16::from(frame % 2), 8, ColorRole::Parchment);
+            if (1..=8).contains(&frame) {
+                const SPARKLE: [(u16, u16); 8] = [
+                    (0, 8),
+                    (1, 8),
+                    (4, 9),
+                    (5, 9),
+                    (4, 10),
+                    (5, 10),
+                    (4, 11),
+                    (5, 11),
+                ];
+                let (x, y) = SPARKLE[usize::from(frame - 1)];
+                canvas.set(x, y, ColorRole::Parchment);
+            }
         }
         TheatrePose::VictoryRecorded => {
             canvas.fill_rect(0, 0, 1, 5, ColorRole::Selection);

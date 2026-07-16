@@ -247,11 +247,12 @@ fn scene_lines(theatre: TheatreFrame, selected: bool) -> Vec<Line<'static>> {
     } else {
         "(.)"
     };
-    let runes = if theatre.animation_frame.is_multiple_of(2) {
-        "o*o"
-    } else {
-        "*o*"
-    };
+    let runes =
+        if theatre.pose == TheatrePose::Delving && !theatre.animation_frame.is_multiple_of(2) {
+            "*o*"
+        } else {
+            "o*o"
+        };
     let (sigil, activity) = match theatre.pose {
         TheatrePose::Delving => (
             if theatre.animation_frame.is_multiple_of(2) {
