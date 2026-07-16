@@ -10,6 +10,15 @@ readme = "README.md"
 keywords = ["herdr", "ratatui", "agents", "tui", "fantasy"]
 categories = ["command-line-utilities", "development-tools"]
 
+[features]
+default = []
+storybook = []
+
+[[bin]]
+name = "questmancer-storybook"
+path = "src/bin/questmancer_storybook.rs"
+required-features = ["storybook"]
+
 [dependencies]
 anyhow = "1"
 blake3 = "1"

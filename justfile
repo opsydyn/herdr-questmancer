@@ -54,3 +54,9 @@ install-local:
     rm -f bin/questmancer
     cp target/release/questmancer bin/questmancer
     [ "$(uname)" = "Darwin" ] && codesign --force --sign - bin/questmancer || true
+
+storybook:
+    cargo run --features storybook --bin questmancer-storybook
+
+storybook-test:
+    cargo test --all-targets --features storybook
