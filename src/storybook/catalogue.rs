@@ -316,6 +316,11 @@ const NAMED_DELVE_REUSES: &[AssetId] = &[
     AssetId::Scene(SceneAsset::ConnectedDelves),
     AssetId::Widget(WidgetAsset::ChamberCompact),
 ];
+const WATCHTOWER_DELVE_REUSES: &[AssetId] = &[
+    AssetId::Scene(SceneAsset::ConnectedDelves),
+    AssetId::Widget(WidgetAsset::ChamberFull),
+    AssetId::Widget(WidgetAsset::ChamberCompact),
+];
 const CONNECTED_DELVE_REUSES: &[AssetId] = &[
     AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
     AssetId::DelveVariant(DelveVariant::MossyUndercroft),
@@ -872,7 +877,12 @@ fn delve_variant_story(
     build: StoryBuilder,
 ) -> Story {
     let owns = Box::leak(vec![AssetId::DelveVariant(asset)].into_boxed_slice());
-    let reused = delve_shows(build, SCENE_VIEWPORT, NAMED_DELVE_REUSES, true);
+    let fixed = if asset == DelveVariant::OldWatchtower {
+        WATCHTOWER_DELVE_REUSES
+    } else {
+        NAMED_DELVE_REUSES
+    };
+    let reused = delve_shows(build, SCENE_VIEWPORT, fixed, true);
     complete_story(
         id,
         title,

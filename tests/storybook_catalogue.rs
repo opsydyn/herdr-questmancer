@@ -12,6 +12,7 @@ use questmancer::{
             Category, Story, StoryId, Viewport, catalogue, validate_catalogue, validate_coverage,
         },
         fixtures::{AtlasContent, StoryContext, StoryFixture},
+        ui as storybook_ui,
     },
     ui::{
         delve_projection::visible_agent_keys, delve_scene::DelveVariant, goblins::GoblinSighting,
@@ -730,17 +731,6 @@ fn shows_are_the_exact_assets_rendered_across_declared_viewports() {
         assert_exact(id, &expected);
     }
 
-    let named_fixed = [
-        AssetId::Scene(SceneAsset::ConnectedDelves),
-        AssetId::Widget(WidgetAsset::ChamberCompact),
-    ];
-    for id in [
-        "scenes.delve-library",
-        "scenes.delve-undercroft",
-        "scenes.delve-watchtower",
-    ] {
-        assert_delve_shows_match_production_projection(story(id), &named_fixed, true);
-    }
     let connected_fixed = [
         AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
         AssetId::DelveVariant(DelveVariant::MossyUndercroft),
@@ -780,6 +770,114 @@ fn shows_are_the_exact_assets_rendered_across_declared_viewports() {
             .iter()
             .any(|asset| matches!(asset, AssetId::Class(_) | AssetId::Ancestry(_)))
     );
+}
+
+#[test]
+fn named_delve_shows_match_independently_observed_production_chamber_branches() {
+    let expectations = [
+        (
+            "scenes.delve-library",
+            [WidgetAsset::ChamberCompact],
+            [WidgetAsset::ChamberCompact],
+        ),
+        (
+            "scenes.delve-undercroft",
+            [WidgetAsset::ChamberCompact],
+            [WidgetAsset::ChamberCompact],
+        ),
+        (
+            "scenes.delve-watchtower",
+            [WidgetAsset::ChamberCompact],
+            [WidgetAsset::ChamberFull],
+        ),
+    ];
+
+    for (id, reference_branches, minimum_branches) in expectations {
+        let story = catalogue()
+            .iter()
+            .find(|story| story.id.as_str() == id)
+            .unwrap();
+        let (reference_assets, observed_reference) = observed_named_delve_assets(
+            story,
+            story.viewport.reference_width,
+            story.viewport.reference_height,
+        );
+        let (minimum_assets, observed_minimum) = observed_named_delve_assets(
+            story,
+            story.viewport.minimum_width,
+            story.viewport.minimum_height,
+        );
+        assert_eq!(
+            observed_reference,
+            reference_branches.into_iter().collect(),
+            "{id} reference chamber branch"
+        );
+        assert_eq!(
+            observed_minimum,
+            minimum_branches.into_iter().collect(),
+            "{id} minimum chamber branch"
+        );
+        assert_eq!(
+            story.shows.iter().copied().collect::<HashSet<_>>(),
+            reference_assets.union(&minimum_assets).copied().collect(),
+            "{id} declared shows"
+        );
+    }
+}
+
+fn observed_named_delve_assets(
+    story: &Story,
+    width: u16,
+    height: u16,
+) -> (HashSet<AssetId>, HashSet<WidgetAsset>) {
+    let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
+        panic!("{} must be an application fixture", story.id.as_str());
+    };
+    let buffer = storybook_ui::render_application_buffer(&model, width, height);
+    let rows = (0..height)
+        .map(|y| {
+            (0..width)
+                .map(|x| buffer.cell((x, y)).unwrap().symbol())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>();
+    let screen = rows.join("\n");
+    let mut assets = HashSet::new();
+    assert!(screen.contains("QUESTMANCER DELVES"), "{screen}");
+    assets.insert(AssetId::Scene(SceneAsset::ConnectedDelves));
+    let mut branches = HashSet::new();
+
+    for key in visible_agent_keys(&model, Rect::new(0, 0, width, height)) {
+        let agent = model.domain().agents.get(&key).unwrap();
+        let name_row = rows
+            .iter()
+            .position(|row| row.contains(&agent.name))
+            .unwrap_or_else(|| panic!("missing rendered adventurer {}: {screen}", agent.name));
+        let following_rows =
+            &rows[name_row.saturating_add(1)..rows.len().min(name_row.saturating_add(7))];
+        let branch = if following_rows
+            .first()
+            .is_some_and(|row| row.contains(".--RUNE--."))
+        {
+            WidgetAsset::ChamberFull
+        } else {
+            WidgetAsset::ChamberCompact
+        };
+        branches.insert(branch);
+        assets.insert(AssetId::Widget(branch));
+        assets.insert(AssetId::Pose(
+            frame_for(agent, model.now(), model.preferences()).pose,
+        ));
+        let persona_geometry_visible = following_rows
+            .iter()
+            .any(|row| row.contains("====CHAMBER===="));
+        if persona_geometry_visible && model.preferences().character_set == CharacterSet::Unicode {
+            assets.insert(AssetId::Class(agent.persona.class));
+            assets.insert(AssetId::Ancestry(agent.persona.ancestry));
+        }
+    }
+
+    (assets, branches)
 }
 
 fn assert_delve_shows_match_production_projection(
