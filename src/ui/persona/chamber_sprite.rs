@@ -263,7 +263,7 @@ fn overlay_state_prop(canvas: &mut Canvas, pose: TheatrePose, frame: u8) {
             canvas.fill_rect(0, 9, 4, 3, ColorRole::Spoils);
             if (1..=8).contains(&frame) {
                 const SPARKLE: [(u16, u16); 8] = [
-                    (0, 8),
+                    (7, 9),
                     (1, 8),
                     (4, 9),
                     (5, 9),
