@@ -88,8 +88,8 @@ const fn ansi16(role: ColorRole) -> Color {
     match role {
         ColorRole::Stone => Color::Gray,
         ColorRole::DarkStone => Color::Black,
-        ColorRole::Timber | ColorRole::Steel => Color::Cyan,
-        ColorRole::Parchment => Color::White,
+        ColorRole::Timber | ColorRole::Parchment => Color::White,
+        ColorRole::Steel => Color::Cyan,
         ColorRole::Ink | ColorRole::HairDark => Color::DarkGray,
         ColorRole::Hearth | ColorRole::Spoils => Color::LightMagenta,
         ColorRole::ClothWarm | ColorRole::SkinMedium => Color::LightRed,

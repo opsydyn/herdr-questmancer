@@ -108,14 +108,13 @@ fn draw_garb(canvas: &mut Canvas, garb: Garb, roles: AppearanceRoles, x: u16, y:
 fn overlay_keepsake(canvas: &mut Canvas, keepsake: Keepsake, roles: AppearanceRoles) {
     match keepsake {
         Keepsake::Feather => {
-            canvas.set(2, 0, roles.keepsake);
-            canvas.set(1, 1, roles.keepsake);
-            canvas.set(1, 2, roles.keepsake);
+            canvas.set(4, 0, roles.keepsake);
+            canvas.set(5, 0, roles.keepsake);
+            canvas.set(4, 1, roles.keepsake);
         }
         Keepsake::LuckyCoin => {
-            canvas.set(9, 0, roles.keepsake);
-            canvas.set(8, 1, roles.keepsake);
-            canvas.set(9, 1, roles.keepsake);
+            canvas.set(8, 11, roles.keepsake);
+            canvas.set(9, 11, roles.keepsake);
         }
         Keepsake::Mug => {
             canvas.fill_rect(8, 5, 2, 2, roles.keepsake);

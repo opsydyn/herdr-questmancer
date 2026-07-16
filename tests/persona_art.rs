@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use questmancer::{
     domain::{
         AccentTone, AdventurerClass, AdventurerPersona, Ancestry, BodyProportions, Footwear, Garb,
-        HairTone, Keepsake, Legwear, PersonaKey, SkinTone,
+        HairShape, HairTone, Keepsake, Legwear, PersonaKey, SkinTone,
     },
     ui::{
         persona::{
@@ -277,6 +277,14 @@ fn every_class_keeps_every_keepsake_as_owned_profile_and_chamber_geometry() {
         Keepsake::Ribbon,
         Keepsake::TinyFamiliar,
     ];
+    let chamber_poses = [
+        TheatrePose::Delving,
+        TheatrePose::SeekingCounsel,
+        TheatrePose::SpoilsUnopened,
+        TheatrePose::VictoryRecorded,
+        TheatrePose::Resting,
+        TheatrePose::Unknown,
+    ];
 
     for class in classes {
         let personas = keepsakes.map(|keepsake| {
@@ -289,31 +297,35 @@ fn every_class_keeps_every_keepsake_as_owned_profile_and_chamber_geometry() {
             .iter()
             .map(compose_profile_adventurer)
             .collect::<Vec<_>>();
-        let chambers = personas
-            .iter()
-            .map(|persona| compose_chamber_adventurer(persona, frame(TheatrePose::Delving, 0)))
-            .collect::<Vec<_>>();
-
         for (index, keepsake) in keepsakes.into_iter().enumerate() {
             let other_profiles = profiles
                 .iter()
                 .enumerate()
                 .filter_map(|(other, canvas)| (other != index).then_some(canvas))
                 .collect::<Vec<_>>();
-            let other_chambers = chambers
-                .iter()
-                .enumerate()
-                .filter_map(|(other, canvas)| (other != index).then_some(canvas))
-                .collect::<Vec<_>>();
-
             assert!(
                 owns_unique_geometry(&profiles[index], &other_profiles),
                 "{class:?} {keepsake:?} profile keepsake was swallowed by class gear"
             );
-            assert!(
-                owns_unique_geometry(&chambers[index], &other_chambers),
-                "{class:?} {keepsake:?} chamber keepsake was swallowed by class gear"
-            );
+        }
+
+        for pose in chamber_poses {
+            let chambers = personas
+                .iter()
+                .map(|persona| compose_chamber_adventurer(persona, frame(pose, 0)))
+                .collect::<Vec<_>>();
+
+            for (index, keepsake) in keepsakes.into_iter().enumerate() {
+                let other_chambers = chambers
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(other, canvas)| (other != index).then_some(canvas))
+                    .collect::<Vec<_>>();
+                assert!(
+                    owns_unique_geometry(&chambers[index], &other_chambers),
+                    "{class:?} {keepsake:?} chamber keepsake was swallowed by {pose:?} state props"
+                );
+            }
         }
     }
 }
@@ -613,6 +625,99 @@ fn composed_class_ancestry_and_state_layers_never_collapse_adjacent_roles() {
                     }
                 }
             }
+        }
+    }
+}
+
+#[test]
+fn composed_appearance_axes_never_collapse_adjacent_roles() {
+    let poses = [
+        TheatrePose::Delving,
+        TheatrePose::SeekingCounsel,
+        TheatrePose::SpoilsUnopened,
+        TheatrePose::VictoryRecorded,
+        TheatrePose::Resting,
+        TheatrePose::Departed,
+        TheatrePose::Unknown,
+    ];
+    let mut baseline = fixed_persona("composed-axis-fixture");
+    baseline.appearance.proportions = BodyProportions::Average;
+    baseline.appearance.garb = Garb::Cloak;
+    baseline.appearance.legwear = Legwear::Greaves;
+
+    for palette in [Palette::Xterm256, Palette::Ansi16] {
+        let check = |persona: &AdventurerPersona| {
+            assert_composed_adjacency_contrast(
+                &compose_profile_adventurer_for_palette(persona, palette),
+                palette,
+            );
+            for pose in poses {
+                assert_composed_adjacency_contrast(
+                    &compose_chamber_adventurer_for_palette(persona, frame(pose, 0), palette),
+                    palette,
+                );
+            }
+        };
+
+        for legwear in [
+            Legwear::BootsAndBreeches,
+            Legwear::Greaves,
+            Legwear::RobeHem,
+            Legwear::TravelingSkirt,
+        ] {
+            let mut persona = baseline.clone();
+            persona.appearance.legwear = legwear;
+            check(&persona);
+        }
+        for footwear in [
+            Footwear::Boots,
+            Footwear::Sabatons,
+            Footwear::Sandals,
+            Footwear::SoftShoes,
+        ] {
+            let mut persona = baseline.clone();
+            persona.appearance.footwear = footwear;
+            check(&persona);
+        }
+        for hair in [
+            HairShape::Crop,
+            HairShape::Fringe,
+            HairShape::Curls,
+            HairShape::Quiff,
+            HairShape::Bob,
+            HairShape::Spikes,
+            HairShape::Ponytail,
+            HairShape::Shaved,
+        ] {
+            let mut persona = baseline.clone();
+            persona.appearance.hair = hair;
+            check(&persona);
+        }
+        for hair_tone in [
+            HairTone::Black,
+            HairTone::Espresso,
+            HairTone::Chestnut,
+            HairTone::Copper,
+            HairTone::Gold,
+            HairTone::Silver,
+        ] {
+            let mut persona = baseline.clone();
+            persona.appearance.hair_tone = hair_tone;
+            check(&persona);
+        }
+        for accent in [
+            AccentTone::Amber,
+            AccentTone::Cyan,
+            AccentTone::Lime,
+            AccentTone::Magenta,
+            AccentTone::Red,
+            AccentTone::Blue,
+            AccentTone::Violet,
+            AccentTone::Teal,
+        ] {
+            let mut persona = baseline.clone();
+            persona.appearance.accent = accent;
+            check(&persona);
         }
     }
 }
