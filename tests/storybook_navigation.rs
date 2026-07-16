@@ -240,7 +240,9 @@ fn storybook_keys_map_completely_without_leaking_production_actions() {
 }
 
 #[test]
-fn storybook_runtime_uses_the_shared_terminal_without_production_runtime_dependencies() {
+fn storybook_runtime_source_audit_rejects_direct_production_dependencies() {
+    // Behavioral setup order and listener lifetime are covered by runtime unit
+    // tests; this audit only guards direct source dependencies.
     let source = include_str!("../src/storybook/runtime.rs");
     assert!(source.contains("terminal::TerminalGuard"));
 
@@ -259,19 +261,4 @@ fn storybook_runtime_uses_the_shared_terminal_without_production_runtime_depende
             "Storybook runtime must not import {forbidden}"
         );
     }
-
-    let run = source
-        .split_once("pub async fn run")
-        .expect("runtime must expose run")
-        .1;
-    let validation = run
-        .find("validate_catalogue()")
-        .expect("runtime must validate the catalogue");
-    let terminal_entry = run
-        .find("TerminalGuard::enter()")
-        .expect("runtime must enter the shared terminal guard");
-    assert!(
-        validation < terminal_entry,
-        "catalogue validation must happen before entering the terminal"
-    );
 }

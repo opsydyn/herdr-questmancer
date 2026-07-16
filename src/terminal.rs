@@ -178,7 +178,7 @@ impl AnimationScheduler {
 enum RestoreAction {
     Crossterm,
     #[cfg(test)]
-    Probe(std::sync::Arc<std::sync::atomic::AtomicBool>),
+    Probe(std::sync::Arc<std::sync::atomic::AtomicUsize>),
 }
 
 #[derive(Debug)]
@@ -200,9 +200,9 @@ impl TerminalGuard {
     }
 
     #[cfg(test)]
-    fn for_test(restored: std::sync::Arc<std::sync::atomic::AtomicBool>) -> Self {
+    fn for_test(restore_count: std::sync::Arc<std::sync::atomic::AtomicUsize>) -> Self {
         Self {
-            restore: RestoreAction::Probe(restored),
+            restore: RestoreAction::Probe(restore_count),
         }
     }
 }
@@ -212,8 +212,8 @@ impl Drop for TerminalGuard {
         match &self.restore {
             RestoreAction::Crossterm => restore(),
             #[cfg(test)]
-            RestoreAction::Probe(restored) => {
-                restored.store(true, std::sync::atomic::Ordering::SeqCst);
+            RestoreAction::Probe(restore_count) => {
+                restore_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             }
         }
     }
@@ -550,7 +550,7 @@ mod tests {
     use std::{
         sync::{
             Arc,
-            atomic::{AtomicBool, Ordering},
+            atomic::{AtomicUsize, Ordering},
         },
         time::Duration,
     };
@@ -564,11 +564,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn terminal_guard_runs_its_restore_action_on_drop() {
-        let restored = Arc::new(AtomicBool::new(false));
-        let guard = TerminalGuard::for_test(Arc::clone(&restored));
+    fn terminal_guard_runs_its_restore_action_exactly_once_on_drop() {
+        let restore_count = Arc::new(AtomicUsize::new(0));
+        let guard = TerminalGuard::for_test(Arc::clone(&restore_count));
         drop(guard);
-        assert!(restored.load(Ordering::SeqCst));
+        assert_eq!(restore_count.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn moving_the_terminal_guard_does_not_duplicate_its_restore_action() {
+        let restore_count = Arc::new(AtomicUsize::new(0));
+        let guard = TerminalGuard::for_test(Arc::clone(&restore_count));
+        let moved_guard = guard;
+        drop(moved_guard);
+        assert_eq!(restore_count.load(Ordering::SeqCst), 1);
     }
 
     #[tokio::test]
