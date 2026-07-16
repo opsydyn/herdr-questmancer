@@ -22,7 +22,7 @@ use crate::{
     app::{CharacterSet, DisplayPreferences},
     domain::{AdventurerClass, AdventuringGear, Agent, Ancestry, Keepsake},
     ui::{
-        persona::compose_profile_with_gear_for_palette,
+        persona::compose_profile_adventurer_for_palette,
         pixel::{ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
     },
@@ -47,9 +47,9 @@ pub fn render_adventurer_card(
 
     let palette = Palette::from(preferences.color_mode);
     let border = Style::new().fg(if theatre.focused {
-        palette.resolve(ColorRole::CrtGlow)
+        palette.resolve(ColorRole::Selection)
     } else {
-        palette.resolve(ColorRole::CrtCase)
+        palette.resolve(ColorRole::Stone)
     });
     let title = match (preferences.character_set, theatre.focused) {
         (CharacterSet::Ascii, true) => " * ADVENTURER PROFILE ",
@@ -61,7 +61,7 @@ pub fn render_adventurer_card(
         .borders(Borders::ALL)
         .title(title)
         .border_style(border)
-        .style(Style::new().bg(palette.resolve(ColorRole::PanelBackground)));
+        .style(Style::new().bg(palette.resolve(ColorRole::DarkStone)));
     block = match preferences.character_set {
         CharacterSet::Unicode => block.border_type(BorderType::Rounded),
         CharacterSet::Ascii => block.border_set(ASCII_BORDER),
@@ -74,13 +74,9 @@ pub fn render_adventurer_card(
 
     match preferences.character_set {
         CharacterSet::Unicode => {
-            let canvas = compose_profile_with_gear_for_palette(
-                &agent.persona.appearance,
-                agent.persona.class.gear(),
-                palette,
-            );
+            let canvas = compose_profile_adventurer_for_palette(&agent.persona, palette);
             frame.render_widget(
-                Paragraph::new(pack(&canvas, &palette, ColorRole::PanelBackground)),
+                Paragraph::new(pack(&canvas, &palette, ColorRole::DarkStone)),
                 Rect::new(inner.x, inner.y, inner.width.min(16), inner.height.min(16)),
             );
         }
@@ -109,7 +105,7 @@ pub fn render_adventurer_card(
                 "{}",
                 present(agent.persona.epithet.as_str(), preferences.character_set)
             ))
-            .style(Style::new().fg(palette.resolve(ColorRole::CrtGlow))),
+            .style(Style::new().fg(palette.resolve(ColorRole::RuneGlow))),
             Rect::new(
                 inner.x,
                 inner.y.saturating_add(inner.height - 1),
@@ -165,7 +161,7 @@ fn render_details(
     }
     frame.render_widget(
         Paragraph::new(Text::from(details))
-            .style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
+            .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
         area,
     );
 }

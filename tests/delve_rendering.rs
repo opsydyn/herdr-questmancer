@@ -854,7 +854,8 @@ fn ansi_sixteen_delve_uses_only_named_palette_cells() {
     assert!(
         colours
             .iter()
-            .any(|(foreground, _)| *foreground == Color::LightGreen)
+            .any(|(foreground, _)| *foreground == Color::LightCyan),
+        "ANSI Delve dropped the RuneGlow semantic accent"
     );
 }
 

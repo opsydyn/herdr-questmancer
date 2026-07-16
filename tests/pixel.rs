@@ -1,6 +1,4 @@
-use questmancer::ui::pixel::{
-    AccentShade, Canvas, ColorRole, FootwearShade, HairShade, Palette, pack,
-};
+use questmancer::ui::pixel::{Canvas, ColorRole, Palette, pack};
 use ratatui::style::Color;
 
 #[test]
@@ -14,18 +12,18 @@ fn new_canvas_is_transparent() {
 fn set_writes_in_bounds_pixels_in_row_major_order() {
     let mut canvas = Canvas::new(3, 2);
 
-    canvas.set(1, 0, ColorRole::AccentTone(AccentShade::Cyan));
-    canvas.set(2, 1, ColorRole::Shadow);
+    canvas.set(1, 0, ColorRole::RuneGlow);
+    canvas.set(2, 1, ColorRole::Ink);
 
     assert_eq!(
         canvas.pixels(),
         &[
             None,
-            Some(ColorRole::AccentTone(AccentShade::Cyan)),
+            Some(ColorRole::RuneGlow),
             None,
             None,
             None,
-            Some(ColorRole::Shadow),
+            Some(ColorRole::Ink),
         ]
     );
 }
@@ -34,9 +32,9 @@ fn set_writes_in_bounds_pixels_in_row_major_order() {
 fn set_ignores_out_of_bounds_pixels() {
     let mut canvas = Canvas::new(2, 2);
 
-    canvas.set(2, 0, ColorRole::AccentTone(AccentShade::Cyan));
-    canvas.set(0, 2, ColorRole::AccentTone(AccentShade::Cyan));
-    canvas.set(u16::MAX, u16::MAX, ColorRole::AccentTone(AccentShade::Cyan));
+    canvas.set(2, 0, ColorRole::RuneGlow);
+    canvas.set(0, 2, ColorRole::RuneGlow);
+    canvas.set(u16::MAX, u16::MAX, ColorRole::RuneGlow);
 
     assert_eq!(canvas.pixels(), &[None; 4]);
 }
@@ -45,7 +43,7 @@ fn set_ignores_out_of_bounds_pixels() {
 fn fill_rect_clips_to_the_canvas() {
     let mut canvas = Canvas::new(4, 3);
 
-    canvas.fill_rect(2, 1, 4, 3, ColorRole::Highlight);
+    canvas.fill_rect(2, 1, 4, 3, ColorRole::Parchment);
 
     assert_eq!(
         canvas.pixels(),
@@ -56,12 +54,12 @@ fn fill_rect_clips_to_the_canvas() {
             None,
             None,
             None,
-            Some(ColorRole::Highlight),
-            Some(ColorRole::Highlight),
+            Some(ColorRole::Parchment),
+            Some(ColorRole::Parchment),
             None,
             None,
-            Some(ColorRole::Highlight),
-            Some(ColorRole::Highlight),
+            Some(ColorRole::Parchment),
+            Some(ColorRole::Parchment),
         ]
     );
 }
@@ -70,7 +68,7 @@ fn fill_rect_clips_to_the_canvas() {
 fn pack_uses_a_background_coloured_space_for_two_empty_pixels() {
     let canvas = Canvas::new(1, 2);
 
-    let text = pack(&canvas, &Palette::Xterm256, ColorRole::PanelBackground);
+    let text = pack(&canvas, &Palette::Xterm256, ColorRole::DarkStone);
     let span = &text.lines[0].spans[0];
 
     assert_eq!(span.content, " ");
@@ -81,22 +79,22 @@ fn pack_uses_a_background_coloured_space_for_two_empty_pixels() {
 #[test]
 fn pack_uses_an_upper_half_block_for_a_top_pixel() {
     let mut canvas = Canvas::new(1, 2);
-    canvas.set(0, 0, ColorRole::AccentTone(AccentShade::Cyan));
+    canvas.set(0, 0, ColorRole::RuneGlow);
 
-    let text = pack(&canvas, &Palette::Xterm256, ColorRole::PanelBackground);
+    let text = pack(&canvas, &Palette::Xterm256, ColorRole::DarkStone);
     let span = &text.lines[0].spans[0];
 
     assert_eq!(span.content, "▀");
-    assert_eq!(span.style.fg, Some(Color::Indexed(51)));
+    assert_eq!(span.style.fg, Some(Color::Indexed(81)));
     assert_eq!(span.style.bg, Some(Color::Indexed(234)));
 }
 
 #[test]
 fn pack_uses_a_lower_half_block_for_a_bottom_pixel() {
     let mut canvas = Canvas::new(1, 2);
-    canvas.set(0, 1, ColorRole::AccentTone(AccentShade::Cyan));
+    canvas.set(0, 1, ColorRole::RuneGlow);
 
-    let text = pack(&canvas, &Palette::Ansi16, ColorRole::PanelBackground);
+    let text = pack(&canvas, &Palette::Ansi16, ColorRole::DarkStone);
     let span = &text.lines[0].spans[0];
 
     assert_eq!(span.content, "▄");
@@ -107,54 +105,54 @@ fn pack_uses_a_lower_half_block_for_a_bottom_pixel() {
 #[test]
 fn pack_uses_a_full_block_for_matching_pixels() {
     let mut canvas = Canvas::new(1, 2);
-    canvas.fill_rect(0, 0, 1, 2, ColorRole::AccentTone(AccentShade::Cyan));
+    canvas.fill_rect(0, 0, 1, 2, ColorRole::RuneGlow);
 
-    let text = pack(&canvas, &Palette::Xterm256, ColorRole::PanelBackground);
+    let text = pack(&canvas, &Palette::Xterm256, ColorRole::DarkStone);
     let span = &text.lines[0].spans[0];
 
     assert_eq!(span.content, "█");
-    assert_eq!(span.style.fg, Some(Color::Indexed(51)));
+    assert_eq!(span.style.fg, Some(Color::Indexed(81)));
     assert_eq!(span.style.bg, None);
 }
 
 #[test]
 fn pack_uses_a_full_block_when_distinct_roles_resolve_to_the_same_colour() {
     let mut canvas = Canvas::new(1, 2);
-    canvas.set(0, 0, ColorRole::RoomFloor);
-    canvas.set(0, 1, ColorRole::HairTone(HairShade::Chestnut));
+    canvas.set(0, 0, ColorRole::Stone);
+    canvas.set(0, 1, ColorRole::Steel);
 
-    let text = pack(&canvas, &Palette::Ansi16, ColorRole::PanelBackground);
+    let text = pack(&canvas, &Palette::Ansi16, ColorRole::DarkStone);
     let span = &text.lines[0].spans[0];
 
     assert_eq!(span.content, "█");
-    assert_eq!(span.style.fg, Some(Color::Red));
+    assert_eq!(span.style.fg, Some(Color::Gray));
     assert_eq!(span.style.bg, None);
 }
 
 #[test]
 fn pack_uses_foreground_and_background_for_distinct_pixels() {
     let mut canvas = Canvas::new(1, 2);
-    canvas.set(0, 0, ColorRole::AccentTone(AccentShade::Cyan));
-    canvas.set(0, 1, ColorRole::Shadow);
+    canvas.set(0, 0, ColorRole::RuneGlow);
+    canvas.set(0, 1, ColorRole::Ink);
 
-    let text = pack(&canvas, &Palette::Xterm256, ColorRole::PanelBackground);
+    let text = pack(&canvas, &Palette::Xterm256, ColorRole::DarkStone);
     let span = &text.lines[0].spans[0];
 
     assert_eq!(span.content, "▀");
-    assert_eq!(span.style.fg, Some(Color::Indexed(51)));
-    assert_eq!(span.style.bg, Some(Color::Indexed(236)));
+    assert_eq!(span.style.fg, Some(Color::Indexed(81)));
+    assert_eq!(span.style.bg, Some(Color::Indexed(233)));
 }
 
 #[test]
-fn ansi_palette_keeps_typed_footwear_and_shadow_distinct() {
+fn ansi_palette_keeps_steel_and_ink_distinct() {
     let mut canvas = Canvas::new(1, 2);
-    canvas.set(0, 0, ColorRole::Footwear(FootwearShade::White));
-    canvas.set(0, 1, ColorRole::Shadow);
+    canvas.set(0, 0, ColorRole::Steel);
+    canvas.set(0, 1, ColorRole::Ink);
 
-    let text = pack(&canvas, &Palette::Ansi16, ColorRole::PanelBackground);
+    let text = pack(&canvas, &Palette::Ansi16, ColorRole::DarkStone);
     let span = &text.lines[0].spans[0];
 
     assert_eq!(span.content, "▀");
-    assert_eq!(span.style.fg, Some(Color::White));
+    assert_eq!(span.style.fg, Some(Color::Gray));
     assert_eq!(span.style.bg, Some(Color::DarkGray));
 }

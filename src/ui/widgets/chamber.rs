@@ -8,11 +8,11 @@ use ratatui::{
 
 use crate::{
     app::{CharacterSet, ColorMode, DisplayPreferences},
-    domain::{Agent, PersonaAppearance},
+    domain::Agent,
     ui::{
         delve_scene::ChamberAnchor,
-        persona::compose_seated_with_gear_for_palette,
-        pixel::{Canvas, ColorRole, Palette, pack},
+        persona::compose_chamber_adventurer_for_palette,
+        pixel::{ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
     },
 };
@@ -64,8 +64,8 @@ pub fn render_chamber<A: ChamberBounds>(
 
     let palette = Palette::from(preferences.color_mode);
     let panel = Style::new()
-        .fg(palette.resolve(ColorRole::Highlight))
-        .bg(palette.resolve(ColorRole::PanelBackground));
+        .fg(palette.resolve(ColorRole::Parchment))
+        .bg(palette.resolve(ColorRole::DarkStone));
     let inner = area;
     frame.render_widget(Paragraph::new("").style(panel), area);
     if inner.is_empty() {
@@ -78,7 +78,7 @@ pub fn render_chamber<A: ChamberBounds>(
         present(&agent.name, preferences.character_set)
     );
     frame.render_widget(
-        Paragraph::new(name).style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
+        Paragraph::new(name).style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
         Rect::new(inner.x, inner.y, inner.width, 1),
     );
 
@@ -101,7 +101,7 @@ pub fn render_chamber<A: ChamberBounds>(
     let state_y = inner.y.saturating_add(inner.height.saturating_sub(1));
     let state = state_line(agent, theatre, inner.width, preferences.character_set);
     frame.render_widget(
-        Paragraph::new(state).style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
+        Paragraph::new(state).style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
         Rect::new(inner.x, state_y, inner.width, 1),
     );
 }
@@ -163,8 +163,8 @@ fn render_compact_scene(
     frame.render_widget(
         Paragraph::new("").style(
             Style::new()
-                .fg(palette.resolve(ColorRole::Highlight))
-                .bg(palette.resolve(ColorRole::PanelBackground)),
+                .fg(palette.resolve(ColorRole::Parchment))
+                .bg(palette.resolve(ColorRole::DarkStone)),
         ),
         area,
     );
@@ -188,14 +188,14 @@ fn render_compact_scene(
             "{selection} {}",
             present(&agent.name, character_set)
         ))
-        .style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
+        .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
         Rect::new(area.x, area.y, area.width, 1),
     );
 
     let state_y = area.y.saturating_add(area.height.saturating_sub(1));
     frame.render_widget(
         Paragraph::new(state_line(agent, theatre, area.width, character_set))
-            .style(Style::new().fg(palette.resolve(ColorRole::Highlight))),
+            .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
         Rect::new(area.x, state_y, area.width, 1),
     );
 }
@@ -213,8 +213,8 @@ fn render_scene(
         return;
     }
     let background = Style::new()
-        .fg(palette.resolve(ColorRole::RoomFloor))
-        .bg(palette.resolve(ColorRole::PanelBackground));
+        .fg(palette.resolve(ColorRole::Timber))
+        .bg(palette.resolve(ColorRole::DarkStone));
     frame.render_widget(
         Paragraph::new(Text::from(scene_lines(theatre, selected))).style(background),
         area,
@@ -228,14 +228,9 @@ fn render_scene(
     );
     match character_set {
         CharacterSet::Unicode => {
-            let canvas = compose_chamber_figure(
-                &agent.persona.appearance,
-                agent.persona.class.gear(),
-                theatre,
-                palette,
-            );
+            let canvas = compose_chamber_adventurer_for_palette(&agent.persona, theatre, palette);
             frame.render_widget(
-                Paragraph::new(pack(&canvas, &palette, ColorRole::PanelBackground)),
+                Paragraph::new(pack(&canvas, &palette, ColorRole::DarkStone)),
                 persona_area,
             );
         }
@@ -243,52 +238,6 @@ fn render_scene(
             Paragraph::new(Text::from(ascii_pose(theatre.pose))),
             persona_area,
         ),
-    }
-}
-
-fn compose_chamber_figure(
-    appearance: &PersonaAppearance,
-    gear: crate::domain::AdventuringGear,
-    theatre: TheatreFrame,
-    palette: Palette,
-) -> Canvas {
-    let mut chamber_rest = rest_for_pose(theatre.pose);
-    let persona = compose_seated_with_gear_for_palette(appearance, gear, theatre, palette);
-    overlay(&mut chamber_rest, &persona);
-    chamber_rest
-}
-
-fn rest_for_pose(pose: TheatrePose) -> Canvas {
-    let mut rest = Canvas::new(10, 12);
-    match pose {
-        TheatrePose::SpoilsUnopened | TheatrePose::VictoryRecorded | TheatrePose::Resting => {
-            rest.fill_rect(1, 5, 2, 5, ColorRole::Chair);
-            rest.fill_rect(2, 9, 7, 2, ColorRole::Chair);
-            rest.set(1, 10, ColorRole::Chair);
-            rest.set(8, 11, ColorRole::Chair);
-        }
-        TheatrePose::Delving
-        | TheatrePose::SeekingCounsel
-        | TheatrePose::Departed
-        | TheatrePose::Unknown => {
-            rest.fill_rect(0, 4, 2, 6, ColorRole::Chair);
-            rest.fill_rect(1, 8, 7, 2, ColorRole::Chair);
-            rest.fill_rect(2, 10, 1, 2, ColorRole::Chair);
-            rest.fill_rect(7, 10, 1, 2, ColorRole::Chair);
-        }
-    }
-    rest
-}
-
-fn overlay(target: &mut Canvas, source: &Canvas) {
-    let width = usize::from(source.width());
-    for y in 0..source.height() {
-        for x in 0..source.width() {
-            let index = usize::from(y) * width + usize::from(x);
-            if let Some(role) = source.pixels()[index] {
-                target.set(x, y, role);
-            }
-        }
     }
 }
 
@@ -354,7 +303,7 @@ fn replace_ascii_char(text: &mut String, index: usize, replacement: char) {
 fn ascii_pose(pose: TheatrePose) -> Vec<Line<'static>> {
     let rows: [&str; 6] = match pose {
         TheatrePose::Delving => [
-            "ADVENTURER",
+            "ADVENT [>]",
             "   o>_    ",
             "  /|\\     ",
             "  / \\     ",

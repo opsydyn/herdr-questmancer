@@ -39,22 +39,22 @@ struct DelveStyles {
 impl DelveStyles {
     fn from_preferences(preferences: DisplayPreferences) -> Self {
         let palette = Palette::from(preferences.color_mode);
-        let background = palette.resolve(ColorRole::PanelBackground);
+        let background = palette.resolve(ColorRole::DarkStone);
         Self {
             ink: Style::new()
-                .fg(palette.resolve(ColorRole::Highlight))
+                .fg(palette.resolve(ColorRole::Parchment))
                 .bg(background),
             accent: Style::new()
-                .fg(palette.resolve(ColorRole::CrtGlow))
+                .fg(palette.resolve(ColorRole::RuneGlow))
                 .bg(background),
             muted: Style::new()
-                .fg(palette.resolve(ColorRole::CrtCase))
+                .fg(palette.resolve(ColorRole::Fog))
                 .bg(background),
             wall: Style::new()
-                .fg(palette.resolve(ColorRole::RoomWall))
+                .fg(palette.resolve(ColorRole::Stone))
                 .bg(background),
             floor: Style::new()
-                .fg(palette.resolve(ColorRole::RoomFloor))
+                .fg(palette.resolve(ColorRole::Timber))
                 .bg(background),
         }
     }

@@ -3,7 +3,7 @@ use questmancer::{
     domain::{Agent, DomainState, Keepsake, PaneId, Presence, Timestamp, WorkspaceId},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::{
-        persona::compose_profile_with_gear_for_palette,
+        persona::compose_profile_adventurer_for_palette,
         pixel::{ColorRole, Palette, pack},
         theatre::{TheatreFrame, TheatrePose},
         widgets::{render_adventurer_card, render_chamber},
@@ -326,35 +326,33 @@ fn compact_unicode_chamber_keeps_the_counsel_seated_sprite_visible() {
 }
 
 #[test]
-fn unicode_scene_composes_a_semantic_rest_behind_victory_and_departed_poses() {
+fn unicode_scene_composes_distinct_victory_and_empty_chamber_props() {
     let agent = agent();
     let preferences = preferences(CharacterSet::Unicode);
-    let chair_colour = Color::Indexed(88);
+    let victory_colour = Color::Indexed(51);
+    let departed_colour = Color::Indexed(244);
     let done = theatre(TheatrePose::VictoryRecorded, 0, false, "VICTORY RECORDED");
     let exited = theatre(TheatrePose::Departed, 0, false, "DEPARTED");
 
-    let chair_mask = |pose| {
+    let prop_mask = |pose, colour| {
         let styles = render_chamber_styles(&agent, pose, preferences);
         assert!(
             styles
                 .iter()
-                .any(|(foreground, background)| *foreground == chair_colour
-                    || *background == chair_colour),
-            "pose {:?} did not render any ColorRole::Chair pixels",
+                .any(|(foreground, background)| *foreground == colour || *background == colour),
+            "pose {:?} did not render its semantic state prop",
             pose.pose
         );
         styles
             .into_iter()
-            .map(|(foreground, background)| {
-                foreground == chair_colour || background == chair_colour
-            })
+            .map(|(foreground, background)| foreground == colour || background == colour)
             .collect::<Vec<_>>()
     };
-    let done_chair = chair_mask(done);
-    let exited_chair = chair_mask(exited);
+    let done_prop = prop_mask(done, victory_colour);
+    let exited_prop = prop_mask(exited, departed_colour);
     assert_ne!(
-        done_chair, exited_chair,
-        "done chair did not use its shifted/kicked-back geometry"
+        done_prop, exited_prop,
+        "victory banner and empty chamber arch share a silhouette"
     );
 
     let figure = |pose| {
@@ -403,13 +401,9 @@ fn profile_card_shows_the_independent_full_figure_and_actionable_details() {
         .map(|row| row.chars().skip(1).take(16).collect::<String>())
         .collect::<Vec<_>>();
     let expected_figure = pack(
-        &compose_profile_with_gear_for_palette(
-            &agent.persona.appearance,
-            agent.persona.class.gear(),
-            Palette::Xterm256,
-        ),
+        &compose_profile_adventurer_for_palette(&agent.persona, Palette::Xterm256),
         &Palette::Xterm256,
-        ColorRole::PanelBackground,
+        ColorRole::DarkStone,
     )
     .lines
     .into_iter()

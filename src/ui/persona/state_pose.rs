@@ -1,71 +1,42 @@
-use crate::{
-    domain::BodyProportions,
-    ui::theatre::{TheatreFrame, TheatrePose},
-};
+use crate::domain::{Ancestry, BodyProportions};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum SeatedPose {
-    RuneWorking { hand_phase: bool },
-    SignalLantern,
-    Relaxed,
-    Absent,
+pub(super) enum BodyPose {
+    Chamber { compact: bool, broad: bool },
+    Profile { compact: bool, broad: bool },
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct SeatedLayout {
-    pub head_x: u16,
-    pub head_y: u16,
-    pub head_width: u16,
-    pub torso_x: u16,
-    pub torso_y: u16,
-    pub torso_width: u16,
-    pub torso_height: u16,
-}
+impl BodyPose {
+    pub(super) const fn chamber(ancestry: Ancestry, proportions: BodyProportions) -> Self {
+        Self::Chamber {
+            compact: is_compact(ancestry) || matches!(proportions, BodyProportions::Compact),
+            broad: matches!(proportions, BodyProportions::Broad),
+        }
+    }
 
-impl SeatedLayout {
-    pub(super) const fn for_proportions(proportions: BodyProportions) -> Self {
-        match proportions {
-            BodyProportions::Compact => Self {
-                head_x: 2,
-                head_y: 0,
-                head_width: 5,
-                torso_x: 3,
-                torso_y: 4,
-                torso_width: 4,
-                torso_height: 4,
-            },
-            BodyProportions::Average | BodyProportions::Tall => Self {
-                head_x: 3,
-                head_y: 0,
-                head_width: 4,
-                torso_x: 3,
-                torso_y: 4,
-                torso_width: 4,
-                torso_height: 5,
-            },
-            BodyProportions::Broad => Self {
-                head_x: 2,
-                head_y: 0,
-                head_width: 6,
-                torso_x: 1,
-                torso_y: 4,
-                torso_width: 8,
-                torso_height: 4,
-            },
+    pub(super) const fn profile(ancestry: Ancestry, proportions: BodyProportions) -> Self {
+        Self::Profile {
+            compact: is_compact(ancestry) || matches!(proportions, BodyProportions::Compact),
+            broad: matches!(proportions, BodyProportions::Broad),
+        }
+    }
+
+    pub(super) const fn compact(self) -> bool {
+        match self {
+            Self::Chamber { compact, .. } | Self::Profile { compact, .. } => compact,
+        }
+    }
+
+    pub(super) const fn broad(self) -> bool {
+        match self {
+            Self::Chamber { broad, .. } | Self::Profile { broad, .. } => broad,
         }
     }
 }
 
-pub(super) const fn seated_pose(frame: TheatreFrame) -> SeatedPose {
-    match frame.pose {
-        TheatrePose::Delving => SeatedPose::RuneWorking {
-            hand_phase: frame.animation_frame % 2 == 1,
-        },
-        TheatrePose::SeekingCounsel => SeatedPose::SignalLantern,
-        TheatrePose::SpoilsUnopened
-        | TheatrePose::VictoryRecorded
-        | TheatrePose::Resting
-        | TheatrePose::Unknown => SeatedPose::Relaxed,
-        TheatrePose::Departed => SeatedPose::Absent,
-    }
+const fn is_compact(ancestry: Ancestry) -> bool {
+    matches!(
+        ancestry,
+        Ancestry::Dwarf | Ancestry::Halfling | Ancestry::Gnome | Ancestry::Goblin
+    )
 }

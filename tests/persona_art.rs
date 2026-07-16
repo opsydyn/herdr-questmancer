@@ -2,69 +2,22 @@ use std::collections::HashSet;
 
 use questmancer::{
     domain::{
-        AccentTone, AdventurerClass, BodyProportions, FaceDetail, Footwear, Garb, HairShape,
-        HairTone, HeadShape, Keepsake, Legwear, PersonaAppearance, SkinTone,
+        AccentTone, AdventurerClass, AdventurerPersona, Ancestry, Footwear, Garb, HairTone,
+        Keepsake, Legwear, PersonaKey, SkinTone,
     },
     ui::{
         persona::{
-            AppearanceRoles, appearance_roles, appearance_roles_for_palette, compose_profile,
-            compose_profile_for_palette, compose_profile_with_gear, compose_seated,
-            compose_seated_for_palette, compose_seated_with_gear,
+            appearance_roles_for_palette, compose_chamber_adventurer,
+            compose_chamber_adventurer_for_palette, compose_profile_adventurer,
+            compose_profile_adventurer_for_palette,
         },
-        pixel::{
-            AccentShade, Canvas, ColorRole, FabricShade, FootwearShade, HairShade, Palette,
-            SkinShade,
-        },
+        pixel::{Canvas, ColorRole, Palette},
         theatre::{TheatreFrame, TheatrePose},
     },
 };
 
-fn compact() -> PersonaAppearance {
-    PersonaAppearance {
-        proportions: BodyProportions::Compact,
-        head_shape: HeadShape::Round,
-        skin_tone: SkinTone::Sand,
-        hair: HairShape::Curls,
-        hair_tone: HairTone::Chestnut,
-        face_detail: FaceDetail::RoundGlasses,
-        garb: Garb::Cloak,
-        legwear: Legwear::TravelingSkirt,
-        footwear: Footwear::Sabatons,
-        keepsake: Keepsake::TinyFamiliar,
-        accent: AccentTone::Blue,
-    }
-}
-
-fn tall() -> PersonaAppearance {
-    PersonaAppearance {
-        proportions: BodyProportions::Tall,
-        head_shape: HeadShape::Long,
-        skin_tone: SkinTone::Ebony,
-        hair: HairShape::Quiff,
-        hair_tone: HairTone::Gold,
-        face_detail: FaceDetail::Visor,
-        garb: Garb::Armour,
-        legwear: Legwear::Greaves,
-        footwear: Footwear::Boots,
-        keepsake: Keepsake::LuckyCoin,
-        accent: AccentTone::Cyan,
-    }
-}
-
-fn broad() -> PersonaAppearance {
-    PersonaAppearance {
-        proportions: BodyProportions::Broad,
-        head_shape: HeadShape::Square,
-        skin_tone: SkinTone::Rose,
-        hair: HairShape::Shaved,
-        hair_tone: HairTone::Black,
-        face_detail: FaceDetail::Moustache,
-        garb: Garb::Leathers,
-        legwear: Legwear::BootsAndBreeches,
-        footwear: Footwear::SoftShoes,
-        keepsake: Keepsake::TinyFamiliar,
-        accent: AccentTone::Magenta,
-    }
+fn fixed_persona(key: &str) -> AdventurerPersona {
+    AdventurerPersona::for_key(PersonaKey::new(key))
 }
 
 fn frame(pose: TheatrePose, animation_frame: u8) -> TheatreFrame {
@@ -89,52 +42,15 @@ fn silhouette(canvas: &Canvas) -> String {
         .join("\n")
 }
 
-fn role_symbol(role: ColorRole, roles: AppearanceRoles) -> char {
-    if role == roles.hair {
-        'h'
-    } else if role == roles.skin {
-        's'
-    } else if role == roles.garb {
-        't'
-    } else if role == roles.legwear {
-        'b'
-    } else if role == roles.footwear {
-        'f'
-    } else if role == roles.keepsake {
-        'a'
-    } else if role == roles.accent {
-        'c'
-    } else if role == roles.highlight {
-        '+'
-    } else if role == roles.shadow {
-        '-'
-    } else {
-        '?'
-    }
-}
-
-fn logical_role_map(canvas: &Canvas, roles: AppearanceRoles) -> String {
-    canvas
-        .pixels()
-        .chunks(usize::from(canvas.width()))
-        .map(|row| {
-            row.iter()
-                .map(|pixel| pixel.map_or('.', |role| role_symbol(role, roles)))
-                .collect::<String>()
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-fn assert_adjacency_contrast(roles: AppearanceRoles, palette: Palette) {
-    for (upper, lower) in [
+fn assert_adjacency_contrast(roles: questmancer::ui::persona::AppearanceRoles, palette: Palette) {
+    for (first, second) in [
         (roles.hair, roles.skin),
-        (roles.hair, ColorRole::PanelBackground),
+        (roles.hair, ColorRole::DarkStone),
         (roles.garb, roles.skin),
         (roles.garb, roles.hair),
         (roles.legwear, roles.garb),
         (roles.footwear, roles.legwear),
-        (roles.footwear, ColorRole::PanelBackground),
+        (roles.footwear, ColorRole::DarkStone),
         (roles.keepsake, roles.garb),
         (roles.keepsake, roles.skin),
         (roles.keepsake, roles.hair),
@@ -143,40 +59,22 @@ fn assert_adjacency_contrast(roles: AppearanceRoles, palette: Palette) {
         (roles.accent, roles.hair),
         (roles.accent, roles.keepsake),
     ] {
-        assert!(palette.roles_contrast(upper, lower));
+        assert!(palette.roles_contrast(first, second));
     }
 }
 
 #[test]
-fn fixed_personas_have_exact_dimensions_and_distinct_silhouettes() {
-    let appearances = [compact(), tall(), broad()];
-    let seated =
-        appearances.map(|appearance| compose_seated(&appearance, frame(TheatrePose::Resting, 0)));
-    let profiles = appearances.map(|appearance| compose_profile(&appearance));
+fn fantasy_composers_keep_fixed_chamber_and_profile_dimensions() {
+    let persona = fixed_persona("art-fixture");
+    let chamber = compose_chamber_adventurer(&persona, frame(TheatrePose::Delving, 0));
+    let profile = compose_profile_adventurer(&persona);
 
-    for canvas in &seated {
-        assert_eq!((canvas.width(), canvas.height()), (10, 12));
-    }
-    for canvas in &profiles {
-        assert_eq!((canvas.width(), canvas.height()), (16, 32));
-    }
-
-    assert_eq!(
-        seated.iter().map(silhouette).collect::<HashSet<_>>().len(),
-        3
-    );
-    assert_eq!(
-        profiles
-            .iter()
-            .map(silhouette)
-            .collect::<HashSet<_>>()
-            .len(),
-        3
-    );
+    assert_eq!((chamber.width(), chamber.height()), (10, 12));
+    assert_eq!((profile.width(), profile.height()), (16, 32));
 }
 
 #[test]
-fn every_class_derived_gear_has_a_transitional_sprite_silhouette() {
+fn every_class_has_a_distinct_profile_and_chamber_gear_silhouette() {
     let classes = [
         AdventurerClass::Barbarian,
         AdventurerClass::Bard,
@@ -190,126 +88,210 @@ fn every_class_derived_gear_has_a_transitional_sprite_silhouette() {
         AdventurerClass::Testmender,
         AdventurerClass::Pathseeker,
     ];
-    let appearance = tall();
-    let seated = classes
+    let base = fixed_persona("class-fixture");
+
+    let profiles = classes
         .map(|class| {
-            silhouette(&compose_seated_with_gear(
-                &appearance,
-                class.gear(),
-                frame(TheatrePose::Resting, 0),
+            let mut persona = base.clone();
+            persona.class = class;
+            silhouette(&compose_profile_adventurer(&persona))
+        })
+        .into_iter()
+        .collect::<HashSet<_>>();
+    let chambers = classes
+        .map(|class| {
+            let mut persona = base.clone();
+            persona.class = class;
+            silhouette(&compose_chamber_adventurer(
+                &persona,
+                frame(TheatrePose::Delving, 0),
             ))
         })
         .into_iter()
         .collect::<HashSet<_>>();
-    let profiles = classes
-        .map(|class| silhouette(&compose_profile_with_gear(&appearance, class.gear())))
+
+    assert_eq!(profiles.len(), classes.len());
+    assert_eq!(chambers.len(), classes.len());
+}
+
+#[test]
+fn wizard_and_ranger_gear_use_distinct_logical_pixels() {
+    let mut wizard = fixed_persona("class-fixture");
+    wizard.class = AdventurerClass::Wizard;
+    let mut ranger = wizard.clone();
+    ranger.class = AdventurerClass::Ranger;
+
+    assert_ne!(
+        silhouette(&compose_profile_adventurer(&wizard)),
+        silhouette(&compose_profile_adventurer(&ranger)),
+        "wizard spellbook/staff and ranger bow/quiver must use distinct logical pixels"
+    );
+}
+
+#[test]
+fn ancestry_anchors_change_the_profile_and_dwarf_is_compact_and_bearded() {
+    let mut dwarf = fixed_persona("ancestry-fixture");
+    dwarf.ancestry = Ancestry::Dwarf;
+    let mut human = dwarf.clone();
+    human.ancestry = Ancestry::Human;
+
+    let dwarf = compose_profile_adventurer(&dwarf);
+    let human = compose_profile_adventurer(&human);
+    assert_ne!(
+        silhouette(&dwarf),
+        silhouette(&human),
+        "dwarf must retain a compact, bearded silhouette"
+    );
+
+    let occupied_rows = |canvas: &Canvas| {
+        canvas
+            .pixels()
+            .chunks(usize::from(canvas.width()))
+            .filter(|row| row.iter().any(Option::is_some))
+            .count()
+    };
+    assert!(occupied_rows(&dwarf) <= occupied_rows(&human));
+    assert!(
+        dwarf
+            .pixels()
+            .iter()
+            .filter(|pixel| **pixel == Some(ColorRole::HairDark))
+            .count()
+            >= 8,
+        "dwarf beard must remain a material recognition anchor"
+    );
+}
+
+#[test]
+fn every_ancestry_has_a_distinct_profile_anchor() {
+    let ancestries = [
+        Ancestry::Human,
+        Ancestry::Dwarf,
+        Ancestry::Elf,
+        Ancestry::Halfling,
+        Ancestry::Orc,
+        Ancestry::Gnome,
+        Ancestry::Goblin,
+    ];
+    let base = fixed_persona("ancestry-fixture");
+    let silhouettes = ancestries
+        .map(|ancestry| {
+            let mut persona = base.clone();
+            persona.ancestry = ancestry;
+            silhouette(&compose_profile_adventurer(&persona))
+        })
         .into_iter()
         .collect::<HashSet<_>>();
 
-    assert_eq!(seated.len(), classes.len());
-    assert_eq!(profiles.len(), classes.len());
+    assert_eq!(silhouettes.len(), ancestries.len());
 }
 
 #[test]
-fn canonical_roles_preserve_requested_typed_traits_without_palette_fallback() {
-    let roles = appearance_roles(&broad());
+fn chamber_states_have_explicit_non_colour_props() {
+    let persona = fixed_persona("art-fixture");
+    let states = [
+        TheatrePose::Delving,
+        TheatrePose::SeekingCounsel,
+        TheatrePose::SpoilsUnopened,
+        TheatrePose::VictoryRecorded,
+        TheatrePose::Resting,
+        TheatrePose::Departed,
+        TheatrePose::Unknown,
+    ];
+    let silhouettes = states
+        .map(|pose| silhouette(&compose_chamber_adventurer(&persona, frame(pose, 0))))
+        .into_iter()
+        .collect::<HashSet<_>>();
 
-    assert_eq!(roles.skin, ColorRole::SkinTone(SkinShade::Rose));
-    assert_eq!(roles.hair, ColorRole::HairTone(HairShade::Black));
-    assert_eq!(roles.garb, ColorRole::Fabric(FabricShade::Green));
-    assert_eq!(roles.legwear, ColorRole::Fabric(FabricShade::Navy));
-    assert_eq!(roles.footwear, ColorRole::Footwear(FootwearShade::Black));
-    assert_eq!(roles.keepsake, ColorRole::AccentTone(AccentShade::Teal));
-    assert_eq!(roles.accent, ColorRole::AccentTone(AccentShade::Magenta));
+    assert_eq!(silhouettes.len(), states.len());
 }
 
 #[test]
-fn ansi_safe_roles_cover_the_full_persona_adjacency_graph() {
-    let mut appearance = compact();
-    appearance.skin_tone = SkinTone::Rose;
-    appearance.hair_tone = HairTone::Gold;
-    appearance.face_detail = FaceDetail::Visor;
-    appearance.garb = Garb::Armour;
-    appearance.legwear = Legwear::BootsAndBreeches;
-    appearance.footwear = Footwear::SoftShoes;
-    appearance.keepsake = Keepsake::Feather;
-    appearance.accent = AccentTone::Red;
+fn motion_is_deterministic_and_only_delving_animates_the_figure() {
+    let persona = fixed_persona("motion-fixture");
+    let render =
+        |pose, animation_frame| compose_chamber_adventurer(&persona, frame(pose, animation_frame));
 
-    let canonical = appearance_roles(&appearance);
-    assert_eq!(canonical.skin, ColorRole::SkinTone(SkinShade::Rose));
-    assert_eq!(canonical.hair, ColorRole::HairTone(HairShade::Gold));
-    assert_eq!(canonical.garb, ColorRole::Fabric(FabricShade::Navy));
     assert_eq!(
-        canonical.keepsake,
-        ColorRole::AccentTone(AccentShade::Amber)
+        render(TheatrePose::Delving, 0),
+        render(TheatrePose::Delving, 2)
     );
-    assert_eq!(canonical.accent, ColorRole::AccentTone(AccentShade::Red));
-
-    let safe = appearance_roles_for_palette(&appearance, Palette::Ansi16);
-    assert_adjacency_contrast(safe, Palette::Ansi16);
-    assert_ne!(safe.keepsake, canonical.keepsake);
-    assert_ne!(safe.accent, canonical.accent);
-}
-
-#[test]
-fn xterm_safe_roles_preserve_non_colliding_black_hair_and_soft_shoes() {
-    let appearance = broad();
-    let canonical = appearance_roles(&appearance);
-    let safe = appearance_roles_for_palette(&appearance, Palette::Xterm256);
-
-    assert_eq!(safe.hair, ColorRole::HairTone(HairShade::Black));
-    assert_eq!(safe.footwear, ColorRole::Footwear(FootwearShade::Black));
-    assert_eq!(safe.hair, canonical.hair);
-    assert_eq!(safe.footwear, canonical.footwear);
-    assert_adjacency_contrast(safe, Palette::Xterm256);
-}
-
-#[test]
-fn ansi_safe_roles_keep_black_hair_and_soft_shoes_visible_against_transparency() {
-    let appearance = broad();
-    let canonical = appearance_roles(&appearance);
-    assert_eq!(canonical.hair, ColorRole::HairTone(HairShade::Black));
-    assert_eq!(
-        canonical.footwear,
-        ColorRole::Footwear(FootwearShade::Black)
+    assert_ne!(
+        render(TheatrePose::Delving, 0),
+        render(TheatrePose::Delving, 1)
     );
-
-    let safe = appearance_roles_for_palette(&appearance, Palette::Ansi16);
-    assert_ne!(safe.hair, canonical.hair);
-    assert_ne!(safe.footwear, canonical.footwear);
-    assert_adjacency_contrast(safe, Palette::Ansi16);
+    for pose in [
+        TheatrePose::SeekingCounsel,
+        TheatrePose::VictoryRecorded,
+        TheatrePose::Resting,
+        TheatrePose::Departed,
+        TheatrePose::Unknown,
+    ] {
+        assert_eq!(render(pose, 0), render(pose, 7));
+    }
 }
 
 #[test]
-fn palette_aware_composers_apply_xterm_collision_fallbacks() {
-    let mut appearance = tall();
-    appearance.skin_tone = SkinTone::Ebony;
-    appearance.hair_tone = HairTone::Chestnut;
-    let canonical = appearance_roles(&appearance);
-    assert_eq!(canonical.skin, ColorRole::SkinTone(SkinShade::Ebony));
-    assert_eq!(canonical.hair, ColorRole::HairTone(HairShade::Chestnut));
+fn spoils_sparkle_is_deterministic_and_bounded() {
+    let persona = fixed_persona("spoils-fixture");
+    let render = |animation_frame| {
+        compose_chamber_adventurer(
+            &persona,
+            frame(TheatrePose::SpoilsUnopened, animation_frame),
+        )
+    };
 
-    let safe = appearance_roles_for_palette(&appearance, Palette::Xterm256);
-    assert_eq!(safe.skin, canonical.skin);
-    assert_ne!(safe.hair, canonical.hair);
-    assert_adjacency_contrast(safe, Palette::Xterm256);
-
-    let canonical_profile = compose_profile(&appearance);
-    let safe_profile = compose_profile_for_palette(&appearance, Palette::Xterm256);
-    let safe_seated = compose_seated_for_palette(
-        &appearance,
-        frame(TheatrePose::Delving, 0),
-        Palette::Xterm256,
-    );
-    assert!(canonical_profile.pixels().contains(&Some(canonical.hair)));
-    assert!(safe_profile.pixels().contains(&Some(safe.hair)));
-    assert!(!safe_profile.pixels().contains(&Some(canonical.hair)));
-    assert!(safe_seated.pixels().contains(&Some(safe.hair)));
-    assert!(!safe_seated.pixels().contains(&Some(canonical.hair)));
+    assert_eq!(render(0), render(8));
+    assert_eq!(render(1), render(9));
+    assert_ne!(render(0), render(1));
 }
 
 #[test]
-fn safe_roles_exhaust_every_colour_trait_combination_for_both_palettes() {
+fn profile_uses_both_top_and_bottom_halves_and_keeps_recognition_roles() {
+    let persona = fixed_persona("coverage-fixture");
+    let roles = appearance_roles_for_palette(&persona.appearance, Palette::Xterm256);
+    let profile = compose_profile_adventurer(&persona);
+    let rows = profile
+        .pixels()
+        .chunks(usize::from(profile.width()))
+        .collect::<Vec<_>>();
+
+    assert!(rows[..16].iter().any(|row| row.iter().any(Option::is_some)));
+    assert!(rows[16..].iter().any(|row| row.iter().any(Option::is_some)));
+    for anchor in [roles.skin, roles.hair, roles.garb, roles.keepsake] {
+        assert!(profile.pixels().contains(&Some(anchor)));
+    }
+}
+
+#[test]
+fn palette_aware_composers_preserve_silhouettes_and_avoid_adjacent_collisions() {
+    let mut persona = fixed_persona("palette-fixture");
+    persona.appearance.skin_tone = SkinTone::Ebony;
+
+    for palette in [Palette::Xterm256, Palette::Ansi16] {
+        let roles = appearance_roles_for_palette(&persona.appearance, palette);
+        assert_adjacency_contrast(roles, palette);
+
+        assert_eq!(
+            silhouette(&compose_profile_adventurer(&persona)),
+            silhouette(&compose_profile_adventurer_for_palette(&persona, palette))
+        );
+        assert_eq!(
+            silhouette(&compose_chamber_adventurer(
+                &persona,
+                frame(TheatrePose::SeekingCounsel, 0),
+            )),
+            silhouette(&compose_chamber_adventurer_for_palette(
+                &persona,
+                frame(TheatrePose::SeekingCounsel, 0),
+                palette,
+            ))
+        );
+    }
+}
+
+#[test]
+fn palette_collision_safety_covers_every_appearance_trait_combination() {
     let skin_tones = [
         SkinTone::Porcelain,
         SkinTone::Rose,
@@ -374,17 +356,16 @@ fn safe_roles_exhaust_every_colour_trait_combination_for_both_palettes() {
                         for footwear in footwear {
                             for keepsake in keepsakes {
                                 for accent in accents {
-                                    let mut appearance = compact();
-                                    appearance.skin_tone = skin_tone;
-                                    appearance.hair_tone = hair_tone;
-                                    appearance.garb = garb;
-                                    appearance.legwear = legwear;
-                                    appearance.footwear = footwear;
-                                    appearance.keepsake = keepsake;
-                                    appearance.accent = accent;
-
+                                    let mut persona = fixed_persona("palette-exhaustive");
+                                    persona.appearance.skin_tone = skin_tone;
+                                    persona.appearance.hair_tone = hair_tone;
+                                    persona.appearance.garb = garb;
+                                    persona.appearance.legwear = legwear;
+                                    persona.appearance.footwear = footwear;
+                                    persona.appearance.keepsake = keepsake;
+                                    persona.appearance.accent = accent;
                                     assert_adjacency_contrast(
-                                        appearance_roles_for_palette(&appearance, palette),
+                                        appearance_roles_for_palette(&persona.appearance, palette),
                                         palette,
                                     );
                                 }
@@ -398,129 +379,51 @@ fn safe_roles_exhaust_every_colour_trait_combination_for_both_palettes() {
 }
 
 #[test]
-fn both_representations_preserve_each_personas_recognition_anchors() {
-    for appearance in [compact(), tall(), broad()] {
-        let roles = appearance_roles(&appearance);
-        let seated = compose_seated(&appearance, frame(TheatrePose::Resting, 0));
-        let profile = compose_profile(&appearance);
+fn all_fantasy_semantic_roles_project_in_both_palettes() {
+    let roles = [
+        ColorRole::Stone,
+        ColorRole::DarkStone,
+        ColorRole::Timber,
+        ColorRole::Parchment,
+        ColorRole::Ink,
+        ColorRole::Hearth,
+        ColorRole::Moss,
+        ColorRole::RuneGlow,
+        ColorRole::Counsel,
+        ColorRole::Spoils,
+        ColorRole::Selection,
+        ColorRole::Fog,
+        ColorRole::Goblin,
+        ColorRole::SkinLight,
+        ColorRole::SkinMedium,
+        ColorRole::SkinDark,
+        ColorRole::HairDark,
+        ColorRole::HairLight,
+        ColorRole::Leather,
+        ColorRole::Steel,
+        ColorRole::ClothWarm,
+        ColorRole::ClothCool,
+    ];
 
-        for canvas in [&seated, &profile] {
-            for anchor in [roles.hair, roles.skin, roles.garb, roles.keepsake] {
-                assert!(canvas.pixels().contains(&Some(anchor)));
-            }
+    assert_eq!(roles.len(), 22);
+    for palette in [Palette::Xterm256, Palette::Ansi16] {
+        for (first, second) in [
+            (ColorRole::Stone, ColorRole::DarkStone),
+            (ColorRole::Stone, ColorRole::Moss),
+            (ColorRole::DarkStone, ColorRole::Parchment),
+            (ColorRole::DarkStone, ColorRole::RuneGlow),
+            (ColorRole::Timber, ColorRole::Hearth),
+            (ColorRole::Parchment, ColorRole::Ink),
+            (ColorRole::RuneGlow, ColorRole::Counsel),
+            (ColorRole::Counsel, ColorRole::Spoils),
+            (ColorRole::Spoils, ColorRole::Selection),
+            (ColorRole::SkinLight, ColorRole::SkinMedium),
+            (ColorRole::SkinMedium, ColorRole::SkinDark),
+            (ColorRole::HairDark, ColorRole::HairLight),
+            (ColorRole::Leather, ColorRole::Steel),
+            (ColorRole::ClothWarm, ColorRole::ClothCool),
+        ] {
+            assert!(palette.roles_contrast(first, second));
         }
     }
-}
-
-#[test]
-fn seated_state_is_explicit_in_the_non_colour_silhouette() {
-    let appearance = tall();
-    let working = compose_seated(&appearance, frame(TheatrePose::Delving, 0));
-    let working_next = compose_seated(&appearance, frame(TheatrePose::Delving, 1));
-    let blocked = compose_seated(&appearance, frame(TheatrePose::SeekingCounsel, 0));
-    let blocked_next = compose_seated(&appearance, frame(TheatrePose::SeekingCounsel, 1));
-    let done = compose_seated(&appearance, frame(TheatrePose::VictoryRecorded, 0));
-    let idle = compose_seated(&appearance, frame(TheatrePose::Resting, 0));
-    let exited = compose_seated(&appearance, frame(TheatrePose::Departed, 0));
-
-    assert_ne!(silhouette(&working), silhouette(&working_next));
-    assert_ne!(silhouette(&working), silhouette(&blocked));
-    assert_ne!(silhouette(&blocked), silhouette(&done));
-    assert_eq!(silhouette(&blocked), silhouette(&blocked_next));
-    assert_eq!(silhouette(&done), silhouette(&idle));
-    assert!(exited.pixels().iter().all(Option::is_none));
-}
-
-#[test]
-fn compact_blocked_role_map_is_a_stable_semantic_golden() {
-    let appearance = compact();
-    let roles = appearance_roles(&appearance);
-    let blocked = compose_seated(&appearance, frame(TheatrePose::SeekingCounsel, 0));
-
-    assert_eq!(
-        logical_role_map(&blocked, roles),
-        concat!(
-            "...hhh....\n",
-            "..sssss...\n",
-            ".ahcccha..\n",
-            "..sssss.s.\n",
-            "...tttt.ss\n",
-            "...cccc...\n",
-            "..stttt...\n",
-            "...cccc...\n",
-            "...bbbb...\n",
-            "..bb..bb..\n",
-            "..bb..bb..\n",
-            ".fff..fff."
-        )
-    );
-}
-
-#[test]
-fn profile_is_a_separately_authored_neutral_composition() {
-    let appearance = broad();
-    let profile = compose_profile(&appearance);
-    let profile_golden = logical_role_map(&profile, appearance_roles(&appearance));
-
-    assert_eq!(
-        profile_golden,
-        concat!(
-            "................\n",
-            "................\n",
-            "....hhhhhhhh....\n",
-            "....hhhhhhhh....\n",
-            "...assssssssa...\n",
-            "...assssssssa...\n",
-            "...assssssssa...\n",
-            "...assshhhssa...\n",
-            "....ssssssss....\n",
-            "................\n",
-            "..tttttttttttt..\n",
-            "ssttttttttttttss\n",
-            "ssttttttttttttss\n",
-            "sstttttcctttttss\n",
-            "sstttttcctttttss\n",
-            "ssttttttttttttss\n",
-            "ssttttttttttttss\n",
-            "ssttttttttttttss\n",
-            "..tttttttttttt..\n",
-            "...bbbbbbbbbb...\n",
-            "...bbbbbbbbbb...\n",
-            "...bbbbbbbbbb...\n",
-            "....bbb..bbb....\n",
-            "....bbb..bbb....\n",
-            "....bbb..bbb....\n",
-            "....bbb..bbb....\n",
-            "....bbb..bbb....\n",
-            "....bbb..bbb....\n",
-            "....bbb..bbb....\n",
-            "...fffff.fffff..\n",
-            "...fffff.fffff..\n",
-            "................"
-        )
-    );
-
-    for pose in [
-        TheatrePose::Delving,
-        TheatrePose::SeekingCounsel,
-        TheatrePose::SpoilsUnopened,
-        TheatrePose::VictoryRecorded,
-        TheatrePose::Resting,
-        TheatrePose::Departed,
-        TheatrePose::Unknown,
-    ] {
-        let _ = compose_seated(&appearance, frame(pose, 7));
-        assert_eq!(
-            logical_role_map(&compose_profile(&appearance), appearance_roles(&appearance)),
-            profile_golden
-        );
-    }
-
-    assert_ne!(profile_golden.lines().count(), 12);
-    assert!(profile_golden.contains('h'));
-    assert!(profile_golden.contains('s'));
-    assert!(profile_golden.contains('t'));
-    assert!(profile_golden.contains('a'));
-    assert!(profile_golden.contains('b'));
-    assert!(profile_golden.contains('f'));
 }
