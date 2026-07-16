@@ -571,7 +571,7 @@ fn eighty_columns_keep_authored_delve_and_actions() {
         "[2] delves",
         "[j/k] navigate",
         "[enter] visit",
-        "[r] reply",
+        "[r] counsel",
         "[o] refresh",
         "[space] seen",
         "[/] search",
@@ -599,7 +599,7 @@ fn sixty_columns_use_an_actionable_vertical_chamber_list() {
     assert!(screen.contains("DEPARTED"));
     for action in [
         "[enter] visit",
-        "[r] reply",
+        "[r] counsel",
         "[o] refresh",
         "[space] seen",
         "[/] search",
@@ -696,7 +696,7 @@ fn empty_delve_keeps_helpful_navigation_without_invalid_adventurer_actions() {
     assert!(screen.contains("Start an adventurer"));
     assert!(screen.contains("[1] guild"));
     assert!(!screen.contains("[enter] visit"));
-    assert!(!screen.contains("[r] reply"));
+    assert!(!screen.contains("[r] counsel"));
     assert!(!screen.contains("[o] refresh"));
     assert!(!screen.contains("[space] seen"));
     assert!(!screen.contains("[/] search"));
@@ -713,7 +713,7 @@ fn footer_advertises_only_available_delve_actions() {
         "[2] delves",
         "[j/k] navigate",
         "[enter] visit",
-        "[r] reply",
+        "[r] counsel",
         "[o] refresh",
         "[space] seen",
         "[/] search",

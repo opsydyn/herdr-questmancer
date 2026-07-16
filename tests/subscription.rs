@@ -58,6 +58,7 @@ fn request_contains_global_events_and_one_status_subscription_per_pane() {
         .collect();
 
     assert_eq!(value["method"], "events.subscribe");
+    assert_eq!(value["id"], "questmancer-subscription");
     assert!(types.starts_with(&[
         "workspace.created",
         "workspace.updated",

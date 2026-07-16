@@ -1,9 +1,15 @@
 use questmancer::{
-    app::{CharacterSet, ColorMode, DisplayPreferences, Model, Motion, View},
-    domain::{Agent, DomainState, GuildAttention, GuildSummons, Presence, Timestamp},
+    app::{
+        CharacterSet, ColorMode, DisplayPreferences, Model, Motion, Region, RuntimeSettings, View,
+    },
+    domain::{
+        Agent, AgentKey, Campaign, DomainState, GuildAttention, GuildSummons, Presence, Timestamp,
+        WorkspaceId,
+    },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::theatre::{RenderCadence, TheatrePose, cadence_for, frame_for},
 };
+use ratatui::layout::Rect;
 use std::time::Duration;
 
 fn agent() -> Agent {
@@ -48,6 +54,47 @@ fn model_with(agent: Agent, now: i64, motion: Motion) -> Model {
         character_set: CharacterSet::Unicode,
         color_mode: ColorMode::Xterm256,
     });
+    model
+}
+
+fn two_campaign_model(selected_presence: Presence, hidden_presence: Presence) -> Model {
+    let mut visible = agent();
+    visible.key = AgentKey::new("agent-visible");
+    visible.workspace_id = WorkspaceId::new("campaign-visible");
+    visible.presence = selected_presence;
+    visible.presence_since = Timestamp::from_millis(0);
+
+    let mut hidden = visible.clone();
+    hidden.key = AgentKey::new("agent-hidden");
+    hidden.workspace_id = WorkspaceId::new("campaign-hidden");
+    hidden.presence = hidden_presence;
+
+    let mut domain = DomainState::default();
+    domain.campaigns.insert(
+        visible.workspace_id.clone(),
+        Campaign {
+            workspace_id: visible.workspace_id.clone(),
+            label: "Visible campaign".to_owned(),
+            cwd: std::path::PathBuf::new(),
+            party: vec![visible.key.clone()],
+        },
+    );
+    domain.campaigns.insert(
+        hidden.workspace_id.clone(),
+        Campaign {
+            workspace_id: hidden.workspace_id.clone(),
+            label: "Hidden campaign".to_owned(),
+            cwd: std::path::PathBuf::new(),
+            party: vec![hidden.key.clone()],
+        },
+    );
+    domain.selected_agent = Some(visible.key.clone());
+    domain.agents.insert(visible.key.clone(), visible);
+    domain.agents.insert(hidden.key.clone(), hidden);
+
+    let mut model = Model::new(View::Delve);
+    model.replace_domain(domain);
+    model.set_now(Timestamp::from_millis(500));
     model
 }
 
@@ -386,7 +433,7 @@ fn no_motion_never_requests_a_future_frame_even_during_completion_transition() {
     let model = model_with(done, 500, Motion::None);
     assert_eq!(cadence_for(&model), RenderCadence::EventDriven);
     assert_eq!(
-        questmancer::ui::theatre::next_visible_frame_in(&model),
+        questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 120, 24)),
         None
     );
 }
@@ -443,15 +490,17 @@ fn next_visible_frame_delay_is_phase_aware_and_exact() {
     working.presence = Presence::Working;
     working.presence_since = Timestamp::from_millis(0);
     assert_eq!(
-        questmancer::ui::theatre::next_visible_frame_in(&model_with(
-            working.clone(),
-            166,
-            Motion::Full
-        )),
+        questmancer::ui::theatre::next_visible_frame_in(
+            &model_with(working.clone(), 166, Motion::Full),
+            Rect::new(0, 0, 120, 24)
+        ),
         Some(Duration::from_millis(1))
     );
     assert_eq!(
-        questmancer::ui::theatre::next_visible_frame_in(&model_with(working, 167, Motion::Full)),
+        questmancer::ui::theatre::next_visible_frame_in(
+            &model_with(working, 167, Motion::Full),
+            Rect::new(0, 0, 120, 24),
+        ),
         Some(Duration::from_millis(167))
     );
 
@@ -460,7 +509,144 @@ fn next_visible_frame_delay_is_phase_aware_and_exact() {
     done.attention =
         GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0));
     assert_eq!(
-        questmancer::ui::theatre::next_visible_frame_in(&model_with(done, 999, Motion::Full)),
+        questmancer::ui::theatre::next_visible_frame_in(
+            &model_with(done, 999, Motion::Full),
+            Rect::new(0, 0, 120, 24),
+        ),
         Some(Duration::from_millis(1))
     );
+}
+
+#[test]
+fn guild_elapsed_labels_arm_exact_second_and_minute_boundaries() {
+    let mut working = agent();
+    working.presence = Presence::Working;
+    working.presence_since = Timestamp::from_millis(0);
+    let area = Rect::new(0, 0, 120, 24);
+
+    let mut model = model_with(working, 1_250, Motion::Full);
+    model.switch_to(View::Guild);
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, area),
+        Some(Duration::from_millis(750))
+    );
+
+    model.set_now(Timestamp::from_millis(60_001));
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, area),
+        Some(Duration::from_millis(59_999))
+    );
+}
+
+#[test]
+fn guild_without_elapsed_labels_or_other_effects_is_event_driven() {
+    let mut working = agent();
+    working.presence = Presence::Working;
+    let mut model = model_with(working, 1_250, Motion::Full);
+    model.switch_to(View::Guild);
+    model.set_settings(RuntimeSettings {
+        show_elapsed_time: false,
+        ..RuntimeSettings::default()
+    });
+
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 120, 24),),
+        None
+    );
+}
+
+#[test]
+fn hidden_medium_delve_animation_does_not_arm_a_deadline() {
+    let model = two_campaign_model(Presence::Exited, Presence::Working);
+
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 100, 24),),
+        None
+    );
+}
+
+#[test]
+fn visible_medium_delve_animation_still_arms_a_deadline() {
+    let model = two_campaign_model(Presence::Working, Presence::Exited);
+
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 100, 24),),
+        Some(Duration::from_millis(167))
+    );
+}
+
+#[test]
+fn clipped_guild_roster_entries_do_not_move_the_elapsed_deadline() {
+    let mut domain = DomainState::default();
+    for index in 0..6 {
+        let mut adventurer = agent();
+        adventurer.key = AgentKey::new(format!("agent-{index}"));
+        adventurer.presence = Presence::Working;
+        adventurer.presence_since = Timestamp::from_millis(if index == 5 { 500 } else { 0 });
+        adventurer.attention = GuildAttention::Clear;
+        domain.agents.insert(adventurer.key.clone(), adventurer);
+    }
+    domain.selected_agent = domain.agents.keys().next().cloned();
+
+    let mut model = Model::new(View::Guild);
+    model.replace_domain(domain);
+    model.set_region(Region::Party);
+    model.set_now(Timestamp::from_millis(1_250));
+
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 60, 10)),
+        Some(Duration::from_millis(750))
+    );
+}
+
+#[test]
+fn horizontally_clipped_guild_elapsed_suffixes_do_not_arm_deadlines() {
+    let mut working = agent();
+    working.presence = Presence::Working;
+    working.presence_since = Timestamp::from_millis(0);
+    let mut model = model_with(working, 1_250, Motion::Full);
+    model.switch_to(View::Guild);
+
+    for region in [Region::Party, Region::Adventurer] {
+        model.set_region(region);
+        assert_eq!(
+            questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 5, 20),),
+            None,
+            "region {region:?}"
+        );
+    }
+}
+
+#[test]
+fn shrinking_minute_label_arms_when_the_next_value_becomes_visible() {
+    let mut working = agent();
+    working.presence = Presence::Working;
+    working.presence_since = Timestamp::from_millis(0);
+    let mut model = model_with(working, 10_500, Motion::Full);
+    model.switch_to(View::Guild);
+
+    for (region, area) in [
+        (Region::Party, Rect::new(0, 0, 16, 20)),
+        (Region::Adventurer, Rect::new(0, 0, 14, 40)),
+    ] {
+        model.set_region(region);
+        assert_eq!(
+            questmancer::ui::theatre::next_visible_frame_in(&model, area),
+            Some(Duration::from_millis(49_500)),
+            "region {region:?}"
+        );
+    }
+
+    model.set_now(Timestamp::from_millis(59_500));
+    for (region, area) in [
+        (Region::Party, Rect::new(0, 0, 16, 20)),
+        (Region::Adventurer, Rect::new(0, 0, 14, 40)),
+    ] {
+        model.set_region(region);
+        assert_eq!(
+            questmancer::ui::theatre::next_visible_frame_in(&model, area),
+            Some(Duration::from_millis(500)),
+            "region {region:?}"
+        );
+    }
 }

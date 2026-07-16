@@ -19,6 +19,7 @@ use questmancer::{
     ui::theatre::{TheatrePose, frame_for},
     update::Command,
 };
+use ratatui::layout::Rect;
 use serde_json::json;
 use std::future::Future;
 use tempfile::tempdir;
@@ -56,6 +57,10 @@ fn animated_model(agents: impl IntoIterator<Item = Agent>, now: i64, motion: Mot
         ..DisplayPreferences::default()
     });
     model
+}
+
+fn render_area() -> Rect {
+    Rect::new(0, 0, 120, 24)
 }
 
 fn model_with_two_distinct_personas() -> Model {
@@ -460,7 +465,7 @@ async fn stale_999ms_model_resets_to_the_absolute_done_boundary_after_slow_rende
     assert_eq!(model.now(), Timestamp::from_millis(999));
 
     tokio::time::advance(std::time::Duration::from_millis(20)).await;
-    scheduler.reset_for(&model, &clock);
+    scheduler.reset_for(&model, render_area(), &clock);
     assert!(scheduler.wait().now_or_never().is_some());
 
     model.set_now(clock.now());
@@ -470,7 +475,7 @@ async fn stale_999ms_model_resets_to_the_absolute_done_boundary_after_slow_rende
     assert_eq!(frame.pose, TheatrePose::SpoilsUnopened);
     assert_eq!(frame.animation_frame, 0);
 
-    scheduler.reset_for(&model, &clock);
+    scheduler.reset_for(&model, render_area(), &clock);
     tokio::time::advance(std::time::Duration::from_secs(24 * 60 * 60)).await;
     assert!(scheduler.wait().now_or_never().is_none());
 }
@@ -486,7 +491,7 @@ async fn prolonged_six_fps_animation_tracks_phase_without_drift_or_skips() {
     let mut previous = 0;
 
     for (boundary, expected_frame) in boundaries.into_iter().zip(expected_frames) {
-        scheduler.reset_for(&model, &clock);
+        scheduler.reset_for(&model, render_area(), &clock);
         tokio::time::advance(std::time::Duration::from_millis(
             u64::try_from(boundary - previous).unwrap(),
         ))
@@ -516,7 +521,7 @@ async fn mixed_six_and_eight_fps_agents_choose_each_earliest_boundary() {
     let mut previous = 0;
 
     for boundary in boundaries {
-        scheduler.reset_for(&model, &clock);
+        scheduler.reset_for(&model, render_area(), &clock);
         tokio::time::advance(std::time::Duration::from_millis(
             u64::try_from(boundary - previous).unwrap(),
         ))
@@ -530,7 +535,7 @@ async fn mixed_six_and_eight_fps_agents_choose_each_earliest_boundary() {
         previous = boundary;
     }
 
-    scheduler.reset_for(&model, &clock);
+    scheduler.reset_for(&model, render_area(), &clock);
     tokio::time::advance(std::time::Duration::from_millis(166)).await;
     assert!(scheduler.wait().now_or_never().is_none());
     tokio::time::advance(std::time::Duration::from_millis(1)).await;
@@ -543,7 +548,7 @@ async fn event_driven_animation_scheduler_never_wakes_on_time_alone() {
     let working = animated_agent("working", Presence::Working, 0);
     let model = animated_model([working], 0, Motion::None);
     let mut scheduler = AnimationScheduler::new();
-    scheduler.reset_for(&model, &clock);
+    scheduler.reset_for(&model, render_area(), &clock);
 
     tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
     assert!(scheduler.wait().now_or_never().is_none());
@@ -556,7 +561,7 @@ async fn guild_outbreak_wakes_at_four_fps_then_returns_to_event_driven_rendering
     model.goblins_mut().release(Timestamp::from_millis(0));
     let mut scheduler = AnimationScheduler::new();
 
-    scheduler.reset_for(&model, &clock);
+    scheduler.reset_for(&model, render_area(), &clock);
     tokio::time::advance(std::time::Duration::from_millis(249)).await;
     assert!(scheduler.wait().now_or_never().is_none());
     tokio::time::advance(std::time::Duration::from_millis(1)).await;
@@ -565,14 +570,14 @@ async fn guild_outbreak_wakes_at_four_fps_then_returns_to_event_driven_rendering
     tokio::time::advance(std::time::Duration::from_millis(2_749)).await;
     model.set_now(clock.now());
     assert_eq!(model.now(), Timestamp::from_millis(2_999));
-    scheduler.reset_for(&model, &clock);
+    scheduler.reset_for(&model, render_area(), &clock);
     assert!(scheduler.wait().now_or_never().is_none());
     tokio::time::advance(std::time::Duration::from_millis(1)).await;
     assert!(scheduler.wait().now_or_never().is_some());
 
     model.set_now(clock.now());
     assert_eq!(model.now(), Timestamp::from_millis(3_000));
-    scheduler.reset_for(&model, &clock);
+    scheduler.reset_for(&model, render_area(), &clock);
     tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
     assert!(scheduler.wait().now_or_never().is_none());
 }
@@ -589,7 +594,7 @@ async fn static_motion_modes_schedule_only_the_outbreak_terminal_boundary() {
         model.goblins_mut().release(Timestamp::from_millis(0));
         let mut scheduler = AnimationScheduler::new();
 
-        scheduler.reset_for(&model, &clock);
+        scheduler.reset_for(&model, render_area(), &clock);
         tokio::time::advance(std::time::Duration::from_millis(2_999)).await;
         assert!(
             scheduler.wait().now_or_never().is_none(),

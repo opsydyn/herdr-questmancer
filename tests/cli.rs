@@ -22,3 +22,10 @@ fn accepts_guild_and_delve_as_initial_views() {
         );
     }
 }
+
+#[test]
+fn rejects_removed_initial_view_aliases() {
+    for value in ["desk", "cafe"] {
+        assert!(Cli::try_parse_from(["questmancer", "ui", "--view", value]).is_err());
+    }
+}

@@ -84,10 +84,13 @@ def require_checkout_depth(job_value, job_name)
   abort_contract("#{job_name} checkout does not set fetch-depth: 0") unless with.is_a?(Hash) && with["fetch-depth"] == 0
 end
 
-release_path, ci_path = ARGV
-abort_contract("usage: workflow_contract.rb RELEASE_WORKFLOW CI_WORKFLOW") unless release_path && ci_path && ARGV.length == 2
+abort_contract("usage: workflow_contract.rb WORKFLOW WORKFLOW") unless ARGV.length == 2
+workflows = ARGV.map { |path| [path, load_workflow(path)] }
+release = workflows.find { |_path, jobs| %w[verify build publish].all? { |name| jobs.key?(name) } }
+ci = workflows.find { |_path, jobs| jobs.key?("check") }
+abort_contract("could not identify one release workflow and one CI workflow") unless release && ci
 
-release_jobs = load_workflow(release_path)
+_release_path, release_jobs = release
 require_exact_keys(release_jobs, "release jobs", %w[verify build publish])
 verify = job(release_jobs, "verify")
 build = job(release_jobs, "build")
@@ -148,7 +151,7 @@ require_run_line(build, "build", 'archive="questmancer-v${version}-${target}.tar
 require_run_line(build, "build", 'tar -C "$staging" -czf "$archive" questmancer')
 require_run_line(publish, "publish", 'sha256sum "${expected[@]}" >SHA256SUMS')
 
-ci_jobs = load_workflow(ci_path)
+_ci_path, ci_jobs = ci
 require_exact_keys(ci_jobs, "CI jobs", ["check"])
 check = job(ci_jobs, "check")
 require_checkout_depth(check, "check")

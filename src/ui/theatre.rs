@@ -3,7 +3,10 @@ use crate::{
     domain::{Agent, GuildAttention, GuildSummons, Presence, Timestamp},
 };
 
+use ratatui::layout::Rect;
 use std::time::Duration;
+
+use super::{delve_projection::visible_agent_keys, views::guild_hall::next_elapsed_label_in};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TheatrePose {
@@ -77,20 +80,21 @@ pub fn cadence_for(model: &Model) -> RenderCadence {
 /// This is deliberately derived from every agent rather than from the highest
 /// nominal FPS. Different agents can have interleaved boundaries, and a done
 /// transition has an exact terminal boundary at one second.
-pub fn next_visible_frame_in(model: &Model) -> Option<Duration> {
+pub fn next_visible_frame_in(model: &Model, render_area: Rect) -> Option<Duration> {
     if model.view() == View::Guild {
-        return model
+        let goblins = model
             .goblins()
             .next_visible_frame_in(model.now(), model.preferences().motion);
+        let elapsed = next_elapsed_label_in(model, render_area);
+        return goblins.into_iter().chain(elapsed).min();
     }
     if model.preferences().motion == Motion::None {
         return None;
     }
 
-    model
-        .domain()
-        .agents
-        .values()
+    visible_agent_keys(model, render_area)
+        .into_iter()
+        .filter_map(|key| model.domain().agents.get(&key))
         .filter_map(|agent| next_frame_for_agent(agent, model.now(), model.preferences().motion))
         .min()
 }

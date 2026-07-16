@@ -251,27 +251,37 @@ async fn managed_pane_effects_are_refused_before_socket_io() {
     let executor = CommandExecutor::new(HerdrClient::new(path), Some(managed.clone()));
 
     let commands = [
-        AgentCommand::FocusPane(managed.clone()),
-        AgentCommand::SendCounsel {
-            pane_id: managed.clone(),
-            text: "do not send".to_owned(),
-        },
-        AgentCommand::LoadOutput {
-            pane_id: managed.clone(),
-            lines: 80,
-        },
-        AgentCommand::InspectSpoils {
-            pane_id: managed,
-            qualified_id: "acme.diff.inspect".to_owned(),
-        },
+        (AgentCommand::FocusPane(managed.clone()), "focus pane"),
+        (
+            AgentCommand::SendCounsel {
+                pane_id: managed.clone(),
+                text: "do not send".to_owned(),
+            },
+            "send counsel",
+        ),
+        (
+            AgentCommand::LoadOutput {
+                pane_id: managed.clone(),
+                lines: 80,
+            },
+            "load output",
+        ),
+        (
+            AgentCommand::InspectSpoils {
+                pane_id: managed,
+                qualified_id: "acme.diff.inspect".to_owned(),
+            },
+            "open reviewr",
+        ),
     ];
 
-    for command in commands {
+    for (command, expected_operation) in commands {
         let result = executor.execute(command).await;
         assert!(matches!(
             result,
-            CommandResult::Failed { message, .. }
-                if message == "refused operation on webmaster pane"
+            CommandResult::Failed { operation, message }
+                if operation == expected_operation
+                    && message == "refused operation on the Questmancer guild pane"
         ));
     }
 }

@@ -9,7 +9,9 @@ use ratatui::{
 
 use crate::{
     app::{CharacterSet, ConnectionState, DisplayPreferences, Model},
+    domain::AgentKey,
     ui::{
+        delve_projection::visible_agent_keys,
         pixel::{ColorRole, Palette},
         theatre::frame_for,
         widgets::render_chamber,
@@ -67,6 +69,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         frame.render_widget(Paragraph::new("D").style(styles.accent), area);
         return;
     }
+    let visible_agents = visible_agent_keys(model, area);
 
     let footer_height = if area.width <= 80 { 2 } else { 1 };
     let [body, footer] =
@@ -91,12 +94,12 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     if model.domain().agents.is_empty() {
         render_empty(frame, inner, styles);
     } else if inner.width >= 78 {
-        render_connected_delves(frame, inner, model, styles);
+        render_connected_delves(frame, inner, model, styles, &visible_agents);
         if !matches!(model.connection(), ConnectionState::Reconnecting { .. }) {
             render_connection_overlay(frame, inner, model.connection(), styles);
         }
     } else {
-        render_compact_list(frame, inner, model);
+        render_compact_list(frame, inner, model, &visible_agents);
         render_connection_overlay(
             frame,
             Rect::new(inner.x, inner.y, inner.width, 1),
@@ -109,7 +112,13 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
 }
 
 #[allow(clippy::too_many_lines)]
-fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: DelveStyles) {
+fn render_connected_delves(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    model: &Model,
+    styles: DelveStyles,
+    visible_agents: &std::collections::BTreeSet<AgentKey>,
+) {
     use crate::ui::delve_scene::layout_delves;
     let sites = if model.domain().campaigns.is_empty() {
         let mut derived = std::collections::BTreeMap::new();
@@ -147,14 +156,13 @@ fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, sty
             area.width,
             area.height.saturating_sub(strip_height),
         );
-        let selected_key = model.selected_agent_key();
         let active_delve = delves
             .iter()
-            .find(|delve| selected_key.is_some_and(|key| delve.adventurers.contains(key)))
-            .or_else(|| {
-                delves
+            .find(|delve| {
+                delve
+                    .adventurers
                     .iter()
-                    .find(|delve| selected_workspace.as_ref() == Some(&delve.workspace_id))
+                    .any(|key| visible_agents.contains(key))
             })
             .unwrap_or(&delves[0]);
         render_delve_architecture(
@@ -197,6 +205,9 @@ fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, sty
                 styles,
             );
             for (index, key) in active_delve.adventurers.iter().enumerate() {
+                if !visible_agents.contains(key) {
+                    continue;
+                }
                 if let (Some(agent), Some(anchor)) =
                     (model.domain().agents.get(key), remapped.get(index).copied())
                 {
@@ -247,6 +258,9 @@ fn render_connected_delves(frame: &mut Frame<'_>, area: Rect, model: &Model, sty
             continue;
         }
         for (index, key) in delve.adventurers.iter().enumerate() {
+            if !visible_agents.contains(key) {
+                continue;
+            }
             let Some(agent) = model.domain().agents.get(key) else {
                 continue;
             };
@@ -578,8 +592,13 @@ fn architecture_row(area: Rect, content: &str) -> String {
     )
 }
 
-fn render_compact_list(frame: &mut Frame<'_>, area: Rect, model: &Model) {
-    let count = model.domain().agents.len();
+fn render_compact_list(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    model: &Model,
+    visible_agents: &std::collections::BTreeSet<AgentKey>,
+) {
+    let count = visible_agents.len();
     if count == 0 || area.height <= 1 {
         return;
     }
@@ -589,16 +608,12 @@ fn render_compact_list(frame: &mut Frame<'_>, area: Rect, model: &Model) {
         area.width,
         area.height.saturating_sub(1),
     );
-    let capacity = usize::from(list.height / 2).max(1);
-    let page_start = selected_page_start(model, capacity);
-    let visible_count = count.saturating_sub(page_start).min(capacity);
-    let item_height = (list.height / u16::try_from(visible_count).unwrap_or(1)).max(1);
+    let item_height = (list.height / u16::try_from(count).unwrap_or(1)).max(1);
     for (index, (key, agent)) in model
         .domain()
         .agents
         .iter()
-        .skip(page_start)
-        .take(capacity)
+        .filter(|(key, _agent)| visible_agents.contains(*key))
         .enumerate()
     {
         let y = list.y.saturating_add(
@@ -625,14 +640,6 @@ fn render_compact_list(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     }
 }
 
-fn selected_page_start(model: &Model, capacity: usize) -> usize {
-    let selected_index = model
-        .selected_agent_key()
-        .and_then(|selected| model.domain().agents.keys().position(|key| key == selected))
-        .unwrap_or_default();
-    selected_index / capacity * capacity
-}
-
 fn render_empty(frame: &mut Frame<'_>, area: Rect, styles: DelveStyles) {
     let message = Text::from(vec![
         Line::from(""),
@@ -657,7 +664,7 @@ fn render_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: Delve
     if !model.domain().agents.is_empty() {
         actions.push("[j/k] navigate");
         if model.selected_agent().is_some() {
-            actions.extend(["[enter] visit", "[r] reply", "[o] refresh"]);
+            actions.extend(["[enter] visit", "[r] counsel", "[o] refresh"]);
             if model
                 .selected_agent()
                 .is_some_and(|agent| agent.attention.is_unread())
@@ -688,7 +695,7 @@ fn render_narrow_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles
     if !model.domain().agents.is_empty() {
         global.extend(["[j/k] navigate", "[/] search"]);
         if model.selected_agent().is_some() {
-            selected.extend(["[enter] visit", "[r] reply", "[o] refresh"]);
+            selected.extend(["[enter] visit", "[r] counsel", "[o] refresh"]);
             if model
                 .selected_agent()
                 .is_some_and(|agent| agent.attention.is_unread())

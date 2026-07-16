@@ -5,10 +5,11 @@ use ratatui::{
     text::{Line, Text},
     widgets::{Block, Borders, Paragraph, Wrap},
 };
+use std::time::Duration;
 
 use crate::{
     app::{CharacterSet, ConnectionState, Model, Region},
-    domain::{Agent, CampaignStatus, GuildSummons, Presence},
+    domain::{Agent, AgentKey, CampaignStatus, GuildSummons, Presence},
     ui::{
         copy::{self, EMPTY_GUILD, SCRYING_CLOUDED, SCRYING_STILL},
         goblins,
@@ -72,7 +73,22 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
 }
 
 fn render_connection_banner(frame: &mut Frame<'_>, area: Rect, model: &Model) -> Rect {
-    let lines = match model.connection() {
+    let Some(lines) = connection_banner_lines(model) else {
+        return area;
+    };
+    if area.is_empty() {
+        return area;
+    }
+    let banner_height = u16::try_from(lines.len()).unwrap_or(u16::MAX);
+    let [banner, content] =
+        ratatui::layout::Layout::vertical([Constraint::Length(banner_height), Constraint::Min(0)])
+            .areas(area);
+    frame.render_widget(Paragraph::new(Text::from(lines)).style(ACCENT), banner);
+    content
+}
+
+fn connection_banner_lines(model: &Model) -> Option<Vec<Line<'static>>> {
+    match model.connection() {
         ConnectionState::Connecting => Some(vec![Line::from(
             "The scrying pool is waking. Connecting to Herdr.",
         )]),
@@ -91,19 +107,7 @@ fn render_connection_banner(frame: &mut Frame<'_>, area: Rect, model: &Model) ->
         ConnectionState::Incompatible { expected, actual } => Some(vec![Line::from(format!(
             "The scrying pool rejects this omen. Cause: protocol {actual}; expected {expected}."
         ))]),
-    };
-    let Some(lines) = lines else {
-        return area;
-    };
-    if area.is_empty() {
-        return area;
     }
-    let banner_height = u16::try_from(lines.len()).unwrap_or(u16::MAX);
-    let [banner, content] =
-        ratatui::layout::Layout::vertical([Constraint::Length(banner_height), Constraint::Min(0)])
-            .areas(area);
-    frame.render_widget(Paragraph::new(Text::from(lines)).style(ACCENT), banner);
-    content
 }
 
 fn render_empty(frame: &mut Frame<'_>, area: Rect) {
@@ -232,27 +236,37 @@ fn render_quest_board(frame: &mut Frame<'_>, area: Rect, model: &Model) {
 }
 
 fn render_party(frame: &mut Frame<'_>, area: Rect, model: &Model) {
-    let selected = model.selected_agent_key();
     let lines = model
         .domain()
         .agents
         .iter()
-        .map(|(key, agent)| {
-            let marker = if selected == Some(key) { ">" } else { " " };
-            Line::from(format!(
-                "{marker} {}  {}",
-                present(&agent.persona.name, model.preferences().character_set),
-                presence_with_elapsed(agent, model)
-            ))
-        })
+        .map(|(key, agent)| party_line(key, agent, model, area))
         .collect::<Vec<_>>();
-    render_panel(
+    render_panel_unwrapped(
         frame,
         area,
         " PARTY ROSTER ",
         Text::from(lines),
         model.preferences().character_set,
     );
+}
+
+fn party_line(key: &AgentKey, agent: &Agent, model: &Model, area: Rect) -> Line<'static> {
+    let marker = if model.selected_agent_key() == Some(key) {
+        ">"
+    } else {
+        " "
+    };
+    let presence = if party_elapsed_fits(agent, model, area) {
+        presence_with_elapsed(agent, model)
+    } else {
+        presence_label(agent.presence).to_owned()
+    };
+    Line::from(format!(
+        "{marker} {}  {}",
+        presence,
+        present(&agent.persona.name, model.preferences().character_set)
+    ))
 }
 
 fn render_summons(frame: &mut Frame<'_>, area: Rect, model: &Model) {
@@ -330,6 +344,27 @@ fn render_adventurer(frame: &mut Frame<'_>, area: Rect, model: &Model, include_s
         );
         return;
     };
+    let lines = adventurer_lines(
+        agent,
+        model,
+        include_summons,
+        adventurer_elapsed_fits(agent, model, area),
+    );
+    render_panel_unwrapped(
+        frame,
+        area,
+        " ADVENTURER ",
+        Text::from(lines),
+        model.preferences().character_set,
+    );
+}
+
+fn adventurer_lines(
+    agent: &Agent,
+    model: &Model,
+    include_summons: bool,
+    show_elapsed: bool,
+) -> Vec<Line<'static>> {
     let campaign = model
         .domain()
         .campaigns
@@ -355,7 +390,11 @@ fn render_adventurer(frame: &mut Frame<'_>, area: Rect, model: &Model, include_s
         )),
         Line::from(format!(
             "{} ({})",
-            presence_with_elapsed(agent, model),
+            if show_elapsed {
+                presence_with_elapsed(agent, model)
+            } else {
+                presence_label(agent.presence).to_owned()
+            },
             present(&agent.name, model.preferences().character_set)
         )),
     ];
@@ -368,13 +407,7 @@ fn render_adventurer(frame: &mut Frame<'_>, area: Rect, model: &Model, include_s
             MUTED,
         ));
     }
-    render_panel(
-        frame,
-        area,
-        " ADVENTURER ",
-        Text::from(lines),
-        model.preferences().character_set,
-    );
+    lines
 }
 
 fn render_scrying(frame: &mut Frame<'_>, area: Rect, model: &Model, include_status: bool) {
@@ -525,6 +558,27 @@ fn render_panel(
     text: Text<'_>,
     character_set: CharacterSet,
 ) {
+    render_panel_with_wrapping(frame, area, title, text, character_set, true);
+}
+
+fn render_panel_unwrapped(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    title: &str,
+    text: Text<'_>,
+    character_set: CharacterSet,
+) {
+    render_panel_with_wrapping(frame, area, title, text, character_set, false);
+}
+
+fn render_panel_with_wrapping(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    title: &str,
+    text: Text<'_>,
+    character_set: CharacterSet,
+    wrap: bool,
+) {
     if area.is_empty() {
         return;
     }
@@ -535,13 +589,11 @@ fn render_panel(
     if character_set == CharacterSet::Ascii {
         block = block.border_set(ASCII_BORDER);
     }
-    frame.render_widget(
-        Paragraph::new(text)
-            .block(block)
-            .style(INK)
-            .wrap(Wrap { trim: false }),
-        area,
-    );
+    let mut paragraph = Paragraph::new(text).block(block).style(INK);
+    if wrap {
+        paragraph = paragraph.wrap(Wrap { trim: false });
+    }
+    frame.render_widget(paragraph, area);
 }
 
 fn presence_with_elapsed(agent: &Agent, model: &Model) -> String {
@@ -549,16 +601,257 @@ fn presence_with_elapsed(agent: &Agent, model: &Model) -> String {
     if !model.settings().show_elapsed_time {
         return presence.to_owned();
     }
-    format!("{presence} {}", elapsed_label(agent, model))
+    format!("{presence} {}", elapsed_label_at(agent, model.now()))
 }
 
-fn elapsed_label(agent: &Agent, model: &Model) -> String {
-    let elapsed = agent.presence_since.elapsed_until(model.now()).as_secs();
+fn elapsed_label_at(agent: &Agent, now: crate::domain::Timestamp) -> String {
+    let elapsed = agent.presence_since.elapsed_until(now).as_secs();
     if elapsed >= 60 {
         format!("{}m", elapsed / 60)
     } else {
         format!("{elapsed}s")
     }
+}
+
+pub(crate) fn next_elapsed_label_in(model: &Model, area: Rect) -> Option<Duration> {
+    if !model.settings().show_elapsed_time
+        || model.domain().agents.is_empty()
+        || area.width < 4
+        || area.height < 3
+    {
+        return None;
+    }
+
+    visible_elapsed_slots(model, area)
+        .into_iter()
+        .filter_map(|slot| next_visible_elapsed_change(slot, model))
+        .min()
+}
+
+#[derive(Clone, Copy)]
+enum ElapsedSurface {
+    Party(Rect),
+    Adventurer(Rect),
+}
+
+#[derive(Clone, Copy)]
+struct ElapsedSlot<'a> {
+    agent: &'a Agent,
+    surface: ElapsedSurface,
+}
+
+fn visible_elapsed_slots(model: &Model, terminal_area: Rect) -> Vec<ElapsedSlot<'_>> {
+    let content = guild_content_area(model, terminal_area);
+    if content.is_empty() {
+        return Vec::new();
+    }
+
+    if terminal_area.width >= 120 {
+        let [_board, guild, selected] = ratatui::layout::Layout::horizontal([
+            Constraint::Percentage(25),
+            Constraint::Percentage(36),
+            Constraint::Min(42),
+        ])
+        .areas(content);
+        let [party, _summons, _chronicle] = ratatui::layout::Layout::vertical([
+            Constraint::Percentage(34),
+            Constraint::Percentage(30),
+            Constraint::Min(5),
+        ])
+        .areas(guild);
+        let [adventurer, _scrying, _spoils] = ratatui::layout::Layout::vertical([
+            Constraint::Length(selected.height.min(9)),
+            Constraint::Min(5),
+            Constraint::Length(selected.height.min(5)),
+        ])
+        .areas(selected);
+        let mut visible = visible_party_slots(model, party);
+        push_selected_elapsed_slot(&mut visible, model, adventurer);
+        return visible;
+    }
+
+    if terminal_area.width >= 80 {
+        let [overview, selected] =
+            ratatui::layout::Layout::horizontal([Constraint::Percentage(44), Constraint::Min(38)])
+                .areas(content);
+        let [_board, party] =
+            ratatui::layout::Layout::vertical([Constraint::Percentage(45), Constraint::Min(5)])
+                .areas(overview);
+        let [adventurer, _scrying] = ratatui::layout::Layout::vertical([
+            Constraint::Length(selected.height.min(9)),
+            Constraint::Min(4),
+        ])
+        .areas(selected);
+        let mut visible = visible_party_slots(model, party);
+        push_selected_elapsed_slot(&mut visible, model, adventurer);
+        return visible;
+    }
+
+    let [primary, _diagnostic] = if model.status_message().is_some() {
+        ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(2)])
+            .areas(content)
+    } else {
+        [content, Rect::default()]
+    };
+    match model.region() {
+        Region::Party => visible_party_slots(model, primary),
+        Region::Adventurer => {
+            let card_height = primary.height.saturating_sub(4).min(7);
+            let [adventurer, _scrying] = ratatui::layout::Layout::vertical([
+                Constraint::Length(card_height),
+                Constraint::Min(4),
+            ])
+            .areas(primary);
+            let mut visible = Vec::new();
+            push_selected_elapsed_slot(&mut visible, model, adventurer);
+            visible
+        }
+        Region::QuestBoard | Region::Summons | Region::Chronicle => Vec::new(),
+    }
+}
+
+fn guild_content_area(model: &Model, terminal_area: Rect) -> Rect {
+    let footer_height =
+        u16::try_from(footer_lines(model, terminal_area.width).len()).unwrap_or(u16::MAX);
+    let [body, _footer] =
+        ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
+            .areas(terminal_area);
+    let inner = Block::default().borders(Borders::ALL).inner(body);
+    let banner_height = connection_banner_lines(model)
+        .map_or(0, |lines| u16::try_from(lines.len()).unwrap_or(u16::MAX));
+    let [_banner, content] =
+        ratatui::layout::Layout::vertical([Constraint::Length(banner_height), Constraint::Min(0)])
+            .areas(inner);
+    content
+}
+
+fn visible_party_slots(model: &Model, area: Rect) -> Vec<ElapsedSlot<'_>> {
+    model
+        .domain()
+        .agents
+        .values()
+        .take(panel_line_capacity(area))
+        .map(|agent| ElapsedSlot {
+            agent,
+            surface: ElapsedSurface::Party(area),
+        })
+        .collect()
+}
+
+fn push_selected_elapsed_slot<'a>(
+    visible: &mut Vec<ElapsedSlot<'a>>,
+    model: &'a Model,
+    area: Rect,
+) {
+    if panel_line_capacity(area) >= 4
+        && let Some(selected) = model.selected_agent()
+    {
+        visible.push(ElapsedSlot {
+            agent: selected,
+            surface: ElapsedSurface::Adventurer(area),
+        });
+    }
+}
+
+fn panel_line_capacity(area: Rect) -> usize {
+    if area.width <= 2 {
+        0
+    } else {
+        usize::from(area.height.saturating_sub(2))
+    }
+}
+
+fn party_elapsed_fits(agent: &Agent, model: &Model, area: Rect) -> bool {
+    party_elapsed_fits_at(agent, model, area, model.now())
+}
+
+fn party_elapsed_fits_at(
+    agent: &Agent,
+    model: &Model,
+    area: Rect,
+    now: crate::domain::Timestamp,
+) -> bool {
+    if !model.settings().show_elapsed_time {
+        return false;
+    }
+    let prefix = Line::from(format!(
+        "> {} {}",
+        presence_label(agent.presence),
+        elapsed_label_at(agent, now)
+    ));
+    prefix.width() <= usize::from(area.width.saturating_sub(2))
+}
+
+fn adventurer_elapsed_fits(agent: &Agent, model: &Model, area: Rect) -> bool {
+    adventurer_elapsed_fits_at(agent, model, area, model.now())
+}
+
+fn adventurer_elapsed_fits_at(
+    agent: &Agent,
+    model: &Model,
+    area: Rect,
+    now: crate::domain::Timestamp,
+) -> bool {
+    model.settings().show_elapsed_time
+        && Line::from(format!(
+            "{} {}",
+            presence_label(agent.presence),
+            elapsed_label_at(agent, now)
+        ))
+        .width()
+            <= usize::from(area.width.saturating_sub(2))
+}
+
+fn next_visible_elapsed_change(slot: ElapsedSlot<'_>, model: &Model) -> Option<Duration> {
+    let now = model.now();
+    let immediate_delay = next_elapsed_boundary(slot.agent, now);
+    let immediate = timestamp_after(now, immediate_delay);
+    if elapsed_fits(slot, model, now) || elapsed_fits(slot, model, immediate) {
+        return Some(immediate_delay);
+    }
+
+    let elapsed = slot.agent.presence_since.elapsed_until(now);
+    if now >= slot.agent.presence_since && elapsed.as_secs() >= 60 {
+        return None;
+    }
+    let minute_boundary = timestamp_after(slot.agent.presence_since, Duration::from_secs(60));
+    elapsed_fits(slot, model, minute_boundary).then(|| now.elapsed_until(minute_boundary))
+}
+
+fn elapsed_fits(slot: ElapsedSlot<'_>, model: &Model, now: crate::domain::Timestamp) -> bool {
+    match slot.surface {
+        ElapsedSurface::Party(area) => party_elapsed_fits_at(slot.agent, model, area, now),
+        ElapsedSurface::Adventurer(area) => {
+            adventurer_elapsed_fits_at(slot.agent, model, area, now)
+        }
+    }
+}
+
+fn timestamp_after(
+    timestamp: crate::domain::Timestamp,
+    duration: Duration,
+) -> crate::domain::Timestamp {
+    let milliseconds = i64::try_from(duration.as_millis()).unwrap_or(i64::MAX);
+    crate::domain::Timestamp::from_millis(timestamp.as_millis().saturating_add(milliseconds))
+}
+
+fn next_elapsed_boundary(agent: &Agent, now: crate::domain::Timestamp) -> Duration {
+    if now < agent.presence_since {
+        return now
+            .elapsed_until(agent.presence_since)
+            .saturating_add(Duration::from_secs(1));
+    }
+
+    let elapsed = agent.presence_since.elapsed_until(now);
+    let unit_millis = if elapsed.as_secs() < 60 {
+        1_000_u128
+    } else {
+        60_000_u128
+    };
+    let elapsed_millis = elapsed.as_millis();
+    let next_boundary = (elapsed_millis / unit_millis + 1).saturating_mul(unit_millis);
+    let delay = next_boundary.saturating_sub(elapsed_millis).max(1);
+    Duration::from_millis(u64::try_from(delay).unwrap_or(u64::MAX))
 }
 
 const fn presence_label(presence: Presence) -> &'static str {

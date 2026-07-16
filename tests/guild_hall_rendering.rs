@@ -5,8 +5,8 @@ use questmancer::{
     },
     command::CommandResult,
     domain::{
-        ChronicleEntry, ChronicleEvent, DomainState, Epithet, GuildAttention, GuildSummons, PaneId,
-        Presence, Timestamp,
+        AgentKey, ChronicleEntry, ChronicleEvent, DomainState, Epithet, GuildAttention,
+        GuildSummons, PaneId, Presence, Timestamp,
     },
     herdr::{
         protocol::{SessionSnapshotResult, SuccessResponse},
@@ -116,6 +116,36 @@ fn working_guild_hall_uses_the_injected_clock_for_elapsed_time() {
     let screen = render(&model, 130, 32);
 
     assert!(screen.contains("working 2m"));
+}
+
+#[test]
+fn long_party_labels_keep_one_row_per_visible_elapsed_entry() {
+    let mut model = live_model();
+    let template = model.domain().agents.values().next().unwrap().clone();
+    model.domain_mut().agents.clear();
+    for index in 0..6 {
+        let mut adventurer = template.clone();
+        adventurer.key = AgentKey::new(format!("agent-{index}"));
+        adventurer.presence = Presence::Working;
+        adventurer.persona.name = format!("Agent-{index} with a deliberately long guild name");
+        model
+            .domain_mut()
+            .agents
+            .insert(adventurer.key.clone(), adventurer);
+    }
+    model.domain_mut().selected_agent = Some(AgentKey::new("agent-0"));
+    model.set_region(questmancer::app::Region::Party);
+
+    let screen = render(&model, 60, 10);
+
+    assert!(
+        screen.contains("Agent-2"),
+        "third logical roster row wrapped out:\n{screen}"
+    );
+    assert!(
+        screen.matches("working 2m").count() >= 3,
+        "elapsed labels were clipped:\n{screen}"
+    );
 }
 
 #[test]

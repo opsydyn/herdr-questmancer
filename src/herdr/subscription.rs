@@ -64,7 +64,7 @@ impl SubscriptionRequest {
         }));
 
         Self {
-            id: "webmaster-subscription".to_owned(),
+            id: "questmancer-subscription".to_owned(),
             method: "events.subscribe",
             params: EventsSubscribeParams { subscriptions },
         }

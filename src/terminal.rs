@@ -143,8 +143,13 @@ impl AnimationScheduler {
         Self { sleep: None }
     }
 
-    pub fn reset_for(&mut self, model: &Model, clock: &RuntimeClock) {
-        let Some(period) = next_visible_frame_in(model) else {
+    pub fn reset_for(
+        &mut self,
+        model: &Model,
+        render_area: ratatui::layout::Rect,
+        clock: &RuntimeClock,
+    ) {
+        let Some(period) = next_visible_frame_in(model, render_area) else {
             self.sleep = None;
             return;
         };
@@ -277,8 +282,8 @@ async fn run_live_loop(
     let mut render_invalidation = AnimationScheduler::new();
 
     loop {
-        terminal.draw(|frame| ui::render(frame, model))?;
-        render_invalidation.reset_for(model, clock);
+        let render_area = terminal.draw(|frame| ui::render(frame, model))?.area;
+        render_invalidation.reset_for(model, render_area, clock);
 
         tokio::select! {
             event = input.next() => {
@@ -353,8 +358,8 @@ async fn run_offline_loop(
     let mut render_invalidation = AnimationScheduler::new();
 
     loop {
-        terminal.draw(|frame| ui::render(frame, model))?;
-        render_invalidation.reset_for(model, clock);
+        let render_area = terminal.draw(|frame| ui::render(frame, model))?.area;
+        render_invalidation.reset_for(model, render_area, clock);
 
         tokio::select! {
             event = input.next() => {
@@ -458,7 +463,7 @@ fn drain_diagnostics(
 
 fn emit_diagnostics(diagnostics: &[PersistenceDiagnostic]) {
     for diagnostic in diagnostics {
-        eprintln!("webmaster persistence: {diagnostic}");
+        eprintln!("questmancer persistence: {diagnostic}");
     }
 }
 

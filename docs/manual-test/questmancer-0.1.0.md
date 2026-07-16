@@ -20,7 +20,7 @@ Questmancer remained linked from the feature worktree after cleanup.
 | Dedicated agent | PASS | Only disposable pane `w2:pH` received source `questmancer-manual-1784196969945-56545` for agent `questmancer-smoke`. |
 | Working projection | PASS | Snapshot reported `working`; Delve rendered `[>] DELVING \| LIVE`. |
 | Blocked projection | PASS | Snapshot reported `blocked`; Delve rendered `SEALED`, `SIGNAL LANTERN`, and `[!] COUNSEL REQUESTED \| LIVE`. |
-| Chronicle voice | PASS | `chronicle.jsonl` contained exactly one counsel event: `questmancer-smoke requested counsel`; no legacy Webmaster wording appeared. |
+| Chronicle voice | PASS | `chronicle.jsonl` contained exactly one counsel event: `questmancer-smoke requested counsel`; no superseded product wording appeared. |
 | Search and selection | PASS | `/ questmancer-smoke` selected only the disposable agent, rendered as `Sabine Copperkettle`, Gnome Testmender. |
 | Acknowledge | PASS | Space removed the `[space] seen` footer and rendered `Summons acknowledged.` for the selected agent. |
 | Persisted key | PASS | Before restart, `seen_attention` contained only `persona-6be30b4fc2d45dbf918410eb` plus `counsel_requested`; it had no `pane_revision`. |

@@ -137,7 +137,7 @@ fn render_details(
         Line::from(format!("Gear: {}", gear_label(agent.persona.class.gear()))),
         Line::from(format!("Agent: {}", present(&agent.name, character_set))),
         Line::from(format!(
-            "Site: {}",
+            "Campaign: {}",
             present(agent.workspace_id.as_str(), character_set)
         )),
         Line::from(format!(
@@ -183,7 +183,7 @@ fn render_compact(
             theatre.label
         )),
         Line::from(format!(
-            "Site: {}",
+            "Campaign: {}",
             present(agent.workspace_id.as_str(), character_set)
         )),
         Line::from(format!(

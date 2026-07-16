@@ -419,7 +419,7 @@ fn profile_card_shows_the_independent_full_figure_and_actionable_details() {
     );
 
     assert!(screen.contains(&agent.persona.name));
-    assert!(screen.contains("Site: w1"));
+    assert!(screen.contains("Campaign: w1"));
     assert!(screen.contains("[!] COUNSEL REQUESTED"));
     assert!(screen.contains("Keepsake:"));
     assert!(screen.contains("Keepsake: Familiar"));
@@ -549,11 +549,11 @@ fn ascii_presentation_sanitizes_domain_text_in_full_and_compact_widgets() {
     assert!(screens[0].contains("na?ve ???"));
     assert!(screens[1].contains("na?ve ???"));
     assert!(screens[2].contains("h?ll? root"));
-    assert!(screens[2].contains("Site: sit? ?"));
+    assert!(screens[2].contains("Campaign: sit? ?"));
     assert!(screens[2].contains("Pane: pane ?"));
     assert!(screens[2].contains("Status: na?ve ???"));
     assert!(screens[3].contains("h?ll? root"));
-    assert!(screens[3].contains("Site: sit? ?"));
+    assert!(screens[3].contains("Campaign: sit? ?"));
     assert!(screens[3].contains("Pane: pane ?"));
     assert!(screens[3].contains("Status: na?ve ???"));
 }
@@ -576,7 +576,7 @@ fn unicode_presentation_preserves_printable_text_but_neutralizes_controls() {
     let profile = render_profile_at(&agent, working, preferences, 60, 20);
     assert!(profile.contains("Café Müller?"));
     assert!(profile.contains("héllø-root"));
-    assert!(profile.contains("Site: sité-é"));
+    assert!(profile.contains("Campaign: sité-é"));
     assert!(profile.contains("Pane: pane-ß"));
     assert!(profile.contains("Status: naïve résumé"));
 }

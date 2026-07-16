@@ -65,7 +65,7 @@ impl CommandExecutor {
     fn refused_managed_pane(operation: &'static str) -> CommandResult {
         CommandResult::Failed {
             operation,
-            message: "refused operation on webmaster pane".to_owned(),
+            message: "refused operation on the Questmancer guild pane".to_owned(),
         }
     }
 
@@ -82,11 +82,11 @@ impl CommandExecutor {
             }
             AgentCommand::SendCounsel { pane_id, text } => {
                 if self.is_managed_pane(&pane_id) {
-                    return Self::refused_managed_pane("send reply");
+                    return Self::refused_managed_pane("send counsel");
                 }
                 match self.client.send_text(pane_id.as_str(), text).await {
                     Ok(()) => CommandResult::CounselSent(pane_id),
-                    Err(error) => failed("send reply", error),
+                    Err(error) => failed("send counsel", error),
                 }
             }
             AgentCommand::LoadOutput { pane_id, lines } => {

@@ -198,14 +198,20 @@ test_open_focuses_a_live_existing_pane() {
 }
 
 test_view_actions_switch_a_live_existing_pane() {
-  mkdir -p "$TMP/state"
-  printf '{"pane_id":"live-pane"}\n' >"$TMP/state/runtime.json"
-  : >"$TMP/herdr.log"
+  local view key
+  while IFS='|' read -r view key; do
+    mkdir -p "$TMP/state"
+    printf '{"pane_id":"live-pane"}\n' >"$TMP/state/runtime.json"
+    : >"$TMP/herdr.log"
 
-  run_control delve
+    run_control "$view"
 
-  assert_contains "$TMP/herdr.log" "pane send-keys live-pane 2"
-  assert_contains "$TMP/herdr.log" "plugin pane focus live-pane"
+    assert_contains "$TMP/herdr.log" "pane send-keys live-pane $key"
+    assert_contains "$TMP/herdr.log" "plugin pane focus live-pane"
+  done <<'VIEWS'
+guild|1
+delve|2
+VIEWS
 }
 
 test_close_uses_plain_pane_close_and_clears_state() {
@@ -431,19 +437,26 @@ SH
   [[ ! -e "$plugin_root/bin/questmancer" ]] || fail "checksum failure installed an executable"
 }
 
-test_current_release_surfaces_have_no_webmaster_identity() {
+test_current_release_surfaces_have_no_legacy_identity_or_vocabulary() {
   local -a surfaces=(
+    "$ROOT/src"
     "$ROOT/Cargo.toml"
     "$ROOT/herdr"
     "$ROOT/herdr-plugin.toml"
     "$ROOT/.github"
     "$ROOT/README.md"
+    "$ROOT/PLAN.md"
     "$ROOT/justfile"
+    "$ROOT/CHANGELOG.md"
+    "$ROOT/docs/manual-test"
   )
 
-  if rg -n 'opsydyn\.webmaster|herdr-webmaster|WEBMASTER_INITIAL_VIEW' "${surfaces[@]}" >"$TMP/legacy-release-surfaces"; then
+  rg -n -i 'webmaster|Site: |\[r\] reply|send reply|replying to|, reply,' "${surfaces[@]}" \
+    | grep -vF '.name == "webmaster" and .source.kind == "local"' \
+    >"$TMP/legacy-release-surfaces" || true
+  if [[ -s "$TMP/legacy-release-surfaces" ]]; then
     cat "$TMP/legacy-release-surfaces" >&2
-    fail "current release surfaces retain Webmaster identity"
+    fail "current runtime or release surfaces retain legacy identity or vocabulary"
   fi
 }
 
@@ -470,6 +483,6 @@ test_release_packaging_contract
 test_workflow_yaml_contract_and_comment_mutations
 test_contributor_test_recipes_reference_real_targets
 test_native_archive_installs_after_checksum_verification
-test_current_release_surfaces_have_no_webmaster_identity
+test_current_release_surfaces_have_no_legacy_identity_or_vocabulary
 
 echo "scripts: 20 passed"

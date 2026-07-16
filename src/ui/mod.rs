@@ -2,6 +2,7 @@ mod theme;
 mod views;
 
 pub mod copy;
+pub mod delve_projection;
 pub mod delve_scene;
 pub mod goblins;
 pub mod input;

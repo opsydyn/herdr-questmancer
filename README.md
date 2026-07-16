@@ -9,7 +9,7 @@ agents delve through chambers of code. Blocked agents call for counsel.
 Completed work returns as spoils awaiting inspection.
 
 It is a local Ratatui interface for scanning a session, reading selected output,
-replying to blocked agents, and returning to their panes. One shared model drives
+counselling blocked agents, and returning to their panes. One shared model drives
 two views:
 
 - **Guild Hall** is the operational view: campaigns, party, Summons, Chronicle,
@@ -157,19 +157,24 @@ Herdr supplies separate plugin directories. Questmancer uses them as follows:
 | `$HERDR_PLUGIN_STATE_DIR/state.json` | Persistence worker | Atomically replaced, versioned durable user intent |
 | `$HERDR_PLUGIN_STATE_DIR/chronicle.jsonl` | Persistence worker | Append-only semantic event history |
 
-`state.json` contains the last view, display preferences, selected persona,
-generated persona catalogue, and exact acknowledged-attention episodes. It does
-not copy Herdr-owned workspaces, panes, live status, output, or topology.
-`chronicle.jsonl` replays valid complete records in chronological,
-deduplicated, bounded history even if another record is malformed.
+`state.json` contains the last view and selection, display preferences, generated
+persona catalogue and assignments, and exact Summons acknowledgement episodes.
+It does not copy Herdr-owned live output or topology. The in-memory Chronicle
+projection is bounded by `chronicle_max_entries`, but
+`$HERDR_PLUGIN_STATE_DIR/chronicle.jsonl` is append-only and has no automatic
+size or age bound; it grows until you remove it. Persisted Chronicle entries can
+contain the adventurer key and host agent name, campaign/workspace ID, pane ID,
+pane revision, timestamp, event kind, and summary.
 
 If a plugin directory is unavailable, its store is disabled and the TUI still
 runs in memory. A damaged `state.json` is rejected as a whole and state writes
 remain disabled until restart so evidence is not overwritten. Chronicle damage
 is isolated per line. Close Questmancer before repairing either file; copy the
-original somewhere safe first. Removing `state.json` resets saved intent,
-removing `chronicle.jsonl` clears history, and removing stale `runtime.json`
-allows the next `open` action to recreate the pane registration.
+original somewhere safe first. Cleanup uses the configured plugin state paths:
+removing `$HERDR_PLUGIN_STATE_DIR/state.json` resets saved intent, removing
+`$HERDR_PLUGIN_STATE_DIR/chronicle.jsonl` clears the unbounded on-disk history,
+and removing stale `$HERDR_PLUGIN_STATE_DIR/runtime.json` allows the next `open`
+action to recreate the pane registration.
 
 Questmancer is local-only at runtime. The application has no telemetry, cloud
 sync, or network service, and its runtime communication stays on Herdr's local
@@ -218,7 +223,7 @@ herdr pane release-agent "$PANE_ID" \
   --seq 4
 ```
 
-Confirm working, blocked/Summons, reply, acknowledge, search, and output refresh
+Confirm working, blocked/Summons, counsel, acknowledge, search, and output refresh
 in both views. The Herdr `0.7.4` command accepts `idle`, `working`, `blocked`,
 and `unknown`, but the live acceptance run found that a synthetic `idle` report
 was normalized to `done` in `session.snapshot`. It therefore did not prove the

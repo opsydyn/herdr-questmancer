@@ -46,6 +46,12 @@ async fn each_ordinary_request_uses_a_new_connection() {
         let (mut ping_stream, _) = listener.accept().await.unwrap();
         let ping_request = read_request(&mut ping_stream).await;
         assert_eq!(ping_request["method"], "ping");
+        assert!(
+            ping_request["id"]
+                .as_str()
+                .unwrap()
+                .starts_with("questmancer-")
+        );
         let mut pong = fixture("pong.json");
         pong["id"] = ping_request["id"].clone();
         write_response(&mut ping_stream, &pong).await;

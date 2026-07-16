@@ -145,7 +145,10 @@ impl HerdrClient {
         P: Serialize,
         T: DeserializeOwned,
     {
-        let request_id = format!("webmaster-{}", self.next_id.fetch_add(1, Ordering::Relaxed));
+        let request_id = format!(
+            "questmancer-{}",
+            self.next_id.fetch_add(1, Ordering::Relaxed)
+        );
         let request = Request::new(request_id.clone(), method, params);
         let mut stream = UnixStream::connect(&self.socket_path).await?;
         write_json_line(&mut stream, &request).await?;
