@@ -118,14 +118,14 @@ fn pack_uses_a_full_block_for_matching_pixels() {
 #[test]
 fn pack_uses_a_full_block_when_distinct_roles_resolve_to_the_same_colour() {
     let mut canvas = Canvas::new(1, 2);
-    canvas.set(0, 0, ColorRole::Stone);
-    canvas.set(0, 1, ColorRole::Steel);
+    canvas.set(0, 0, ColorRole::SkinLight);
+    canvas.set(0, 1, ColorRole::HairLight);
 
     let text = pack(&canvas, &Palette::Ansi16, ColorRole::DarkStone);
     let span = &text.lines[0].spans[0];
 
     assert_eq!(span.content, "█");
-    assert_eq!(span.style.fg, Some(Color::Gray));
+    assert_eq!(span.style.fg, Some(Color::LightYellow));
     assert_eq!(span.style.bg, None);
 }
 
@@ -153,6 +153,6 @@ fn ansi_palette_keeps_steel_and_ink_distinct() {
     let span = &text.lines[0].spans[0];
 
     assert_eq!(span.content, "▀");
-    assert_eq!(span.style.fg, Some(Color::Gray));
+    assert_eq!(span.style.fg, Some(Color::Cyan));
     assert_eq!(span.style.bg, Some(Color::DarkGray));
 }

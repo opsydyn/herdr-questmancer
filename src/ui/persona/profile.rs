@@ -76,6 +76,7 @@ pub fn compose_profile_adventurer_for_palette(
     let roles = appearance_roles_for_palette(&persona.appearance, palette);
     overlay_ancestry(&mut canvas, persona.ancestry, roles, body_pose);
     overlay_class_gear(&mut canvas, persona.class, persona.class.gear());
+    overlay_keepsake(&mut canvas, persona.appearance.keepsake, roles);
     canvas
 }
 
@@ -86,7 +87,6 @@ fn compose_body(appearance: &PersonaAppearance, pose: BodyPose, palette: Palette
 
     draw_head(&mut canvas, appearance.hair, roles, layout);
     draw_body(&mut canvas, appearance.garb, roles, layout, pose);
-    draw_keepsake(&mut canvas, appearance.keepsake, roles, layout);
     canvas
 }
 
@@ -249,29 +249,33 @@ fn draw_garb(canvas: &mut Canvas, garb: Garb, roles: AppearanceRoles, layout: Pr
     }
 }
 
-fn draw_keepsake(
-    canvas: &mut Canvas,
-    keepsake: Keepsake,
-    roles: AppearanceRoles,
-    layout: ProfileLayout,
-) {
-    let x = layout.torso_x + layout.torso_width / 2;
-    let y = layout.torso_y + 3;
+fn overlay_keepsake(canvas: &mut Canvas, keepsake: Keepsake, roles: AppearanceRoles) {
     match keepsake {
-        Keepsake::TinyFamiliar => {
-            canvas.set(layout.torso_x.saturating_sub(2), y, roles.keepsake);
-            canvas.set(layout.torso_x.saturating_sub(2), y + 1, roles.keepsake);
+        Keepsake::Feather => {
+            canvas.set(2, 0, roles.keepsake);
+            canvas.set(3, 1, roles.keepsake);
+            canvas.set(4, 2, roles.keepsake);
+        }
+        Keepsake::LuckyCoin => canvas.fill_rect(12, 19, 2, 2, roles.keepsake),
+        Keepsake::Mug => {
+            canvas.fill_rect(12, 13, 2, 2, roles.keepsake);
+            canvas.set(14, 14, roles.keepsake);
+        }
+        Keepsake::PressedLeaf => {
+            canvas.set(2, 15, roles.keepsake);
+            canvas.set(1, 16, roles.keepsake);
+            canvas.set(2, 17, roles.keepsake);
         }
         Keepsake::Ribbon => {
-            canvas.set(x, y, roles.keepsake);
-            canvas.set(x + 1, y + 1, roles.keepsake);
+            canvas.set(3, 10, roles.keepsake);
+            canvas.set(2, 11, roles.keepsake);
+            canvas.set(4, 11, roles.keepsake);
+            canvas.set(3, 12, roles.keepsake);
         }
-        Keepsake::Feather => {
-            canvas.set(x + 1, y, roles.keepsake);
-            canvas.set(x, y + 1, roles.keepsake);
-        }
-        Keepsake::LuckyCoin | Keepsake::Mug | Keepsake::PressedLeaf => {
-            canvas.fill_rect(x, y, 2, 2, roles.keepsake);
+        Keepsake::TinyFamiliar => {
+            canvas.set(1, 25, roles.keepsake);
+            canvas.fill_rect(0, 26, 3, 1, roles.keepsake);
+            canvas.set(2, 27, roles.keepsake);
         }
     }
 }

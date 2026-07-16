@@ -42,6 +42,30 @@ fn silhouette(canvas: &Canvas) -> String {
         .join("\n")
 }
 
+fn assert_composed_adjacency_contrast(canvas: &Canvas, palette: Palette) {
+    let width = usize::from(canvas.width());
+    let height = usize::from(canvas.height());
+    for y in 0..height {
+        for x in 0..width {
+            let Some(role) = canvas.pixels()[y * width + x] else {
+                continue;
+            };
+            for (next_x, next_y) in [(x + 1, y), (x, y + 1)] {
+                if next_x >= width || next_y >= height {
+                    continue;
+                }
+                let Some(neighbour) = canvas.pixels()[next_y * width + next_x] else {
+                    continue;
+                };
+                assert!(
+                    role == neighbour || palette.roles_contrast(role, neighbour),
+                    "{palette:?} collapses adjacent {role:?} and {neighbour:?} at ({x}, {y})"
+                );
+            }
+        }
+    }
+}
+
 fn assert_adjacency_contrast(roles: questmancer::ui::persona::AppearanceRoles, palette: Palette) {
     for (first, second) in [
         (roles.hair, roles.skin),
@@ -184,6 +208,41 @@ fn every_ancestry_has_a_distinct_profile_anchor() {
         .collect::<HashSet<_>>();
 
     assert_eq!(silhouettes.len(), ancestries.len());
+}
+
+#[test]
+fn every_keepsake_has_distinct_profile_and_chamber_geometry() {
+    let keepsakes = [
+        Keepsake::Feather,
+        Keepsake::LuckyCoin,
+        Keepsake::Mug,
+        Keepsake::PressedLeaf,
+        Keepsake::Ribbon,
+        Keepsake::TinyFamiliar,
+    ];
+    let base = fixed_persona("keepsake-fixture");
+    let profiles = keepsakes
+        .map(|keepsake| {
+            let mut persona = base.clone();
+            persona.appearance.keepsake = keepsake;
+            silhouette(&compose_profile_adventurer(&persona))
+        })
+        .into_iter()
+        .collect::<HashSet<_>>();
+    let chambers = keepsakes
+        .map(|keepsake| {
+            let mut persona = base.clone();
+            persona.appearance.keepsake = keepsake;
+            silhouette(&compose_chamber_adventurer(
+                &persona,
+                frame(TheatrePose::Delving, 0),
+            ))
+        })
+        .into_iter()
+        .collect::<HashSet<_>>();
+
+    assert_eq!(profiles.len(), keepsakes.len());
+    assert_eq!(chambers.len(), keepsakes.len());
 }
 
 #[test]
@@ -370,6 +429,78 @@ fn palette_collision_safety_covers_every_appearance_trait_combination() {
                                     );
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn composed_class_ancestry_and_state_layers_never_collapse_adjacent_roles() {
+    let classes = [
+        AdventurerClass::Barbarian,
+        AdventurerClass::Bard,
+        AdventurerClass::Cleric,
+        AdventurerClass::Paladin,
+        AdventurerClass::Ranger,
+        AdventurerClass::Rogue,
+        AdventurerClass::Wizard,
+        AdventurerClass::Artificer,
+        AdventurerClass::Runewright,
+        AdventurerClass::Testmender,
+        AdventurerClass::Pathseeker,
+    ];
+    let ancestries = [
+        Ancestry::Human,
+        Ancestry::Dwarf,
+        Ancestry::Elf,
+        Ancestry::Halfling,
+        Ancestry::Orc,
+        Ancestry::Gnome,
+        Ancestry::Goblin,
+    ];
+    let poses = [
+        TheatrePose::Delving,
+        TheatrePose::SeekingCounsel,
+        TheatrePose::SpoilsUnopened,
+        TheatrePose::VictoryRecorded,
+        TheatrePose::Resting,
+        TheatrePose::Departed,
+        TheatrePose::Unknown,
+    ];
+
+    for palette in [Palette::Xterm256, Palette::Ansi16] {
+        for skin_tone in [SkinTone::Porcelain, SkinTone::Umber, SkinTone::Ebony] {
+            for class in classes {
+                for ancestry in ancestries {
+                    for keepsake in [
+                        Keepsake::Feather,
+                        Keepsake::LuckyCoin,
+                        Keepsake::Mug,
+                        Keepsake::PressedLeaf,
+                        Keepsake::Ribbon,
+                        Keepsake::TinyFamiliar,
+                    ] {
+                        let mut persona = fixed_persona("composed-palette-fixture");
+                        persona.class = class;
+                        persona.ancestry = ancestry;
+                        persona.appearance.skin_tone = skin_tone;
+                        persona.appearance.keepsake = keepsake;
+                        assert_composed_adjacency_contrast(
+                            &compose_profile_adventurer_for_palette(&persona, palette),
+                            palette,
+                        );
+                        for pose in poses {
+                            assert_composed_adjacency_contrast(
+                                &compose_chamber_adventurer_for_palette(
+                                    &persona,
+                                    frame(pose, 0),
+                                    palette,
+                                ),
+                                palette,
+                            );
                         }
                     }
                 }

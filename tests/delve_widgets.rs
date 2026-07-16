@@ -625,6 +625,45 @@ fn ascii_fallback_keeps_each_action_marker_explicit() {
 }
 
 #[test]
+fn ascii_six_row_silhouettes_own_every_state_marker() {
+    let agent = agent();
+    let preferences = preferences(CharacterSet::Ascii);
+    let cases = [
+        (TheatrePose::Delving, "DELVING", "[>]"),
+        (TheatrePose::SeekingCounsel, "COUNSEL REQUESTED", "[!]"),
+        (TheatrePose::SpoilsUnopened, "SPOILS RETURNED", "[+]"),
+        (TheatrePose::VictoryRecorded, "VICTORY RECORDED", "[+]"),
+        (TheatrePose::Resting, "RESTING", "[~]"),
+        (TheatrePose::Departed, "DEPARTED", "[x]"),
+        (TheatrePose::Unknown, "UNKNOWN", "[?]"),
+    ];
+
+    for (pose, label, marker) in cases {
+        let screen = render_chamber_at(
+            &agent,
+            theatre(pose, 0, false, label),
+            false,
+            preferences,
+            28,
+            10,
+        );
+        let silhouette = screen
+            .lines()
+            .skip(1)
+            .take(6)
+            .map(|row| row.chars().skip(18).take(10).collect::<String>())
+            .collect::<Vec<_>>();
+        assert_eq!(silhouette.len(), 6);
+        assert!(silhouette.iter().all(|row| row.is_ascii()));
+        assert!(
+            silhouette.iter().any(|row| row.contains(marker)),
+            "six-row {pose:?} silhouette lost {marker}:\n{}",
+            silhouette.join("\n")
+        );
+    }
+}
+
+#[test]
 fn injected_frames_make_runes_and_chest_sparkle_deterministic() {
     let agent = agent();
     let preferences = preferences(CharacterSet::Unicode);
