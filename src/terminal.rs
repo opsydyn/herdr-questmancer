@@ -34,7 +34,7 @@ use crate::{
     ui::{self, RenderProjection, theatre::next_projected_frame_in},
 };
 
-type Tui = Terminal<CrosstermBackend<Stdout>>;
+pub(crate) type Tui = Terminal<CrosstermBackend<Stdout>>;
 
 #[derive(Debug)]
 pub struct RuntimeLifecycle {
@@ -175,23 +175,47 @@ impl AnimationScheduler {
 }
 
 #[derive(Debug)]
-struct TerminalGuard;
+enum RestoreAction {
+    Crossterm,
+    #[cfg(test)]
+    Probe(std::sync::Arc<std::sync::atomic::AtomicBool>),
+}
+
+#[derive(Debug)]
+pub(crate) struct TerminalGuard {
+    restore: RestoreAction,
+}
 
 impl TerminalGuard {
-    fn enter() -> Result<(Self, Tui)> {
+    pub(crate) fn enter() -> Result<(Self, Tui)> {
         enable_raw_mode()?;
-        let guard = Self;
+        let guard = Self {
+            restore: RestoreAction::Crossterm,
+        };
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen, EnableMouseCapture, Hide)?;
 
         let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
         Ok((guard, terminal))
     }
+
+    #[cfg(test)]
+    fn for_test(restored: std::sync::Arc<std::sync::atomic::AtomicBool>) -> Self {
+        Self {
+            restore: RestoreAction::Probe(restored),
+        }
+    }
 }
 
 impl Drop for TerminalGuard {
     fn drop(&mut self) {
-        restore();
+        match &self.restore {
+            RestoreAction::Crossterm => restore(),
+            #[cfg(test)]
+            RestoreAction::Probe(restored) => {
+                restored.store(true, std::sync::atomic::Ordering::SeqCst);
+            }
+        }
     }
 }
 
@@ -523,7 +547,13 @@ fn restore() {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+        time::Duration,
+    };
 
     use crate::{
         app::View,
@@ -532,6 +562,14 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn terminal_guard_runs_its_restore_action_on_drop() {
+        let restored = Arc::new(AtomicBool::new(false));
+        let guard = TerminalGuard::for_test(Arc::clone(&restored));
+        drop(guard);
+        assert!(restored.load(Ordering::SeqCst));
+    }
 
     #[tokio::test]
     async fn shutdown_observes_a_requested_signal() {

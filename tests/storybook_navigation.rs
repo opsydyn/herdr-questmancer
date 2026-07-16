@@ -238,3 +238,40 @@ fn storybook_keys_map_completely_without_leaking_production_actions() {
     );
     assert_eq!(action_for_event(&Event::Resize(120, 40)), Action::Ignore);
 }
+
+#[test]
+fn storybook_runtime_uses_the_shared_terminal_without_production_runtime_dependencies() {
+    let source = include_str!("../src/storybook/runtime.rs");
+    assert!(source.contains("terminal::TerminalGuard"));
+
+    for forbidden in [
+        "config::",
+        "herdr::",
+        "persistence::",
+        "runtime_loop::",
+        "RuntimeRegistration",
+        "std::env",
+        "std::fs",
+        "tokio::fs",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "Storybook runtime must not import {forbidden}"
+        );
+    }
+
+    let run = source
+        .split_once("pub async fn run")
+        .expect("runtime must expose run")
+        .1;
+    let validation = run
+        .find("validate_catalogue()")
+        .expect("runtime must validate the catalogue");
+    let terminal_entry = run
+        .find("TerminalGuard::enter()")
+        .expect("runtime must enter the shared terminal guard");
+    assert!(
+        validation < terminal_entry,
+        "catalogue validation must happen before entering the terminal"
+    );
+}
