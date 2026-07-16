@@ -475,3 +475,201 @@ Remaining concern: none known. The chamber atlas's existing 26x9 outer tile has
 a 24x7 inner chamber and now truthfully presents text rather than claiming a
 cropped compact persona scene; exact compact persona coverage is exercised by
 the dedicated 20x8 production-buffer tests.
+
+## Third final-review wave: connected persona and reference motion
+
+Design commit: `834c98a` (`docs: design connected chamber regression fix`).
+Plan commit: `44546fa` (`docs: plan connected chamber regression fix`).
+Implementation commit: `1c9509e` (`fix: restore connected Delve persona motion`).
+
+### Correction to the second-wave conclusion
+
+The second-wave report correctly required `CompactScene` to reserve one name
+row, all six packed persona rows, and one state row, but it incorrectly treated
+the resulting textual height-six connected chambers as an acceptable final
+production result. The normal production connected layout itself authored every
+chamber with a maximum height of six, so raising the renderer threshold to eight
+removed persona and motion art from the entire connected branch. Crop honesty
+was preserved, but a feature-off production capability regressed.
+
+The third wave fixes the production geometry rather than weakening the honest
+rendering contract: authored connected chambers now use up to eight rows when
+their partition permits it. Truly constrained cells retain their actual smaller
+height and remain on the textual fallback.
+
+### Finding 1: normal connected Delves lost complete persona scenes
+
+RED:
+
+```text
+cargo test --test delve_scene connected_layout_allocates_complete_compact_chambers_when_room_allows -- --exact
+FAILED: representative connected anchors were
+[ChamberAnchor { width: 36, height: 6 }, ChamberAnchor { width: 36, height: 6 }]
+
+cargo test --test delve_rendering connected_persona_art_preserves_top_and_bottom_rows -- --exact
+FAILED: Boots and Sabatons produced identical 120x30 production buffers
+("the production connected layout hid the bottom persona row")
+```
+
+GREEN:
+
+- `authored_chambers` raises only its production maximum from six to eight:
+  `(height / rows).clamp(1, 8)`.
+- The existing cell partition remains authoritative, so a cell with fewer than
+  eight available rows is not enlarged and cannot claim persona art.
+- A feature-off structural test proves a representative 120x30 connected room
+  now allocates two complete 36x8 chambers.
+- A feature-off full-buffer test proves both bottom footwear and top hair
+  changes survive through production connected layout and rendering.
+- Exact widget tests continue proving the six persona rows are neither cropped
+  nor overwritten, and Departed remains persona-independent.
+
+```text
+cargo test --test delve_scene
+6 passed; 0 failed
+
+cargo test --test delve_rendering
+30 passed; 0 failed
+
+cargo test --test delve_widgets
+20 passed; 0 failed
+
+cargo test --features storybook --test render_projection
+8 passed; 0 failed
+```
+
+### Finding 2: motion stories hid motion at their declared viewport
+
+RED:
+
+```text
+cargo test --features storybook --test storybook_rendering motion_story_production_buffers_are_pairwise_distinct -- --exact
+FAILED: Full and Reduced production buffers were identical at the declared
+130x36 reference viewport ("working motion must distinguish full")
+```
+
+The earlier 60x34 assertion exercised a fallback size rather than the story
+contract. It passed because compact-list geometry happened to expose full
+chambers there, while the declared 130x36 connected canvas remained textual and
+ignored each calculated `animation_frame`.
+
+GREEN:
+
+- The motion test now resolves each catalogue `Story`, reads its own
+  `Viewport.reference_width` and `Viewport.reference_height`, and renders the
+  production application at those exact dimensions.
+- It first proves the three motion stories share a comparable declared
+  viewport, then requires Full, Reduced, and None buffers to be pairwise
+  distinct.
+- Restored eight-row connected chambers make the Working Full-motion cue and
+  Idle Reduced-motion cue visible without changing the deterministic fixture,
+  story metadata, or motion semantics.
+- Catalogue projection expectations now truthfully report `CompactScene` for
+  the restored 130x36 connected reference branch; minimum textual and
+  intermediate full branches remain distinct.
+
+```text
+cargo test --features storybook --test storybook_catalogue
+21 passed; 0 failed
+
+cargo test --features storybook --test storybook_fixtures
+6 passed; 0 failed
+
+cargo test --features storybook --test storybook_rendering
+29 passed; 0 failed
+```
+
+## Third-wave final verification matrix
+
+Every required command was rerun after implementation commit `1c9509e`:
+
+```text
+cargo fmt --all --check
+PASS
+
+cargo clippy --all-targets --all-features -- -D warnings
+PASS
+
+cargo test --all-targets --all-features
+PASS
+
+PROPTEST_CASES=1024 cargo test --features storybook --test storybook_properties
+4 passed; 0 failed
+
+cargo test --all-targets
+PASS (feature-off; Storybook-gated integration targets ran 0 tests as expected)
+
+bash tests/scripts.sh
+workflow contracts: valid
+scripts: 20 passed
+
+bash -n tests/scripts.sh herdr/install.sh herdr/run.sh herdr/control.sh
+PASS
+
+cargo build --release
+PASS
+
+git diff --check
+PASS
+```
+
+## Third-wave Herdr-free PTY smoke
+
+The changed production connected output was repeated in a real 80x24 PTY with
+all discovered Herdr variables explicitly unset:
+
+```text
+env -u HERDR_BIN_PATH -u HERDR_PANE_ID -u HERDR_PLUGIN_ID \
+  -u HERDR_PLUGIN_STATE_DIR -u HERDR_PLUGIN_ROOT \
+  -u HERDR_PLUGIN_CONFIG_DIR -u HERDR_SOCKET_PATH \
+  cargo run --features storybook --bin questmancer-storybook
+```
+
+Observed actions:
+
+1. The offline catalogue launched with `validation: PASS` and 158 owned assets.
+2. The named Forgotten Library story opened through the production renderer at
+   the actual 80x24 PTY size.
+3. Both connected chambers visibly contained a name row, six complete packed
+   persona/scene rows, and a state row; footwear and head rows were present.
+4. Compatibility navigation opened Reduced and Full Motion stories whose
+   header reported their declared `ref 130x36` metadata. Their connected
+   production canvases displayed packed rune/persona motion cues rather than
+   textual chambers.
+5. `?` opened and closed the complete help overlay, Escape returned to the
+   catalogue between inspections, and `q` exited with status 0.
+6. Exit emitted cursor, mouse-capture, and alternate-screen restoration
+   sequences.
+
+No Herdr service, Herdr environment, persistence, network, or filesystem write
+was used by the Storybook session.
+
+## Third-wave self-review
+
+Reviewed the full third-wave implementation and its interaction with every
+production chamber height class:
+
+- zero width or height remains `Hidden` and claims no persona;
+- nonzero chambers below 14x8 remain `Text` and claim no persona;
+- chambers from 14x8 use `CompactScene`, with exactly one name row, six complete
+  scene/persona rows, and one state row;
+- chambers from 28x10 remain `Full`; their scene is still capped at the same six
+  complete persona rows;
+- production authored geometry now requests at most eight rows and never
+  exceeds its partition, so constrained connected cells remain honest Text;
+- Departed overrides every otherwise-visible chamber presentation to
+  `PersonaRenderMode::None` in Unicode and ASCII, and complete-buffer tests show
+  that changing its persona cannot affect output;
+- the Delve renderer still receives the same render-authoritative structural
+  projection; no layout or chamber calculation returned to the view;
+- motion buffers are rendered from each story's declared reference dimensions,
+  not a hardcoded fallback, and the test guards viewport equality before
+  comparing buffers;
+- no viewport, story ID/order, ownership count, dependency, unsafe code,
+  terminal lifecycle, or Storybook-to-production dependency changed. The
+  validated totals remain 44 stories and 158 owned assets.
+
+Remaining concern: none known. The feature-off structural/property suites keep
+all authored chambers inside their partitions, while the exact presentation and
+full-buffer tests jointly guard both constrained honesty and complete persona
+visibility.
