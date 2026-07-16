@@ -11,6 +11,7 @@ use crate::{
     app::{CharacterSet, ConnectionState, Model, Region},
     domain::{Agent, AgentKey, CampaignStatus, GuildSummons, Presence},
     ui::{
+        EffectCells, GuildGoblinEvidence,
         copy::{self, EMPTY_GUILD, SCRYING_CLOUDED, SCRYING_STILL},
         goblins,
         theme::{ACCENT, INK, MUTED},
@@ -29,11 +30,11 @@ const ASCII_BORDER: border::Set<'static> = border::Set {
     horizontal_bottom: "-",
 };
 
-pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) -> (bool, bool) {
+pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) -> GuildGoblinEvidence {
     let area = frame.area();
     if area.width < 4 || area.height < 3 {
         frame.render_widget(Paragraph::new("G").style(ACCENT), area);
-        return (false, false);
+        return GuildGoblinEvidence::default();
     }
 
     let footer_lines = footer_lines(model, area.width);
@@ -60,19 +61,22 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) -> (bool, bool) {
     let content = render_connection_banner(frame, inner, model);
     let marginalia_visible = if model.domain().agents.is_empty() {
         render_empty(frame, content);
-        false
+        EffectCells::default()
     } else if area.width >= 120 {
         render_wide(frame, content, model)
     } else if area.width >= 80 {
         render_medium(frame, content, model);
-        false
+        EffectCells::default()
     } else {
         render_focused(frame, content, model)
     };
 
     let sprite_visible = goblins::render(frame, content, model);
     render_footer(frame, footer, &footer_lines);
-    (marginalia_visible, sprite_visible)
+    GuildGoblinEvidence {
+        sprites: sprite_visible,
+        marginalia: marginalia_visible,
+    }
 }
 
 fn render_connection_banner(frame: &mut Frame<'_>, area: Rect, model: &Model) -> Rect {
@@ -129,7 +133,7 @@ fn render_empty(frame: &mut Frame<'_>, area: Rect) {
     );
 }
 
-fn render_wide(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
+fn render_wide(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCells {
     let [board, guild, selected] = ratatui::layout::Layout::horizontal([
         Constraint::Percentage(25),
         Constraint::Percentage(36),
@@ -179,7 +183,7 @@ fn render_medium(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     render_scrying(frame, scrying, model, true);
 }
 
-fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
+fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCells {
     let [primary, diagnostic] = if model.status_message().is_some() {
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(2)]).areas(area)
     } else {
@@ -188,15 +192,15 @@ fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
     let marginalia_visible = match model.region() {
         Region::QuestBoard => {
             render_quest_board(frame, primary, model);
-            false
+            EffectCells::default()
         }
         Region::Party => {
             render_party(frame, primary, model);
-            false
+            EffectCells::default()
         }
         Region::Summons => {
             render_summons(frame, primary, model);
-            false
+            EffectCells::default()
         }
         Region::Chronicle => render_chronicle(frame, primary, model),
         Region::Adventurer => {
@@ -208,7 +212,7 @@ fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
             .areas(primary);
             render_adventurer(frame, adventurer, model, false);
             render_scrying(frame, scrying, model, false);
-            false
+            EffectCells::default()
         }
     };
     if let Some(status) = model.status_message() {
@@ -320,7 +324,7 @@ fn summons_line(agent: &Agent, character_set: CharacterSet) -> Option<Line<'stat
     ))
 }
 
-fn render_chronicle(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
+fn render_chronicle(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCells {
     let mut lines = model
         .domain()
         .chronicle
@@ -343,7 +347,7 @@ fn render_chronicle(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
         model.preferences().character_set,
     );
     if !model.goblins().is_visible(model.now()) {
-        return false;
+        return EffectCells::default();
     }
     let baseline = frame.buffer_mut().clone();
     render_panel(
@@ -353,7 +357,7 @@ fn render_chronicle(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
         Text::from(lines),
         model.preferences().character_set,
     );
-    frame.buffer_mut() != &baseline
+    EffectCells::changed_between(&baseline, frame.buffer_mut(), area)
 }
 
 fn render_adventurer(frame: &mut Frame<'_>, area: Rect, model: &Model, include_summons: bool) {

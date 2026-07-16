@@ -10,7 +10,10 @@ use ratatui::{
 use crate::{
     app::{CharacterSet, Model, Motion},
     domain::{Timestamp, WorkspaceId},
-    ui::pixel::{ColorRole, Palette},
+    ui::{
+        EffectCells,
+        pixel::{ColorRole, Palette},
+    },
 };
 
 const OUTBREAK_FPS: u8 = 4;
@@ -86,9 +89,9 @@ impl GoblinState {
     }
 }
 
-pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
+pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCells {
     if area.width == 0 || area.height == 0 || model.preferences().motion == Motion::None {
-        return false;
+        return EffectCells::default();
     }
 
     let outbreak = model.goblins().is_visible(model.now());
@@ -102,7 +105,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
         })
         .flatten();
     if !outbreak && sighting.is_none() {
-        return false;
+        return EffectCells::default();
     }
 
     let pattern = match model.preferences().character_set {
@@ -121,6 +124,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
     };
     let style =
         Style::new().fg(Palette::from(model.preferences().color_mode).resolve(ColorRole::Goblin));
+    let baseline = outbreak.then(|| frame.buffer_mut().clone());
     let mut offset = frame_index.saturating_mul(17);
     let mut rendered = false;
     for _ in 0..count {
@@ -131,7 +135,12 @@ pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, model: &Model) -> bool {
         rendered = true;
         offset = offset.saturating_add(31);
     }
-    outbreak && rendered
+    if !rendered {
+        return EffectCells::default();
+    }
+    baseline.map_or_else(EffectCells::default, |before| {
+        EffectCells::changed_between(&before, frame.buffer_mut(), area)
+    })
 }
 
 fn blank_origin(

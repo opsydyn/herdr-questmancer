@@ -18,31 +18,115 @@ use crate::{
 /// returns no adventurers for empty or zero-sized surfaces.
 #[must_use]
 pub fn visible_agent_keys(model: &Model, terminal_area: Rect) -> BTreeSet<AgentKey> {
+    render_projection(model, terminal_area).visible_agent_keys
+}
+
+#[derive(Debug)]
+pub(crate) struct DelveRenderProjection {
+    pub(crate) footer_lines: Vec<String>,
+    pub(crate) visible_agent_keys: BTreeSet<AgentKey>,
+}
+
+pub(crate) fn render_projection(model: &Model, terminal_area: Rect) -> DelveRenderProjection {
     if terminal_area.width < 4 || terminal_area.height < 3 || model.domain().agents.is_empty() {
-        return BTreeSet::new();
+        return DelveRenderProjection {
+            footer_lines: footer_lines(model, terminal_area.width),
+            visible_agent_keys: BTreeSet::new(),
+        };
     }
 
-    let footer_height = footer_height(terminal_area.width);
+    let footer_lines = footer_lines(model, terminal_area.width);
+    let footer_height = u16::try_from(footer_lines.len()).unwrap_or(u16::MAX);
     let [body, _footer] =
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(terminal_area);
     let inner = Block::default().borders(Borders::ALL).inner(body);
 
-    if inner.width >= 78 {
+    let visible_agent_keys = if inner.width >= 78 {
         visible_connected_agents(model, inner)
     } else {
         visible_compact_agents(model, inner)
+    };
+    DelveRenderProjection {
+        footer_lines,
+        visible_agent_keys,
     }
 }
 
-pub(crate) const fn footer_height(width: u16) -> u16 {
-    if width <= 70 {
-        3
-    } else if width <= 80 {
-        2
-    } else {
-        1
+fn footer_lines(model: &Model, width: u16) -> Vec<String> {
+    if width <= 80 {
+        let (global, selected) = footer_action_groups(model);
+        let mut lines = pack_footer_actions(&global, width, " ");
+        lines.extend(pack_footer_actions(&selected, width, " "));
+        return lines;
     }
+    pack_footer_actions(&wide_footer_actions(model), width, "  ")
+}
+
+fn footer_action_groups(model: &Model) -> (Vec<&'static str>, Vec<&'static str>) {
+    let mut global = vec!["[1] guild", "[2] delves"];
+    let mut selected = Vec::new();
+    if !model.domain().agents.is_empty() {
+        global.extend(["[j/k] navigate", "[/] search"]);
+        if model.selected_agent().is_some() {
+            selected.extend(["[enter] observe", "[r] counsel", "[o] refresh"]);
+            if model
+                .selected_agent()
+                .is_some_and(|agent| agent.attention.is_unread())
+            {
+                selected.push("[space] acknowledge summons");
+            }
+            if model.reviewr_available() {
+                global.push("[v] inspect spoils");
+            }
+        }
+    }
+    (global, selected)
+}
+
+fn wide_footer_actions(model: &Model) -> Vec<&'static str> {
+    let mut actions = vec!["[1] guild", "[2] delves"];
+    if !model.domain().agents.is_empty() {
+        actions.push("[j/k] navigate");
+        if model.selected_agent().is_some() {
+            actions.extend(["[enter] observe", "[r] counsel", "[o] refresh"]);
+            if model
+                .selected_agent()
+                .is_some_and(|agent| agent.attention.is_unread())
+            {
+                actions.push("[space] acknowledge summons");
+            }
+            if model.reviewr_available() {
+                actions.push("[v] inspect spoils");
+            }
+        }
+        actions.push("[/] search");
+    }
+    actions
+}
+
+fn pack_footer_actions(actions: &[&str], width: u16, separator: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    for action in actions {
+        if !line.is_empty()
+            && line
+                .len()
+                .saturating_add(separator.len())
+                .saturating_add(action.len())
+                > usize::from(width)
+        {
+            lines.push(std::mem::take(&mut line));
+        }
+        if !line.is_empty() {
+            line.push_str(separator);
+        }
+        line.push_str(action);
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    lines
 }
 
 fn visible_connected_agents(model: &Model, area: Rect) -> BTreeSet<AgentKey> {

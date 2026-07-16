@@ -728,6 +728,33 @@ fn footer_advertises_only_available_delve_actions() {
 }
 
 #[test]
+fn complete_delve_footer_is_visible_at_review_boundaries() {
+    for width in [60, 81, 120] {
+        let mut model = three_agent_model();
+        model.set_reviewr_available(true);
+
+        let screen = render(&model, width, 24);
+
+        for action in [
+            "[1] guild",
+            "[2] delves",
+            "[j/k] navigate",
+            "[enter] observe",
+            "[r] counsel",
+            "[o] refresh",
+            "[space] acknowledge summons",
+            "[v] inspect spoils",
+            "[/] search",
+        ] {
+            assert!(
+                screen.contains(action),
+                "{width} columns clipped {action:?}:\n{screen}"
+            );
+        }
+    }
+}
+
+#[test]
 fn offline_and_incompatible_overlays_preserve_the_last_visible_adventurer_states() {
     let cases = [
         (ConnectionState::Offline, "DISCONNECTED"),

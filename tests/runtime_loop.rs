@@ -753,3 +753,32 @@ async fn visible_guild_sprite_and_marginalia_arm_their_exact_boundaries() {
     tokio::time::advance(std::time::Duration::from_millis(1)).await;
     assert!(notice_scheduler.wait().now_or_never().is_some());
 }
+
+#[tokio::test(start_paused = true)]
+async fn help_overlay_removes_hidden_goblin_effects_from_the_scheduler_projection() {
+    let area = Rect::new(0, 0, 40, 10);
+    let clock = RuntimeClock::new(Timestamp::from_millis(0));
+    let mut model = connected_model_with_presence(Presence::Working);
+    model.set_region(Region::Chronicle);
+    model.set_preferences(DisplayPreferences {
+        motion: Motion::None,
+        ..DisplayPreferences::default()
+    });
+    model.set_settings(RuntimeSettings {
+        show_elapsed_time: false,
+        ..RuntimeSettings::default()
+    });
+    model.goblins_mut().release(Timestamp::from_millis(0));
+
+    let visible = render_projection(&model, area);
+    assert!(visible.guild_goblin_effect_visible());
+
+    model.toggle_help();
+    let covered = render_projection(&model, area);
+    assert!(!covered.guild_goblin_effect_visible());
+
+    let mut scheduler = AnimationScheduler::new();
+    scheduler.reset_for(&model, area, covered, &clock);
+    tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
+    assert!(scheduler.wait().now_or_never().is_none());
+}

@@ -11,7 +11,7 @@ use crate::{
     app::{CharacterSet, ConnectionState, DisplayPreferences, Model},
     domain::AgentKey,
     ui::{
-        delve_projection::{footer_height, visible_agent_keys},
+        delve_projection,
         pixel::{ColorRole, Palette},
         theatre::frame_for,
         widgets::render_chamber,
@@ -69,9 +69,9 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         frame.render_widget(Paragraph::new("D").style(styles.accent), area);
         return;
     }
-    let visible_agents = visible_agent_keys(model, area);
+    let projection = delve_projection::render_projection(model, area);
 
-    let footer_height = footer_height(area.width);
+    let footer_height = u16::try_from(projection.footer_lines.len()).unwrap_or(u16::MAX);
     let [body, footer] =
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(area);
@@ -94,12 +94,12 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
     if model.domain().agents.is_empty() {
         render_empty(frame, inner, styles);
     } else if inner.width >= 78 {
-        render_connected_delves(frame, inner, model, styles, &visible_agents);
+        render_connected_delves(frame, inner, model, styles, &projection.visible_agent_keys);
         if !matches!(model.connection(), ConnectionState::Reconnecting { .. }) {
             render_connection_overlay(frame, inner, model.connection(), styles);
         }
     } else {
-        render_compact_list(frame, inner, model, &visible_agents);
+        render_compact_list(frame, inner, model, &projection.visible_agent_keys);
         render_connection_overlay(
             frame,
             Rect::new(inner.x, inner.y, inner.width, 1),
@@ -108,7 +108,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
         );
     }
 
-    render_footer(frame, footer, model, styles);
+    render_footer(frame, footer, &projection.footer_lines, styles);
 }
 
 #[allow(clippy::too_many_lines)]
@@ -655,92 +655,19 @@ fn render_empty(frame: &mut Frame<'_>, area: Rect, styles: DelveStyles) {
     );
 }
 
-fn render_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: DelveStyles) {
-    if area.height > 1 {
-        render_narrow_footer(frame, area, model, styles);
-        return;
-    }
-    let mut actions = vec!["[1] guild", "[2] delves"];
-    if !model.domain().agents.is_empty() {
-        actions.push("[j/k] navigate");
-        if model.selected_agent().is_some() {
-            actions.extend(["[enter] observe", "[r] counsel", "[o] refresh"]);
-            if model
-                .selected_agent()
-                .is_some_and(|agent| agent.attention.is_unread())
-            {
-                actions.push("[space] acknowledge summons");
-            }
-            if model.reviewr_available() {
-                actions.push("[v] inspect spoils");
-            }
-        }
-        actions.push("[/] search");
-    }
-    frame.render_widget(
-        Paragraph::new(actions.join("  "))
-            .alignment(if area.width >= 100 {
-                Alignment::Center
-            } else {
-                Alignment::Left
-            })
-            .style(styles.muted),
-        area,
-    );
-}
-
-fn render_narrow_footer(frame: &mut Frame<'_>, area: Rect, model: &Model, styles: DelveStyles) {
-    let mut global = vec!["[1] guild", "[2] delves"];
-    let mut selected = Vec::new();
-    if !model.domain().agents.is_empty() {
-        global.extend(["[j/k] navigate", "[/] search"]);
-        if model.selected_agent().is_some() {
-            selected.extend(["[enter] observe", "[r] counsel", "[o] refresh"]);
-            if model
-                .selected_agent()
-                .is_some_and(|agent| agent.attention.is_unread())
-            {
-                selected.push("[space] acknowledge summons");
-            }
-            if model.reviewr_available() {
-                global.push("[v] inspect spoils");
-            }
-        }
-    }
-    let mut lines = pack_footer_actions(&global, area.width);
-    lines.extend(pack_footer_actions(&selected, area.width));
+fn render_footer(frame: &mut Frame<'_>, area: Rect, lines: &[String], styles: DelveStyles) {
     frame.render_widget(
         Paragraph::new(Text::from(
-            lines.into_iter().map(Line::from).collect::<Vec<_>>(),
+            lines.iter().cloned().map(Line::from).collect::<Vec<_>>(),
         ))
+        .alignment(if lines.len() == 1 && area.width >= 100 {
+            Alignment::Center
+        } else {
+            Alignment::Left
+        })
         .style(styles.muted),
         area,
     );
-}
-
-fn pack_footer_actions(actions: &[&str], width: u16) -> Vec<String> {
-    let mut lines = Vec::new();
-    let mut line = String::new();
-    for action in actions {
-        let separator = usize::from(!line.is_empty());
-        if !line.is_empty()
-            && line
-                .len()
-                .saturating_add(separator)
-                .saturating_add(action.len())
-                > usize::from(width)
-        {
-            lines.push(std::mem::take(&mut line));
-        }
-        if !line.is_empty() {
-            line.push(' ');
-        }
-        line.push_str(action);
-    }
-    if !line.is_empty() {
-        lines.push(line);
-    }
-    lines
 }
 
 fn render_connection_overlay(
