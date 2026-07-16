@@ -1,6 +1,7 @@
 use std::{
     io::{self, Stdout},
     panic,
+    sync::{Arc, Mutex, OnceLock, Weak, atomic::AtomicBool},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -143,6 +144,10 @@ impl AnimationScheduler {
         Self { sleep: None }
     }
 
+    #[allow(
+        clippy::needless_pass_by_value,
+        reason = "the scheduler API accepts the render result directly at production and test call sites"
+    )]
     pub fn reset_for(
         &mut self,
         model: &Model,
@@ -182,16 +187,88 @@ enum RestoreAction {
 }
 
 #[derive(Debug)]
+struct RestoreGate {
+    restored: AtomicBool,
+    action: RestoreAction,
+}
+
+impl RestoreGate {
+    fn new(action: RestoreAction) -> Self {
+        Self {
+            restored: AtomicBool::new(false),
+            action,
+        }
+    }
+
+    fn restore_once(&self) {
+        if self
+            .restored
+            .compare_exchange(
+                false,
+                true,
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+            )
+            .is_err()
+        {
+            return;
+        }
+        match &self.action {
+            RestoreAction::Crossterm => restore(),
+            #[cfg(test)]
+            RestoreAction::Probe(restore_count) => {
+                restore_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }
+        }
+    }
+}
+
+fn active_restore_gate() -> &'static Mutex<Option<Weak<RestoreGate>>> {
+    static ACTIVE: OnceLock<Mutex<Option<Weak<RestoreGate>>>> = OnceLock::new();
+    ACTIVE.get_or_init(|| Mutex::new(None))
+}
+
+fn register_restore_gate(gate: &Arc<RestoreGate>) {
+    *active_restore_gate()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(Arc::downgrade(gate));
+}
+
+fn clear_restore_gate(gate: &Arc<RestoreGate>) {
+    let mut active = active_restore_gate()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if active
+        .as_ref()
+        .and_then(Weak::upgrade)
+        .is_some_and(|candidate| Arc::ptr_eq(&candidate, gate))
+    {
+        *active = None;
+    }
+}
+
+fn restore_active_terminal() {
+    let gate = active_restore_gate()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .as_ref()
+        .and_then(Weak::upgrade);
+    if let Some(gate) = gate {
+        gate.restore_once();
+    }
+}
+
+#[derive(Debug)]
 pub(crate) struct TerminalGuard {
-    restore: RestoreAction,
+    restore: Arc<RestoreGate>,
 }
 
 impl TerminalGuard {
     pub(crate) fn enter() -> Result<(Self, Tui)> {
         enable_raw_mode()?;
-        let guard = Self {
-            restore: RestoreAction::Crossterm,
-        };
+        let restore = Arc::new(RestoreGate::new(RestoreAction::Crossterm));
+        register_restore_gate(&restore);
+        let guard = Self { restore };
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen, EnableMouseCapture, Hide)?;
 
@@ -202,27 +279,27 @@ impl TerminalGuard {
     #[cfg(test)]
     fn for_test(restore_count: std::sync::Arc<std::sync::atomic::AtomicUsize>) -> Self {
         Self {
-            restore: RestoreAction::Probe(restore_count),
+            restore: Arc::new(RestoreGate::new(RestoreAction::Probe(restore_count))),
         }
+    }
+
+    #[cfg(test)]
+    fn restore_for_panic(&self) {
+        self.restore.restore_once();
     }
 }
 
 impl Drop for TerminalGuard {
     fn drop(&mut self) {
-        match &self.restore {
-            RestoreAction::Crossterm => restore(),
-            #[cfg(test)]
-            RestoreAction::Probe(restore_count) => {
-                restore_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            }
-        }
+        self.restore.restore_once();
+        clear_restore_gate(&self.restore);
     }
 }
 
 pub fn install_panic_hook() {
     let previous = panic::take_hook();
     panic::set_hook(Box::new(move |info| {
-        restore();
+        restore_active_terminal();
         previous(info);
     }));
 }
@@ -578,6 +655,25 @@ mod tests {
         let moved_guard = guard;
         drop(moved_guard);
         assert_eq!(restore_count.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn panic_restore_and_guard_drop_share_one_exactly_once_gate() {
+        let restore_count = Arc::new(AtomicUsize::new(0));
+        let guard = TerminalGuard::for_test(Arc::clone(&restore_count));
+        guard.restore_for_panic();
+        drop(guard);
+        assert_eq!(restore_count.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn sequential_terminal_sessions_each_restore_once() {
+        let restore_count = Arc::new(AtomicUsize::new(0));
+        for expected in 1..=2 {
+            let guard = TerminalGuard::for_test(Arc::clone(&restore_count));
+            drop(guard);
+            assert_eq!(restore_count.load(Ordering::SeqCst), expected);
+        }
     }
 
     #[tokio::test]

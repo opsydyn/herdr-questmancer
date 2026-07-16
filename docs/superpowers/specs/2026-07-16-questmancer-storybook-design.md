@@ -330,6 +330,9 @@ plugin manifest.
   viewport;
 - application stories execute production `ui::render`;
 - atlas tiles execute registered production renderers;
+- every production-owned asset family has renderer-consumption evidence, and
+  visually meaningful variants have pairwise-distinct canonical output rather
+  than only non-empty canvases;
 - representative labels and asset evidence are present;
 - the catalogue, inspection view, help and too-small screen render safely.
 

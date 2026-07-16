@@ -1,8 +1,8 @@
 #![cfg(feature = "storybook")]
 
 use questmancer::{
-    app::{Modal, View},
-    domain::{AdventurerClass, AdventurerPersona, PersonaKey},
+    app::{DisplayPreferences, Modal, Motion, View},
+    domain::{AdventurerClass, AdventurerPersona, PersonaKey, Presence},
     storybook::{
         AssetId, SceneAsset,
         app::{Action, StorybookApp, reduce},
@@ -14,7 +14,7 @@ use questmancer::{
     ui::{
         persona::compose_chamber_adventurer_for_palette,
         pixel::pack,
-        theatre::{TheatreFrame, TheatrePose},
+        theatre::{TheatreFrame, TheatrePose, frame_for},
     },
 };
 use ratatui::{
@@ -50,6 +50,94 @@ fn render_storybook_buffer(
 
 fn buffer_text(buffer: &Buffer) -> String {
     buffer.content().iter().map(Cell::symbol).collect()
+}
+
+fn compatibility_model(id: &str) -> questmancer::app::Model {
+    let story = catalogue()
+        .iter()
+        .find(|story| story.id.as_str() == id)
+        .unwrap();
+    let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
+        panic!("{id} must be an application fixture");
+    };
+    model
+}
+
+#[test]
+fn motion_stories_share_one_phased_baseline_and_only_change_motion() {
+    let mut full = compatibility_model("compat.motion-full");
+    let mut reduced = compatibility_model("compat.motion-reduced");
+    let mut none = compatibility_model("compat.motion-none");
+
+    let baseline_preferences = DisplayPreferences {
+        motion: Motion::Full,
+        ..*full.preferences()
+    };
+    full.set_preferences(baseline_preferences);
+    reduced.set_preferences(baseline_preferences);
+    none.set_preferences(baseline_preferences);
+    assert_eq!(full, reduced);
+    assert_eq!(full, none);
+
+    let working = full
+        .domain()
+        .agents
+        .values()
+        .find(|agent| agent.presence == Presence::Working)
+        .unwrap();
+    let idle = full
+        .domain()
+        .agents
+        .values()
+        .find(|agent| agent.presence == Presence::Idle)
+        .unwrap();
+    let full_preferences = DisplayPreferences {
+        motion: Motion::Full,
+        ..baseline_preferences
+    };
+    let reduced_preferences = DisplayPreferences {
+        motion: Motion::Reduced,
+        ..baseline_preferences
+    };
+    let none_preferences = DisplayPreferences {
+        motion: Motion::None,
+        ..baseline_preferences
+    };
+    assert_ne!(
+        frame_for(working, full.now(), &full_preferences).animation_frame,
+        0
+    );
+    assert_eq!(
+        frame_for(working, full.now(), &reduced_preferences).animation_frame,
+        0
+    );
+    assert_eq!(
+        frame_for(working, full.now(), &none_preferences).animation_frame,
+        0
+    );
+    assert_ne!(
+        frame_for(idle, full.now(), &reduced_preferences).animation_frame,
+        0
+    );
+    assert_eq!(
+        frame_for(idle, full.now(), &none_preferences).animation_frame,
+        0
+    );
+}
+
+#[test]
+fn motion_story_production_buffers_are_pairwise_distinct() {
+    let render = |id| {
+        let model = compatibility_model(id);
+        storybook_ui::render_application_buffer(&model, 130, 34)
+    };
+    let full = render("compat.motion-full");
+    let reduced = render("compat.motion-reduced");
+    let none = render("compat.motion-none");
+
+    assert_ne!(full, reduced, "working motion must distinguish full");
+    assert_ne!(reduced, none, "idle motion must distinguish reduced");
+    assert_ne!(full, none);
 }
 
 #[allow(

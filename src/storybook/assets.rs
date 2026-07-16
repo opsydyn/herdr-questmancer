@@ -36,8 +36,18 @@ pub enum AssetId {
     Compatibility(CompatibilityAsset),
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum WidgetAsset {
+macro_rules! storybook_asset_enum {
+    ($name:ident { $($variant:ident),+ $(,)? }) => {
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+        pub enum $name { $($variant),+ }
+
+        impl $name {
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+        }
+    };
+}
+
+storybook_asset_enum!(WidgetAsset {
     AdventurerCardFull,
     AdventurerCardCompact,
     ChamberFull,
@@ -52,10 +62,9 @@ pub enum WidgetAsset {
     Counsel,
     Search,
     Help,
-}
+});
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum SceneAsset {
+storybook_asset_enum!(SceneAsset {
     GuildEmpty,
     GuildPopulated,
     GuildMixedAttention,
@@ -65,17 +74,16 @@ pub enum SceneAsset {
     MixedStateDelve,
     NarrowGuild,
     NarrowDelve,
-}
+});
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum CompatibilityAsset {
+storybook_asset_enum!(CompatibilityAsset {
     UnicodeXterm256,
     UnicodeAnsi16,
     AsciiAnsi16,
     MotionFull,
     MotionReduced,
     MotionNone,
-}
+});
 
 impl AssetId {
     #[must_use]
@@ -289,206 +297,63 @@ impl AssetId {
     }
 }
 
-pub(super) const CLASSES: &[AssetId] = &[
-    AssetId::Class(AdventurerClass::Barbarian),
-    AssetId::Class(AdventurerClass::Bard),
-    AssetId::Class(AdventurerClass::Cleric),
-    AssetId::Class(AdventurerClass::Paladin),
-    AssetId::Class(AdventurerClass::Ranger),
-    AssetId::Class(AdventurerClass::Rogue),
-    AssetId::Class(AdventurerClass::Wizard),
-    AssetId::Class(AdventurerClass::Artificer),
-    AssetId::Class(AdventurerClass::Runewright),
-    AssetId::Class(AdventurerClass::Testmender),
-    AssetId::Class(AdventurerClass::Pathseeker),
-];
-pub(super) const GEAR: &[AssetId] = &[
-    AssetId::Gear(AdventuringGear::Axe),
-    AssetId::Gear(AdventuringGear::BowAndQuiver),
-    AssetId::Gear(AdventuringGear::HolySymbol),
-    AssetId::Gear(AdventuringGear::Lute),
-    AssetId::Gear(AdventuringGear::MapAndCompass),
-    AssetId::Gear(AdventuringGear::RuneChisel),
-    AssetId::Gear(AdventuringGear::Shield),
-    AssetId::Gear(AdventuringGear::SpellbookAndStaff),
-    AssetId::Gear(AdventuringGear::TestKit),
-    AssetId::Gear(AdventuringGear::ThievesTools),
-    AssetId::Gear(AdventuringGear::Toolkit),
-];
-pub(super) const ANCESTRIES: &[AssetId] = &[
-    AssetId::Ancestry(Ancestry::Human),
-    AssetId::Ancestry(Ancestry::Dwarf),
-    AssetId::Ancestry(Ancestry::Elf),
-    AssetId::Ancestry(Ancestry::Halfling),
-    AssetId::Ancestry(Ancestry::Orc),
-    AssetId::Ancestry(Ancestry::Gnome),
-    AssetId::Ancestry(Ancestry::Goblin),
-];
-pub(super) const BODY_PROPORTIONS: &[AssetId] = &[
-    AssetId::BodyProportions(BodyProportions::Compact),
-    AssetId::BodyProportions(BodyProportions::Average),
-    AssetId::BodyProportions(BodyProportions::Tall),
-    AssetId::BodyProportions(BodyProportions::Broad),
-];
-pub(super) const HEAD_SHAPES: &[AssetId] = &[
-    AssetId::HeadShape(HeadShape::Round),
-    AssetId::HeadShape(HeadShape::Square),
-    AssetId::HeadShape(HeadShape::Long),
-    AssetId::HeadShape(HeadShape::Angular),
-];
-pub(super) const SKIN_TONES: &[AssetId] = &[
-    AssetId::SkinTone(SkinTone::Porcelain),
-    AssetId::SkinTone(SkinTone::Rose),
-    AssetId::SkinTone(SkinTone::Sand),
-    AssetId::SkinTone(SkinTone::Umber),
-    AssetId::SkinTone(SkinTone::Sienna),
-    AssetId::SkinTone(SkinTone::Ebony),
-];
-pub(super) const HAIR_SHAPES: &[AssetId] = &[
-    AssetId::HairShape(HairShape::Crop),
-    AssetId::HairShape(HairShape::Fringe),
-    AssetId::HairShape(HairShape::Curls),
-    AssetId::HairShape(HairShape::Quiff),
-    AssetId::HairShape(HairShape::Bob),
-    AssetId::HairShape(HairShape::Spikes),
-    AssetId::HairShape(HairShape::Ponytail),
-    AssetId::HairShape(HairShape::Shaved),
-];
-pub(super) const HAIR_TONES: &[AssetId] = &[
-    AssetId::HairTone(HairTone::Black),
-    AssetId::HairTone(HairTone::Espresso),
-    AssetId::HairTone(HairTone::Chestnut),
-    AssetId::HairTone(HairTone::Copper),
-    AssetId::HairTone(HairTone::Gold),
-    AssetId::HairTone(HairTone::Silver),
-];
-pub(super) const FACE_DETAILS: &[AssetId] = &[
-    AssetId::FaceDetail(FaceDetail::None),
-    AssetId::FaceDetail(FaceDetail::RoundGlasses),
-    AssetId::FaceDetail(FaceDetail::SquareGlasses),
-    AssetId::FaceDetail(FaceDetail::Visor),
-    AssetId::FaceDetail(FaceDetail::Freckles),
-    AssetId::FaceDetail(FaceDetail::Moustache),
-];
-pub(super) const GARBS: &[AssetId] = &[
-    AssetId::Garb(Garb::Armour),
-    AssetId::Garb(Garb::Cloak),
-    AssetId::Garb(Garb::Doublet),
-    AssetId::Garb(Garb::Leathers),
-    AssetId::Garb(Garb::Robes),
-    AssetId::Garb(Garb::Vestments),
-    AssetId::Garb(Garb::WorkApron),
-];
-pub(super) const LEGWEAR: &[AssetId] = &[
-    AssetId::Legwear(Legwear::BootsAndBreeches),
-    AssetId::Legwear(Legwear::Greaves),
-    AssetId::Legwear(Legwear::RobeHem),
-    AssetId::Legwear(Legwear::TravelingSkirt),
-];
-pub(super) const FOOTWEAR: &[AssetId] = &[
-    AssetId::Footwear(Footwear::Boots),
-    AssetId::Footwear(Footwear::Sabatons),
-    AssetId::Footwear(Footwear::Sandals),
-    AssetId::Footwear(Footwear::SoftShoes),
-];
-pub(super) const KEEPSAKES: &[AssetId] = &[
-    AssetId::Keepsake(Keepsake::Feather),
-    AssetId::Keepsake(Keepsake::LuckyCoin),
-    AssetId::Keepsake(Keepsake::Mug),
-    AssetId::Keepsake(Keepsake::PressedLeaf),
-    AssetId::Keepsake(Keepsake::Ribbon),
-    AssetId::Keepsake(Keepsake::TinyFamiliar),
-];
-pub(super) const ACCENT_TONES: &[AssetId] = &[
-    AssetId::AccentTone(AccentTone::Amber),
-    AssetId::AccentTone(AccentTone::Cyan),
-    AssetId::AccentTone(AccentTone::Lime),
-    AssetId::AccentTone(AccentTone::Magenta),
-    AssetId::AccentTone(AccentTone::Red),
-    AssetId::AccentTone(AccentTone::Blue),
-    AssetId::AccentTone(AccentTone::Violet),
-    AssetId::AccentTone(AccentTone::Teal),
-];
-pub(super) const COLOR_ROLES: &[AssetId] = &[
-    AssetId::ColorRole(ColorRole::Stone),
-    AssetId::ColorRole(ColorRole::DarkStone),
-    AssetId::ColorRole(ColorRole::Timber),
-    AssetId::ColorRole(ColorRole::Parchment),
-    AssetId::ColorRole(ColorRole::Ink),
-    AssetId::ColorRole(ColorRole::Hearth),
-    AssetId::ColorRole(ColorRole::Moss),
-    AssetId::ColorRole(ColorRole::RuneGlow),
-    AssetId::ColorRole(ColorRole::Counsel),
-    AssetId::ColorRole(ColorRole::Spoils),
-    AssetId::ColorRole(ColorRole::Selection),
-    AssetId::ColorRole(ColorRole::Fog),
-    AssetId::ColorRole(ColorRole::Goblin),
-    AssetId::ColorRole(ColorRole::SkinLight),
-    AssetId::ColorRole(ColorRole::SkinMedium),
-    AssetId::ColorRole(ColorRole::SkinDark),
-    AssetId::ColorRole(ColorRole::HairDark),
-    AssetId::ColorRole(ColorRole::HairLight),
-    AssetId::ColorRole(ColorRole::Leather),
-    AssetId::ColorRole(ColorRole::Steel),
-    AssetId::ColorRole(ColorRole::ClothWarm),
-    AssetId::ColorRole(ColorRole::ClothCool),
-];
-pub(super) const POSES: &[AssetId] = &[
-    AssetId::Pose(TheatrePose::Delving),
-    AssetId::Pose(TheatrePose::SeekingCounsel),
-    AssetId::Pose(TheatrePose::SpoilsUnopened),
-    AssetId::Pose(TheatrePose::VictoryRecorded),
-    AssetId::Pose(TheatrePose::Resting),
-    AssetId::Pose(TheatrePose::Departed),
-    AssetId::Pose(TheatrePose::Unknown),
-];
-const DELVE_VARIANTS: &[AssetId] = &[
-    AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
-    AssetId::DelveVariant(DelveVariant::MossyUndercroft),
-    AssetId::DelveVariant(DelveVariant::OldWatchtower),
-];
-const GOBLIN_SIGHTINGS: &[AssetId] = &[
-    AssetId::GoblinSighting(GoblinSighting::ChestEyes),
-    AssetId::GoblinSighting(GoblinSighting::ChronicleHand),
-    AssetId::GoblinSighting(GoblinSighting::RaftersScroll),
-    AssetId::GoblinSighting(GoblinSighting::StolenBiscuit),
-];
+macro_rules! asset_family {
+    ($visibility:vis $constant:ident, $builder:ident, $type:ty, $variant:ident) => {
+        const fn $builder() -> [AssetId; <$type>::ALL.len()] {
+            let mut assets = [AssetId::$variant(<$type>::ALL[0]); <$type>::ALL.len()];
+            let mut index = 0;
+            while index < <$type>::ALL.len() {
+                assets[index] = AssetId::$variant(<$type>::ALL[index]);
+                index += 1;
+            }
+            assets
+        }
+        $visibility const $constant: &[AssetId] = &$builder();
+    };
+}
+
+asset_family!(pub(super) CLASSES, class_assets, AdventurerClass, Class);
+asset_family!(pub(super) GEAR, gear_assets, AdventuringGear, Gear);
+asset_family!(pub(super) ANCESTRIES, ancestry_assets, Ancestry, Ancestry);
+asset_family!(
+    pub(super) BODY_PROPORTIONS,
+    body_proportion_assets,
+    BodyProportions,
+    BodyProportions
+);
+asset_family!(pub(super) HEAD_SHAPES, head_shape_assets, HeadShape, HeadShape);
+asset_family!(pub(super) SKIN_TONES, skin_tone_assets, SkinTone, SkinTone);
+asset_family!(pub(super) HAIR_SHAPES, hair_shape_assets, HairShape, HairShape);
+asset_family!(pub(super) HAIR_TONES, hair_tone_assets, HairTone, HairTone);
+asset_family!(pub(super) FACE_DETAILS, face_detail_assets, FaceDetail, FaceDetail);
+asset_family!(pub(super) GARBS, garb_assets, Garb, Garb);
+asset_family!(pub(super) LEGWEAR, legwear_assets, Legwear, Legwear);
+asset_family!(pub(super) FOOTWEAR, footwear_assets, Footwear, Footwear);
+asset_family!(pub(super) KEEPSAKES, keepsake_assets, Keepsake, Keepsake);
+asset_family!(pub(super) ACCENT_TONES, accent_tone_assets, AccentTone, AccentTone);
+asset_family!(pub(super) COLOR_ROLES, color_role_assets, ColorRole, ColorRole);
+asset_family!(pub(super) POSES, pose_assets, TheatrePose, Pose);
+asset_family!(
+    DELVE_VARIANTS,
+    delve_variant_assets,
+    DelveVariant,
+    DelveVariant
+);
+asset_family!(
+    GOBLIN_SIGHTINGS,
+    goblin_sighting_assets,
+    GoblinSighting,
+    GoblinSighting
+);
 const GOBLIN_OUTBREAK: &[AssetId] = &[AssetId::GoblinOutbreak];
-const WIDGETS: &[AssetId] = &[
-    AssetId::Widget(WidgetAsset::AdventurerCardFull),
-    AssetId::Widget(WidgetAsset::AdventurerCardCompact),
-    AssetId::Widget(WidgetAsset::ChamberFull),
-    AssetId::Widget(WidgetAsset::ChamberCompact),
-    AssetId::Widget(WidgetAsset::QuestBoard),
-    AssetId::Widget(WidgetAsset::Party),
-    AssetId::Widget(WidgetAsset::Summons),
-    AssetId::Widget(WidgetAsset::Chronicle),
-    AssetId::Widget(WidgetAsset::AdventurerProfile),
-    AssetId::Widget(WidgetAsset::Scrying),
-    AssetId::Widget(WidgetAsset::Spoils),
-    AssetId::Widget(WidgetAsset::Counsel),
-    AssetId::Widget(WidgetAsset::Search),
-    AssetId::Widget(WidgetAsset::Help),
-];
-const SCENES: &[AssetId] = &[
-    AssetId::Scene(SceneAsset::GuildEmpty),
-    AssetId::Scene(SceneAsset::GuildPopulated),
-    AssetId::Scene(SceneAsset::GuildMixedAttention),
-    AssetId::Scene(SceneAsset::GuildDisconnected),
-    AssetId::Scene(SceneAsset::GuildReconnecting),
-    AssetId::Scene(SceneAsset::ConnectedDelves),
-    AssetId::Scene(SceneAsset::MixedStateDelve),
-    AssetId::Scene(SceneAsset::NarrowGuild),
-    AssetId::Scene(SceneAsset::NarrowDelve),
-];
-const COMPATIBILITY: &[AssetId] = &[
-    AssetId::Compatibility(CompatibilityAsset::UnicodeXterm256),
-    AssetId::Compatibility(CompatibilityAsset::UnicodeAnsi16),
-    AssetId::Compatibility(CompatibilityAsset::AsciiAnsi16),
-    AssetId::Compatibility(CompatibilityAsset::MotionFull),
-    AssetId::Compatibility(CompatibilityAsset::MotionReduced),
-    AssetId::Compatibility(CompatibilityAsset::MotionNone),
-];
+asset_family!(WIDGETS, widget_assets, WidgetAsset, Widget);
+asset_family!(SCENES, scene_assets, SceneAsset, Scene);
+asset_family!(
+    COMPATIBILITY,
+    compatibility_assets,
+    CompatibilityAsset,
+    Compatibility
+);
 
 #[must_use]
 pub fn asset_inventory() -> Vec<AssetId> {

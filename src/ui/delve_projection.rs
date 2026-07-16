@@ -8,7 +8,7 @@ use ratatui::{
 use crate::{
     app::Model,
     domain::{AgentKey, Campaign},
-    ui::delve_scene::layout_delves,
+    ui::delve_scene::{DelveVariant, layout_delves},
 };
 
 /// Projects the adventurers that the Delve renderer can draw in `terminal_area`.
@@ -25,6 +25,9 @@ pub fn visible_agent_keys(model: &Model, terminal_area: Rect) -> BTreeSet<AgentK
 pub(crate) struct DelveRenderProjection {
     pub(crate) footer_lines: Vec<String>,
     pub(crate) visible_agent_keys: BTreeSet<AgentKey>,
+    pub(crate) chamber_areas: BTreeMap<AgentKey, Rect>,
+    pub(crate) visible_variants: BTreeSet<DelveVariant>,
+    pub(crate) connected_scene_visible: bool,
 }
 
 pub(crate) fn render_projection(model: &Model, terminal_area: Rect) -> DelveRenderProjection {
@@ -32,6 +35,9 @@ pub(crate) fn render_projection(model: &Model, terminal_area: Rect) -> DelveRend
         return DelveRenderProjection {
             footer_lines: footer_lines(model, terminal_area.width),
             visible_agent_keys: BTreeSet::new(),
+            chamber_areas: BTreeMap::new(),
+            visible_variants: BTreeSet::new(),
+            connected_scene_visible: false,
         };
     }
 
@@ -42,14 +48,22 @@ pub(crate) fn render_projection(model: &Model, terminal_area: Rect) -> DelveRend
             .areas(terminal_area);
     let inner = Block::default().borders(Borders::ALL).inner(body);
 
-    let visible_agent_keys = if inner.width >= 78 {
-        visible_connected_agents(model, inner)
+    let (chamber_areas, visible_variants, connected_scene_visible) = if inner.width >= 78 {
+        project_connected_chambers(model, inner)
     } else {
-        visible_compact_agents(model, inner)
+        (
+            project_compact_chambers(model, inner),
+            BTreeSet::new(),
+            false,
+        )
     };
+    let visible_agent_keys = chamber_areas.keys().cloned().collect();
     DelveRenderProjection {
         footer_lines,
         visible_agent_keys,
+        chamber_areas,
+        visible_variants,
+        connected_scene_visible,
     }
 }
 
@@ -129,7 +143,10 @@ fn pack_footer_actions(actions: &[&str], width: u16, separator: &str) -> Vec<Str
     lines
 }
 
-fn visible_connected_agents(model: &Model, area: Rect) -> BTreeSet<AgentKey> {
+fn project_connected_chambers(
+    model: &Model,
+    area: Rect,
+) -> (BTreeMap<AgentKey, Rect>, BTreeSet<DelveVariant>, bool) {
     let sites = campaign_sites(model);
     let selected_workspace = model
         .selected_agent()
@@ -160,15 +177,15 @@ fn visible_connected_agents(model: &Model, area: Rect) -> BTreeSet<AgentKey> {
             })
             .or_else(|| delves.first())
         else {
-            return BTreeSet::new();
+            return (BTreeMap::new(), BTreeSet::new(), false);
         };
         let Some(site) = sites.get(&active_delve.workspace_id) else {
-            return BTreeSet::new();
+            return (BTreeMap::new(), BTreeSet::new(), false);
         };
         let mut active_site = site.clone();
         active_site.party.clone_from(&active_delve.adventurers);
         let active_sites = BTreeMap::from([(active_delve.workspace_id.clone(), active_site)]);
-        let chamber_count = layout_delves(
+        let remapped = layout_delves(
             &active_sites,
             &model.domain().agents,
             active_area,
@@ -176,25 +193,43 @@ fn visible_connected_agents(model: &Model, area: Rect) -> BTreeSet<AgentKey> {
         )
         .into_iter()
         .next()
-        .map_or(0, |delve| delve.chambers.len());
-        return active_delve
+        .map_or_else(Vec::new, |delve| delve.chambers);
+        let chamber_areas = active_delve
             .adventurers
             .iter()
-            .take(chamber_count)
             .cloned()
+            .zip(
+                remapped
+                    .into_iter()
+                    .map(|anchor| Rect::new(anchor.x, anchor.y, anchor.width, anchor.height)),
+            )
             .collect();
+        return (
+            chamber_areas,
+            [active_delve.variant].into_iter().collect(),
+            true,
+        );
     }
 
-    delves
+    let visible_variants = delves.iter().map(|delve| delve.variant).collect();
+    let chamber_areas = delves
         .iter()
         .filter(|delve| sites.contains_key(&delve.workspace_id))
-        .flat_map(|delve| delve.adventurers.iter().take(delve.chambers.len()).cloned())
-        .collect()
+        .flat_map(|delve| {
+            delve.adventurers.iter().cloned().zip(
+                delve
+                    .chambers
+                    .iter()
+                    .map(|anchor| Rect::new(anchor.x, anchor.y, anchor.width, anchor.height)),
+            )
+        })
+        .collect();
+    (chamber_areas, visible_variants, !delves.is_empty())
 }
 
-fn visible_compact_agents(model: &Model, area: Rect) -> BTreeSet<AgentKey> {
+fn project_compact_chambers(model: &Model, area: Rect) -> BTreeMap<AgentKey, Rect> {
     if area.height <= 1 {
-        return BTreeSet::new();
+        return BTreeMap::new();
     }
     let list_height = area.height.saturating_sub(1);
     let capacity = usize::from(list_height / 2).max(1);
@@ -203,13 +238,46 @@ fn visible_compact_agents(model: &Model, area: Rect) -> BTreeSet<AgentKey> {
         .and_then(|selected| model.domain().agents.keys().position(|key| key == selected))
         .unwrap_or_default();
     let page_start = selected_index / capacity * capacity;
-    model
+    let visible = model
         .domain()
         .agents
         .keys()
         .skip(page_start)
         .take(capacity)
         .cloned()
+        .collect::<Vec<_>>();
+    let count = visible.len();
+    if count == 0 {
+        return BTreeMap::new();
+    }
+    let list = Rect::new(
+        area.x,
+        area.y.saturating_add(1),
+        area.width,
+        area.height.saturating_sub(1),
+    );
+    let item_height = (list.height / u16::try_from(count).unwrap_or(1)).max(1);
+    visible
+        .into_iter()
+        .enumerate()
+        .filter_map(|(index, key)| {
+            let y = list.y.saturating_add(
+                u16::try_from(index)
+                    .unwrap_or_default()
+                    .saturating_mul(item_height),
+            );
+            (y < list.bottom()).then(|| {
+                (
+                    key,
+                    Rect::new(
+                        list.x,
+                        y,
+                        list.width,
+                        item_height.min(list.bottom().saturating_sub(y)),
+                    ),
+                )
+            })
+        })
         .collect()
 }
 

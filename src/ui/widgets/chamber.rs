@@ -21,6 +21,28 @@ use super::presentation::present;
 
 const MIN_FULL_WIDTH: u16 = 28;
 const MIN_FULL_HEIGHT: u16 = 10;
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum ChamberPresentation {
+    Hidden,
+    Text,
+    CompactScene,
+    Full,
+}
+
+#[must_use]
+pub const fn chamber_presentation(area: Rect) -> ChamberPresentation {
+    if area.width == 0 || area.height == 0 {
+        ChamberPresentation::Hidden
+    } else if area.width >= MIN_FULL_WIDTH && area.height >= MIN_FULL_HEIGHT {
+        ChamberPresentation::Full
+    } else if area.width >= 14 && area.height >= 6 {
+        ChamberPresentation::CompactScene
+    } else {
+        ChamberPresentation::Text
+    }
+}
+
 pub trait ChamberBounds {
     fn rect(self) -> Rect;
 }
@@ -46,11 +68,9 @@ pub fn render_chamber<A: ChamberBounds>(
     preferences: &DisplayPreferences,
 ) {
     let area = anchor.rect();
-    if area.is_empty() {
-        return;
-    }
-    if area.width < MIN_FULL_WIDTH || area.height < MIN_FULL_HEIGHT {
-        render_compact(
+    match chamber_presentation(area) {
+        ChamberPresentation::Hidden => {}
+        ChamberPresentation::Text | ChamberPresentation::CompactScene => render_compact(
             frame,
             area,
             agent,
@@ -58,10 +78,21 @@ pub fn render_chamber<A: ChamberBounds>(
             selected,
             preferences.character_set,
             preferences.color_mode,
-        );
-        return;
+        ),
+        ChamberPresentation::Full => {
+            render_full(frame, area, agent, theatre, selected, *preferences);
+        }
     }
+}
 
+fn render_full(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    agent: &Agent,
+    theatre: TheatreFrame,
+    selected: bool,
+    preferences: DisplayPreferences,
+) {
     let palette = Palette::from(preferences.color_mode);
     let panel = Style::new()
         .fg(palette.resolve(ColorRole::Parchment))

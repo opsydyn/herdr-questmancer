@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::{
-    app::{ConnectionState, DisplayPreferences, Modal, Model, OutputPreview, View},
+    app::{ConnectionState, DisplayPreferences, Modal, Model, Motion, OutputPreview, View},
     domain::{
         AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, ChronicleEntry, ChronicleEvent,
         DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp,
@@ -402,6 +402,26 @@ pub fn modal_fixture(modal: Modal) -> Model {
 pub fn compatibility_fixture(preferences: DisplayPreferences) -> Model {
     let mut model = connected_delves_fixture(&StoryContext::fixed());
     model.set_preferences(preferences);
+    model
+}
+
+pub fn motion_compatibility_fixture(motion: Motion) -> Model {
+    let mut model = connected_delves_fixture(&StoryContext::fixed());
+    let mut agents = model.domain_mut().agents.values_mut();
+    let working = agents
+        .next()
+        .expect("the deterministic motion baseline has a working adventurer");
+    working.presence = Presence::Working;
+    working.presence_since = Timestamp::from_millis(120_500);
+    let idle = agents
+        .next()
+        .expect("the deterministic motion baseline has an idle adventurer");
+    idle.presence = Presence::Idle;
+    idle.presence_since = Timestamp::from_millis(118_500);
+    model.set_preferences(DisplayPreferences {
+        motion,
+        ..DisplayPreferences::default()
+    });
     model
 }
 

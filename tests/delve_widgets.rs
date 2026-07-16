@@ -244,33 +244,33 @@ fn full_chamber_communicates_every_pose_without_relying_on_colour() {
 }
 
 #[test]
-fn resting_chamber_keeps_decorative_background_stable_for_reduced_and_no_motion() {
+fn resting_chamber_uses_injected_frames_for_a_deterministic_reduced_motion_cue() {
     let mut resting = agent();
     resting.presence = Presence::Idle;
 
-    for motion in [Motion::Reduced, Motion::None] {
-        let mut display = preferences(CharacterSet::Unicode);
-        display.motion = motion;
-        let first = render_chamber_at(
-            &resting,
-            theatre(TheatrePose::Resting, 0, false, "RESTING"),
-            false,
-            display,
-            28,
-            10,
-        );
-        let later = render_chamber_at(
-            &resting,
-            theatre(TheatrePose::Resting, 1, false, "RESTING"),
-            false,
-            display,
-            28,
-            10,
-        );
+    let mut display = preferences(CharacterSet::Unicode);
+    display.motion = Motion::Reduced;
+    let first = render_chamber_at(
+        &resting,
+        theatre(TheatrePose::Resting, 0, false, "RESTING"),
+        false,
+        display,
+        28,
+        10,
+    );
+    let later = render_chamber_at(
+        &resting,
+        theatre(TheatrePose::Resting, 1, false, "RESTING"),
+        false,
+        display,
+        28,
+        10,
+    );
 
-        assert_eq!(first, later, "Resting decorations moved under {motion:?}");
-        assert!(first.contains("CAMPFIRE"));
-        assert!(first.contains("[~] RESTING"));
+    assert_ne!(first, later);
+    for screen in [first, later] {
+        assert!(screen.contains("CAMPFIRE"));
+        assert!(screen.contains("[~] RESTING"));
     }
 }
 

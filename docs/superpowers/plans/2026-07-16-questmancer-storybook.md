@@ -788,6 +788,12 @@ canvases. Each class tile canonically covers both its class and the gear returne
 by `AdventurerClass::gear()`. The done-unread pose uses animation frame `4`;
 every other pose uses frame `0`.
 
+Every production-owned asset family registered here must have focused renderer
+tests proving that the owning production composer consumes the complete family.
+Where variants are intended to change visible output, those tests must also
+collect the canonical canvases and prove the variants are intentionally
+pairwise distinct; non-empty output alone is not sufficient evidence.
+
 - [ ] **Step 4: Register the canonical atlas stories**
 
 Add fixed catalogue entries with IDs:

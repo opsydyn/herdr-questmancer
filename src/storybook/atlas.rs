@@ -193,31 +193,64 @@ pub fn adventurer_cards(context: &StoryContext) -> StoryFixture {
 }
 
 pub fn chambers(context: &StoryContext) -> StoryFixture {
-    let (agent, theatre, preferences) = widget_inputs(*context);
-    atlas(vec![
-        AtlasTile {
-            label: "Full chamber",
-            preferred_width: 30,
-            preferred_height: 12,
-            content: AtlasContent::Chamber {
-                agent: agent.clone(),
-                theatre,
-                selected: true,
-                preferences,
-            },
-        },
-        AtlasTile {
-            label: "Compact chamber",
-            preferred_width: 26,
-            preferred_height: 9,
-            content: AtlasContent::Chamber {
-                agent,
-                theatre,
-                selected: false,
-                preferences,
-            },
-        },
-    ])
+    let (agent, _theatre, preferences) = widget_inputs(*context);
+    atlas(
+        POSES
+            .iter()
+            .flat_map(|asset| {
+                let AssetId::Pose(pose) = *asset else {
+                    unreachable!("pose assets contain a non-pose AssetId");
+                };
+                [(true, 30, 12), (false, 26, 9)].map(|(full, width, height)| AtlasTile {
+                    label: chamber_matrix_label(pose, full),
+                    preferred_width: width,
+                    preferred_height: height,
+                    content: AtlasContent::Chamber {
+                        agent: agent.clone(),
+                        theatre: TheatreFrame {
+                            pose,
+                            animation_frame: u8::from(pose == TheatrePose::SpoilsUnopened) * 4,
+                            focused: false,
+                            label: theatre_label(pose),
+                        },
+                        selected: full,
+                        preferences,
+                    },
+                })
+            })
+            .collect(),
+    )
+}
+
+const fn theatre_label(pose: TheatrePose) -> &'static str {
+    match pose {
+        TheatrePose::Delving => "DELVING",
+        TheatrePose::SeekingCounsel => "COUNSEL REQUESTED",
+        TheatrePose::SpoilsUnopened => "SPOILS RETURNED",
+        TheatrePose::VictoryRecorded => "VICTORY RECORDED",
+        TheatrePose::Resting => "RESTING",
+        TheatrePose::Departed => "DEPARTED",
+        TheatrePose::Unknown => "UNKNOWN",
+    }
+}
+
+const fn chamber_matrix_label(pose: TheatrePose, full: bool) -> &'static str {
+    match (full, pose) {
+        (true, TheatrePose::Delving) => "Full chamber - delving",
+        (false, TheatrePose::Delving) => "Compact chamber - delving",
+        (true, TheatrePose::SeekingCounsel) => "Full chamber - seeking counsel",
+        (false, TheatrePose::SeekingCounsel) => "Compact chamber - seeking counsel",
+        (true, TheatrePose::SpoilsUnopened) => "Full chamber - spoils unopened",
+        (false, TheatrePose::SpoilsUnopened) => "Compact chamber - spoils unopened",
+        (true, TheatrePose::VictoryRecorded) => "Full chamber - victory recorded",
+        (false, TheatrePose::VictoryRecorded) => "Compact chamber - victory recorded",
+        (true, TheatrePose::Resting) => "Full chamber - resting",
+        (false, TheatrePose::Resting) => "Compact chamber - resting",
+        (true, TheatrePose::Departed) => "Full chamber - departed",
+        (false, TheatrePose::Departed) => "Compact chamber - departed",
+        (true, TheatrePose::Unknown) => "Full chamber - unknown",
+        (false, TheatrePose::Unknown) => "Compact chamber - unknown",
+    }
 }
 
 pub fn guild_regions(context: &StoryContext) -> StoryFixture {

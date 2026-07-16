@@ -58,16 +58,22 @@ fn fixed_workspace_ids_lock_authored_variants() {
 
 #[test]
 fn campaign_fixture_preserves_the_authored_party_order() {
-    let workspace_id = WorkspaceId::new("lexical-campaign");
-    let party = vec![AgentKey::new("alpha"), AgentKey::new("zeta")];
+    let workspace_id = WorkspaceId::new("reversed-campaign");
+    let party = vec![AgentKey::new("zeta"), AgentKey::new("alpha")];
+    let mut lexical = party.clone();
+    lexical.sort();
+    assert_ne!(
+        party, lexical,
+        "fixture input must expose accidental sorting"
+    );
 
-    let campaign = campaign_fixture(workspace_id.clone(), "Lexical Campaign", party.clone());
+    let campaign = campaign_fixture(workspace_id.clone(), "Reversed Campaign", party.clone());
 
     assert_eq!(campaign.workspace_id, workspace_id);
-    assert_eq!(campaign.label, "Lexical Campaign");
+    assert_eq!(campaign.label, "Reversed Campaign");
     assert_eq!(
         campaign.cwd.to_string_lossy(),
-        "/storybook/lexical-campaign"
+        "/storybook/reversed-campaign"
     );
     assert_eq!(campaign.party, party);
 }

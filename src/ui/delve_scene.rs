@@ -6,12 +6,18 @@ use ratatui::layout::Rect;
 
 use crate::domain::{Agent, AgentKey, Campaign, WorkspaceId};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum DelveVariant {
-    ForgottenLibrary,
-    MossyUndercroft,
-    OldWatchtower,
+macro_rules! delve_variants {
+    ($($variant:ident),+ $(,)?) => {
+        #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        pub enum DelveVariant { $($variant),+ }
+
+        impl DelveVariant {
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+        }
+    };
 }
+
+delve_variants!(ForgottenLibrary, MossyUndercroft, OldWatchtower);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CampaignDelve {

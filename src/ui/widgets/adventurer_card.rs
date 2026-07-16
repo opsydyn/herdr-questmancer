@@ -30,6 +30,24 @@ use crate::{
 
 use super::presentation::present;
 
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum AdventurerCardPresentation {
+    Hidden,
+    Compact,
+    Full,
+}
+
+#[must_use]
+pub const fn adventurer_card_presentation(area: Rect) -> AdventurerCardPresentation {
+    if area.width == 0 || area.height == 0 {
+        AdventurerCardPresentation::Hidden
+    } else if area.width >= 34 && area.height >= 19 {
+        AdventurerCardPresentation::Full
+    } else {
+        AdventurerCardPresentation::Compact
+    }
+}
+
 pub fn render_adventurer_card(
     frame: &mut Frame<'_>,
     area: Rect,
@@ -37,12 +55,13 @@ pub fn render_adventurer_card(
     theatre: TheatreFrame,
     preferences: &DisplayPreferences,
 ) {
-    if area.is_empty() {
-        return;
-    }
-    if area.width < 34 || area.height < 19 {
-        render_compact(frame, area, agent, theatre, preferences.character_set);
-        return;
+    match adventurer_card_presentation(area) {
+        AdventurerCardPresentation::Hidden => return,
+        AdventurerCardPresentation::Compact => {
+            render_compact(frame, area, agent, theatre, preferences.character_set);
+            return;
+        }
+        AdventurerCardPresentation::Full => {}
     }
 
     let palette = Palette::from(preferences.color_mode);

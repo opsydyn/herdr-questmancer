@@ -8,8 +8,18 @@ use std::time::Duration;
 
 use super::{delve_projection::visible_agent_keys, views::guild_hall::next_elapsed_label_in};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum TheatrePose {
+macro_rules! theatre_poses {
+    ($($variant:ident),+ $(,)?) => {
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+        pub enum TheatrePose { $($variant),+ }
+
+        impl TheatrePose {
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+        }
+    };
+}
+
+theatre_poses!(
     Delving,
     SeekingCounsel,
     SpoilsUnopened,
@@ -17,7 +27,7 @@ pub enum TheatrePose {
     Resting,
     Departed,
     Unknown,
-}
+);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TheatreFrame {

@@ -16,23 +16,77 @@ use ratatui::{
     buffer::{Buffer, Cell},
     layout::Rect,
 };
+use std::collections::BTreeSet;
 
-use crate::app::{Modal, Model, View};
+use crate::{
+    app::{CharacterSet, Modal, Model, Region, View},
+    domain::AgentKey,
+};
+
+use self::{
+    delve_scene::DelveVariant,
+    theatre::{TheatrePose, frame_for},
+    widgets::chamber_presentation,
+};
+
+pub use widgets::ChamberPresentation;
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum PersonaRenderMode {
+    None,
+    Silhouette,
+    Full,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum GuildRegion {
+    QuestBoard,
+    Party,
+    Summons,
+    Chronicle,
+    AdventurerProfile,
+    Scrying,
+    Spoils,
+}
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) enum GuildPresentation {
+    #[default]
+    Tiny,
+    Empty,
+    Wide,
+    Medium,
+    Focused,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectedAgent {
+    pub key: AgentKey,
+    pub pose: TheatrePose,
+    pub chamber: Option<ChamberPresentation>,
+    pub persona: PersonaRenderMode,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RenderProjection {
     guild_goblin_sprite_visible: bool,
     guild_goblin_marginalia_visible: bool,
+    pub guild_regions: BTreeSet<GuildRegion>,
+    pub guild_profile_agent: Option<AgentKey>,
+    pub visible_agents: Vec<ProjectedAgent>,
+    pub delve_variants: BTreeSet<DelveVariant>,
+    pub delve_connected_scene_visible: bool,
+    pub(crate) guild_presentation: GuildPresentation,
 }
 
 impl RenderProjection {
     #[must_use]
-    pub const fn guild_goblin_effect_visible(self) -> bool {
+    pub const fn guild_goblin_effect_visible(&self) -> bool {
         self.guild_goblin_sprite_visible || self.guild_goblin_marginalia_visible
     }
 
     pub(crate) const fn guild_goblin_motion(
-        self,
+        &self,
         motion: crate::app::Motion,
     ) -> Option<crate::app::Motion> {
         if self.guild_goblin_sprite_visible {
@@ -42,6 +96,107 @@ impl RenderProjection {
         } else {
             None
         }
+    }
+}
+
+#[must_use]
+pub fn render_projection_for(model: &Model, area: Rect) -> RenderProjection {
+    let mut projection = RenderProjection::default();
+    match model.view() {
+        View::Guild => project_guild(model, area, &mut projection),
+        View::Delve => {
+            let delve = delve_projection::render_projection(model, area);
+            projection.delve_variants = delve.visible_variants;
+            projection.delve_connected_scene_visible = delve.connected_scene_visible;
+            projection.visible_agents = delve
+                .chamber_areas
+                .into_iter()
+                .filter_map(|(key, chamber_area)| {
+                    let agent = model.domain().agents.get(&key)?;
+                    let chamber = chamber_presentation(chamber_area);
+                    Some(ProjectedAgent {
+                        key,
+                        pose: frame_for(agent, model.now(), model.preferences()).pose,
+                        chamber: Some(chamber),
+                        persona: persona_render_mode_for_chamber(
+                            chamber,
+                            model.preferences().character_set,
+                        ),
+                    })
+                })
+                .collect();
+        }
+    }
+    projection
+}
+
+fn project_guild(model: &Model, area: Rect, projection: &mut RenderProjection) {
+    if area.width < 4 || area.height < 3 {
+        return;
+    }
+    if model.domain().agents.is_empty() {
+        projection.guild_presentation = GuildPresentation::Empty;
+        return;
+    }
+    projection.guild_presentation = if area.width >= 120 {
+        projection.guild_regions.extend([
+            GuildRegion::QuestBoard,
+            GuildRegion::Party,
+            GuildRegion::Summons,
+            GuildRegion::Chronicle,
+            GuildRegion::AdventurerProfile,
+            GuildRegion::Scrying,
+            GuildRegion::Spoils,
+        ]);
+        GuildPresentation::Wide
+    } else if area.width >= 80 {
+        projection.guild_regions.extend([
+            GuildRegion::QuestBoard,
+            GuildRegion::Party,
+            GuildRegion::AdventurerProfile,
+            GuildRegion::Scrying,
+        ]);
+        GuildPresentation::Medium
+    } else {
+        match model.region() {
+            Region::QuestBoard => {
+                projection.guild_regions.insert(GuildRegion::QuestBoard);
+            }
+            Region::Party => {
+                projection.guild_regions.insert(GuildRegion::Party);
+            }
+            Region::Summons => {
+                projection.guild_regions.insert(GuildRegion::Summons);
+            }
+            Region::Chronicle => {
+                projection.guild_regions.insert(GuildRegion::Chronicle);
+            }
+            Region::Adventurer => {
+                projection
+                    .guild_regions
+                    .extend([GuildRegion::AdventurerProfile, GuildRegion::Scrying]);
+            }
+        }
+        GuildPresentation::Focused
+    };
+    if projection
+        .guild_regions
+        .contains(&GuildRegion::AdventurerProfile)
+    {
+        projection.guild_profile_agent = model.selected_agent_key().cloned();
+    }
+}
+
+pub const fn persona_render_mode_for_chamber(
+    chamber: ChamberPresentation,
+    character_set: CharacterSet,
+) -> PersonaRenderMode {
+    match chamber {
+        ChamberPresentation::Full | ChamberPresentation::CompactScene => match character_set {
+            CharacterSet::Unicode => PersonaRenderMode::Full,
+            CharacterSet::Ascii => PersonaRenderMode::Silhouette,
+        },
+        ChamberPresentation::Hidden | ChamberPresentation::Text => PersonaRenderMode::None,
     }
 }
 
@@ -89,11 +244,14 @@ pub(crate) struct GuildGoblinEvidence {
 }
 
 impl GuildGoblinEvidence {
-    fn project_after_overlays(&self, buffer: &Buffer) -> RenderProjection {
-        RenderProjection {
-            guild_goblin_sprite_visible: self.sprites.survives_in(buffer),
-            guild_goblin_marginalia_visible: self.marginalia.survives_in(buffer),
-        }
+    fn project_after_overlays(
+        &self,
+        buffer: &Buffer,
+        mut projection: RenderProjection,
+    ) -> RenderProjection {
+        projection.guild_goblin_sprite_visible = self.sprites.survives_in(buffer);
+        projection.guild_goblin_marginalia_visible = self.marginalia.survives_in(buffer);
+        projection
     }
 }
 
@@ -102,8 +260,9 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
 }
 
 pub fn render_with_projection(frame: &mut Frame<'_>, model: &Model) -> RenderProjection {
+    let projection = render_projection_for(model, frame.area());
     let goblin_evidence = match model.view() {
-        View::Guild => views::guild_hall::render(frame, model),
+        View::Guild => views::guild_hall::render(frame, model, &projection),
         View::Delve => {
             views::delve::render(frame, model);
             GuildGoblinEvidence::default()
@@ -114,5 +273,5 @@ pub fn render_with_projection(frame: &mut Frame<'_>, model: &Model) -> RenderPro
     } else if model.modal() == &Modal::Help {
         views::help::render(frame, model);
     }
-    goblin_evidence.project_after_overlays(frame.buffer_mut())
+    goblin_evidence.project_after_overlays(frame.buffer_mut(), projection)
 }

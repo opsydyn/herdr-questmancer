@@ -97,17 +97,17 @@ impl AdventurerPersona {
     pub fn appearance_for_key(key: &PersonaKey) -> PersonaAppearance {
         let digest = labelled_hash(key.as_str(), "appearance");
         PersonaAppearance {
-            proportions: pick(&BODY_PROPORTIONS, digest[0]),
-            head_shape: pick(&HEAD_SHAPES, digest[1]),
-            skin_tone: pick(&SKIN_TONES, digest[2]),
-            hair: pick(&HAIR_SHAPES, digest[3]),
-            hair_tone: pick(&HAIR_TONES, digest[4]),
-            face_detail: pick(&FACE_DETAILS, digest[5]),
-            garb: pick(&GARBS, digest[6]),
-            legwear: pick(&LEGWEAR, digest[7]),
-            footwear: pick(&FOOTWEAR, digest[8]),
-            keepsake: pick(&KEEPSAKES, digest[9]),
-            accent: pick(&ACCENT_TONES, digest[10]),
+            proportions: pick(BodyProportions::ALL, digest[0]),
+            head_shape: pick(HeadShape::ALL, digest[1]),
+            skin_tone: pick(SkinTone::ALL, digest[2]),
+            hair: pick(HairShape::ALL, digest[3]),
+            hair_tone: pick(HairTone::ALL, digest[4]),
+            face_detail: pick(FaceDetail::ALL, digest[5]),
+            garb: pick(Garb::ALL, digest[6]),
+            legwear: pick(Legwear::ALL, digest[7]),
+            footwear: pick(Footwear::ALL, digest[8]),
+            keepsake: pick(Keepsake::ALL, digest[9]),
+            accent: pick(AccentTone::ALL, digest[10]),
         }
     }
 }
@@ -165,32 +165,30 @@ pub struct PersonaAppearance {
     pub accent: AccentTone,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Ancestry {
-    Human,
-    Dwarf,
-    Elf,
-    Halfling,
-    Orc,
-    Gnome,
-    Goblin,
+macro_rules! exhaustive_enum {
+    ($(#[$meta:meta])* pub enum $name:ident { $($variant:ident),+ $(,)? }) => {
+        $(#[$meta])*
+        pub enum $name { $($variant),+ }
+
+        impl $name {
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+        }
+    };
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AdventurerClass {
-    Barbarian,
-    Bard,
-    Cleric,
-    Paladin,
-    Ranger,
-    Rogue,
-    Wizard,
-    Artificer,
-    Runewright,
-    Testmender,
-    Pathseeker,
+exhaustive_enum! {
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+    #[serde(rename_all = "snake_case")]
+    pub enum Ancestry { Human, Dwarf, Elf, Halfling, Orc, Gnome, Goblin }
+}
+
+exhaustive_enum! {
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+    #[serde(rename_all = "snake_case")]
+    pub enum AdventurerClass {
+        Barbarian, Bard, Cleric, Paladin, Ranger, Rogue, Wizard, Artificer, Runewright,
+        Testmender, Pathseeker
+    }
 }
 
 impl AdventurerClass {
@@ -228,9 +226,11 @@ impl Epithet {
 
 macro_rules! trait_enum {
     ($name:ident { $($variant:ident),+ $(,)? }) => {
-        #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-        #[serde(rename_all = "snake_case")]
-        pub enum $name { $($variant),+ }
+        exhaustive_enum! {
+            #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+            #[serde(rename_all = "snake_case")]
+            pub enum $name { $($variant),+ }
+        }
     };
 }
 
@@ -332,89 +332,3 @@ trait_enum!(AccentTone {
     Violet,
     Teal
 });
-
-const BODY_PROPORTIONS: [BodyProportions; 4] = [
-    BodyProportions::Compact,
-    BodyProportions::Average,
-    BodyProportions::Tall,
-    BodyProportions::Broad,
-];
-const HEAD_SHAPES: [HeadShape; 4] = [
-    HeadShape::Round,
-    HeadShape::Square,
-    HeadShape::Long,
-    HeadShape::Angular,
-];
-const SKIN_TONES: [SkinTone; 6] = [
-    SkinTone::Porcelain,
-    SkinTone::Rose,
-    SkinTone::Sand,
-    SkinTone::Umber,
-    SkinTone::Sienna,
-    SkinTone::Ebony,
-];
-const HAIR_SHAPES: [HairShape; 8] = [
-    HairShape::Crop,
-    HairShape::Fringe,
-    HairShape::Curls,
-    HairShape::Quiff,
-    HairShape::Bob,
-    HairShape::Spikes,
-    HairShape::Ponytail,
-    HairShape::Shaved,
-];
-const HAIR_TONES: [HairTone; 6] = [
-    HairTone::Black,
-    HairTone::Espresso,
-    HairTone::Chestnut,
-    HairTone::Copper,
-    HairTone::Gold,
-    HairTone::Silver,
-];
-const FACE_DETAILS: [FaceDetail; 6] = [
-    FaceDetail::None,
-    FaceDetail::RoundGlasses,
-    FaceDetail::SquareGlasses,
-    FaceDetail::Visor,
-    FaceDetail::Freckles,
-    FaceDetail::Moustache,
-];
-const GARBS: [Garb; 7] = [
-    Garb::Armour,
-    Garb::Cloak,
-    Garb::Doublet,
-    Garb::Leathers,
-    Garb::Robes,
-    Garb::Vestments,
-    Garb::WorkApron,
-];
-const LEGWEAR: [Legwear; 4] = [
-    Legwear::BootsAndBreeches,
-    Legwear::Greaves,
-    Legwear::RobeHem,
-    Legwear::TravelingSkirt,
-];
-const FOOTWEAR: [Footwear; 4] = [
-    Footwear::Boots,
-    Footwear::Sabatons,
-    Footwear::Sandals,
-    Footwear::SoftShoes,
-];
-const KEEPSAKES: [Keepsake; 6] = [
-    Keepsake::Feather,
-    Keepsake::LuckyCoin,
-    Keepsake::Mug,
-    Keepsake::PressedLeaf,
-    Keepsake::Ribbon,
-    Keepsake::TinyFamiliar,
-];
-const ACCENT_TONES: [AccentTone; 8] = [
-    AccentTone::Amber,
-    AccentTone::Cyan,
-    AccentTone::Lime,
-    AccentTone::Magenta,
-    AccentTone::Red,
-    AccentTone::Blue,
-    AccentTone::Violet,
-    AccentTone::Teal,
-];

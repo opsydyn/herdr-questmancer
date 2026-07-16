@@ -1,7 +1,7 @@
 use crate::{
     domain::{
-        AdventurerClass, AdventurerPersona, AdventuringGear, Ancestry, Garb, HairShape, Keepsake,
-        PersonaAppearance,
+        AdventurerClass, AdventurerPersona, AdventuringGear, Ancestry, FaceDetail, Garb, HairShape,
+        HeadShape, Keepsake, PersonaAppearance,
     },
     ui::pixel::{Canvas, ColorRole, Palette},
 };
@@ -75,6 +75,12 @@ pub fn compose_profile_adventurer_for_palette(
     let mut canvas = compose_body(&persona.appearance, body_pose, palette);
     let roles = appearance_roles_for_palette(&persona.appearance, palette);
     overlay_ancestry(&mut canvas, persona.ancestry, roles, body_pose);
+    overlay_face_detail(
+        &mut canvas,
+        persona.appearance.face_detail,
+        roles,
+        ProfileLayout::for_pose(body_pose),
+    );
     overlay_class_gear(&mut canvas, persona.class, persona.class.gear());
     overlay_keepsake(&mut canvas, persona.appearance.keepsake, roles);
     canvas
@@ -85,12 +91,24 @@ fn compose_body(appearance: &PersonaAppearance, pose: BodyPose, palette: Palette
     let layout = ProfileLayout::for_pose(pose);
     let mut canvas = Canvas::new(PROFILE_WIDTH, PROFILE_HEIGHT);
 
-    draw_head(&mut canvas, appearance.hair, roles, layout);
+    draw_head(
+        &mut canvas,
+        appearance.head_shape,
+        appearance.hair,
+        roles,
+        layout,
+    );
     draw_body(&mut canvas, appearance.garb, roles, layout, pose);
     canvas
 }
 
-fn draw_head(canvas: &mut Canvas, hair: HairShape, roles: AppearanceRoles, layout: ProfileLayout) {
+fn draw_head(
+    canvas: &mut Canvas,
+    head_shape: HeadShape,
+    hair: HairShape,
+    roles: AppearanceRoles,
+    layout: ProfileLayout,
+) {
     canvas.fill_rect(
         layout.head_x,
         layout.head_y,
@@ -98,13 +116,59 @@ fn draw_head(canvas: &mut Canvas, hair: HairShape, roles: AppearanceRoles, layou
         2,
         roles.hair,
     );
-    canvas.fill_rect(
-        layout.head_x,
-        layout.head_y + 2,
-        layout.head_width,
-        5,
-        roles.skin,
-    );
+    match head_shape {
+        HeadShape::Round => {
+            canvas.fill_rect(
+                layout.head_x + 1,
+                layout.head_y + 2,
+                layout.head_width.saturating_sub(2),
+                5,
+                roles.skin,
+            );
+            canvas.fill_rect(
+                layout.head_x,
+                layout.head_y + 3,
+                layout.head_width,
+                3,
+                roles.skin,
+            );
+        }
+        HeadShape::Square => canvas.fill_rect(
+            layout.head_x,
+            layout.head_y + 2,
+            layout.head_width,
+            5,
+            roles.skin,
+        ),
+        HeadShape::Long => canvas.fill_rect(
+            layout.head_x + 1,
+            layout.head_y + 2,
+            layout.head_width.saturating_sub(2),
+            7,
+            roles.skin,
+        ),
+        HeadShape::Angular => {
+            canvas.fill_rect(
+                layout.head_x + 1,
+                layout.head_y + 2,
+                layout.head_width.saturating_sub(2),
+                5,
+                roles.skin,
+            );
+            canvas.fill_rect(
+                layout.head_x,
+                layout.head_y + 3,
+                layout.head_width,
+                2,
+                roles.skin,
+            );
+            canvas.set(
+                layout.head_x + layout.head_width / 2,
+                layout.head_y + 7,
+                roles.skin,
+            );
+        }
+    }
     match hair {
         HairShape::Curls | HairShape::Bob => {
             canvas.fill_rect(
@@ -141,6 +205,62 @@ fn draw_head(canvas: &mut Canvas, hair: HairShape, roles: AppearanceRoles, layou
             roles.hair,
         ),
         HairShape::Crop | HairShape::Shaved => {}
+    }
+}
+
+fn overlay_face_detail(
+    canvas: &mut Canvas,
+    face_detail: FaceDetail,
+    roles: AppearanceRoles,
+    layout: ProfileLayout,
+) {
+    let left = layout.head_x + 1;
+    let right = layout.head_x + layout.head_width.saturating_sub(2);
+    let eyes_y = layout.head_y + 4;
+    match face_detail {
+        FaceDetail::None => {}
+        FaceDetail::RoundGlasses => {
+            for (x, y) in [
+                (left, eyes_y),
+                (left + 1, eyes_y + 1),
+                (right, eyes_y),
+                (right.saturating_sub(1), eyes_y + 1),
+            ] {
+                canvas.set(x, y, roles.highlight);
+            }
+            canvas.fill_rect(
+                left + 2,
+                eyes_y,
+                right.saturating_sub(left + 3),
+                1,
+                roles.accent,
+            );
+        }
+        FaceDetail::SquareGlasses => {
+            canvas.fill_rect(left, eyes_y, 2, 2, roles.highlight);
+            canvas.fill_rect(right.saturating_sub(1), eyes_y, 2, 2, roles.highlight);
+            canvas.fill_rect(
+                left + 2,
+                eyes_y,
+                right.saturating_sub(left + 3),
+                1,
+                roles.accent,
+            );
+        }
+        FaceDetail::Visor => {
+            canvas.fill_rect(layout.head_x, eyes_y, layout.head_width, 2, roles.accent);
+        }
+        FaceDetail::Freckles => {
+            for x in [left, left + 2, right.saturating_sub(2), right] {
+                canvas.set(x, eyes_y + 1, roles.highlight);
+            }
+        }
+        FaceDetail::Moustache => {
+            let centre = layout.head_x + layout.head_width / 2;
+            canvas.fill_rect(centre.saturating_sub(2), eyes_y + 2, 2, 1, roles.hair);
+            canvas.fill_rect(centre + 1, eyes_y + 2, 2, 1, roles.hair);
+            canvas.set(centre, eyes_y + 1, roles.hair);
+        }
     }
 }
 

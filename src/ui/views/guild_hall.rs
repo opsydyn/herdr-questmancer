@@ -11,7 +11,7 @@ use crate::{
     app::{CharacterSet, ConnectionState, Model, Region},
     domain::{Agent, AgentKey, CampaignStatus, GuildSummons, Presence},
     ui::{
-        EffectCells, GuildGoblinEvidence,
+        EffectCells, GuildGoblinEvidence, GuildPresentation, RenderProjection,
         copy::{self, EMPTY_GUILD, SCRYING_CLOUDED, SCRYING_STILL},
         goblins,
         theme::{ACCENT, INK, MUTED},
@@ -30,7 +30,11 @@ const ASCII_BORDER: border::Set<'static> = border::Set {
     horizontal_bottom: "-",
 };
 
-pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) -> GuildGoblinEvidence {
+pub(crate) fn render(
+    frame: &mut Frame<'_>,
+    model: &Model,
+    projection: &RenderProjection,
+) -> GuildGoblinEvidence {
     let area = frame.area();
     if area.width < 4 || area.height < 3 {
         frame.render_widget(Paragraph::new("G").style(ACCENT), area);
@@ -59,16 +63,18 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) -> GuildGoblinEvidenc
     frame.render_widget(outer, body);
 
     let content = render_connection_banner(frame, inner, model);
-    let marginalia_visible = if model.domain().agents.is_empty() {
-        render_empty(frame, content);
-        EffectCells::default()
-    } else if area.width >= 120 {
-        render_wide(frame, content, model)
-    } else if area.width >= 80 {
-        render_medium(frame, content, model);
-        EffectCells::default()
-    } else {
-        render_focused(frame, content, model)
+    let marginalia_visible = match projection.guild_presentation {
+        GuildPresentation::Tiny => EffectCells::default(),
+        GuildPresentation::Empty => {
+            render_empty(frame, content);
+            EffectCells::default()
+        }
+        GuildPresentation::Wide => render_wide(frame, content, model),
+        GuildPresentation::Medium => {
+            render_medium(frame, content, model);
+            EffectCells::default()
+        }
+        GuildPresentation::Focused => render_focused(frame, content, model),
     };
 
     let sprite_visible = goblins::render(frame, content, model);

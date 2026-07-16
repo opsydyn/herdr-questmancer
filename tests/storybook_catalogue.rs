@@ -5,19 +5,19 @@ use std::collections::HashSet;
 use questmancer::app::{Model, View};
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion},
-    domain::{AdventurerPersona, GuildAttention, PersonaKey, Presence},
+    domain::{
+        AccentTone, AdventurerClass, AdventurerPersona, AdventuringGear, Ancestry, BodyProportions,
+        FaceDetail, Footwear, Garb, GuildAttention, HairShape, HairTone, HeadShape, Keepsake,
+        Legwear, PersonaKey, Presence, SkinTone,
+    },
     storybook::{
         AssetId, CompatibilityAsset, SceneAsset, WidgetAsset, asset_inventory,
         catalogue::{
             Category, Story, StoryId, Viewport, catalogue, validate_catalogue, validate_coverage,
         },
         fixtures::{AtlasContent, StoryContext, StoryFixture},
-        ui as storybook_ui,
     },
-    ui::{
-        delve_projection::visible_agent_keys, delve_scene::DelveVariant, goblins::GoblinSighting,
-        theatre::frame_for,
-    },
+    ui::{delve_scene::DelveVariant, goblins::GoblinSighting, theatre::TheatrePose},
 };
 use ratatui::layout::Rect;
 
@@ -74,6 +74,31 @@ fn authored_inventory_contains_no_duplicate_identifiers() {
         .copied()
         .collect::<std::collections::HashSet<_>>();
     assert_eq!(inventory.len(), unique.len());
+}
+
+#[test]
+fn production_and_storybook_asset_families_expose_exhaustive_collections() {
+    let production_count = AdventurerClass::ALL.len()
+        + AdventuringGear::ALL.len()
+        + Ancestry::ALL.len()
+        + BodyProportions::ALL.len()
+        + HeadShape::ALL.len()
+        + SkinTone::ALL.len()
+        + HairShape::ALL.len()
+        + HairTone::ALL.len()
+        + FaceDetail::ALL.len()
+        + Garb::ALL.len()
+        + Legwear::ALL.len()
+        + Footwear::ALL.len()
+        + Keepsake::ALL.len()
+        + AccentTone::ALL.len()
+        + questmancer::ui::pixel::ColorRole::ALL.len()
+        + TheatrePose::ALL.len()
+        + DelveVariant::ALL.len()
+        + GoblinSighting::ALL.len();
+    let storybook_count =
+        WidgetAsset::ALL.len() + SceneAsset::ALL.len() + CompatibilityAsset::ALL.len() + 1;
+    assert_eq!(asset_inventory().len(), production_count + storybook_count);
 }
 
 #[test]
@@ -140,29 +165,25 @@ fn atlas_catalogue_owns_every_atlas_asset_exactly_once() {
 fn atlas_stories_enumerate_their_reused_visible_persona_assets() {
     let profile = AdventurerPersona::for_key(PersonaKey::new("storybook-atlas"));
     let pose = AdventurerPersona::for_key(PersonaKey::new("storybook-pose-atlas"));
-    let profile_class = AssetId::Class(profile.class);
-    let profile_ancestry = AssetId::Ancestry(profile.ancestry);
-    let pose_class = AssetId::Class(pose.class);
-    let pose_ancestry = AssetId::Ancestry(pose.ancestry);
-
     for story in catalogue()
         .iter()
         .filter(|story| story.category == Category::AssetAtlas)
     {
-        let expected = match story.id.as_str() {
-            "atlas.classes" => vec![profile_ancestry],
-            "atlas.ancestries" => vec![profile_class],
-            "atlas.palette-roles" => vec![],
-            "atlas.poses" => vec![pose_class, pose_ancestry],
-            _ => vec![profile_class, profile_ancestry],
+        let mut expected = if story.id.as_str() == "atlas.palette-roles" {
+            HashSet::new()
+        } else if story.id.as_str() == "atlas.poses" {
+            persona_assets(&pose).into_iter().collect()
+        } else {
+            persona_assets(&profile).into_iter().collect()
         };
+        expected.retain(|asset| !story.owns.contains(asset));
         assert_eq!(
             story
                 .shows
                 .iter()
                 .copied()
                 .collect::<std::collections::HashSet<_>>(),
-            expected.into_iter().collect(),
+            expected,
             "{}",
             story.id.as_str()
         );
@@ -427,32 +448,70 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
 
 #[test]
 fn widget_atlases_cross_the_production_layout_thresholds_after_borders() {
-    let expected = [
-        ("widgets.adventurer-cards", [(36, 21), (30, 12)]),
-        ("widgets.chambers", [(30, 12), (26, 9)]),
-    ];
-    for (story_id, dimensions) in expected {
-        let story = catalogue()
+    let story = catalogue()
+        .iter()
+        .find(|story| story.id.as_str() == "widgets.adventurer-cards")
+        .unwrap();
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("widgets.adventurer-cards must be an asset atlas");
+    };
+    assert_eq!(atlas.tiles.len(), 2);
+    assert_eq!(
+        atlas
+            .tiles
             .iter()
-            .find(|story| story.id.as_str() == story_id)
-            .unwrap();
-        let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
-            panic!("{story_id} must be an asset atlas");
-        };
-        assert_eq!(atlas.tiles.len(), 2, "{story_id}");
-        assert_eq!(
-            atlas
-                .tiles
-                .iter()
-                .map(|tile| (tile.preferred_width, tile.preferred_height))
-                .collect::<Vec<_>>(),
-            dimensions,
-            "{story_id}"
-        );
-        assert!(atlas.tiles.iter().all(|tile| matches!(
-            tile.content,
-            AtlasContent::AdventurerCard { .. } | AtlasContent::Chamber { .. }
-        )));
+            .map(|tile| (tile.preferred_width, tile.preferred_height))
+            .collect::<Vec<_>>(),
+        [(36, 21), (30, 12)]
+    );
+    assert!(
+        atlas
+            .tiles
+            .iter()
+            .all(|tile| matches!(tile.content, AtlasContent::AdventurerCard { .. }))
+    );
+}
+
+#[test]
+fn chamber_atlas_is_the_complete_pose_by_production_layout_matrix() {
+    let story = catalogue()
+        .iter()
+        .find(|story| story.id.as_str() == "widgets.chambers")
+        .unwrap();
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("widgets.chambers must be an asset atlas");
+    };
+    let expected = [
+        (TheatrePose::Delving, "delving"),
+        (TheatrePose::SeekingCounsel, "seeking counsel"),
+        (TheatrePose::SpoilsUnopened, "spoils unopened"),
+        (TheatrePose::VictoryRecorded, "victory recorded"),
+        (TheatrePose::Resting, "resting"),
+        (TheatrePose::Departed, "departed"),
+        (TheatrePose::Unknown, "unknown"),
+    ];
+
+    assert_eq!(atlas.tiles.len(), expected.len() * 2);
+    for (index, (pose, pose_label)) in expected.into_iter().enumerate() {
+        for (layout_index, (layout, dimensions, selected)) in
+            [("Full", (30, 12), true), ("Compact", (26, 9), false)]
+                .into_iter()
+                .enumerate()
+        {
+            let tile = &atlas.tiles[index * 2 + layout_index];
+            assert_eq!(tile.label, format!("{layout} chamber - {pose_label}"));
+            assert_eq!((tile.preferred_width, tile.preferred_height), dimensions);
+            let AtlasContent::Chamber {
+                theatre,
+                selected: actual_selected,
+                ..
+            } = &tile.content
+            else {
+                panic!("{} bypasses the production chamber widget path", tile.label);
+            };
+            assert_eq!(theatre.pose, pose, "{}", tile.label);
+            assert_eq!(*actual_selected, selected, "{}", tile.label);
+        }
     }
 }
 
@@ -517,7 +576,7 @@ fn compatibility_stories_apply_the_exact_fixed_preferences() {
 }
 
 #[test]
-fn compatibility_stories_use_the_clean_connected_delves_baseline() {
+fn compatibility_stories_use_clean_connected_delves_baselines() {
     for story in catalogue()
         .iter()
         .filter(|story| story.category == Category::Compatibility)
@@ -525,15 +584,36 @@ fn compatibility_stories_use_the_clean_connected_delves_baseline() {
         let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
             panic!("{} must use the application renderer", story.id.as_str());
         };
-        assert!(
-            model.domain().agents.values().all(|agent| {
-                agent.presence == Presence::Working
-                    && agent.attention == GuildAttention::Clear
-                    && agent.custom_status.is_none()
-            }),
-            "{}",
-            story.id.as_str()
-        );
+        assert!(model.domain().agents.values().all(|agent| {
+            agent.attention == GuildAttention::Clear && agent.custom_status.is_none()
+        }));
+        let motion_story = story.id.as_str().starts_with("compat.motion-");
+        if motion_story {
+            assert!(
+                model
+                    .domain()
+                    .agents
+                    .values()
+                    .any(|agent| agent.presence == Presence::Working)
+            );
+            assert!(
+                model
+                    .domain()
+                    .agents
+                    .values()
+                    .any(|agent| agent.presence == Presence::Idle)
+            );
+        } else {
+            assert!(
+                model
+                    .domain()
+                    .agents
+                    .values()
+                    .all(|agent| agent.presence == Presence::Working),
+                "{}",
+                story.id.as_str()
+            );
+        }
         assert!(model.output_preview().is_none(), "{}", story.id.as_str());
         assert!(
             model.domain().chronicle.entries().is_empty(),
@@ -644,288 +724,138 @@ fn connected_and_mixed_state_delves_use_distinct_canonical_models() {
 }
 
 #[test]
-#[allow(
-    clippy::too_many_lines,
-    reason = "one exhaustive table keeps every completed semantic story family auditable"
-)]
-fn shows_are_the_exact_assets_rendered_across_declared_viewports() {
-    let story = |id: &str| {
-        catalogue()
-            .iter()
-            .find(|story| story.id.as_str() == id)
-            .unwrap()
-    };
-
-    let assert_exact = |id: &str, expected: &[AssetId]| {
-        assert_eq!(
-            story(id).shows.iter().copied().collect::<HashSet<_>>(),
-            expected.iter().copied().collect(),
-            "{id}"
-        );
-    };
-    let guild_regions = [
-        AssetId::Widget(WidgetAsset::QuestBoard),
-        AssetId::Widget(WidgetAsset::Party),
-        AssetId::Widget(WidgetAsset::Summons),
-        AssetId::Widget(WidgetAsset::Chronicle),
-        AssetId::Widget(WidgetAsset::AdventurerProfile),
-        AssetId::Widget(WidgetAsset::Scrying),
-        AssetId::Widget(WidgetAsset::Spoils),
-    ];
-    let modal_guild = std::iter::once(AssetId::Scene(SceneAsset::GuildMixedAttention))
-        .chain(guild_regions)
-        .collect::<Vec<_>>();
-    for id in ["widgets.counsel", "widgets.search", "widgets.help"] {
-        assert_exact(id, &modal_guild);
-    }
-    assert_exact(
-        "widgets.guild-regions",
-        &[AssetId::Scene(SceneAsset::GuildPopulated)],
-    );
-    assert_exact("scenes.guild-empty", &[]);
-    for id in [
-        "scenes.guild-populated",
-        "scenes.guild-mixed-attention",
-        "scenes.guild-disconnected",
-        "scenes.guild-reconnecting",
-    ] {
-        assert_exact(id, &guild_regions);
-    }
-    assert_exact(
-        "scenes.narrow-guild",
-        &[AssetId::Widget(WidgetAsset::QuestBoard)],
-    );
-    for id in [
-        "goblins.chest-eyes",
-        "goblins.chronicle-hand",
-        "goblins.rafters-scroll",
-        "goblins.stolen-biscuit",
-    ] {
-        let expected = std::iter::once(AssetId::Scene(SceneAsset::GuildPopulated))
-            .chain(guild_regions)
-            .collect::<Vec<_>>();
-        assert_exact(id, &expected);
-    }
-    let outbreak = std::iter::once(AssetId::Scene(SceneAsset::GuildMixedAttention))
-        .chain(guild_regions)
-        .collect::<Vec<_>>();
-    assert_exact("goblins.outbreak", &outbreak);
-
-    for id in ["widgets.adventurer-cards", "widgets.chambers"] {
-        let StoryFixture::AssetAtlas(atlas) = (story(id).build)(&StoryContext::fixed()) else {
-            panic!("{id} must be an asset atlas");
+fn application_shows_are_the_exact_union_of_shared_production_projections() {
+    for story in catalogue() {
+        let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
+            continue;
         };
-        let expected = atlas
-            .tiles
-            .into_iter()
-            .flat_map(|tile| match tile.content {
-                AtlasContent::AdventurerCard { agent, theatre, .. }
-                | AtlasContent::Chamber { agent, theatre, .. } => vec![
-                    AssetId::Class(agent.persona.class),
-                    AssetId::Ancestry(agent.persona.ancestry),
-                    AssetId::Pose(theatre.pose),
-                ],
-                AtlasContent::Pixel { .. } | AtlasContent::Application { .. } => vec![],
-            })
-            .collect::<Vec<_>>();
-        assert_exact(id, &expected);
+        let mut observed = HashSet::new();
+        for width in story.viewport.minimum_width..=story.viewport.reference_width {
+            for height in story.viewport.minimum_height..=story.viewport.reference_height {
+                let projection =
+                    questmancer::ui::render_projection_for(&model, Rect::new(0, 0, width, height));
+                observed.extend(projection_assets(&model, &projection));
+            }
+        }
+        observed.retain(|asset| !story.owns.contains(asset));
+        assert_eq!(
+            story.shows.iter().copied().collect::<HashSet<_>>(),
+            observed,
+            "{}",
+            story.id.as_str()
+        );
     }
-
-    let connected_fixed = [
-        AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
-        AssetId::DelveVariant(DelveVariant::MossyUndercroft),
-        AssetId::DelveVariant(DelveVariant::OldWatchtower),
-        AssetId::Widget(WidgetAsset::ChamberCompact),
-    ];
-    for id in ["scenes.connected-delves", "scenes.mixed-state-delve"] {
-        assert_delve_shows_match_production_projection(story(id), &connected_fixed, true);
-    }
-    assert_delve_shows_match_production_projection(
-        story("scenes.narrow-delve"),
-        &[AssetId::Widget(WidgetAsset::ChamberCompact)],
-        false,
-    );
-    let compatibility_fixed = std::iter::once(AssetId::Scene(SceneAsset::ConnectedDelves))
-        .chain(connected_fixed)
-        .collect::<Vec<_>>();
-    for id in [
-        "compat.unicode-xterm256",
-        "compat.unicode-ansi16",
-        "compat.ascii-ansi16",
-        "compat.motion-full",
-        "compat.motion-reduced",
-        "compat.motion-none",
-    ] {
-        assert_delve_shows_match_production_projection(story(id), &compatibility_fixed, true);
-    }
-    assert!(
-        story("compat.ascii-ansi16")
-            .shows
-            .iter()
-            .all(|asset| { !matches!(asset, AssetId::Class(_) | AssetId::Ancestry(_)) })
-    );
-    assert!(
-        story("compat.unicode-xterm256")
-            .shows
-            .iter()
-            .any(|asset| matches!(asset, AssetId::Class(_) | AssetId::Ancestry(_)))
-    );
 }
 
 #[test]
-fn named_delve_shows_match_independently_observed_production_chamber_branches() {
-    let expectations = [
-        (
-            "scenes.delve-library",
-            [WidgetAsset::ChamberCompact],
-            [WidgetAsset::ChamberCompact],
-        ),
-        (
-            "scenes.delve-undercroft",
-            [WidgetAsset::ChamberCompact],
-            [WidgetAsset::ChamberCompact],
-        ),
-        (
-            "scenes.delve-watchtower",
-            [WidgetAsset::ChamberCompact],
-            [WidgetAsset::ChamberFull],
-        ),
-    ];
-
-    for (id, reference_branches, minimum_branches) in expectations {
-        let story = catalogue()
-            .iter()
-            .find(|story| story.id.as_str() == id)
-            .unwrap();
-        let (reference_assets, observed_reference) = observed_named_delve_assets(
-            story,
-            story.viewport.reference_width,
-            story.viewport.reference_height,
-        );
-        let (minimum_assets, observed_minimum) = observed_named_delve_assets(
-            story,
-            story.viewport.minimum_width,
-            story.viewport.minimum_height,
-        );
-        assert_eq!(
-            observed_reference,
-            reference_branches.into_iter().collect(),
-            "{id} reference chamber branch"
-        );
-        assert_eq!(
-            observed_minimum,
-            minimum_branches.into_iter().collect(),
-            "{id} minimum chamber branch"
-        );
-        assert_eq!(
-            story.shows.iter().copied().collect::<HashSet<_>>(),
-            reference_assets.union(&minimum_assets).copied().collect(),
-            "{id} declared shows"
-        );
-    }
-}
-
-fn observed_named_delve_assets(
-    story: &Story,
-    width: u16,
-    height: u16,
-) -> (HashSet<AssetId>, HashSet<WidgetAsset>) {
-    let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
-        panic!("{} must be an application fixture", story.id.as_str());
-    };
-    let buffer = storybook_ui::render_application_buffer(&model, width, height);
-    let rows = (0..height)
-        .map(|y| {
-            (0..width)
-                .map(|x| buffer.cell((x, y)).unwrap().symbol())
-                .collect::<String>()
-        })
-        .collect::<Vec<_>>();
-    let screen = rows.join("\n");
-    let mut assets = HashSet::new();
-    assert!(screen.contains("QUESTMANCER DELVES"), "{screen}");
-    assets.insert(AssetId::Scene(SceneAsset::ConnectedDelves));
-    let mut branches = HashSet::new();
-
-    for key in visible_agent_keys(&model, Rect::new(0, 0, width, height)) {
-        let agent = model.domain().agents.get(&key).unwrap();
-        let name_row = rows
-            .iter()
-            .position(|row| row.contains(&agent.name))
-            .unwrap_or_else(|| panic!("missing rendered adventurer {}: {screen}", agent.name));
-        let following_rows =
-            &rows[name_row.saturating_add(1)..rows.len().min(name_row.saturating_add(7))];
-        let branch = if following_rows
-            .first()
-            .is_some_and(|row| row.contains(".--RUNE--."))
-        {
-            WidgetAsset::ChamberFull
-        } else {
-            WidgetAsset::ChamberCompact
-        };
-        branches.insert(branch);
-        assets.insert(AssetId::Widget(branch));
-        assets.insert(AssetId::Pose(
-            frame_for(agent, model.now(), model.preferences()).pose,
-        ));
-        let persona_geometry_visible = following_rows
-            .iter()
-            .any(|row| row.contains("====CHAMBER===="));
-        if persona_geometry_visible && model.preferences().character_set == CharacterSet::Unicode {
-            assets.insert(AssetId::Class(agent.persona.class));
-            assets.insert(AssetId::Ancestry(agent.persona.ancestry));
-        }
-    }
-
-    (assets, branches)
-}
-
-fn assert_delve_shows_match_production_projection(
-    story: &Story,
-    fixed: &[AssetId],
-    reference_has_persona_sprites: bool,
-) {
-    let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
-        panic!("{} must be an application fixture", story.id.as_str());
-    };
-    let reference = Rect::new(
-        0,
-        0,
-        story.viewport.reference_width,
-        story.viewport.reference_height,
-    );
-    let minimum = Rect::new(
-        0,
-        0,
-        story.viewport.minimum_width,
-        story.viewport.minimum_height,
-    );
-    let reference_agents = visible_agent_keys(&model, reference);
-    let visible_agents = reference_agents
+fn intermediate_named_delve_branches_are_structural_and_inventoried() {
+    let story = catalogue()
         .iter()
-        .cloned()
-        .chain(visible_agent_keys(&model, minimum))
-        .collect::<HashSet<_>>();
-    let mut expected = fixed.to_vec();
-    for key in visible_agents {
-        let agent = model.domain().agents.get(&key).unwrap();
-        expected.push(AssetId::Pose(
-            frame_for(agent, model.now(), model.preferences()).pose,
-        ));
+        .find(|story| story.id.as_str() == "scenes.delve-library")
+        .unwrap();
+    let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
+        panic!("library must be an application fixture");
+    };
+    let reference = questmancer::ui::render_projection_for(&model, Rect::new(0, 0, 130, 36));
+    let minimum = questmancer::ui::render_projection_for(&model, Rect::new(0, 0, 60, 18));
+    let intermediate = questmancer::ui::render_projection_for(&model, Rect::new(0, 0, 60, 36));
+    assert!(reference.visible_agents.iter().all(|agent| {
+        agent.chamber == Some(questmancer::ui::ChamberPresentation::CompactScene)
+    }));
+    assert!(minimum.visible_agents.iter().all(|agent| {
+        agent.chamber == Some(questmancer::ui::ChamberPresentation::CompactScene)
+    }));
+    assert!(
+        intermediate
+            .visible_agents
+            .iter()
+            .any(|agent| { agent.chamber == Some(questmancer::ui::ChamberPresentation::Full) })
+    );
+    assert!(
+        story
+            .shows
+            .contains(&AssetId::Widget(WidgetAsset::ChamberCompact))
+    );
+    assert!(
+        story
+            .shows
+            .contains(&AssetId::Widget(WidgetAsset::ChamberFull))
+    );
+}
+
+fn projection_assets(
+    model: &Model,
+    projection: &questmancer::ui::RenderProjection,
+) -> HashSet<AssetId> {
+    use questmancer::ui::{ChamberPresentation, GuildRegion, PersonaRenderMode};
+
+    let mut assets = HashSet::new();
+    for region in &projection.guild_regions {
+        assets.insert(AssetId::Widget(match region {
+            GuildRegion::QuestBoard => WidgetAsset::QuestBoard,
+            GuildRegion::Party => WidgetAsset::Party,
+            GuildRegion::Summons => WidgetAsset::Summons,
+            GuildRegion::Chronicle => WidgetAsset::Chronicle,
+            GuildRegion::AdventurerProfile => WidgetAsset::AdventurerProfile,
+            GuildRegion::Scrying => WidgetAsset::Scrying,
+            GuildRegion::Spoils => WidgetAsset::Spoils,
+        }));
     }
-    if reference_has_persona_sprites && model.preferences().character_set == CharacterSet::Unicode {
-        for key in reference_agents {
-            let agent = model.domain().agents.get(&key).unwrap();
-            expected.push(AssetId::Class(agent.persona.class));
-            expected.push(AssetId::Ancestry(agent.persona.ancestry));
+    if let Some(agent) = projection
+        .guild_profile_agent
+        .as_ref()
+        .and_then(|key| model.domain().agents.get(key))
+    {
+        assets.insert(AssetId::Class(agent.persona.class));
+        assets.insert(AssetId::Ancestry(agent.persona.ancestry));
+    }
+    if projection.delve_connected_scene_visible {
+        assets.insert(AssetId::Scene(SceneAsset::ConnectedDelves));
+    }
+    assets.extend(
+        projection
+            .delve_variants
+            .iter()
+            .copied()
+            .map(AssetId::DelveVariant),
+    );
+    for rendered in &projection.visible_agents {
+        let agent = model.domain().agents.get(&rendered.key).unwrap();
+        assets.insert(AssetId::Pose(rendered.pose));
+        match rendered.chamber {
+            Some(ChamberPresentation::Full) => {
+                assets.insert(AssetId::Widget(WidgetAsset::ChamberFull));
+            }
+            Some(ChamberPresentation::Text | ChamberPresentation::CompactScene) => {
+                assets.insert(AssetId::Widget(WidgetAsset::ChamberCompact));
+            }
+            Some(ChamberPresentation::Hidden) | None => {}
+        }
+        if rendered.persona == PersonaRenderMode::Full {
+            assets.extend(persona_assets(&agent.persona));
         }
     }
-    assert_eq!(
-        story.shows.iter().copied().collect::<HashSet<_>>(),
-        expected.into_iter().collect(),
-        "{}",
-        story.id.as_str()
-    );
+    assets
+}
+
+fn persona_assets(persona: &AdventurerPersona) -> [AssetId; 14] {
+    let appearance = persona.appearance;
+    [
+        AssetId::Class(persona.class),
+        AssetId::Gear(persona.class.gear()),
+        AssetId::Ancestry(persona.ancestry),
+        AssetId::BodyProportions(appearance.proportions),
+        AssetId::HeadShape(appearance.head_shape),
+        AssetId::SkinTone(appearance.skin_tone),
+        AssetId::HairShape(appearance.hair),
+        AssetId::HairTone(appearance.hair_tone),
+        AssetId::FaceDetail(appearance.face_detail),
+        AssetId::Garb(appearance.garb),
+        AssetId::Legwear(appearance.legwear),
+        AssetId::Footwear(appearance.footwear),
+        AssetId::Keepsake(appearance.keepsake),
+        AssetId::AccentTone(appearance.accent),
+    ]
 }
 
 #[test]

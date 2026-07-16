@@ -1,7 +1,7 @@
 use crate::{
     domain::{
-        AdventurerClass, AdventurerPersona, AdventuringGear, Ancestry, Garb, HairShape, Keepsake,
-        PersonaAppearance,
+        AdventurerClass, AdventurerPersona, AdventuringGear, Ancestry, FaceDetail, Garb, HairShape,
+        HeadShape, Keepsake, PersonaAppearance,
     },
     ui::{
         pixel::{Canvas, ColorRole, Palette},
@@ -33,6 +33,12 @@ pub fn compose_chamber_adventurer_for_palette(
         canvas = compose_body(&persona.appearance, body_pose, palette);
         let roles = appearance_roles_for_palette(&persona.appearance, palette);
         overlay_ancestry(&mut canvas, persona.ancestry, roles, body_pose);
+        overlay_face_detail(
+            &mut canvas,
+            persona.appearance.face_detail,
+            roles,
+            body_pose,
+        );
         overlay_class_gear(&mut canvas, persona.class, persona.class.gear());
         overlay_keepsake(&mut canvas, persona.appearance.keepsake, roles);
     }
@@ -54,7 +60,39 @@ fn compose_body(appearance: &PersonaAppearance, pose: BodyPose, palette: Palette
     let torso_height = if compact { 3 } else { 4 };
 
     canvas.fill_rect(head_x, head_y, head_width, 1, roles.hair);
-    canvas.fill_rect(head_x, head_y + 1, head_width, 3, roles.skin);
+    match appearance.head_shape {
+        HeadShape::Round => {
+            canvas.fill_rect(
+                head_x + 1,
+                head_y + 1,
+                head_width.saturating_sub(2),
+                3,
+                roles.skin,
+            );
+            canvas.fill_rect(head_x, head_y + 2, head_width, 1, roles.skin);
+        }
+        HeadShape::Square => canvas.fill_rect(head_x, head_y + 1, head_width, 3, roles.skin),
+        HeadShape::Long => canvas.fill_rect(
+            head_x + 1,
+            head_y + 1,
+            head_width.saturating_sub(2),
+            4,
+            roles.skin,
+        ),
+        HeadShape::Angular => {
+            canvas.fill_rect(
+                head_x + 1,
+                head_y + 1,
+                head_width.saturating_sub(2),
+                3,
+                roles.skin,
+            );
+            canvas.fill_rect(head_x, head_y + 2, head_width, 1, roles.skin);
+            canvas.set(head_x.saturating_sub(1), head_y + 2, roles.skin);
+            canvas.set(head_x + head_width, head_y + 2, roles.skin);
+            canvas.set(head_x + head_width / 2, head_y + 4, roles.skin);
+        }
+    }
     match appearance.hair {
         HairShape::Curls | HairShape::Bob => {
             canvas.set(head_x.saturating_sub(1), head_y + 2, roles.hair);
@@ -92,6 +130,41 @@ fn compose_body(appearance: &PersonaAppearance, pose: BodyPose, palette: Palette
     canvas.fill_rect(left_leg.saturating_sub(1), 11, 2, 1, roles.footwear);
     canvas.fill_rect(right_leg, 11, 2, 1, roles.footwear);
     canvas
+}
+
+fn overlay_face_detail(
+    canvas: &mut Canvas,
+    face_detail: FaceDetail,
+    roles: AppearanceRoles,
+    pose: BodyPose,
+) {
+    let head_x = if pose.broad() { 2 } else { 3 };
+    let head_y = u16::from(pose.compact());
+    let head_width = if pose.broad() { 6 } else { 4 };
+    let eyes_y = head_y + 2;
+    match face_detail {
+        FaceDetail::None => {}
+        FaceDetail::RoundGlasses => {
+            canvas.set(head_x, eyes_y, roles.highlight);
+            canvas.set(head_x + head_width - 1, eyes_y, roles.highlight);
+        }
+        FaceDetail::SquareGlasses => {
+            canvas.fill_rect(head_x, eyes_y, 2, 1, roles.highlight);
+            canvas.fill_rect(head_x + head_width - 2, eyes_y, 2, 1, roles.highlight);
+        }
+        FaceDetail::Visor => canvas.fill_rect(head_x, eyes_y, head_width, 1, roles.accent),
+        FaceDetail::Freckles => {
+            canvas.set(head_x + 1, eyes_y, roles.highlight);
+            canvas.set(head_x + head_width - 2, eyes_y + 1, roles.highlight);
+        }
+        FaceDetail::Moustache => canvas.fill_rect(
+            head_x + 1,
+            eyes_y + 1,
+            head_width.saturating_sub(2),
+            1,
+            roles.hair,
+        ),
+    }
 }
 
 fn draw_garb(canvas: &mut Canvas, garb: Garb, roles: AppearanceRoles, x: u16, y: u16, width: u16) {
@@ -285,6 +358,7 @@ fn overlay_state_prop(canvas: &mut Canvas, pose: TheatrePose, frame: u8) {
             canvas.set(0, 10, ColorRole::Timber);
             canvas.set(2, 10, ColorRole::Timber);
             canvas.fill_rect(1, 9, 1, 3, ColorRole::Hearth);
+            canvas.set(u16::from(frame % 4), 8, ColorRole::RuneGlow);
         }
         TheatrePose::Departed => {
             canvas.fill_rect(1, 2, 1, 9, ColorRole::Stone);

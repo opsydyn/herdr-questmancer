@@ -11,10 +11,13 @@ use std::{
 
 use crate::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Modal, Motion},
-    domain::{AdventurerClass, AdventurerPersona, AdventuringGear, PersonaKey},
+    domain::{AdventurerPersona, PersonaKey},
     ui::{
-        delve_projection::visible_agent_keys, delve_scene::DelveVariant, goblins::GoblinSighting,
-        theatre::frame_for,
+        ChamberPresentation, GuildRegion, PersonaRenderMode,
+        delve_scene::DelveVariant,
+        goblins::GoblinSighting,
+        persona_render_mode_for_chamber, render_projection_for,
+        widgets::{AdventurerCardPresentation, adventurer_card_presentation, chamber_presentation},
     },
 };
 use ratatui::layout::Rect;
@@ -252,31 +255,6 @@ const SCENE_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
 const NARROW_VIEWPORT: Viewport = Viewport::new(64, 24, 48, 18);
 const COMPATIBILITY_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
 
-const CLASS_AND_GEAR: &[AssetId] = &[
-    AssetId::Class(AdventurerClass::Barbarian),
-    AssetId::Class(AdventurerClass::Bard),
-    AssetId::Class(AdventurerClass::Cleric),
-    AssetId::Class(AdventurerClass::Paladin),
-    AssetId::Class(AdventurerClass::Ranger),
-    AssetId::Class(AdventurerClass::Rogue),
-    AssetId::Class(AdventurerClass::Wizard),
-    AssetId::Class(AdventurerClass::Artificer),
-    AssetId::Class(AdventurerClass::Runewright),
-    AssetId::Class(AdventurerClass::Testmender),
-    AssetId::Class(AdventurerClass::Pathseeker),
-    AssetId::Gear(AdventuringGear::Axe),
-    AssetId::Gear(AdventuringGear::BowAndQuiver),
-    AssetId::Gear(AdventuringGear::HolySymbol),
-    AssetId::Gear(AdventuringGear::Lute),
-    AssetId::Gear(AdventuringGear::MapAndCompass),
-    AssetId::Gear(AdventuringGear::RuneChisel),
-    AssetId::Gear(AdventuringGear::Shield),
-    AssetId::Gear(AdventuringGear::SpellbookAndStaff),
-    AssetId::Gear(AdventuringGear::TestKit),
-    AssetId::Gear(AdventuringGear::ThievesTools),
-    AssetId::Gear(AdventuringGear::Toolkit),
-];
-
 macro_rules! atlas_story {
     ($id:literal, $title:literal, $description:literal, $builder:path, $owns:expr, $reused:expr) => {
         complete_story(
@@ -312,93 +290,35 @@ const GUILD_REGIONS: &[AssetId] = &[
 const COUNSEL: &[AssetId] = &[AssetId::Widget(WidgetAsset::Counsel)];
 const SEARCH: &[AssetId] = &[AssetId::Widget(WidgetAsset::Search)];
 const HELP: &[AssetId] = &[AssetId::Widget(WidgetAsset::Help)];
-const NAMED_DELVE_REUSES: &[AssetId] = &[
-    AssetId::Scene(SceneAsset::ConnectedDelves),
-    AssetId::Widget(WidgetAsset::ChamberCompact),
-];
-const WATCHTOWER_DELVE_REUSES: &[AssetId] = &[
-    AssetId::Scene(SceneAsset::ConnectedDelves),
-    AssetId::Widget(WidgetAsset::ChamberFull),
-    AssetId::Widget(WidgetAsset::ChamberCompact),
-];
-const CONNECTED_DELVE_REUSES: &[AssetId] = &[
-    AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
-    AssetId::DelveVariant(DelveVariant::MossyUndercroft),
-    AssetId::DelveVariant(DelveVariant::OldWatchtower),
-    AssetId::Widget(WidgetAsset::ChamberCompact),
-];
-const GUILD_REUSES: &[AssetId] = GUILD_REGIONS;
-const NARROW_GUILD_REUSES: &[AssetId] = &[AssetId::Widget(WidgetAsset::QuestBoard)];
-const NARROW_DELVE_REUSES: &[AssetId] = &[AssetId::Widget(WidgetAsset::ChamberCompact)];
-const GUILD_REGION_SHOWS: &[AssetId] = &[AssetId::Scene(SceneAsset::GuildPopulated)];
-const MODAL_GUILD_REUSES: &[AssetId] = &[
-    AssetId::Scene(SceneAsset::GuildMixedAttention),
-    AssetId::Widget(WidgetAsset::QuestBoard),
-    AssetId::Widget(WidgetAsset::Party),
-    AssetId::Widget(WidgetAsset::Summons),
-    AssetId::Widget(WidgetAsset::Chronicle),
-    AssetId::Widget(WidgetAsset::AdventurerProfile),
-    AssetId::Widget(WidgetAsset::Scrying),
-    AssetId::Widget(WidgetAsset::Spoils),
-];
-const GOBLIN_REUSES: &[AssetId] = &[
-    AssetId::Scene(SceneAsset::GuildPopulated),
-    AssetId::Widget(WidgetAsset::QuestBoard),
-    AssetId::Widget(WidgetAsset::Party),
-    AssetId::Widget(WidgetAsset::Summons),
-    AssetId::Widget(WidgetAsset::Chronicle),
-    AssetId::Widget(WidgetAsset::AdventurerProfile),
-    AssetId::Widget(WidgetAsset::Scrying),
-    AssetId::Widget(WidgetAsset::Spoils),
-];
-const GOBLIN_OUTBREAK_REUSES: &[AssetId] = &[
-    AssetId::Scene(SceneAsset::GuildMixedAttention),
-    AssetId::Widget(WidgetAsset::QuestBoard),
-    AssetId::Widget(WidgetAsset::Party),
-    AssetId::Widget(WidgetAsset::Summons),
-    AssetId::Widget(WidgetAsset::Chronicle),
-    AssetId::Widget(WidgetAsset::AdventurerProfile),
-    AssetId::Widget(WidgetAsset::Scrying),
-    AssetId::Widget(WidgetAsset::Spoils),
-];
-const COMPATIBILITY_REUSES: &[AssetId] = &[
-    AssetId::Scene(SceneAsset::ConnectedDelves),
-    AssetId::DelveVariant(DelveVariant::ForgottenLibrary),
-    AssetId::DelveVariant(DelveVariant::MossyUndercroft),
-    AssetId::DelveVariant(DelveVariant::OldWatchtower),
-    AssetId::Widget(WidgetAsset::ChamberCompact),
-];
 
 #[allow(
     clippy::too_many_lines,
     reason = "the complete fixed catalogue keeps its prescribed order visible in one table"
 )]
 fn build_catalogue() -> Vec<Story> {
+    let class_and_gear = Box::leak(
+        CLASSES
+            .iter()
+            .chain(GEAR)
+            .copied()
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    );
     let profile_reuses = persona_reuses("storybook-atlas");
     let pose_reuses = persona_reuses("storybook-pose-atlas");
     let adventurer_card_reuses = widget_atlas_shows(atlas::adventurer_cards);
     let chamber_reuses = widget_atlas_shows(atlas::chambers);
-    let connected_delves_reuses = delve_shows(
-        connected_delves,
-        SCENE_VIEWPORT,
-        CONNECTED_DELVE_REUSES,
-        true,
-    );
-    let mixed_state_delve_reuses = delve_shows(
-        mixed_state_delve,
-        SCENE_VIEWPORT,
-        CONNECTED_DELVE_REUSES,
-        true,
-    );
-    let narrow_delve_reuses =
-        delve_shows(narrow_delve, NARROW_VIEWPORT, NARROW_DELVE_REUSES, false);
+    let guild_region_reuses = widget_atlas_shows(atlas::guild_regions);
+    let counsel_reuses = application_shows(counsel, WIDGET_VIEWPORT);
+    let search_reuses = application_shows(search, WIDGET_VIEWPORT);
+    let help_reuses = application_shows(help, WIDGET_VIEWPORT);
     let mut stories = vec![
         atlas_story!(
             "atlas.classes",
             "Classes and Gear",
             "Every adventurer class with its production class gear.",
             atlas::classes,
-            CLASS_AND_GEAR,
+            class_and_gear,
             profile_reuses
         ),
         atlas_story!(
@@ -544,7 +464,7 @@ fn build_catalogue() -> Vec<Story> {
             GUILD_REGIONS_VIEWPORT,
             atlas::guild_regions,
             GUILD_REGIONS,
-            GUILD_REGION_SHOWS,
+            guild_region_reuses,
         ),
         complete_story(
             "widgets.counsel",
@@ -554,7 +474,7 @@ fn build_catalogue() -> Vec<Story> {
             WIDGET_VIEWPORT,
             counsel,
             COUNSEL,
-            MODAL_GUILD_REUSES,
+            counsel_reuses,
         ),
         complete_story(
             "widgets.search",
@@ -564,7 +484,7 @@ fn build_catalogue() -> Vec<Story> {
             WIDGET_VIEWPORT,
             search,
             SEARCH,
-            MODAL_GUILD_REUSES,
+            search_reuses,
         ),
         complete_story(
             "widgets.help",
@@ -574,7 +494,7 @@ fn build_catalogue() -> Vec<Story> {
             WIDGET_VIEWPORT,
             help,
             HELP,
-            MODAL_GUILD_REUSES,
+            help_reuses,
         ),
         scene_story(
             "scenes.guild-empty",
@@ -582,7 +502,6 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::GuildEmpty,
             guild_empty,
             SCENE_VIEWPORT,
-            &[],
         ),
         scene_story(
             "scenes.guild-populated",
@@ -590,7 +509,6 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::GuildPopulated,
             guild_populated,
             SCENE_VIEWPORT,
-            GUILD_REUSES,
         ),
         scene_story(
             "scenes.guild-mixed-attention",
@@ -598,7 +516,6 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::GuildMixedAttention,
             guild_mixed_attention,
             SCENE_VIEWPORT,
-            GUILD_REUSES,
         ),
         scene_story(
             "scenes.guild-disconnected",
@@ -606,7 +523,6 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::GuildDisconnected,
             guild_disconnected,
             SCENE_VIEWPORT,
-            GUILD_REUSES,
         ),
         scene_story(
             "scenes.guild-reconnecting",
@@ -614,7 +530,6 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::GuildReconnecting,
             guild_reconnecting,
             SCENE_VIEWPORT,
-            GUILD_REUSES,
         ),
         delve_variant_story(
             "scenes.delve-library",
@@ -640,7 +555,6 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::ConnectedDelves,
             connected_delves,
             SCENE_VIEWPORT,
-            connected_delves_reuses,
         ),
         scene_story(
             "scenes.mixed-state-delve",
@@ -648,7 +562,6 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::MixedStateDelve,
             mixed_state_delve,
             SCENE_VIEWPORT,
-            mixed_state_delve_reuses,
         ),
         scene_story(
             "scenes.narrow-guild",
@@ -656,7 +569,6 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::NarrowGuild,
             narrow_guild,
             NARROW_VIEWPORT,
-            NARROW_GUILD_REUSES,
         ),
         scene_story(
             "scenes.narrow-delve",
@@ -664,42 +576,36 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::NarrowDelve,
             narrow_delve,
             NARROW_VIEWPORT,
-            narrow_delve_reuses,
         ),
         goblin_story(
             "goblins.chest-eyes",
             "Chest Eyes",
             AssetId::GoblinSighting(GoblinSighting::ChestEyes),
             goblin_chest,
-            GOBLIN_REUSES,
         ),
         goblin_story(
             "goblins.chronicle-hand",
             "Chronicle Hand",
             AssetId::GoblinSighting(GoblinSighting::ChronicleHand),
             goblin_hand,
-            GOBLIN_REUSES,
         ),
         goblin_story(
             "goblins.rafters-scroll",
             "Rafters Scroll",
             AssetId::GoblinSighting(GoblinSighting::RaftersScroll),
             goblin_scroll,
-            GOBLIN_REUSES,
         ),
         goblin_story(
             "goblins.stolen-biscuit",
             "Stolen Biscuit",
             AssetId::GoblinSighting(GoblinSighting::StolenBiscuit),
             goblin_biscuit,
-            GOBLIN_REUSES,
         ),
         goblin_story(
             "goblins.outbreak",
             "Goblin Outbreak",
             AssetId::GoblinOutbreak,
             goblin_outbreak,
-            GOBLIN_OUTBREAK_REUSES,
         ),
         compatibility_story(
             "compat.unicode-xterm256",
@@ -744,13 +650,7 @@ fn build_catalogue() -> Vec<Story> {
 
 fn persona_reuses(key: &'static str) -> &'static [AssetId] {
     let persona = AdventurerPersona::for_key(PersonaKey::new(key));
-    Box::leak(
-        vec![
-            AssetId::Class(persona.class),
-            AssetId::Ancestry(persona.ancestry),
-        ]
-        .into_boxed_slice(),
-    )
+    canonical_shows(&[], &complete_persona_assets(&persona))
 }
 
 #[allow(
@@ -794,59 +694,169 @@ fn widget_atlas_shows(build: StoryBuilder) -> &'static [AssetId] {
     };
     let mut shows = Vec::new();
     for tile in atlas.tiles {
+        let area = Rect::new(
+            0,
+            0,
+            tile.preferred_width.saturating_sub(2),
+            tile.preferred_height.saturating_sub(2),
+        );
         match tile.content {
-            AtlasContent::AdventurerCard { agent, theatre, .. }
-            | AtlasContent::Chamber { agent, theatre, .. } => {
-                shows.push(AssetId::Class(agent.persona.class));
-                shows.push(AssetId::Ancestry(agent.persona.ancestry));
+            AtlasContent::AdventurerCard {
+                agent,
+                theatre,
+                preferences,
+            } => {
                 shows.push(AssetId::Pose(theatre.pose));
+                match adventurer_card_presentation(area) {
+                    AdventurerCardPresentation::Hidden => {}
+                    AdventurerCardPresentation::Compact => {
+                        if agent.custom_status.is_none() {
+                            shows.push(AssetId::Keepsake(agent.persona.appearance.keepsake));
+                        }
+                        shows.push(AssetId::Widget(WidgetAsset::AdventurerCardCompact));
+                    }
+                    AdventurerCardPresentation::Full => {
+                        shows.push(AssetId::Widget(WidgetAsset::AdventurerCardFull));
+                        shows.extend([
+                            AssetId::Class(agent.persona.class),
+                            AssetId::Gear(agent.persona.class.gear()),
+                            AssetId::Ancestry(agent.persona.ancestry),
+                            AssetId::Keepsake(agent.persona.appearance.keepsake),
+                        ]);
+                        if preferences.character_set == CharacterSet::Unicode {
+                            shows.extend(complete_persona_assets(&agent.persona));
+                        }
+                    }
+                }
             }
-            AtlasContent::Pixel { .. } | AtlasContent::Application { .. } => {}
+            AtlasContent::Chamber {
+                agent,
+                theatre,
+                preferences,
+                ..
+            } => {
+                let chamber = chamber_presentation(area);
+                shows.push(AssetId::Pose(theatre.pose));
+                push_chamber_assets(
+                    &mut shows,
+                    &agent.persona,
+                    chamber,
+                    persona_render_mode_for_chamber(chamber, preferences.character_set),
+                );
+            }
+            AtlasContent::Application { model } => {
+                shows.extend(projection_assets(
+                    &model,
+                    &render_projection_for(&model, area),
+                ));
+            }
+            AtlasContent::Pixel { .. } => {}
         }
     }
     canonical_shows(&[], &shows)
 }
 
-fn delve_shows(
-    build: StoryBuilder,
-    viewport: Viewport,
-    fixed: &[AssetId],
-    reference_has_persona_sprites: bool,
-) -> &'static [AssetId] {
+fn application_shows(build: StoryBuilder, viewport: Viewport) -> &'static [AssetId] {
     let StoryFixture::Application(model) = build(&StoryContext::fixed()) else {
-        unreachable!("Delve stories must produce Application fixtures");
+        unreachable!("application stories must produce Application fixtures");
     };
-    let reference = Rect::new(0, 0, viewport.reference_width, viewport.reference_height);
-    let minimum = Rect::new(0, 0, viewport.minimum_width, viewport.minimum_height);
-    let reference_agents = visible_agent_keys(&model, reference);
-    let visible_agents = reference_agents
-        .iter()
-        .chain(visible_agent_keys(&model, minimum).iter())
-        .cloned()
-        .collect::<HashSet<_>>();
-    let mut shows = fixed.to_vec();
-    for key in &visible_agents {
-        let agent = model
-            .domain()
-            .agents
-            .get(key)
-            .expect("the production visibility projection returns known agents");
-        shows.push(AssetId::Pose(
-            frame_for(agent, model.now(), model.preferences()).pose,
-        ));
-    }
-    if reference_has_persona_sprites && model.preferences().character_set == CharacterSet::Unicode {
-        for key in reference_agents {
-            let agent = model
-                .domain()
-                .agents
-                .get(&key)
-                .expect("the production visibility projection returns known agents");
-            shows.push(AssetId::Class(agent.persona.class));
-            shows.push(AssetId::Ancestry(agent.persona.ancestry));
+    let mut shows = Vec::new();
+    for width in viewport.minimum_width..=viewport.reference_width {
+        for height in viewport.minimum_height..=viewport.reference_height {
+            let area = Rect::new(0, 0, width, height);
+            shows.extend(projection_assets(
+                &model,
+                &render_projection_for(&model, area),
+            ));
         }
     }
     canonical_shows(&[], &shows)
+}
+
+fn projection_assets(
+    model: &crate::app::Model,
+    projection: &crate::ui::RenderProjection,
+) -> Vec<AssetId> {
+    let mut assets = Vec::new();
+    for region in &projection.guild_regions {
+        assets.push(AssetId::Widget(match region {
+            GuildRegion::QuestBoard => WidgetAsset::QuestBoard,
+            GuildRegion::Party => WidgetAsset::Party,
+            GuildRegion::Summons => WidgetAsset::Summons,
+            GuildRegion::Chronicle => WidgetAsset::Chronicle,
+            GuildRegion::AdventurerProfile => WidgetAsset::AdventurerProfile,
+            GuildRegion::Scrying => WidgetAsset::Scrying,
+            GuildRegion::Spoils => WidgetAsset::Spoils,
+        }));
+    }
+    if let Some(key) = &projection.guild_profile_agent
+        && let Some(agent) = model.domain().agents.get(key)
+    {
+        assets.extend([
+            AssetId::Class(agent.persona.class),
+            AssetId::Ancestry(agent.persona.ancestry),
+        ]);
+    }
+    if projection.delve_connected_scene_visible {
+        assets.push(AssetId::Scene(SceneAsset::ConnectedDelves));
+    }
+    assets.extend(
+        projection
+            .delve_variants
+            .iter()
+            .copied()
+            .map(AssetId::DelveVariant),
+    );
+    for projected in &projection.visible_agents {
+        let Some(agent) = model.domain().agents.get(&projected.key) else {
+            continue;
+        };
+        assets.push(AssetId::Pose(projected.pose));
+        if let Some(chamber) = projected.chamber {
+            push_chamber_assets(&mut assets, &agent.persona, chamber, projected.persona);
+        }
+    }
+    assets
+}
+
+fn push_chamber_assets(
+    assets: &mut Vec<AssetId>,
+    persona: &AdventurerPersona,
+    chamber: ChamberPresentation,
+    persona_mode: PersonaRenderMode,
+) {
+    match chamber {
+        ChamberPresentation::Hidden => {}
+        ChamberPresentation::Text | ChamberPresentation::CompactScene => {
+            assets.push(AssetId::Widget(WidgetAsset::ChamberCompact));
+        }
+        ChamberPresentation::Full => {
+            assets.push(AssetId::Widget(WidgetAsset::ChamberFull));
+        }
+    }
+    if persona_mode == PersonaRenderMode::Full {
+        assets.extend(complete_persona_assets(persona));
+    }
+}
+
+fn complete_persona_assets(persona: &AdventurerPersona) -> Vec<AssetId> {
+    let appearance = persona.appearance;
+    vec![
+        AssetId::Class(persona.class),
+        AssetId::Gear(persona.class.gear()),
+        AssetId::Ancestry(persona.ancestry),
+        AssetId::BodyProportions(appearance.proportions),
+        AssetId::HeadShape(appearance.head_shape),
+        AssetId::SkinTone(appearance.skin_tone),
+        AssetId::HairShape(appearance.hair),
+        AssetId::HairTone(appearance.hair_tone),
+        AssetId::FaceDetail(appearance.face_detail),
+        AssetId::Garb(appearance.garb),
+        AssetId::Legwear(appearance.legwear),
+        AssetId::Footwear(appearance.footwear),
+        AssetId::Keepsake(appearance.keepsake),
+        AssetId::AccentTone(appearance.accent),
+    ]
 }
 
 fn scene_story(
@@ -855,9 +865,9 @@ fn scene_story(
     asset: SceneAsset,
     build: StoryBuilder,
     viewport: Viewport,
-    reused: &'static [AssetId],
 ) -> Story {
     let owns = Box::leak(vec![AssetId::Scene(asset)].into_boxed_slice());
+    let reused = application_shows(build, viewport);
     complete_story(
         id,
         title,
@@ -877,12 +887,7 @@ fn delve_variant_story(
     build: StoryBuilder,
 ) -> Story {
     let owns = Box::leak(vec![AssetId::DelveVariant(asset)].into_boxed_slice());
-    let fixed = if asset == DelveVariant::OldWatchtower {
-        WATCHTOWER_DELVE_REUSES
-    } else {
-        NAMED_DELVE_REUSES
-    };
-    let reused = delve_shows(build, SCENE_VIEWPORT, fixed, true);
+    let reused = application_shows(build, SCENE_VIEWPORT);
     complete_story(
         id,
         title,
@@ -900,9 +905,9 @@ fn goblin_story(
     title: &'static str,
     asset: AssetId,
     build: StoryBuilder,
-    reused: &'static [AssetId],
 ) -> Story {
     let owns = Box::leak(vec![asset].into_boxed_slice());
+    let reused = application_shows(build, SCENE_VIEWPORT);
     complete_story(
         id,
         title,
@@ -922,7 +927,7 @@ fn compatibility_story(
     build: StoryBuilder,
 ) -> Story {
     let owns = Box::leak(vec![AssetId::Compatibility(asset)].into_boxed_slice());
-    let reused = delve_shows(build, COMPATIBILITY_VIEWPORT, COMPATIBILITY_REUSES, true);
+    let reused = application_shows(build, COMPATIBILITY_VIEWPORT);
     complete_story(
         id,
         title,
@@ -1041,31 +1046,17 @@ fn ascii_ansi16(_: &StoryContext) -> StoryFixture {
     ))
 }
 fn motion_full(_: &StoryContext) -> StoryFixture {
-    compatible(preferences(
-        Motion::Full,
-        CharacterSet::Unicode,
-        ColorMode::Xterm256,
-    ))
+    application(fixtures::motion_compatibility_fixture(Motion::Full))
 }
 fn motion_reduced(_: &StoryContext) -> StoryFixture {
-    compatible(preferences(
-        Motion::Reduced,
-        CharacterSet::Unicode,
-        ColorMode::Xterm256,
-    ))
+    application(fixtures::motion_compatibility_fixture(Motion::Reduced))
 }
 fn motion_none(_: &StoryContext) -> StoryFixture {
-    compatible(preferences(
-        Motion::None,
-        CharacterSet::Unicode,
-        ColorMode::Xterm256,
-    ))
+    application(fixtures::motion_compatibility_fixture(Motion::None))
 }
 
 pub fn catalogue() -> &'static [Story] {
     static CATALOGUE: OnceLock<Vec<Story>> = OnceLock::new();
-    debug_assert!(CLASS_AND_GEAR.starts_with(CLASSES));
-    debug_assert!(CLASS_AND_GEAR.ends_with(GEAR));
     CATALOGUE.get_or_init(build_catalogue).as_slice()
 }
 

@@ -20,13 +20,18 @@ const OUTBREAK_FPS: u8 = 4;
 const ASCII_GOBLIN: [&str; 2] = ["/{g}\\", " /|\\ "];
 const UNICODE_GOBLIN: [&str; 2] = ["╭g╮", "╰┬╯"];
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum GoblinSighting {
-    ChestEyes,
-    ChronicleHand,
-    RaftersScroll,
-    StolenBiscuit,
+macro_rules! goblin_sightings {
+    ($($variant:ident),+ $(,)?) => {
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+        pub enum GoblinSighting { $($variant),+ }
+
+        impl GoblinSighting {
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+        }
+    };
 }
+
+goblin_sightings!(ChestEyes, ChronicleHand, RaftersScroll, StolenBiscuit);
 
 #[must_use]
 pub fn sighting_for_campaign(workspace_id: &WorkspaceId) -> Option<GoblinSighting> {

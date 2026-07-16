@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use questmancer::{
     domain::{
-        AccentTone, AdventurerClass, AdventurerPersona, Ancestry, BodyProportions, Footwear, Garb,
-        HairShape, HairTone, Keepsake, Legwear, PersonaKey, SkinTone,
+        AccentTone, AdventurerClass, AdventurerPersona, Ancestry, BodyProportions, FaceDetail,
+        Footwear, Garb, HairShape, HairTone, HeadShape, Keepsake, Legwear, PersonaKey, SkinTone,
     },
     ui::{
         persona::{
@@ -286,6 +286,73 @@ fn every_keepsake_has_distinct_profile_and_chamber_geometry() {
 }
 
 #[test]
+fn every_head_shape_has_distinct_profile_and_chamber_geometry() {
+    let variants = [
+        HeadShape::Round,
+        HeadShape::Square,
+        HeadShape::Long,
+        HeadShape::Angular,
+    ];
+    let base = fixed_persona("head-shape-fixture");
+    let profiles = variants
+        .map(|head_shape| {
+            let mut persona = base.clone();
+            persona.appearance.head_shape = head_shape;
+            silhouette(&compose_profile_adventurer(&persona))
+        })
+        .into_iter()
+        .collect::<HashSet<_>>();
+    let chambers = variants
+        .map(|head_shape| {
+            let mut persona = base.clone();
+            persona.appearance.head_shape = head_shape;
+            silhouette(&compose_chamber_adventurer(
+                &persona,
+                frame(TheatrePose::Resting, 0),
+            ))
+        })
+        .into_iter()
+        .collect::<HashSet<_>>();
+
+    assert_eq!(profiles.len(), variants.len());
+    assert_eq!(chambers.len(), variants.len());
+}
+
+#[test]
+fn every_face_detail_has_distinct_profile_and_chamber_canvas() {
+    let variants = [
+        FaceDetail::None,
+        FaceDetail::RoundGlasses,
+        FaceDetail::SquareGlasses,
+        FaceDetail::Visor,
+        FaceDetail::Freckles,
+        FaceDetail::Moustache,
+    ];
+    let base = fixed_persona("face-detail-fixture");
+    let profiles = variants
+        .map(|face_detail| {
+            let mut persona = base.clone();
+            persona.appearance.face_detail = face_detail;
+            compose_profile_adventurer(&persona).pixels().to_vec()
+        })
+        .into_iter()
+        .collect::<HashSet<_>>();
+    let chambers = variants
+        .map(|face_detail| {
+            let mut persona = base.clone();
+            persona.appearance.face_detail = face_detail;
+            compose_chamber_adventurer(&persona, frame(TheatrePose::Resting, 0))
+                .pixels()
+                .to_vec()
+        })
+        .into_iter()
+        .collect::<HashSet<_>>();
+
+    assert_eq!(profiles.len(), variants.len());
+    assert_eq!(chambers.len(), variants.len());
+}
+
+#[test]
 fn every_class_keeps_every_keepsake_as_owned_profile_and_chamber_geometry() {
     let classes = [
         AdventurerClass::Barbarian,
@@ -382,7 +449,7 @@ fn chamber_states_have_explicit_non_colour_props() {
 }
 
 #[test]
-fn motion_is_deterministic_and_only_delving_animates_the_figure() {
+fn motion_is_deterministic_for_delving_and_reduced_resting_cues() {
     let persona = fixed_persona("motion-fixture");
     let render =
         |pose, animation_frame| compose_chamber_adventurer(&persona, frame(pose, animation_frame));
@@ -395,10 +462,13 @@ fn motion_is_deterministic_and_only_delving_animates_the_figure() {
         render(TheatrePose::Delving, 0),
         render(TheatrePose::Delving, 1)
     );
+    assert_ne!(
+        render(TheatrePose::Resting, 0),
+        render(TheatrePose::Resting, 1)
+    );
     for pose in [
         TheatrePose::SeekingCounsel,
         TheatrePose::VictoryRecorded,
-        TheatrePose::Resting,
         TheatrePose::Departed,
         TheatrePose::Unknown,
     ] {

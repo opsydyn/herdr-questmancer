@@ -887,7 +887,7 @@ fn ansi_sixteen_delve_uses_only_named_palette_cells() {
 }
 
 #[test]
-fn reduced_and_no_motion_delves_are_stable_across_clock_changes() {
+fn reduced_motion_animates_only_resting_while_no_motion_remains_stable() {
     for motion in [Motion::Reduced, Motion::None] {
         let mut model = three_agent_model();
         model.set_preferences(DisplayPreferences {
@@ -913,10 +913,11 @@ fn reduced_and_no_motion_delves_are_stable_across_clock_changes() {
         let resting = render(&model, 120, 30);
         model.set_now(Timestamp::from_millis(9_999));
         let resting_later = render(&model, 120, 30);
-        assert_eq!(
-            resting, resting_later,
-            "Resting changed with the clock under motion {motion:?}"
-        );
+        match motion {
+            Motion::Reduced => assert_ne!(resting, resting_later),
+            Motion::None => assert_eq!(resting, resting_later),
+            Motion::Full => unreachable!("the test covers reduced and no motion"),
+        }
         assert!(resting.contains("RESTING"));
     }
 }

@@ -2,31 +2,22 @@ use ratatui::style::Color;
 
 use crate::app::ColorMode;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum ColorRole {
-    Stone,
-    DarkStone,
-    Timber,
-    Parchment,
-    Ink,
-    Hearth,
-    Moss,
-    RuneGlow,
-    Counsel,
-    Spoils,
-    Selection,
-    Fog,
-    Goblin,
-    SkinLight,
-    SkinMedium,
-    SkinDark,
-    HairDark,
-    HairLight,
-    Leather,
-    Steel,
-    ClothWarm,
-    ClothCool,
+macro_rules! color_roles {
+    ($($variant:ident),+ $(,)?) => {
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+        pub enum ColorRole { $($variant),+ }
+
+        impl ColorRole {
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+        }
+    };
 }
+
+color_roles!(
+    Stone, DarkStone, Timber, Parchment, Ink, Hearth, Moss, RuneGlow, Counsel, Spoils, Selection,
+    Fog, Goblin, SkinLight, SkinMedium, SkinDark, HairDark, HairLight, Leather, Steel, ClothWarm,
+    ClothCool,
+);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Palette {
