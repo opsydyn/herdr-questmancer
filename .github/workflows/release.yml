@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            builder: cargo
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            builder: cross
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            builder: cargo
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            builder: cargo
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.90.0
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.builder == 'cross'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross@0.2.5
+
+      - name: Build release binary
+        shell: bash
+        run: ${{ matrix.builder }} build --locked --release --target "${{ matrix.target }}"
+
+      - name: Package archive
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          version=${GITHUB_REF_NAME#v}
+          manifest_version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' herdr-plugin.toml | head -n 1)
+          [[ $version == "$manifest_version" ]] || {
+            echo "tag version $version does not match manifest version $manifest_version" >&2
+            exit 1
+          }
+          target=$TARGET
+          archive="questmancer-v${version}-${target}.tar.gz"
+          staging=$(mktemp -d)
+          install -m 0755 "target/$target/release/questmancer" "$staging/questmancer"
+          tar -C "$staging" -czf "$archive" questmancer
+          [[ $(tar -tzf "$archive") == questmancer ]] || {
+            echo "$archive must contain only a root-level questmancer executable" >&2
+            exit 1
+          }
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: questmancer-v*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download matrix archives
+        uses: actions/download-artifact@v5
+        with:
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Validate matrix and create checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=${GITHUB_REF_NAME#v}
+          expected=(
+            "questmancer-v${version}-x86_64-unknown-linux-gnu.tar.gz"
+            "questmancer-v${version}-aarch64-unknown-linux-gnu.tar.gz"
+            "questmancer-v${version}-x86_64-apple-darwin.tar.gz"
+            "questmancer-v${version}-aarch64-apple-darwin.tar.gz"
+          )
+          for archive in "${expected[@]}"; do
+            [[ -f $archive ]] || {
+              echo "missing release archive: $archive" >&2
+              exit 1
+            }
+          done
+          [[ $(find . -maxdepth 1 -name 'questmancer-v*.tar.gz' -print | wc -l) -eq 4 ]] || {
+            echo "release must contain exactly four Questmancer archives" >&2
+            exit 1
+          }
+          sha256sum "${expected[@]}" >SHA256SUMS
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            questmancer-v*.tar.gz
+            SHA256SUMS

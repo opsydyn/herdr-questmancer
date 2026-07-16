@@ -1,26 +1,22 @@
-# herdr-webmaster plan
+# Questmancer plan
 
-`herdr-webmaster` turns a Herdr session into a useful 90s webmaster control
-centre. The user is the webmaster; workspaces are sites; agents are
-contributors; blocked work is webmaster mail; completed work is a site update.
+Questmancer turns a Herdr session into a living adventurers' guild. The user is
+the Questmancer; workspaces are campaigns; agents are adventurers; blocked work
+raises Summons; completed work returns as spoils.
 
-The plugin is one Rust package with one domain model and two Ratatui projections:
-the operational **webmaster desk** and the ambient, interactive **cybercafe**.
+The v0.1 product is one Rust package, one domain model, and two Ratatui
+projections: the operational **Guild Hall** and the spatial **Delve**. Herdr
+owns live session facts. Questmancer owns only presentation and durable local
+intent.
 
-The café is an authored connected pixel world. Each workspace maps to one bay;
-stable workspace identity selects a deterministic room variant, while agents
-are seated against variant-specific furniture anchors. Wide layouts show the
-connected bays and shared aisle; compact layouts remap the active bay and keep
-a workspace strip; very narrow terminals use the actionable vertical list.
+## Compatibility boundary
 
-## Compatibility baseline
-
-- Target Herdr `0.7.3`, where `session.snapshot`, `herdr api schema`, the `done`
-  agent state, and the required subscription surface are available.
-- The local development and live acceptance environment runs Herdr `0.7.3`.
-- Treat `herdr api schema --output <path>` as protocol ground truth.
-- Use `HERDR_BIN_PATH` for action scripts and separate socket connections for
-  request/response traffic and subscriptions in the long-running TUI.
+- Herdr `0.7.4`, protocol `16`
+- `session.snapshot` plus scoped lifecycle and agent-status subscriptions
+- Separate socket connections for ordinary requests and the subscription loop
+- `HERDR_BIN_PATH` and Herdr-provided plugin config/state directories
+- Synthetic agent states limited to `idle`, `working`, `blocked`, and `unknown`;
+  `done` acceptance requires a real agent or fixture coverage
 
 ## Architecture
 
@@ -28,127 +24,104 @@ a workspace strip; very narrow terminals use the actionable vertical list.
 Herdr snapshot + events
           |
           v
- pure reducer / shared Model ----> debounced JSON + guestbook JSONL
+ pure reducer / shared model ----> debounced state + Chronicle JSONL
           |
-          +----> webmaster desk
-          +----> cybercafe
+          +----> Guild Hall
+          +----> Delve
           |
-          +----> effect commands (focus, reply, output, reviewr)
+          +----> commands: visit, counsel, output, optional Reviewr
 ```
 
-Presence and attention remain separate. Widgets render derived state and never
-own domain truth. Pane output is loaded only for the selected agent. Animation
-uses a clock-derived frame so rendering remains deterministic in tests, and one
-resettable sleep is armed only when the visible cafe needs another frame. One
-injected runtime clock maps a startup epoch sample onto Tokio monotonic time for
-both domain timestamps and absolute render deadlines.
+Presence and attention are distinct. Rendering never owns domain truth. The
+selected adventurer's output is loaded lazily, never on animation frames.
+Animation derives deterministic frames and the next semantic deadline from one
+injected monotonic clock. Persistence stores versioned user intent without
+copying Herdr topology, agent output, or live state.
 
-## Milestones
+## v0.1 milestones
 
-### 1. Executable shell — complete
+### 1. Executable and lifecycle — complete
 
-- Initialize the Rust package and repository policy files.
-- Add the verified Herdr manifest and lifecycle scripts.
-- Implement safe terminal setup and teardown.
-- Render empty desk and cybercafe views with responsive fallbacks.
-- Add deterministic `TestBackend` rendering tests and CI.
-
-Exit: `cargo test`, `cargo fmt --check`, and `cargo clippy` pass; the local
-binary can switch between empty desk and cafe views.
+- Rust 2024 binary, verified Herdr manifest, and singleton pane controller
+- Safe terminal setup, structured shutdown, and offline layout mode
+- Responsive empty Guild Hall and Delve projections
 
 ### 2. Herdr protocol — complete
 
-- Parse plugin environment and validate Herdr compatibility.
-- Implement newline-delimited request and subscription connections.
-- Decode `session.snapshot` and subscribed lifecycle events.
-- Reconnect with capped backoff and resnapshot without losing visible state.
-- Add framing, unknown-field, interleaving, error, and reconnect fixtures.
-
-Exit: fixture-driven tests prove bootstrap, subscription, disconnect, and
-resnapshot behavior without a live Herdr server.
+- Protocol-16 environment validation and schema-derived fixtures
+- Newline-delimited request and subscription clients
+- Capped reconnect, resubscription, and fresh snapshots without discarding the
+  last useful visible state
 
 ### 3. Domain core — complete
 
-- Add typed IDs, presence, attention, agent, site, guestbook, and persona types.
-- Implement the pure reducer and effect command boundary.
-- Derive site rollups using the documented status priority.
-- Deduplicate guestbook events and generate stable personas.
+- Typed identities, presence, attention, campaigns, adventurers, personas,
+  Chronicle entries, and timestamps
+- Pure reducer with explicit command effects
+- Stable persona generation, deterministic campaign rollups, and bounded event
+  deduplication
 
-Exit: reducer tests cover every required transition and snapshot replacement.
+### 4. Guild Hall — complete
 
-### 4. Webmaster desk — complete
+- Quest board, party, Summons, Chronicle, selected adventurer, and scrying table
+- Selection, search, visit, counsel, acknowledgement, output refresh, and
+  optional Reviewr integration
+- Wide, narrow, ASCII, ANSI-16, reduced-motion, and reconnect-safe projections
 
-- Render sites, webmaster mail, guestbook, and selected-agent details.
-- Load selected output lazily.
-- Focus panes, compose/send replies, mark attention seen, and search.
-- Discover and optionally invoke `persiyanov.reviewr.open`.
+### 5. Delve — complete
 
-Exit: focused application, command, runtime, interaction, reply, and rendering
-tests verify the scan, inspect, reply, seen, search, reviewr, reconnect, lazy
-output, and visit behavior. The manual Herdr `0.7.3` / protocol `16` acceptance
-also verified a stable subscription, blocked transition, search, exact reply
-delivery, and pane focus on 2026-07-14.
+- Connected deterministic dungeon geometry per campaign
+- State-specific adventurer silhouettes, chambers, props, and selected profile
+- Action parity with the Guild Hall at wide, compact, and tiny sizes
+- Bounded semantic effects and event-driven static/no-motion rendering
 
-### 5. Cybercafe — complete
+### 6. Persistence and hardening — complete
 
-- Render a responsive workstation grid and tiny-terminal list fallback.
-- Add deterministic personas and semantic working/blocked/done/idle/exited art.
-- Use the approved half-block seated-sprite and full-body profile system from
-  `docs/superpowers/specs/2026-07-14-pixel-art-design.md`.
-- Separate persistent state, transition effects, and frame animation.
-- Support selection, focus, reply, reduced motion, and ASCII mode.
-- Render original dedicated 10x12 seated compositions and separate 16x32
-  full-body profiles without copying the supplied visual reference.
-- Page dense grids and compact lists so the selected agent remains actionable.
-- Schedule 8/6/2/1 fps effects with one cancellation-safe timer, while static,
-  no-motion, empty-cafe, and desk views remain event-driven.
-- Derive the timer from the earliest phase-aware boundary across all cafe
-  agents, including the exact one-second end of a completion transition.
-- Anchor deadlines to the injected monotonic origin so wall-clock changes and
-  render latency cannot shift animation phase.
+- User-owned typed configuration with explicit precedence
+- Atomic versioned `state.json` and tolerant append-only `chronicle.jsonl`
+- Debounced writes, unchanged-state suppression, bounded diagnostics, and
+  shutdown flush
+- Property tests for domain and persistence invariants
+- Managed-pane exclusion and goblin overlays that cannot corrupt UI truth
 
-Exit: every agent state is legible without colour and remains actionable;
-responsive, interaction-parity, palette, motion, exact transition, and scheduler
-tests pass from full rooms through zero-sized areas.
+### 7. Product art and voice — complete
 
-### 6. Persistence, integration, and release
+- Original fantasy silhouettes with independent ancestry, class, and keepsake
+  recognition anchors
+- Guild architecture, dungeon scenery, rare deterministic goblin sightings,
+  and a bounded hidden outbreak interaction
+- Warm but precise copy that keeps operational states truthful
 
-#### 6.1 Local persistence and property testing — complete
+### 8. Documentation and release — complete
 
-- Persist local configuration, personas, selection/view/preferences, exact seen
-  episodes, and bounded in-memory guestbook history.
-- Atomically replace versioned state and append tolerant semantic JSONL history
-  through one debounced writer with bounded shutdown flush.
-- Harden singleton open/close/toggle/desk/cafe actions and stale runtime-state
-  recovery without changing Herdr-owned live topology.
-- Add named persistence and core-domain Proptest properties with tracked,
-  shrinking regression seeds.
-- Document local file ownership, precedence, corruption recovery, contributor
-  checks, fake-agent acceptance, and the no-telemetry posture.
+- Source-first Herdr `0.7.4` setup, migration, operation, configuration,
+  fake-agent, privacy, recovery, and cleanup guidance
+- Four-target GitHub Actions release matrix with root-level `questmancer`
+  archives and a release-wide `SHA256SUMS`
+- Installer asset selection and checksum flow aligned with published names
+- CI gates for formatting, Clippy warnings, all-target/all-feature tests, shell
+  behavior and syntax, release build, and diff hygiene
 
-#### 6.2 Invariants and release completion — open
+## Release acceptance
 
-- Keep TestBackend coverage for empty, one-bay, multi-bay, mixed-state,
-  selected, disconnected, ASCII, reduced-motion, 80x24, 60x18, and zero-sized
-  surfaces.
-- Prove generated agents have exactly one bay/seat owner and that the managed
-  webmaster pane is absent from normalized and rendered state.
-- Keep completion confetti bounded to one transition and keep static, reduced,
-  and no-motion rooms event-driven.
+The v0.1 release candidate is ready only when all of the following are true:
 
-- Add macOS/Linux release automation around the existing install/checksum path.
-- Record the desk/cafe release walkthrough and final fake-agent guide.
-- Run release-candidate live Herdr `0.7.3` acceptance and idle-CPU checks, then
-  verify the installed Herdr `0.7.4` sidebar integration without changing the
-  current protocol boundary.
-
-Exit: all twenty v0.1 acceptance criteria in the product handoff pass.
+1. `cargo fmt --all --check` is clean.
+2. Clippy passes for all targets and features with warnings denied.
+3. All Rust and shell tests pass.
+4. Lifecycle scripts pass Bash syntax checks.
+5. `cargo build --release` produces executable `target/release/questmancer`.
+6. Current user and release surfaces contain no superseded product identity.
+7. The release workflow names exactly four supported target archives and builds
+   `SHA256SUMS` after downloading them.
+8. The README does not claim Herdr `0.7.4` can synthesize `done`.
 
 ## Engineering rules
 
-- No unsafe Rust, database, telemetry, network service, copied product assets,
-  or terminal image protocol in v0.1.
-- Every behavior change starts with a failing test.
-- Every milestone includes its documentation and verification commands.
-- No output polling per frame and no persistence writes per animation tick.
-- The terminal must be restored after normal exit, error, signal, and panic.
+- No unsafe Rust, telemetry, cloud service, database, copied product assets, or
+  terminal image protocol in v0.1.
+- Start behavior changes with a failing test.
+- Keep documentation, operational recipes, and release checks in the same slice
+  as the behavior they describe.
+- Never poll selected output or write persistence on an animation wake.
+- Restore the terminal after normal exit, error, signal, and panic.

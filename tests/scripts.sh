@@ -256,6 +256,64 @@ test_busy_control_lock_refuses_a_second_action() {
   rmdir "$TMP/state/control.lock"
 }
 
+test_release_packaging_contract() {
+  local workflow="$ROOT/.github/workflows/release.yml"
+  local version
+  version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$ROOT/herdr-plugin.toml" | head -n 1)
+
+  [[ -f $workflow ]] || fail "$workflow does not exist"
+  assert_contains "$workflow" 'archive="questmancer-v${version}-${target}.tar.gz"'
+  assert_contains "$workflow" "SHA256SUMS"
+  assert_contains "$ROOT/herdr/install.sh" "QUESTMANCER_REPOSITORY"
+  assert_contains "$ROOT/herdr/install.sh" "bin/questmancer"
+
+  local target archive expected
+  while IFS='|' read -r target expected; do
+    archive="questmancer-v$version-$target.tar.gz"
+    [[ $archive == "$expected" ]] || fail "release asset was $archive, expected $expected"
+    assert_contains "$workflow" "target: $target"
+  done <<'TARGETS'
+x86_64-unknown-linux-gnu|questmancer-v0.1.0-x86_64-unknown-linux-gnu.tar.gz
+aarch64-unknown-linux-gnu|questmancer-v0.1.0-aarch64-unknown-linux-gnu.tar.gz
+x86_64-apple-darwin|questmancer-v0.1.0-x86_64-apple-darwin.tar.gz
+aarch64-apple-darwin|questmancer-v0.1.0-aarch64-apple-darwin.tar.gz
+TARGETS
+
+  assert_contains "$ROOT/README.md" "opsydyn.questmancer.open"
+  assert_contains "$ROOT/README.md" "opsydyn.questmancer.guild"
+  assert_contains "$ROOT/README.md" "opsydyn.questmancer.delve"
+  assert_contains "$ROOT/README.md" "herdr plugin list --json"
+  assert_contains "$ROOT/README.md" '.name == "webmaster"'
+  assert_contains "$ROOT/README.md" '.source.kind == "local"'
+  assert_contains "$ROOT/README.md" '[[ -n $previous_plugin ]]'
+
+  assert_contains "$ROOT/justfile" "guild-test:"
+  assert_contains "$ROOT/justfile" "delve-test:"
+  assert_contains "$ROOT/justfile" "--test theatre"
+  assert_contains "$ROOT/justfile" 'run view="guild":'
+  assert_contains "$ROOT/justfile" "target/release/questmancer"
+  if rg -n 'guestbook|desk-test|cafe-test|view="desk"' "$ROOT/justfile" >"$TMP/stale-recipes"; then
+    cat "$TMP/stale-recipes" >&2
+    fail "contributor recipes retain superseded test or view names"
+  fi
+}
+
+test_current_release_surfaces_have_no_webmaster_identity() {
+  local -a surfaces=(
+    "$ROOT/Cargo.toml"
+    "$ROOT/herdr"
+    "$ROOT/herdr-plugin.toml"
+    "$ROOT/.github"
+    "$ROOT/README.md"
+    "$ROOT/justfile"
+  )
+
+  if rg -n 'opsydyn\.webmaster|herdr-webmaster|WEBMASTER_INITIAL_VIEW' "${surfaces[@]}" >"$TMP/legacy-release-surfaces"; then
+    cat "$TMP/legacy-release-surfaces" >&2
+    fail "current release surfaces retain Webmaster identity"
+  fi
+}
+
 make_herdr "$TMP/herdr"
 mkdir -p "$TMP/bin"
 make_date "$TMP/bin/date"
@@ -275,5 +333,7 @@ test_close_uses_plain_pane_close_and_clears_state
 test_failed_close_preserves_singleton_state
 test_stale_state_is_replaced
 test_busy_control_lock_refuses_a_second_action
+test_release_packaging_contract
+test_current_release_surfaces_have_no_webmaster_identity
 
-echo "scripts: 15 passed"
+echo "scripts: 17 passed"

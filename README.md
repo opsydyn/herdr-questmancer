@@ -1,448 +1,254 @@
-# webmaster
+# Questmancer
 
-> your agents are building a tiny internet.
+> Your agents have entered the dungeon.
 >
-> you are the webmaster.
+> You are the Questmancer.
 
-`webmaster` turns a [Herdr](https://herdr.dev) session into a 90s control
-centre and cybercafe. Working agents put sites under construction. Blocked
-agents contact the webmaster. Completed work becomes a site update. Dead panes
-become broken links.
+Questmancer turns a Herdr session into a living adventurers' guild. Working
+agents delve through chambers of code. Blocked agents call for counsel.
+Completed work returns as spoils awaiting inspection.
 
-Underneath the blinking text and tiny CRTs is a fast interface for seeing who
-needs you, reading their output, replying, and jumping back into the work.
+It is a local Ratatui interface for scanning a session, reading selected output,
+replying to blocked agents, and returning to their panes. One shared model drives
+two views:
 
-## Project status
+- **Guild Hall** is the operational view: campaigns, party, Summons, Chronicle,
+  selected-adventurer detail, and the scrying table.
+- **Delve** is the spatial view: each Herdr workspace becomes a connected dungeon
+  and each agent occupies a chamber with a state-specific pose.
 
-Milestones 1 through 5 and the Milestone 6.1 local-persistence slice are
-implemented. The live webmaster desk turns Herdr
-snapshots and events into sites, webmaster mail, a guestbook, and one selected
-agent's recent output. Its async terminal runtime handles input, connection
-updates, commands, redraws, and structured shutdown without blocking the desk.
+Both views keep the same selection and actions. Narrow terminals use compact,
+actionable layouts rather than dropping controls. Unicode and xterm-256 are the
+default presentation; ASCII, ANSI-16, reduced-motion, and no-motion modes are
+first-class fallbacks.
 
-The cybercafe projects that same model as an actionable room of original pixel
-characters: seated agents occupy workstations and the selected contributor gets
-a separately composed full-body profile. It remains usable at 80x24, pages dense
-herds to keep the selection visible, and falls back to a compact list below 80
-columns. The IT Crowd reference supplied during design was used only as a
-fidelity reference; no character, outfit, logo, pose, or composition was copied.
+## Requirements
 
-If Herdr disconnects, webmaster keeps the last visible state on screen, shows
-its reconnect attempt, and refreshes from a new snapshot after reconnecting.
-Selected output is loaded lazily: when the selection or that pane's revision
-changes, or when the webmaster explicitly presses `o`. It is never polled on
-render ticks.
+- Herdr `0.7.4` using protocol `16`
+- Rust `1.90.0` (selected by `rust-toolchain.toml`)
+- `jq` for older-link migration and the optional fake-agent walkthrough below
+- `just` only if you want the contributor shortcuts
 
-Cafe animation is derived from an injected runtime clock. It samples wall time
-once to retain epoch-shaped domain timestamps, then advances exclusively from a
-Tokio monotonic origin. A single resettable sleep schedules only the next visible
-frame; the desk, static cafe states, and no-motion cafe are event-driven and do
-not redraw just because time passed.
-
-The compatibility baseline is Herdr `0.7.3` / protocol `16` because the runtime
-depends on `session.snapshot`, the protocol schema command, and the current
-agent event surface.
-
-The fully completed live acceptance walkthrough dated 2026-07-14 is historical
-evidence for the earlier environment. It is not a claim about the latest
-synthetic-agent run.
-
-## Local development
-
-Requirements:
-
-- Rust `1.90.0` (installed automatically by `rustup` from
-  `rust-toolchain.toml`)
-- Herdr `0.7.3` or newer for plugin linking and live integration
-- `just` is optional; every recipe is also a normal shell command
-
-Build and run directly. Without Herdr's plugin environment the TUI starts in a
-useful offline mode, so the layout and keys can be explored without a server:
-
-```bash
-cargo build
-cargo run -- ui --view desk
-cargo run -- ui --view cafe
-```
-
-Link a development checkout after building and while Herdr `0.7.3` / protocol
-`16` is running:
+Questmancer currently ships from source. From this checkout:
 
 ```bash
 cargo build
 herdr plugin link .
-herdr plugin action invoke opsydyn.webmaster.open
+herdr plugin action invoke opsydyn.questmancer.open
 ```
 
-`herdr plugin link` intentionally skips the release download step. The runner
-resolves `bin/herdr-webmaster`, then `target/release/herdr-webmaster`, then
-`target/debug/herdr-webmaster`.
+`herdr plugin link .` deliberately skips release download. The plugin runner
+uses `bin/questmancer`, then `target/release/questmancer`, then
+`target/debug/questmancer`, choosing the first executable it finds.
 
-## Local persistence and configuration
+### Cutting over an older development link
 
-Webmaster uses Herdr's plugin directories when they are available. The files
-have deliberately separate owners:
+Close and unlink the previous local plugin before linking Questmancer. This
+discovers the older development link by its manifest name and local source, so
+the migration remains readable without carrying its qualified identifier into
+current release surfaces.
 
-| Path | Owner | Purpose |
-|---|---|---|
-| `$HERDR_PLUGIN_CONFIG_DIR/config.toml` | user | read-only configuration; webmaster never creates or rewrites it |
-| `$HERDR_PLUGIN_STATE_DIR/runtime.json` | lifecycle controller | ephemeral singleton-pane registration |
-| `$HERDR_PLUGIN_STATE_DIR/state.json` | webmaster persistence worker | atomically replaced, versioned durable user intent |
-| `$HERDR_PLUGIN_STATE_DIR/guestbook.jsonl` | webmaster persistence worker | append-only semantic event history |
-
-If a directory variable is absent, its store is disabled. The TUI still starts
-with safe defaults and in-memory guestbook history; persistence never becomes a
-requirement for using the desk or cafe.
-
-A complete `config.toml` is:
-
-```toml
-default_view = "desk"             # desk | cafe
-motion = "full"                   # full | reduced | none
-character_set = "unicode"         # unicode | ascii
-color_mode = "xterm256"           # xterm256 | ansi16
-output_preview_lines = 80          # 10..=500
-guestbook_max_entries = 500        # 50..=10000, in-memory display bound
-reviewr_action = "persiyanov.reviewr.open"
-show_elapsed_time = true
+```bash
+previous_plugin=$(
+  herdr plugin list --json |
+    jq -r 'first(.result.plugins[] | select(.name == "webmaster" and .source.kind == "local")) | .plugin_id // empty'
+)
+if [[ -n $previous_plugin ]]; then
+  herdr plugin action invoke "$previous_plugin.close" 2>/dev/null || true
+  herdr plugin unlink "$previous_plugin"
+fi
+cargo build --release
+herdr plugin link .
+herdr plugin action invoke opsydyn.questmancer.open
 ```
 
-Missing fields use these defaults and unknown fields are accepted. An invalid
-TOML document, enum, bound, or blank `reviewr_action` rejects the complete file
-instead of partially applying it. Webmaster reports the path and error, then
-uses defaults.
+The `close` is best-effort because an older pane may already be gone. An
+`unlink` error is meaningful: inspect `herdr plugin list` before continuing.
+The commands above were checked against the installed Herdr `0.7.4` CLI.
 
-The initial view precedence is explicit `ui --view desk|cafe`, saved
-`last_view`, configured `default_view`, then the built-in desk. The `desk` and
-`cafe` plugin actions are explicit; ordinary `open`, a closed `toggle`, and bare
-`ui` allow the saved/configured view to win. Saved display preferences override
-configuration because they represent the most recent accepted runtime state.
-Configuration-only output limits, elapsed-time display, and reviewr action are
-never written to `state.json`.
+## Actions and views
 
-`state.json` stores schema version 1, the last view, display preferences,
-selected persona, the authored persona catalog, and exact seen-attention
-episodes. Herdr remains authoritative for workspaces, panes, live agents,
-presence, focus, revisions, and output. The guestbook log stores one compact
-JSON record per newline. Replay keeps valid complete records in chronological,
-deduplicated, bounded in-memory history even when another line is malformed or
-the final line is truncated; the JSONL file itself is not compacted.
+```text
+opsydyn.questmancer.open
+opsydyn.questmancer.close
+opsydyn.questmancer.toggle
+opsydyn.questmancer.guild
+opsydyn.questmancer.delve
+```
 
-All persistence is local. Webmaster sends no telemetry, performs no cloud sync,
-and adds no network service. The only network access in this repository is the
-install script downloading an explicitly requested release from GitHub.
+`open` restores the saved/configured view when it creates a pane and focuses an
+existing Questmancer pane. `guild` and `delve` switch an existing pane or create
+one in the requested view. `toggle` focuses Questmancer unless invoked from its
+own pane, where it closes it.
 
-### Corruption and recovery
+You can also run the binary without Herdr to inspect its offline layout:
 
-Persistence errors are non-fatal and appear in the TUI status surface and on
-stderr after terminal restoration. If an existing `state.json` cannot be read,
-parsed, or validated, it is rejected as a whole and state publication is
-disabled for that process lifetime; guestbook appends remain enabled. This
-prevents the first live snapshot from overwriting evidence needed for recovery.
-Guestbook damage is isolated per record and reports one-based line numbers,
-with repeated diagnostics folded after five records.
-
-To recover, close webmaster first, copy the affected files somewhere safe, and
-then fix or remove only the damaged file. Removing `state.json` resets saved
-view, preferences, selection, personas, and seen markers. Removing
-`guestbook.jsonl` clears history. Fix `config.toml` in place or remove it to use
-defaults. Restart webmaster after correcting or removing `state.json` to
-re-enable durable snapshot writes. If singleton control points to a pane that no
-longer exists, remove only `runtime.json`; the next `open` recreates it. Do not
-edit a file while the TUI is running because the persistence worker owns state
-and guestbook writes.
+```bash
+cargo run -- ui --view guild
+cargo run -- ui --view delve
+```
 
 ## Keys
 
 | Key | Action |
 |---|---|
-| `1` / `F1` | webmaster desk |
-| `2` / `F2` | cybercafe |
-| `Tab` | cycle the active desk region |
-| `j` / `Down` | select the next agent |
-| `k` / `Up` | select the previous agent |
-| `g` / `G` | select the first / last agent |
-| `Enter` | visit (focus) the selected agent's pane |
-| `r` | compose a reply to the selected agent |
-| `Space` | mark the selected agent's attention seen locally |
-| `o` | refresh the selected agent's recent output |
-| `/` | search agent, handle, status, or site |
-| `v` | focus the selected pane, then open reviewr when available |
-| `Esc` | dismiss the active modal |
-| `q` / `Ctrl-C` | close the TUI when no modal is open |
+| `1` / `F1` | Guild Hall |
+| `2` / `F2` | Delve |
+| `Tab` | Cycle the active Guild Hall region |
+| `j` / `Down` | Select the next adventurer |
+| `k` / `Up` | Select the previous adventurer |
+| `g` / `G` | Select the first / last adventurer |
+| `Enter` | Visit the selected adventurer's pane |
+| `r` | Compose counsel for the selected adventurer |
+| `Space` | Acknowledge the selected unread Summons locally |
+| `o` | Refresh the selected adventurer's recent output |
+| `/` | Search adventurer, handle, state, or campaign |
+| `v` | Visit, then open configured Reviewr when available |
+| `?` | Show in-app help |
+| `Esc` | Dismiss the active modal |
+| `q` / `Ctrl-C` | Close Questmancer when no text modal is open |
 
-Reply and search modals accept normal text and `Backspace`. `Enter` sends the
-reply or runs the search, `Ctrl-U` clears the input, and `Esc` cancels without
-sending. The footer only advertises actions that apply to the current
-selection. In particular, `v` appears only when the connected Herdr session
-exposes the fully qualified action configured by `reviewr_action`.
+Counsel and search accept normal text and `Backspace`. `Enter` submits,
+`Ctrl-U` clears, and `Esc` cancels. The footer advertises only actions valid for
+the current selection. Questmancer never focuses, reads, or replies to its own
+managed pane.
 
-The desk and cafe use the same typed action path for selection, visit, reply,
-seen, search, refresh, and optional reviewr launch. At 120 columns and above the
-cafe shows a workstation grid plus the selected full-body profile; from 80 to
-119 it uses the full grid; below 80 it uses the compact vertical list.
+## Configuration
 
-### Connected café bays
+After linking, locate the user-owned configuration directory with:
 
-The café is a small authored pixel world, not a dashboard of unrelated cards.
-Each workspace becomes one connected room bay. Bays share walls, doors, an
-aisle, floor cues, and a common coordinate system; agents are seated at the
-workstations inside their workspace's bay. A stable hash of the workspace ID
-selects one of the built-in room variants (wall row, corner booth, or back-room
-lab), so a restart or pane move does not reshuffle the room.
+```bash
+herdr plugin config-dir opsydyn.questmancer
+```
 
-Wide terminals show the connected room. On narrow terminals the same world
-falls back to the active bay plus a workspace strip, and below 80 columns it
-uses a vertical workstation list. Selection, visit, reply, refresh, and seen
-actions remain available in every fallback. The selected workstation is shown
-in-world with a lamp and state pose; the profile is a detail view, not a second
-source of agent state.
+Create `config.toml` in that directory. A complete file using the defaults is:
 
-## Cybercafe state language
+```toml
+default_view = "guild"            # guild | delve
+motion = "full"                   # full | reduced | none
+character_set = "unicode"         # unicode | ascii
+color_mode = "xterm256"           # xterm256 | ansi16
+output_preview_lines = 80          # 10..=500
+chronicle_max_entries = 500        # 50..=10000, in-memory bound
+reviewr_action = "persiyanov.reviewr.open"
+show_elapsed_time = true
+```
 
-| Herdr state | Visible cafe signal | Full-motion cadence |
+Unknown fields are accepted for forward compatibility. An invalid TOML
+document, enum, bound, or blank `reviewr_action` rejects the whole file and
+Questmancer starts with defaults while reporting the error.
+
+Initial-view precedence is an explicit `ui --view guild|delve`, saved
+`last_view`, configured `default_view`, then built-in `guild`. The explicit
+`guild` and `delve` plugin actions take precedence. Saved display preferences
+win over configuration because they represent the last accepted runtime state;
+output limits, elapsed-time display, and the Reviewr action remain
+configuration-only.
+
+## Local state, ownership, and privacy
+
+Herdr supplies separate plugin directories. Questmancer uses them as follows:
+
+| Path | Owner | Purpose |
 |---|---|---|
-| working | `BUILDING`, typing pose, CRT cursor and modem | 6 fps |
-| blocked | `HELP!`, raised hand and help card | 2 fps |
-| done, unseen | `UPDATE READY`, eight-frame confetti transition | 8 fps for 1 second |
-| done, seen | `DONE`, relaxed seated pose | event-driven |
-| idle | `IDLE`, screensaver pose | 1 fps |
-| exited | `BROKEN LINK`, broken CRT and empty chair | event-driven |
-| unknown | `UNKNOWN` and `?` marker | event-driven |
-| focused | `LIVE` and a lit desk lamp, without replacing state | follows state |
+| `$HERDR_PLUGIN_CONFIG_DIR/config.toml` | You | Read-only configuration; Questmancer never creates or rewrites it |
+| `$HERDR_PLUGIN_STATE_DIR/runtime.json` | Lifecycle controller | Ephemeral singleton-pane registration |
+| `$HERDR_PLUGIN_STATE_DIR/state.json` | Persistence worker | Atomically replaced, versioned durable user intent |
+| `$HERDR_PLUGIN_STATE_DIR/chronicle.jsonl` | Persistence worker | Append-only semantic event history |
 
-Colour is supplementary: every state has a text label and silhouette or marker.
-Unicode half-block art is canonical, with a pure ASCII projection and an
-ANSI-16 palette available to constrained terminals.
+`state.json` contains the last view, display preferences, selected persona,
+generated persona catalogue, and exact acknowledged-attention episodes. It does
+not copy Herdr-owned workspaces, panes, live status, output, or topology.
+`chronicle.jsonl` replays valid complete records in chronological,
+deduplicated, bounded history even if another record is malformed.
 
-The display preference model supports:
+If a plugin directory is unavailable, its store is disabled and the TUI still
+runs in memory. A damaged `state.json` is rejected as a whole and state writes
+remain disabled until restart so evidence is not overwritten. Chronicle damage
+is isolated per line. Close Questmancer before repairing either file; copy the
+original somewhere safe first. Removing `state.json` resets saved intent,
+removing `chronicle.jsonl` clears history, and removing stale `runtime.json`
+allows the next `open` action to recreate the pane registration.
 
-```text
-motion: full | reduced | none
-character set: unicode | ascii
-colour mode: xterm-256 | ansi-16
-```
+Questmancer is local-only. It has no telemetry, cloud sync, or network service.
+Runtime communication stays on Herdr's local socket. The only internet access
+in this repository is `herdr/install.sh` downloading a release archive and its
+checksum from the explicitly configured GitHub repository.
 
-`full` enables semantic state animation; `reduced` freezes rapid effects but
-keeps the slow idle screensaver; `none` is entirely event-driven. The defaults
-are `full`, `unicode`, and `xterm-256`; the local configuration and durable state
-described above can override and restore them.
+## Fake-agent walkthrough
 
-## Plugin actions
+Use a dedicated plain Herdr pane. Do not target a Codex pane, the Questmancer
+pane, or another agent-owned pane: Herdr can accept the report while ownership
+rules keep that synthetic source out of the session snapshot.
 
-```text
-opsydyn.webmaster.open
-opsydyn.webmaster.close
-opsydyn.webmaster.toggle
-opsydyn.webmaster.desk
-opsydyn.webmaster.cafe
-```
-
-## Manual Herdr test
-
-Use a dedicated plain pane for synthetic agent reports. Do not report against
-the Codex pane, the webmaster pane, or any pane already owned by another agent:
-Herdr may accept that command while leaving the reported source out of the
-session snapshot, which makes the blocked-state UI impossible to verify.
-
-With Herdr running, create a plain test pane, record its pane ID, and use the
-exact `herdr pane report-agent` syntax shown by `herdr pane report-agent --help`.
-Drive `working`, `blocked`, and `idle` transitions while the café is open, then
-release the synthetic source and close only the pane created by the test. Keep
-the Herdr server and any pre-existing plugin link running. Herdr 0.7.3 does not
-support synthesizing `done`; verify completion with a real agent or a fixture
-test instead.
-
-Latest setup-limited result (2026-07-15): the synthetic `blocked` report exited
-successfully, but the source did not appear in `herdr api snapshot` because the
-report targeted an already-owned Codex pane. The blocked mail, HELP pose, reply,
-seen, search, and selected-output checks were therefore blocked upstream, not
-failed plugin assertions. Repeat the run with a dedicated plain pane before
-calling those interactions verified.
-
-The controller uses `$HERDR_BIN_PATH`, an atomic lock directory, and
-`$HERDR_PLUGIN_STATE_DIR/runtime.json` to avoid duplicate panes and recover
-from stale pane state.
-
-## Manual live acceptance
-
-The last fully completed live run was against Herdr `0.7.3` / protocol `16` on
-2026-07-14, including the Milestone 5 cafe on final commit `9d5d257`. It
-verified a stable live subscription, a blocked `HELP!` transition without a
-restart, search, refresh, local seen state, exact isolated reply delivery, and
-pane focus. The plugin commands require a running server.
+1. Create and focus a disposable plain pane in Herdr.
+2. Capture its ID, then report state transitions with one source and increasing
+   sequence numbers:
 
 ```bash
-herdr status
-cargo build
-herdr plugin link .
-herdr plugin action invoke opsydyn.webmaster.open
-```
+PANE_ID=$(herdr pane current | jq -r '.result.pane.pane_id')
+SOURCE_ID=questmancer-smoke
 
-Create or select a dedicated, unowned plain Herdr pane for the synthetic
-agent. Do not report over a Codex/Claude pane or webmaster's own managed pane:
-those panes already have an authoritative agent owner and may ignore a second
-synthetic source. Capture the dedicated pane's real ID, then publish a blocked
-test agent:
-
-```bash
-PANE_ID="<dedicated-plain-pane-id>"
-SOURCE_ID="webmaster-manual-$(date +%s)"
 herdr pane report-agent "$PANE_ID" \
   --source "$SOURCE_ID" \
-  --agent acceptance-agent \
-  --state blocked \
-  --message "Need webmaster input" \
-  --custom-status "waiting for reply"
-```
-
-Back at the desk, confirm the blocked transition appears as unread webmaster
-mail without reopening the TUI. Exercise selection, `Enter`, `r`, `Space`,
-`/`, and `o`; if the footer offers `v`, confirm it focuses this pane before
-opening reviewr. Note the selected persona handle, switch view with `1`/`2`, and
-press `Space` so the exact blocked episode is seen.
-
-Close and reopen the webmaster pane to exercise a restarted plugin pane:
-
-```bash
-herdr plugin action invoke opsydyn.webmaster.close
-herdr plugin action invoke opsydyn.webmaster.open
-```
-
-Confirm the chosen view and configured preferences return, the same persona is
-selected with the same handle, the blocked episode remains seen, and prior
-guestbook entries replay exactly once. A temporary transport interruption
-should retain the visible desk under a reconnecting banner, resnapshot after
-recovery, and not duplicate replayed history. Recheck `Enter`, `r`, and `o`
-after the reconnect to cover focus, exact reply delivery, and selected-output
-reads.
-
-Press `2` (or invoke `opsydyn.webmaster.cafe`) and confirm the same blocked
-agent is visible as `HELP!` with a raised-hand workstation pose. Exercise the
-same selection, visit, reply, seen, search, and refresh actions at 80x24. The
-Milestone 5 automated gate covers working, blocked, done, idle, exited, reduced
-motion, no motion, Unicode, ASCII, xterm-256, ANSI-16, dense herds, and tiny
-areas; a fresh live cafe smoke is intentionally part of the release acceptance.
-
-Return the synthetic agent to working and release the source when finished:
-
-```bash
-herdr pane report-agent "$PANE_ID" \
-  --source "$SOURCE_ID" \
-  --agent acceptance-agent \
+  --agent smoke-adventurer \
   --state working \
-  --custom-status "implementing reply"
+  --message "mapping the dungeon" \
+  --seq 1
+
+herdr pane report-agent "$PANE_ID" \
+  --source "$SOURCE_ID" \
+  --agent smoke-adventurer \
+  --state blocked \
+  --message "needs counsel" \
+  --seq 2
+
+herdr pane report-agent "$PANE_ID" \
+  --source "$SOURCE_ID" \
+  --agent smoke-adventurer \
+  --state idle \
+  --message "resting at camp" \
+  --seq 3
+
 herdr pane release-agent "$PANE_ID" \
   --source "$SOURCE_ID" \
-  --agent acceptance-agent
-herdr plugin action invoke opsydyn.webmaster.close
+  --agent smoke-adventurer \
+  --seq 4
 ```
 
-Herdr `0.7.3`'s `report-agent` command accepts `idle`, `working`, `blocked`, or
-`unknown`; it cannot synthesize `done`. Use a real agent completion event for
-the update-ready path, mark it seen, restart webmaster again, and confirm that
-the exact completion episode restores while a later pane revision is unseen.
+Confirm working, blocked/Summons, reply, acknowledge, search, output refresh,
+and idle behavior in both views. Herdr `0.7.4` can synthesize only `idle`,
+`working`, `blocked`, and `unknown` through `report-agent`; it cannot synthesize
+`done`. Verify returned spoils with a real agent completion or the fixture and
+rendering tests. Do not describe a synthetic `done` walkthrough as live
+acceptance.
 
-## Architecture
-
-One pure domain model feeds both views. Ratatui widgets are projections, not
-owners of session state. The Herdr transport opens a fresh socket for each
-ordinary request and a separate long-lived socket for event subscriptions.
-It validates protocol `16`, refreshes with `session.snapshot` after disconnect
-or pane-topology changes, and preserves unknown event names for the reducer.
-
-Herdr `0.7.3` emits two event-envelope styles on the subscription stream:
-snake-case lifecycle names such as `workspace_created`, and dotted scoped
-events such as `pane.agent_status_changed`. Because agent-status subscriptions
-are scoped, webmaster rebuilds one entry per unique pane after each snapshot.
-
-The domain boundary keeps presence (`working`, `blocked`, `done`, `idle`,
-`exited`) separate from the webmaster's seen/unseen attention. Site status is
-derived, guestbook events are deterministic and bounded, and native agent
-session identity keeps original personas stable when panes move. Equal state,
-events, and injected timestamps always produce equal reducer output.
-
-The theatre layer derives poses, deterministic frames, and the earliest next
-phase boundary across the complete cafe model. This matters when 6 fps typing
-and 8 fps completion effects interleave, and ensures completion stops at exactly
-one second even if input arrives just before that boundary. The terminal owns
-one cancellation-safe resettable sleep. Deadlines map the sampled model
-timestamp back onto that same monotonic origin, so time spent rendering cannot
-shift a semantic frame boundary; an already-past boundary wakes immediately. It
-drops the timer in event-driven modes, creates no per-frame tasks, performs no
-output reads or persistence on animation wakes, and re-derives the deadline
-after input, runtime, and clock events.
-
-See the [design](docs/superpowers/specs/2026-07-14-herdr-webmaster-design.md),
-[pixel-art bible](docs/superpowers/specs/2026-07-14-pixel-art-design.md), and
-[protocol plan](docs/superpowers/plans/2026-07-14-milestone-2-herdr-protocol.md).
-
-## Verification
+When finished, release the synthetic source as above. Close only the disposable
+pane you created:
 
 ```bash
-just verify
+herdr pane close "$PANE_ID"
 ```
 
-Without `just`:
+## Release packaging
 
-```bash
-cargo fmt --all --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets --all-features
-bash tests/scripts.sh
-bash -n herdr/install.sh herdr/run.sh herdr/control.sh
-```
+Tags named `v<version>` build four archives. Every archive contains one
+executable named `questmancer` at its root.
 
-Run the focused protocol suite and regenerate the installed schema with:
+| Target | Asset |
+|---|---|
+| `x86_64-unknown-linux-gnu` | `questmancer-v0.1.0-x86_64-unknown-linux-gnu.tar.gz` |
+| `aarch64-unknown-linux-gnu` | `questmancer-v0.1.0-aarch64-unknown-linux-gnu.tar.gz` |
+| `x86_64-apple-darwin` | `questmancer-v0.1.0-x86_64-apple-darwin.tar.gz` |
+| `aarch64-apple-darwin` | `questmancer-v0.1.0-aarch64-apple-darwin.tar.gz` |
 
-```bash
-just protocol-test
-herdr api schema --output /tmp/herdr-api.schema.json
-```
+The release job downloads all four matrix artifacts, verifies the complete
+matrix, creates `SHA256SUMS`, and publishes the archives and checksum together.
+`herdr/install.sh` selects the host target, downloads the matching archive and
+`SHA256SUMS`, verifies SHA-256, then installs `bin/questmancer`. Set
+`QUESTMANCER_REPOSITORY=owner/repository` to test the installer against a fork.
 
-Run the focused domain suite with `just domain-test` (or the corresponding
-`cargo test --test ...` command in the `justfile`).
-
-Run persistence examples and property suites with:
-
-```bash
-just persistence-test
-just property-test
-```
-
-The direct high-case-count property command used by the Milestone 6.1 gate is:
-
-```bash
-PROPTEST_CASES=1024 cargo test --test property_domain --test persisted_state
-```
-
-`PROPTEST_CASES` overrides Proptest's normal case count. When Proptest finds a
-failure, it shrinks the input and writes a source-parallel regression seed such
-as `tests/property_domain.proptest-regressions` (or a file below a
-`proptest-regressions` directory). These files are intentionally tracked and
-must not be deleted or ignored after the assertion is fixed.
-
-Focused persistence coverage includes configuration and path discovery,
-versioned state validation/overlay, atomic JSON publication, tolerant guestbook
-replay/append, worker debounce and shutdown, and startup precedence. Tests use
-temporary directories; they must not create `config.toml`, `state.json`,
-`guestbook.jsonl`, or `runtime.json` in the checkout.
-
-Run the focused operational desk suite with `just desk-test`.
-
-Run the focused pixel-art, theatre, cafe, and scheduler suite with:
-
-```bash
-just cafe-test
-```
-
-Run the complete Milestone 5 gate, including the release build, with:
-
-```bash
-just milestone5-verify
-```
-
-Equivalent commands are:
+## Contributor checks
 
 ```bash
 cargo fmt --all --check
@@ -454,20 +260,25 @@ cargo build --release
 git diff --check
 ```
 
-The fixture suite does not require a running Herdr server. Live plugin linking
-does: start `herdr server` in another terminal before `herdr plugin link .`.
-The local milestone-4 acceptance run linked `opsydyn.webmaster`, exercised the
-live desk loop against Herdr `0.7.3` / protocol `16`, and then stopped its
-temporary server.
+Focused shortcuts include `just protocol-test`, `just domain-test`,
+`just guild-test`, `just delve-test`, `just persistence-test`, and
+`just property-test`. `just verify` runs the normal local gate; `just
+release-check` adds the release build and whitespace check.
 
-## Privacy
+## Unlink and clean up
 
-Webmaster is local only. It has no telemetry, cloud sync, or network service.
-The install script contacts GitHub only to download an explicitly requested
-release artifact.
+Close the managed pane before unlinking the development plugin:
 
-```text
-best viewed with ratatui
-80x24 minimum
-this site is always under construction
+```bash
+herdr plugin action invoke opsydyn.questmancer.close 2>/dev/null || true
+herdr plugin unlink opsydyn.questmancer
 ```
+
+Unlinking removes the development registration, not your checkout or durable
+configuration. Remove `bin/questmancer` only if you ran `just install-local`.
+Keep or back up the Herdr-managed configuration and state described above
+unless you intentionally want to reset Questmancer.
+
+Architecture and visual rationale live in the approved
+[creative direction](docs/superpowers/specs/2026-07-15-questmancer-creative-direction.md)
+and the plans under `docs/superpowers/plans/`.

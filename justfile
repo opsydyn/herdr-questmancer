@@ -20,16 +20,16 @@ protocol-test:
     cargo test --test environment --test protocol --test framing --test client --test subscription --test supervisor
 
 domain-test:
-    cargo test --test domain_types --test persona --test normalization --test guestbook --test reducer
+    cargo test --test domain_types --test persona --test normalization --test chronicle --test reducer
 
-desk-test:
-    cargo test --test app --test actions --test command --test runtime_loop --test desk_rendering --test input --test interaction --test reply
+guild-test:
+    cargo test --test app --test actions --test command --test runtime_loop --test guild_hall_rendering --test input --test interaction --test reply
 
-cafe-test:
-    cargo test --test pixel --test persona_art --test cafe_widgets --test theatre --test cafe_rendering --test runtime_loop --test interaction
+delve-test:
+    cargo test --test pixel --test persona_art --test delve_widgets --test delve_scene --test theatre --test delve_rendering --test runtime_loop --test interaction
 
 persistence-test:
-    cargo test --test config --test persisted_state --test atomic_state --test guestbook_persistence --test persistence_worker --test startup
+    cargo test --test config --test persisted_state --test atomic_state --test chronicle_persistence --test persistence_worker --test startup
 
 property-test cases="1024":
     PROPTEST_CASES={{cases}} cargo test --test property_domain --test persisted_state
@@ -43,14 +43,14 @@ release-check:
 verify: fmt-check lint test
     bash -n herdr/install.sh herdr/run.sh herdr/control.sh
 
-milestone5-verify: verify release-check
+release-verify: verify release-check
 
-run view="desk":
+run view="guild":
     cargo run -- ui --view {{view}}
 
 install-local:
     cargo build --release
     mkdir -p bin
-    rm -f bin/herdr-webmaster
-    cp target/release/herdr-webmaster bin/herdr-webmaster
-    [ "$(uname)" = "Darwin" ] && codesign --force --sign - bin/herdr-webmaster || true
+    rm -f bin/questmancer
+    cp target/release/questmancer bin/questmancer
+    [ "$(uname)" = "Darwin" ] && codesign --force --sign - bin/questmancer || true

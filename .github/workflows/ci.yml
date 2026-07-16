@@ -41,3 +41,5 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
+      - name: Check diff hygiene
+        run: git diff --check
