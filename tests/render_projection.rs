@@ -107,7 +107,7 @@ fn intermediate_delve_size_projects_a_full_chamber_missed_by_endpoints() {
         reference
             .visible_agents
             .iter()
-            .all(|agent| { agent.chamber == Some(ChamberPresentation::Text) })
+            .all(|agent| { agent.chamber == Some(ChamberPresentation::CompactScene) })
     );
     assert!(
         minimum
@@ -241,8 +241,8 @@ fn rect_text(buffer: &ratatui::buffer::Buffer, area: Rect) -> String {
 const fn variant_marker(variant: questmancer::ui::delve_scene::DelveVariant) -> &'static str {
     use questmancer::ui::delve_scene::DelveVariant;
     match variant {
-        DelveVariant::ForgottenLibrary => "READING ALCOVE / CONNECTING ARCH",
-        DelveVariant::MossyUndercroft => "CAMP JUNCTION / DESCENDING PASSAGE",
+        DelveVariant::ForgottenLibrary => "FORGOTTEN LIBRARY",
+        DelveVariant::MossyUndercroft => "MOSSY UNDERCROFT",
         DelveVariant::OldWatchtower => "STAIR / NARROW LANDING",
     }
 }

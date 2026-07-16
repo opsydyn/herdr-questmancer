@@ -1,13 +1,13 @@
 use questmancer::{
     app::{CharacterSet, ColorMode, ConnectionState, DisplayPreferences, Model, Motion, View},
     domain::{
-        AgentKey, Campaign, DomainState, GuildAttention, GuildSummons, PaneId, Presence, Timestamp,
-        WorkspaceId,
+        AgentKey, Campaign, DomainState, Footwear, GuildAttention, GuildSummons, HairShape, PaneId,
+        Presence, Timestamp, WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::{self, delve_scene::layout_delves},
 };
-use ratatui::{Terminal, backend::TestBackend, layout::Rect, style::Color};
+use ratatui::{Terminal, backend::TestBackend, buffer::Buffer, layout::Rect, style::Color};
 
 fn three_agent_model() -> Model {
     let response: SuccessResponse<SessionSnapshotResult> =
@@ -72,6 +72,13 @@ fn render(model: &Model, width: u16, height: u16) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn render_buffer(model: &Model, width: u16, height: u16) -> Buffer {
+    let backend = TestBackend::new(width, height);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal.draw(|frame| ui::render(frame, model)).unwrap();
+    terminal.backend().buffer().clone()
 }
 
 fn render_colours(model: &Model, width: u16, height: u16) -> Vec<(Color, Color)> {
@@ -181,6 +188,55 @@ fn one_hundred_twenty_columns_show_authored_delve_and_selected_chamber() {
     assert!(
         screen.contains("COUNSEL REQUESTED"),
         "missing state theatre:\n{screen}"
+    );
+}
+
+#[test]
+fn connected_persona_art_preserves_top_and_bottom_rows() {
+    let mut baseline = three_agent_model();
+    let key = AgentKey::new("agent-a");
+    baseline
+        .domain_mut()
+        .agents
+        .get_mut(&key)
+        .unwrap()
+        .persona
+        .appearance
+        .footwear = Footwear::Boots;
+    let mut different_footwear = baseline.clone();
+    different_footwear
+        .domain_mut()
+        .agents
+        .get_mut(&key)
+        .unwrap()
+        .persona
+        .appearance
+        .footwear = Footwear::Sabatons;
+    assert!(
+        render_buffer(&baseline, 120, 30) != render_buffer(&different_footwear, 120, 30),
+        "the production connected layout hid the bottom persona row"
+    );
+
+    baseline
+        .domain_mut()
+        .agents
+        .get_mut(&key)
+        .unwrap()
+        .persona
+        .appearance
+        .hair = HairShape::Shaved;
+    let mut different_hair = baseline.clone();
+    different_hair
+        .domain_mut()
+        .agents
+        .get_mut(&key)
+        .unwrap()
+        .persona
+        .appearance
+        .hair = HairShape::Quiff;
+    assert!(
+        render_buffer(&baseline, 120, 30) != render_buffer(&different_hair, 120, 30),
+        "the production connected layout hid the top persona row"
     );
 }
 

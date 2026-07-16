@@ -127,17 +127,32 @@ fn motion_stories_share_one_phased_baseline_and_only_change_motion() {
 
 #[test]
 fn motion_story_production_buffers_are_pairwise_distinct() {
-    let render = |id| {
+    let render = |id: &str| {
+        let story = catalogue()
+            .iter()
+            .find(|story| story.id.as_str() == id)
+            .unwrap();
         let model = compatibility_model(id);
-        storybook_ui::render_application_buffer(&model, 60, 34)
+        let viewport = story.viewport;
+        (
+            viewport,
+            storybook_ui::render_application_buffer(
+                &model,
+                viewport.reference_width,
+                viewport.reference_height,
+            ),
+        )
     };
-    let full = render("compat.motion-full");
-    let reduced = render("compat.motion-reduced");
-    let none = render("compat.motion-none");
+    let (full_viewport, full) = render("compat.motion-full");
+    let (reduced_viewport, reduced) = render("compat.motion-reduced");
+    let (none_viewport, none) = render("compat.motion-none");
 
-    assert_ne!(full, reduced, "working motion must distinguish full");
-    assert_ne!(reduced, none, "idle motion must distinguish reduced");
-    assert_ne!(full, none);
+    assert_eq!(full_viewport, reduced_viewport);
+    assert_eq!(reduced_viewport, none_viewport);
+
+    assert!(full != reduced, "working motion must distinguish full");
+    assert!(reduced != none, "idle motion must distinguish reduced");
+    assert!(full != none);
 }
 
 #[allow(

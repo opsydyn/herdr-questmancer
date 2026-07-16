@@ -159,7 +159,7 @@ fn authored_chambers(variant: DelveVariant, count: usize, delve: Rect) -> Vec<Ch
     // the terminal gives a chamber enough room; compact areas still clamp to
     // the partition and preserve the legacy tiny-surface behavior.
     let chamber_width = (width / columns).clamp(1, 36);
-    let chamber_height = (height / rows).clamp(1, 6);
+    let chamber_height = (height / rows).clamp(1, 8);
     let mut chambers = Vec::with_capacity(chamber_count);
     for index in 0..chamber_count {
         let index = u32::try_from(index).unwrap_or(u32::MAX);

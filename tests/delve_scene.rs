@@ -73,6 +73,45 @@ fn delves_are_sorted_non_overlapping_and_chambers_fit_the_scene() {
 }
 
 #[test]
+fn connected_layout_allocates_complete_compact_chambers_when_room_allows() {
+    let workspace = WorkspaceId::new("connected");
+    let template = support::fixture_domain()
+        .agents
+        .into_values()
+        .next()
+        .unwrap();
+    let agents = ["a1", "a2"]
+        .into_iter()
+        .map(|id| {
+            let mut agent = template.clone();
+            agent.key = AgentKey::new(id);
+            agent.workspace_id = workspace.clone();
+            (agent.key.clone(), agent)
+        })
+        .collect::<BTreeMap<_, _>>();
+    let campaign = Campaign {
+        workspace_id: workspace.clone(),
+        label: "Connected".to_owned(),
+        cwd: "/tmp/connected".into(),
+        party: agents.keys().cloned().collect(),
+    };
+    let delves = layout_delves(
+        &BTreeMap::from([(workspace, campaign)]),
+        &agents,
+        Rect::new(0, 0, 120, 30),
+        None,
+    );
+
+    assert_eq!(delves.len(), 1);
+    assert_eq!(delves[0].chambers.len(), 2);
+    assert!(
+        delves[0].chambers.iter().all(|chamber| chamber.height == 8),
+        "connected chambers with sufficient room must allocate all eight rows: {:?}",
+        delves[0].chambers
+    );
+}
+
+#[test]
 fn tiny_scene_exposes_delves_without_duplicate_chambers() {
     let sites = BTreeMap::from([
         (
