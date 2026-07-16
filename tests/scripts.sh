@@ -319,6 +319,34 @@ test_workflow_yaml_contract_and_comment_mutations() {
   if ruby "$validator" "$mutated" "$ci" >"$TMP/commented-action.log" 2>&1; then
     fail "workflow validator accepted a commented-out release action"
   fi
+
+  sed 's|^          tar -C "$staging" -czf "$archive" questmancer$|          # tar -C "$staging" -czf "$archive" questmancer|' "$release" >"$mutated"
+  if ruby "$validator" "$mutated" "$ci" >"$TMP/commented-tar.log" 2>&1; then
+    fail "workflow validator accepted a commented-out archive command"
+  fi
+
+  sed 's|^          sha256sum "${expected\[@\]}" >SHA256SUMS$|          # sha256sum "${expected[@]}" >SHA256SUMS|' "$release" >"$mutated"
+  if ruby "$validator" "$mutated" "$ci" >"$TMP/commented-checksum.log" 2>&1; then
+    fail "workflow validator accepted a commented-out checksum command"
+  fi
+
+  sed 's/^            builder: cross$/            builder: cargo/' "$release" >"$mutated"
+  if ruby "$validator" "$mutated" "$ci" >"$TMP/wrong-builder.log" 2>&1; then
+    fail "workflow validator accepted cargo for the aarch64 Linux builder"
+  fi
+
+  sed 's/^            os: macos-latest$/            os: ubuntu-latest/' "$release" >"$mutated"
+  if ruby "$validator" "$mutated" "$ci" >"$TMP/wrong-runner.log" 2>&1; then
+    fail "workflow validator accepted an Ubuntu runner for Apple targets"
+  fi
+
+  awk '
+    $0 == "  publish:" { print "      - uses: actions/upload-artifact@v4" }
+    { print }
+  ' "$release" >"$mutated"
+  if ruby "$validator" "$mutated" "$ci" >"$TMP/obsolete-action.log" 2>&1; then
+    fail "workflow validator accepted an additional obsolete artifact action"
+  fi
 }
 
 test_contributor_test_recipes_reference_real_targets() {

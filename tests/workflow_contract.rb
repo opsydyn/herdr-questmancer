@@ -62,13 +62,18 @@ def require_run_line(job_value, job_name, expected)
   abort_contract("#{job_name} has no active run line: #{expected}") unless present
 end
 
-def require_run_text(job_value, job_name, expected)
-  present = active_runs(job_value, job_name).any? { |run| run.include?(expected) }
-  abort_contract("#{job_name} has no active run text: #{expected}") unless present
+def require_exact_keys(mapping, label, expected)
+  actual = mapping.keys
+  return if actual.length == expected.length && actual.to_set == expected.to_set
+
+  abort_contract("#{label} keys were #{actual.sort.inspect}, expected #{expected.sort.inspect}")
 end
 
-def require_uses(job_value, job_name, expected)
-  abort_contract("#{job_name} has no active uses: #{expected}") unless active_uses(job_value, job_name).include?(expected)
+def require_exact_uses(job_value, job_name, expected)
+  actual = active_uses(job_value, job_name)
+  return if actual.length == expected.length && actual.to_set == expected.to_set
+
+  abort_contract("#{job_name} active uses were #{actual.sort.inspect}, expected #{expected.sort.inspect}")
 end
 
 def require_checkout_depth(job_value, job_name)
@@ -83,6 +88,7 @@ release_path, ci_path = ARGV
 abort_contract("usage: workflow_contract.rb RELEASE_WORKFLOW CI_WORKFLOW") unless release_path && ci_path && ARGV.length == 2
 
 release_jobs = load_workflow(release_path)
+require_exact_keys(release_jobs, "release jobs", %w[verify build publish])
 verify = job(release_jobs, "verify")
 build = job(release_jobs, "build")
 publish = job(release_jobs, "publish")
@@ -101,32 +107,56 @@ require_checkout_depth(verify, "verify")
 abort_contract("build must need exactly verify") unless build["needs"] == "verify"
 abort_contract("publish must need exactly build") unless publish["needs"] == "build"
 
-require_uses(build, "build", "actions/checkout@v5")
-require_uses(build, "build", "actions/upload-artifact@v7")
-require_uses(publish, "publish", "actions/checkout@v5")
-require_uses(publish, "publish", "actions/download-artifact@v8")
-require_uses(publish, "publish", "softprops/action-gh-release@v3")
+require_exact_uses(
+  verify,
+  "verify",
+  ["actions/checkout@v5", "dtolnay/rust-toolchain@1.90.0", "Swatinem/rust-cache@v2"]
+)
+require_exact_uses(
+  build,
+  "build",
+  [
+    "actions/checkout@v5",
+    "dtolnay/rust-toolchain@1.90.0",
+    "Swatinem/rust-cache@v2",
+    "taiki-e/install-action@v2",
+    "actions/upload-artifact@v7"
+  ]
+)
+require_exact_uses(
+  publish,
+  "publish",
+  ["actions/checkout@v5", "actions/download-artifact@v8", "softprops/action-gh-release@v3"]
+)
 
 matrix = build.dig("strategy", "matrix", "include")
 abort_contract("build matrix include is not a sequence") unless matrix.is_a?(Array)
-targets = matrix.each_with_object([]) do |entry, values|
-  values << entry["target"] if entry.is_a?(Hash) && entry["target"]
+tuples = matrix.each_with_object([]) do |entry, values|
+  values << [entry["target"], entry["os"], entry["builder"]] if entry.is_a?(Hash)
 end.to_set
-expected_targets = Set[
-  "x86_64-unknown-linux-gnu",
-  "aarch64-unknown-linux-gnu",
-  "x86_64-apple-darwin",
-  "aarch64-apple-darwin"
+expected_tuples = Set[
+  ["x86_64-unknown-linux-gnu", "ubuntu-latest", "cargo"],
+  ["aarch64-unknown-linux-gnu", "ubuntu-latest", "cross"],
+  ["x86_64-apple-darwin", "macos-latest", "cargo"],
+  ["aarch64-apple-darwin", "macos-latest", "cargo"]
 ]
-abort_contract("build matrix targets differ from the four release targets") unless targets == expected_targets && matrix.length == 4
+unless tuples == expected_tuples && matrix.length == 4
+  abort_contract("build matrix tuples differ from the four exact target, runner, and builder tuples")
+end
 
-require_run_text(build, "build", 'archive="questmancer-v${version}-${target}.tar.gz"')
-require_run_text(build, "build", 'tar -C "$staging" -czf "$archive" questmancer')
-require_run_text(publish, "publish", "sha256sum \"${expected[@]}\" >SHA256SUMS")
+require_run_line(build, "build", 'archive="questmancer-v${version}-${target}.tar.gz"')
+require_run_line(build, "build", 'tar -C "$staging" -czf "$archive" questmancer')
+require_run_line(publish, "publish", 'sha256sum "${expected[@]}" >SHA256SUMS')
 
 ci_jobs = load_workflow(ci_path)
+require_exact_keys(ci_jobs, "CI jobs", ["check"])
 check = job(ci_jobs, "check")
 require_checkout_depth(check, "check")
+require_exact_uses(
+  check,
+  "check",
+  ["actions/checkout@v5", "dtolnay/rust-toolchain@1.90.0", "Swatinem/rust-cache@v2"]
+)
 [
   "cargo fmt --all --check",
   "cargo clippy --all-targets --all-features -- -D warnings",
