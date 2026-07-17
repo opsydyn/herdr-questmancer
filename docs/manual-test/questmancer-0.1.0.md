@@ -33,6 +33,7 @@ TEST_CREATED_PANE=0
 TEST_CREATED_REPORT=0
 PREEXISTING_LINK=0
 PREEXISTING_MANAGED_PANE_ID=""
+PREEXISTING_MANAGED_PANE_IDS=""
 MANAGED_PANE_IS_TEST_OWNED=0
 LIVE_TESTS_PERMITTED=0
 
@@ -59,6 +60,50 @@ BASELINE_PANE_IDS="$(jq -r '.result.snapshot.panes[]?.pane_id' \
 BASELINE_TAB_IDS="$(jq -r '.result.snapshot.tabs[]?.tab_id' \
   "$BASELINE_SNAPSHOT" | sort)"
 
+refresh_managed_pane_ownership() {
+  local snapshot_path=$1
+  local baseline_match=""
+
+  # The runtime registration is the authoritative current-owner route. It must
+  # point to exactly one pane which was not present at baseline before this run
+  # may call that pane test-owned.
+  MANAGED_PANE_IS_TEST_OWNED=0
+  TEST_CREATED_MANAGED_PANE=0
+  RUNTIME_PANE_ID="$(jq -er '.pane_id | select(type == "string" and length > 0)' \
+    "$QUESTMANCER_RUNTIME" 2>/dev/null || true)"
+  MANAGED_PANE_ID="$(jq -r --arg pane "$RUNTIME_PANE_ID" '
+    .result.snapshot.panes[]?
+    | select(.pane_id == $pane)
+    | .pane_id
+  ' "$snapshot_path")"
+  MANAGED_PANE_COUNT="$(printf '%s\n' "$MANAGED_PANE_ID" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+  if test "$MANAGED_PANE_COUNT" = 1; then
+    MANAGED_TAB_ID="$(jq -r --arg pane "$MANAGED_PANE_ID" '
+      .result.snapshot.panes[]?
+      | select(.pane_id == $pane)
+      | .tab_id
+    ' "$snapshot_path")"
+    MANAGED_TAB_COUNT="$(printf '%s\n' "$MANAGED_TAB_ID" | sed '/^$/d' | wc -l | tr -d ' ')"
+    baseline_match="$(printf '%s\n' "$BASELINE_PANE_IDS" | grep -Fxc "$MANAGED_PANE_ID" || true)"
+  else
+    MANAGED_TAB_ID=""
+    MANAGED_TAB_COUNT=0
+  fi
+
+  if test "$MANAGED_PANE_COUNT" = 1 \
+    && test "$MANAGED_TAB_COUNT" = 1 \
+    && test "$baseline_match" = 0; then
+    TEST_CREATED_MANAGED_PANE=1
+    MANAGED_PANE_IS_TEST_OWNED=1
+    return 0
+  fi
+
+  printf '%s\n' 'Managed pane ownership could not be refreshed; block remaining live rows.' >&2
+  LIVE_TESTS_PERMITTED=0
+  return 1
+}
+
 PLUGIN_MATCH_COUNT="$(jq '[.result.plugins[]? \
   | select(.plugin_id == "opsydyn.questmancer")] | length' \
   "$BASELINE_PLUGIN_LIST")"
@@ -82,20 +127,28 @@ HERDR_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 QUESTMANCER_RUNTIME="$HERDR_STATE_HOME/herdr/plugins/opsydyn.questmancer/runtime.json"
 RUNTIME_PANE_ID="$(jq -er '.pane_id | select(type == "string" and length > 0)' \
   "$QUESTMANCER_RUNTIME" 2>/dev/null || true)"
-BASELINE_MANAGED_PANE_ID="$(jq -r --arg pane "$RUNTIME_PANE_ID" '
+BASELINE_RUNTIME_MANAGED_PANE_ID="$(jq -r --arg pane "$RUNTIME_PANE_ID" '
   .result.snapshot.panes[]?
   | select(.pane_id == $pane)
   | .pane_id
 ' "$BASELINE_SNAPSHOT" | head -n 1)"
-PREEXISTING_MANAGED_PANE_ID="$BASELINE_MANAGED_PANE_ID"
+BASELINE_LABELLED_MANAGED_PANE_IDS="$(jq -r '
+  .result.snapshot.panes[]?
+  | select(.label? | strings | ascii_downcase | contains("questmancer"))
+  | .pane_id
+' "$BASELINE_SNAPSHOT" | sort -u)"
+PREEXISTING_MANAGED_PANE_IDS="$(printf '%s\n%s\n' \
+  "$BASELINE_RUNTIME_MANAGED_PANE_ID" \
+  "$BASELINE_LABELLED_MANAGED_PANE_IDS" | sed '/^$/d' | sort -u)"
+PREEXISTING_MANAGED_PANE_ID="$(printf '%s\n' "$PREEXISTING_MANAGED_PANE_IDS" | head -n 1)"
 ```
 
-Record the baseline focus, pane/tab lists, registration root and any managed
-pane. The installed 0.7.4 snapshot does not expose pane titles or labels, so
-the managed-pane identity comes from Questmancer's runtime registration and is
-accepted only when that exact pane still exists in the snapshot. An absent,
-duplicate, empty, root (`/`), missing or otherwise unresolved plugin root keeps
-the live gate closed; it is never passed to `cd`.
+Record the baseline focus, pane/tab lists, registration root and every possible
+managed pane. Herdr 0.7.4 exposes the nullable pane `.label`; the baseline
+therefore preserves the verified runtime-ID route and also conservatively marks
+every label containing `questmancer` as protected when runtime state is absent
+or stale. An absent, duplicate, empty, root (`/`), missing or otherwise
+unresolved plugin root keeps the live gate closed; it is never passed to `cd`.
 
 ### 1. Baseline the environment
 
@@ -194,34 +247,16 @@ Exactly one managed Questmancer pane should exist. Record its pane/tab ID and
 whether this run created it. Inspect the corresponding plugin action logs. Do
 not close a managed pane that existed in the baseline.
 
-Capture only the newly created managed pane and stop if discovery is ambiguous:
+Capture only the newly created managed pane through its current runtime
+registration. The current runtime pane must be exactly one snapshot pane, must
+have exactly one tab, and must not have existed at baseline; otherwise stop.
 
 ```bash
 if test "$LIVE_TESTS_PERMITTED" = 1 \
   && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
 POST_OPEN_SNAPSHOT="$(mktemp)"
 herdr api snapshot >"$POST_OPEN_SNAPSHOT"
-MANAGED_PANE_ID="$(jq -r '
-  .result.snapshot.panes[]?
-  | .pane_id
-' "$POST_OPEN_SNAPSHOT" | sort | comm -13 \
-  <(printf '%s\n' "$BASELINE_PANE_IDS") -)"
-MANAGED_PANE_COUNT="$(printf '%s\n' "$MANAGED_PANE_ID" | sed '/^$/d' | wc -l | tr -d ' ')"
-if test "$MANAGED_PANE_COUNT" != 1; then
-  printf '%s\n' 'Managed pane discovery was ambiguous; block remaining live rows.' >&2
-  LIVE_TESTS_PERMITTED=0
-fi
-MANAGED_TAB_ID="$(jq -r --arg pane "$MANAGED_PANE_ID" '
-  .result.snapshot.panes[]? | select(.pane_id == $pane) | .tab_id
-' "$POST_OPEN_SNAPSHOT" | head -n 1)"
-test -n "$MANAGED_PANE_ID" && test -n "$MANAGED_TAB_ID" || {
-  printf '%s\n' 'Managed pane discovery was ambiguous; block remaining live rows.' >&2
-  LIVE_TESTS_PERMITTED=0
-}
-if test "$LIVE_TESTS_PERMITTED" = 1; then
-  TEST_CREATED_MANAGED_PANE=1
-  MANAGED_PANE_IS_TEST_OWNED=1
-fi
+refresh_managed_pane_ownership "$POST_OPEN_SNAPSHOT" || true
 fi
 ```
 
@@ -314,14 +349,20 @@ if test "$LIVE_TESTS_PERMITTED" = 1 \
   && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
   herdr plugin action invoke opsydyn.questmancer.close
   herdr plugin action invoke opsydyn.questmancer.open
+  POST_REOPEN_SNAPSHOT="$(mktemp)"
+  herdr api snapshot >"$POST_REOPEN_SNAPSHOT"
+  refresh_managed_pane_ownership "$POST_REOPEN_SNAPSHOT" || true
 else
   printf '%s\n' 'BLOCKED: persistence restart ownership guard failed.'
 fi
 ```
 
-Confirm the saved Guild Hall view, selected persona and acknowledged Summons
-survive. If the managed pane existed before the test, mark restart persistence
-`BLOCKED` instead of closing it.
+Exactly one candidate-owned current runtime pane must exist after reopen. The
+refresh replaces `MANAGED_PANE_ID` and `MANAGED_TAB_ID` and refreshes both
+managed-pane ownership flags; use those refreshed IDs for visual evidence and
+cleanup. Confirm the saved Guild Hall view, selected persona and acknowledged
+Summons survive. If the managed pane existed before the test, mark restart
+persistence `BLOCKED` instead of closing it.
 
 ### 6. Capture Great Room evidence
 
@@ -347,13 +388,32 @@ This is the only cleanup path. Each mutation is conditioned on the exact flag
 and captured ID. If a capture is missing or no longer matches the live
 snapshot, leave the resource untouched, record `BLOCKED`, and do not guess.
 
-Return and release the synthetic source only when this run created it:
+First prove that the captured disposable pane still belongs to the captured
+test-owned tab and that neither appeared at baseline. This makes the release
+and tab close idempotent: a missing or replaced resource is left untouched.
 
 ```bash
+CLEANUP_SNAPSHOT="$(mktemp)"
+herdr api snapshot >"$CLEANUP_SNAPSHOT"
+CURRENT_TEST_PANE_ID="$(jq -r --arg pane "${PANE_ID:-}" --arg tab "${TAB_ID:-}" '
+  .result.snapshot.panes[]?
+  | select(.pane_id == $pane and .tab_id == $tab)
+  | .pane_id
+' "$CLEANUP_SNAPSHOT" | head -n 1)"
+CURRENT_TEST_TAB_ID="$(jq -r --arg tab "${TAB_ID:-}" '
+  .result.snapshot.tabs[]?
+  | select(.tab_id == $tab)
+  | .tab_id
+' "$CLEANUP_SNAPSHOT" | head -n 1)"
+TEST_TAB_WAS_BASELINE="$(printf '%s\n' "$BASELINE_TAB_IDS" | grep -Fxc "${TAB_ID:-}" || true)"
+
 if test "$TEST_CREATED_REPORT" = 1 \
   && test "$TEST_CREATED_PANE" = 1 \
-  && test -n "${PANE_ID:-}" \
-  && test -n "${SOURCE_ID:-}"; then
+  && test "$TEST_CREATED_TAB" = 1 \
+  && test -n "${SOURCE_ID:-}" \
+  && test "$CURRENT_TEST_PANE_ID" = "${PANE_ID:-}" \
+  && test "$CURRENT_TEST_TAB_ID" = "${TAB_ID:-}" \
+  && test "$TEST_TAB_WAS_BASELINE" = 0; then
   herdr pane report-agent "$PANE_ID" \
     --source "$SOURCE_ID" \
     --agent questmancer-smoke \
@@ -364,13 +424,17 @@ if test "$TEST_CREATED_REPORT" = 1 \
     --source "$SOURCE_ID" \
     --agent questmancer-smoke \
     --seq 4
+elif test "$TEST_CREATED_REPORT" = 1; then
+  printf '%s\n' 'BLOCKED: disposable report owner no longer matches the captured tab/pane.' >&2
 fi
 
-if test "$TEST_CREATED_PANE" = 1 && test -n "${PANE_ID:-}"; then
-  herdr pane close "$PANE_ID"
-fi
-if test "$TEST_CREATED_TAB" = 1 && test -n "${TAB_ID:-}"; then
+if test "$TEST_CREATED_TAB" = 1 \
+  && test "$CURRENT_TEST_PANE_ID" = "${PANE_ID:-}" \
+  && test "$CURRENT_TEST_TAB_ID" = "${TAB_ID:-}" \
+  && test "$TEST_TAB_WAS_BASELINE" = 0; then
   herdr tab close "$TAB_ID"
+elif test "$TEST_CREATED_TAB" = 1; then
+  printf '%s\n' 'BLOCKED: disposable tab no longer matches the captured ownership ledger.' >&2
 fi
 
 CURRENT_SNAPSHOT="$(mktemp)"
@@ -384,8 +448,33 @@ if test "$TEST_CREATED_MANAGED_PANE" = 1 \
   && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
   herdr plugin action invoke opsydyn.questmancer.close
 fi
+
+# Revalidate the registration immediately before unlinking. A test-created link
+# may be removed only when exactly one current Questmancer registration still
+# resolves to this checkout; any replacement or ambiguity is protected.
+PRE_UNLINK_PLUGIN_LIST="$(mktemp)"
+herdr plugin list --json >"$PRE_UNLINK_PLUGIN_LIST"
+PRE_UNLINK_PLUGIN_MATCH_COUNT="$(jq '[.result.plugins[]?
+  | select(.plugin_id == "opsydyn.questmancer")] | length'
+  "$PRE_UNLINK_PLUGIN_LIST")"
+PRE_UNLINK_REGISTRATION_SOURCE_ROOT_RAW=""
+PRE_UNLINK_REGISTRATION_SOURCE_ROOT=""
+if test "$PRE_UNLINK_PLUGIN_MATCH_COUNT" = 1; then
+  PRE_UNLINK_REGISTRATION_SOURCE_ROOT_RAW="$(jq -er '
+    .result.plugins[]?
+    | select(.plugin_id == "opsydyn.questmancer")
+    | .plugin_root
+  ' "$PRE_UNLINK_PLUGIN_LIST" 2>/dev/null || true)"
+  PRE_UNLINK_REGISTRATION_SOURCE_ROOT="$(resolve_existing_root \
+    "$PRE_UNLINK_REGISTRATION_SOURCE_ROOT_RAW" 2>/dev/null || true)"
+fi
 if test "$TEST_CREATED_LINK" = 1; then
-  herdr plugin unlink opsydyn.questmancer
+  if test "$PRE_UNLINK_PLUGIN_MATCH_COUNT" = 1 \
+    && test "$PRE_UNLINK_REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
+    herdr plugin unlink opsydyn.questmancer
+  else
+    printf '%s\n' 'BLOCKED: Questmancer registration changed, is missing, or is ambiguous; leave it linked.' >&2
+  fi
 fi
 
 if test -n "${BASELINE_FOCUS_TAB_ID:-}" \
