@@ -2,22 +2,26 @@
 
 use questmancer::{
     app::{
-        CharacterSet, ColorMode, ConnectionState, DisplayPreferences, GuildFocus, Modal, Motion,
-        View,
+        CharacterSet, ColorMode, ConnectionState, ConnectionStateKind, DisplayPreferences,
+        GuildFocus, Modal, Motion, View,
     },
     domain::{AgentKey, GuildSummons, Presence, WorkspaceId},
     storybook::fixtures::{
         FIXED_NOW, StoryContext, campaign_fixture, campaign_token_fixture, compatibility_fixture,
         counsel_projection_fixture, delve_fixture, goblin_biscuit_id, goblin_chest_id,
         goblin_hand_id, goblin_scroll_id, great_room_fixture, great_room_one_campaign_fixture,
-        great_room_reviewr_unavailable_fixture, great_room_scrying_failed_fixture, guild_fixture,
+        great_room_reviewr_unavailable_fixture, great_room_scrying_failed_fixture,
+        guild_connecting_fixture, guild_fixture, guild_incompatible_fixture,
         hearth_adventurer_fixture, library_id, modal_fixture, spoils_adventurer_fixture,
         undercroft_id, watchtower_id,
     },
     ui::{
         delve_scene::{DelveVariant, variant_for_campaign},
         goblins::{GoblinSighting, sighting_for_campaign},
-        guild_room_projection::{AdventurerRepresentation, GuildLandmark, project},
+        guild_room_projection::{
+            AdventurerRepresentation, GuildLandmark, GuildLandmarkKind, GuildRoomMode,
+            TruthfulStationKind, project,
+        },
     },
 };
 use ratatui::layout::Rect;
@@ -30,6 +34,41 @@ fn fixtures_are_value_deterministic() {
     assert_eq!(guild_fixture(&context).view(), View::Guild);
     assert_eq!(delve_fixture(&context).view(), View::Delve);
     assert_eq!(guild_fixture(&context).modal(), &Modal::None);
+}
+
+#[test]
+fn fixed_guild_fixtures_cover_every_connection_state() {
+    let context = StoryContext::fixed();
+    let cases = [
+        (
+            questmancer::storybook::fixtures::guild_disconnected_fixture(&context),
+            ConnectionState::Offline,
+        ),
+        (
+            guild_connecting_fixture(&context),
+            ConnectionState::Connecting,
+        ),
+        (guild_fixture(&context), ConnectionState::Connected),
+        (
+            questmancer::storybook::fixtures::guild_reconnecting_fixture(&context),
+            ConnectionState::Reconnecting { attempt: 3 },
+        ),
+        (
+            guild_incompatible_fixture(&context),
+            ConnectionState::Incompatible {
+                expected: 17,
+                actual: 16,
+            },
+        ),
+    ];
+
+    let mut kinds = Vec::new();
+    for (model, expected) in cases {
+        assert_eq!(model.connection(), &expected);
+        assert_eq!(model.now(), FIXED_NOW);
+        kinds.push(model.connection().kind());
+    }
+    assert_eq!(kinds, ConnectionStateKind::ALL);
 }
 
 #[test]
@@ -242,10 +281,16 @@ fn truthful_station_fixtures_project_each_authored_representation() {
         ),
     ];
 
+    let mut kinds = Vec::new();
     for (model, label, focus) in cases {
         assert_eq!(model.guild_focus(), focus, "{label}");
         let projection = project(&model, Rect::new(0, 0, 78, 26));
         let representation = projection.adventurers.first().expect(label);
+        kinds.push(
+            representation
+                .truthful_station_kind()
+                .expect("authored fixture must use a truthful station"),
+        );
         match (label, representation) {
             ("campaign token", AdventurerRepresentation::Token { .. })
             | (
@@ -272,4 +317,28 @@ fn truthful_station_fixtures_project_each_authored_representation() {
             _ => panic!("{label} projected as {representation:?}"),
         }
     }
+    assert_eq!(kinds, TruthfulStationKind::ALL);
+}
+
+#[test]
+fn production_projection_enumerates_every_authored_landmark_and_room_mode() {
+    let model = great_room_fixture(&StoryContext::fixed());
+    let wide = project(&model, Rect::new(0, 0, 120, 36));
+    let mut landmark_kinds = wide
+        .landmarks
+        .iter()
+        .map(|landmark| landmark.landmark.kind())
+        .collect::<Vec<_>>();
+    landmark_kinds.extend(
+        wide.campaigns
+            .iter()
+            .map(|_| GuildLandmarkKind::CampaignTable),
+    );
+    landmark_kinds.sort_unstable();
+    landmark_kinds.dedup();
+    assert_eq!(landmark_kinds, GuildLandmarkKind::ALL);
+
+    let projected_modes =
+        [120_u16, 80, 79].map(|width| project(&model, Rect::new(0, 0, width, 36)).mode);
+    assert_eq!(projected_modes, GuildRoomMode::ALL);
 }

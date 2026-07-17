@@ -1,7 +1,7 @@
 #![cfg(feature = "storybook")]
 
 use questmancer::{
-    app::{DisplayPreferences, Modal, Motion, View},
+    app::{ConnectionState, DisplayPreferences, Modal, Motion, View},
     domain::{AdventurerClass, AdventurerPersona, PersonaKey, Presence},
     storybook::{
         AssetId, SceneAsset,
@@ -165,6 +165,100 @@ fn motion_story_production_buffers_retain_semantic_state_and_actions() {
     }
 }
 
+#[test]
+fn display_compatibility_stories_render_semantic_state_and_valid_actions() {
+    for story_id in [
+        "compat.unicode-xterm256",
+        "compat.unicode-ansi16",
+        "compat.ascii-ansi16",
+    ] {
+        let story = catalogue()
+            .iter()
+            .find(|story| story.id.as_str() == story_id)
+            .unwrap();
+        let model = compatibility_model(story_id);
+        let screen = buffer_text(&storybook_ui::render_application_buffer(
+            &model,
+            story.viewport.reference_width,
+            story.viewport.reference_height,
+        ));
+
+        for semantic in [
+            "QUESTMANCER'S GUILD HALL",
+            "CONNECTED",
+            "Ironmere",
+            "CAMPAIGN TABLE",
+            "[enter] Observe",
+            "[r] Issue counsel",
+            "[/] Search",
+        ] {
+            assert!(
+                screen.contains(semantic),
+                "{story_id} production render lost {semantic}: {screen}"
+            );
+        }
+    }
+}
+
+#[test]
+fn every_connection_story_renders_its_fixed_semantic_state() {
+    let cases = [
+        (
+            "scenes.guild-populated",
+            ConnectionState::Connected,
+            "CONNECTED",
+            &["CONNECTED / door open"][..],
+        ),
+        (
+            "scenes.guild-disconnected",
+            ConnectionState::Offline,
+            "OFFLINE",
+            &["OFFLINE / door closed"][..],
+        ),
+        (
+            "scenes.guild-connecting",
+            ConnectionState::Connecting,
+            "CONNECTING",
+            &["CONNECTING / door", "opening"][..],
+        ),
+        (
+            "scenes.guild-reconnecting",
+            ConnectionState::Reconnecting { attempt: 3 },
+            "RECONNECTING",
+            &["attempt 3"][..],
+        ),
+        (
+            "scenes.guild-incompatible",
+            ConnectionState::Incompatible {
+                expected: 17,
+                actual: 16,
+            },
+            "INCOMPATIBLE",
+            &["protocol 16; expected 17"][..],
+        ),
+    ];
+
+    for (story_id, connection, semantic, details) in cases {
+        let story = catalogue()
+            .iter()
+            .find(|story| story.id.as_str() == story_id)
+            .unwrap();
+        let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
+            panic!("{story_id} must use the production application renderer");
+        };
+        assert_eq!(model.connection(), &connection, "{story_id}");
+        let screen = buffer_text(&storybook_ui::render_application_buffer(
+            &model,
+            story.viewport.reference_width,
+            story.viewport.reference_height,
+        ));
+        assert!(screen.contains(semantic), "{story_id}: {screen}");
+        for detail in details {
+            assert!(screen.contains(detail), "{story_id}: {screen}");
+        }
+    }
+}
+
 #[allow(
     clippy::trivially_copy_pass_by_ref,
     reason = "StoryBuilder requires a borrowed StoryContext"
@@ -252,7 +346,7 @@ fn narrow_shell_uses_a_one_line_story_selector() {
     let stories = catalogue();
     let app = StorybookApp::new(stories);
     let screen = render_storybook(&app, stories, 79, 24);
-    assert!(screen.contains("1/54 Classes and Gear"));
+    assert!(screen.contains("1/56 Classes and Gear"));
     assert!(screen.contains("PRODUCTION CANVAS"));
     assert!(!screen.contains("STORIES"));
     assert!(!screen.contains("COVERAGE"));
@@ -782,7 +876,9 @@ fn asset_belongs_to_story(asset: AssetId, story_id: &str) -> bool {
             )
             | (
                 "atlas.camera-landmark",
-                AssetId::RoomCamera(questmancer::storybook::assets::RoomCameraAsset::Landmark)
+                AssetId::RoomCamera(
+                    questmancer::storybook::assets::RoomCameraAsset::LandmarkCamera
+                )
             )
     )
 }

@@ -26,8 +26,8 @@ use super::{
     AssetId, CompatibilityAsset, SceneAsset, WidgetAsset,
     assets::{
         ACCENT_TONES, ANCESTRIES, BODY_PROPORTIONS, CLASSES, COLOR_ROLES, FACE_DETAILS, FOOTWEAR,
-        GARBS, GEAR, HAIR_SHAPES, HAIR_TONES, HEAD_SHAPES, KEEPSAKES, LEGWEAR, LandmarkAsset,
-        POSES, RoomCameraAsset, SKIN_TONES, TruthfulStationAsset,
+        GARBS, GEAR, HAIR_SHAPES, HAIR_TONES, HEAD_SHAPES, KEEPSAKES, LANDMARKS, LEGWEAR, POSES,
+        RoomCameraAsset, SKIN_TONES, TRUTHFUL_STATIONS,
     },
     atlas,
     fixtures::{self, AtlasContent, StoryContext, StoryFixture},
@@ -293,25 +293,9 @@ const GUILD_REGIONS: &[AssetId] = &[
 const COUNSEL: &[AssetId] = &[AssetId::Widget(WidgetAsset::Counsel)];
 const SEARCH: &[AssetId] = &[AssetId::Widget(WidgetAsset::Search)];
 const HELP: &[AssetId] = &[AssetId::Widget(WidgetAsset::Help)];
-const GREAT_ROOM_LANDMARKS: &[AssetId] = &[
-    AssetId::Landmark(LandmarkAsset::GuildDoor),
-    AssetId::Landmark(LandmarkAsset::QuestWall),
-    AssetId::Landmark(LandmarkAsset::CampaignTable),
-    AssetId::Landmark(LandmarkAsset::CounselBell),
-    AssetId::Landmark(LandmarkAsset::Hearth),
-    AssetId::Landmark(LandmarkAsset::ChronicleLectern),
-    AssetId::Landmark(LandmarkAsset::ScryingAlcove),
-    AssetId::Landmark(LandmarkAsset::SpoilsVault),
-];
-const TRUTHFUL_STATIONS: &[AssetId] = &[
-    AssetId::TruthfulStation(TruthfulStationAsset::CampaignToken),
-    AssetId::TruthfulStation(TruthfulStationAsset::CounselProjection),
-    AssetId::TruthfulStation(TruthfulStationAsset::HearthAdventurer),
-    AssetId::TruthfulStation(TruthfulStationAsset::SpoilsAdventurer),
-];
 const WHOLE_ROOM_CAMERA: &[AssetId] = &[AssetId::RoomCamera(RoomCameraAsset::WholeRoom)];
 const CROPPED_ROOM_CAMERA: &[AssetId] = &[AssetId::RoomCamera(RoomCameraAsset::CroppedRoom)];
-const LANDMARK_CAMERA: &[AssetId] = &[AssetId::RoomCamera(RoomCameraAsset::Landmark)];
+const LANDMARK_CAMERA: &[AssetId] = &[AssetId::RoomCamera(RoomCameraAsset::LandmarkCamera)];
 
 #[allow(
     clippy::too_many_lines,
@@ -460,7 +444,7 @@ fn build_catalogue() -> Vec<Story> {
             "Great Room Landmarks",
             "Every authored Great Room landmark through the production room renderer.",
             atlas::great_room_landmarks,
-            GREAT_ROOM_LANDMARKS,
+            LANDMARKS,
             widget_atlas_shows(atlas::great_room_landmarks)
         ),
         atlas_story!(
@@ -600,10 +584,24 @@ fn build_catalogue() -> Vec<Story> {
             SCENE_VIEWPORT,
         ),
         scene_story(
+            "scenes.guild-connecting",
+            "Guild Connecting",
+            SceneAsset::GuildConnecting,
+            guild_connecting,
+            SCENE_VIEWPORT,
+        ),
+        scene_story(
             "scenes.guild-reconnecting",
             "Guild Reconnecting",
             SceneAsset::GuildReconnecting,
             guild_reconnecting,
+            SCENE_VIEWPORT,
+        ),
+        scene_story(
+            "scenes.guild-incompatible",
+            "Guild Incompatible",
+            SceneAsset::GuildIncompatible,
+            guild_incompatible,
             SCENE_VIEWPORT,
         ),
         scene_story(
@@ -1104,6 +1102,12 @@ fn guild_disconnected(context: &StoryContext) -> StoryFixture {
 }
 fn guild_reconnecting(context: &StoryContext) -> StoryFixture {
     application(fixtures::guild_reconnecting_fixture(context))
+}
+fn guild_connecting(context: &StoryContext) -> StoryFixture {
+    application(fixtures::guild_connecting_fixture(context))
+}
+fn guild_incompatible(context: &StoryContext) -> StoryFixture {
+    application(fixtures::guild_incompatible_fixture(context))
 }
 fn guild_reviewr_unavailable(context: &StoryContext) -> StoryFixture {
     application(fixtures::great_room_reviewr_unavailable_fixture(context))

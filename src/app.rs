@@ -81,6 +81,38 @@ pub enum ConnectionState {
     },
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConnectionStateKind {
+    Offline,
+    Connecting,
+    Connected,
+    Reconnecting,
+    Incompatible,
+}
+
+impl ConnectionStateKind {
+    pub const ALL: &'static [Self] = &[
+        Self::Offline,
+        Self::Connecting,
+        Self::Connected,
+        Self::Reconnecting,
+        Self::Incompatible,
+    ];
+}
+
+impl ConnectionState {
+    #[must_use]
+    pub const fn kind(&self) -> ConnectionStateKind {
+        match self {
+            Self::Offline => ConnectionStateKind::Offline,
+            Self::Connecting => ConnectionStateKind::Connecting,
+            Self::Connected => ConnectionStateKind::Connected,
+            Self::Reconnecting { .. } => ConnectionStateKind::Reconnecting,
+            Self::Incompatible { .. } => ConnectionStateKind::Incompatible,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Notice {
     ConnectionDiagnostic(String),
@@ -106,9 +138,27 @@ impl Notice {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum GuildFocus {
-    #[default]
+macro_rules! guild_focus {
+    ($default:ident; $($variant:ident),+ $(,)?) => {
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        pub enum GuildFocus {
+            $($variant),+
+        }
+
+        impl GuildFocus {
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+        }
+
+        impl Default for GuildFocus {
+            fn default() -> Self {
+                Self::$default
+            }
+        }
+    };
+}
+
+guild_focus!(
+    QuestWall;
     QuestWall,
     CampaignTables,
     CounselBell,
@@ -117,7 +167,7 @@ pub enum GuildFocus {
     Scrying,
     Spoils,
     Door,
-}
+);
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Modal {

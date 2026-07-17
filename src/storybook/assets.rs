@@ -6,9 +6,17 @@ use crate::{
         Footwear, Garb, HairShape, HairTone, HeadShape, Keepsake, Legwear, SkinTone,
     },
     ui::{
-        delve_scene::DelveVariant, goblins::GoblinSighting, pixel::ColorRole, theatre::TheatrePose,
+        delve_scene::DelveVariant,
+        goblins::GoblinSighting,
+        guild_room_projection::{GuildLandmarkKind, GuildRoomMode, TruthfulStationKind},
+        pixel::ColorRole,
+        theatre::TheatrePose,
     },
 };
+
+pub type LandmarkAsset = GuildLandmarkKind;
+pub type TruthfulStationAsset = TruthfulStationKind;
+pub type RoomCameraAsset = GuildRoomMode;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum AssetId {
@@ -67,37 +75,15 @@ storybook_asset_enum!(WidgetAsset {
     Help,
 });
 
-storybook_asset_enum!(LandmarkAsset {
-    GuildDoor,
-    QuestWall,
-    CampaignTable,
-    CounselBell,
-    Hearth,
-    ChronicleLectern,
-    ScryingAlcove,
-    SpoilsVault,
-});
-
-storybook_asset_enum!(TruthfulStationAsset {
-    CampaignToken,
-    CounselProjection,
-    HearthAdventurer,
-    SpoilsAdventurer,
-});
-
-storybook_asset_enum!(RoomCameraAsset {
-    WholeRoom,
-    CroppedRoom,
-    Landmark,
-});
-
 storybook_asset_enum!(SceneAsset {
     GuildEmpty,
     GuildPopulated,
     GuildOneCampaign,
     GuildMixedAttention,
     GuildDisconnected,
+    GuildConnecting,
     GuildReconnecting,
+    GuildIncompatible,
     GuildReviewrUnavailable,
     GuildScryingFailed,
     GuildCroppedRoom,
@@ -309,7 +295,7 @@ impl AssetId {
             Self::RoomCamera(value) => match value {
                 RoomCameraAsset::WholeRoom => "room camera: whole room",
                 RoomCameraAsset::CroppedRoom => "room camera: cropped room",
-                RoomCameraAsset::Landmark => "room camera: landmark",
+                RoomCameraAsset::LandmarkCamera => "room camera: landmark",
             },
             Self::Widget(value) => match value {
                 WidgetAsset::AdventurerCardFull => "widget: adventurer card full",
@@ -333,7 +319,9 @@ impl AssetId {
                 SceneAsset::GuildOneCampaign => "scene: guild one campaign",
                 SceneAsset::GuildMixedAttention => "scene: guild mixed attention",
                 SceneAsset::GuildDisconnected => "scene: guild disconnected",
+                SceneAsset::GuildConnecting => "scene: guild connecting",
                 SceneAsset::GuildReconnecting => "scene: guild reconnecting",
+                SceneAsset::GuildIncompatible => "scene: guild incompatible",
                 SceneAsset::GuildReviewrUnavailable => "scene: guild Reviewr unavailable",
                 SceneAsset::GuildScryingFailed => "scene: guild Scrying failed",
                 SceneAsset::GuildCroppedRoom => "scene: guild cropped room",
@@ -405,14 +393,16 @@ asset_family!(
 );
 const GOBLIN_OUTBREAK: &[AssetId] = &[AssetId::GoblinOutbreak];
 asset_family!(WIDGETS, widget_assets, WidgetAsset, Widget);
-asset_family!(LANDMARKS, landmark_assets, LandmarkAsset, Landmark);
+asset_family!(pub(super) LANDMARKS, landmark_assets, LandmarkAsset, Landmark);
 asset_family!(
+    pub(super)
     TRUTHFUL_STATIONS,
     truthful_station_assets,
     TruthfulStationAsset,
     TruthfulStation
 );
 asset_family!(
+    pub(super)
     ROOM_CAMERAS,
     room_camera_assets,
     RoomCameraAsset,

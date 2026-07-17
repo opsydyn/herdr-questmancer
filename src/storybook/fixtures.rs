@@ -427,6 +427,21 @@ pub fn guild_reconnecting_fixture(context: &StoryContext) -> Model {
     model
 }
 
+pub fn guild_connecting_fixture(context: &StoryContext) -> Model {
+    let mut model = great_room_fixture(context);
+    model.set_connection(ConnectionState::Connecting);
+    model
+}
+
+pub fn guild_incompatible_fixture(context: &StoryContext) -> Model {
+    let mut model = great_room_fixture(context);
+    model.set_connection(ConnectionState::Incompatible {
+        expected: 17,
+        actual: 16,
+    });
+    model
+}
+
 pub fn library_delve_fixture(context: &StoryContext) -> Model {
     isolated_delve_fixture(*context, &library_id())
 }

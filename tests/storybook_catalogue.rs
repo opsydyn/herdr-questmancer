@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use questmancer::app::{Model, View};
+use questmancer::app::{GuildFocus, Model, View};
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion},
     domain::{
@@ -18,7 +18,12 @@ use questmancer::{
         },
         fixtures::{AtlasContent, StoryContext, StoryFixture},
     },
-    ui::{delve_scene::DelveVariant, goblins::GoblinSighting, theatre::TheatrePose},
+    ui::{
+        delve_scene::DelveVariant,
+        goblins::GoblinSighting,
+        guild_room_projection::{GuildLandmarkKind, GuildRoomMode, TruthfulStationKind},
+        theatre::TheatrePose,
+    },
 };
 use ratatui::layout::Rect;
 
@@ -108,9 +113,36 @@ fn production_and_storybook_asset_families_expose_exhaustive_collections() {
 }
 
 #[test]
+fn great_room_storybook_families_are_derived_from_production_enums() {
+    assert_eq!(LandmarkAsset::ALL, GuildLandmarkKind::ALL);
+    assert_eq!(TruthfulStationAsset::ALL, TruthfulStationKind::ALL);
+    assert_eq!(RoomCameraAsset::ALL, GuildRoomMode::ALL);
+
+    let story = catalogue()
+        .iter()
+        .find(|story| story.id.as_str() == "atlas.great-room-landmarks")
+        .unwrap();
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("Great Room landmarks must use a production atlas");
+    };
+    assert_eq!(atlas.tiles.len(), GuildFocus::ALL.len());
+    let focuses = atlas
+        .tiles
+        .iter()
+        .map(|tile| {
+            let AtlasContent::Application { model } = &tile.content else {
+                panic!("{} bypasses the production renderer", tile.label);
+            };
+            model.guild_focus()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(focuses, GuildFocus::ALL);
+}
+
+#[test]
 fn production_catalogue_owns_every_authored_asset_once() {
     let report = validate_catalogue().unwrap();
-    assert_eq!(asset_inventory().len(), 178);
+    assert_eq!(asset_inventory().len(), 180);
     assert_eq!(report.owned(), asset_inventory().len());
     assert!(report.missing().is_empty());
     assert!(report.duplicates().is_empty());
@@ -292,7 +324,9 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "scenes.guild-one-campaign",
             "scenes.guild-mixed-attention",
             "scenes.guild-disconnected",
+            "scenes.guild-connecting",
             "scenes.guild-reconnecting",
+            "scenes.guild-incompatible",
             "scenes.guild-reviewr-unavailable",
             "scenes.guild-scrying-failed",
             "scenes.guild-cropped-room",
@@ -317,7 +351,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "compat.motion-none",
         ]
     );
-    assert_eq!(ids.len(), 54);
+    assert_eq!(ids.len(), 56);
 }
 
 #[test]
@@ -328,7 +362,7 @@ fn all_four_categories_are_populated_in_the_fixed_order() {
             .filter(|story| story.category == category)
             .count()
     });
-    assert_eq!(counts, [20, 6, 22, 6]);
+    assert_eq!(counts, [20, 6, 24, 6]);
     assert!(catalogue()[..15].iter().all(|story| {
         story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
     }));
@@ -438,8 +472,16 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
             vec![AssetId::Scene(SceneAsset::GuildDisconnected)],
         ),
         (
+            "scenes.guild-connecting",
+            vec![AssetId::Scene(SceneAsset::GuildConnecting)],
+        ),
+        (
             "scenes.guild-reconnecting",
             vec![AssetId::Scene(SceneAsset::GuildReconnecting)],
+        ),
+        (
+            "scenes.guild-incompatible",
+            vec![AssetId::Scene(SceneAsset::GuildIncompatible)],
         ),
         (
             "scenes.guild-reviewr-unavailable",
@@ -528,7 +570,7 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
         ),
     ];
 
-    assert_eq!(expected.len(), 34);
+    assert_eq!(expected.len(), 36);
     for (story_id, owns) in expected {
         let story = catalogue()
             .iter()

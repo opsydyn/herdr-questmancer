@@ -7,12 +7,42 @@ use crate::{
     domain::{Agent, AgentKey, Campaign, GuildAttention, GuildSummons, Presence, WorkspaceId},
 };
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum GuildRoomMode {
+macro_rules! authored_kind {
+    ($name:ident { $($variant:ident),+ $(,)? }) => {
+        #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        pub enum $name {
+            $($variant),+
+        }
+
+        impl $name {
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+        }
+    };
+}
+
+authored_kind!(GuildRoomMode {
     WholeRoom,
     CroppedRoom,
     LandmarkCamera,
-}
+});
+
+authored_kind!(GuildLandmarkKind {
+    QuestWall,
+    CampaignTable,
+    CounselBell,
+    Hearth,
+    ChronicleLectern,
+    ScryingAlcove,
+    SpoilsVault,
+    GuildDoor,
+});
+
+authored_kind!(TruthfulStationKind {
+    CampaignToken,
+    CounselProjection,
+    HearthAdventurer,
+    SpoilsAdventurer,
+});
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum GuildLandmark {
@@ -24,6 +54,38 @@ pub enum GuildLandmark {
     Chronicle,
     Scrying,
     Spoils,
+}
+
+impl GuildLandmark {
+    #[must_use]
+    pub const fn kind(&self) -> GuildLandmarkKind {
+        match self {
+            Self::Door => GuildLandmarkKind::GuildDoor,
+            Self::QuestWall => GuildLandmarkKind::QuestWall,
+            Self::CampaignTable(_) => GuildLandmarkKind::CampaignTable,
+            Self::CounselBell => GuildLandmarkKind::CounselBell,
+            Self::Hearth => GuildLandmarkKind::Hearth,
+            Self::Chronicle => GuildLandmarkKind::ChronicleLectern,
+            Self::Scrying => GuildLandmarkKind::ScryingAlcove,
+            Self::Spoils => GuildLandmarkKind::SpoilsVault,
+        }
+    }
+}
+
+impl GuildFocus {
+    #[must_use]
+    pub const fn landmark_kind(self) -> GuildLandmarkKind {
+        match self {
+            Self::QuestWall => GuildLandmarkKind::QuestWall,
+            Self::CampaignTables => GuildLandmarkKind::CampaignTable,
+            Self::CounselBell => GuildLandmarkKind::CounselBell,
+            Self::Hearth => GuildLandmarkKind::Hearth,
+            Self::Chronicle => GuildLandmarkKind::ChronicleLectern,
+            Self::Scrying => GuildLandmarkKind::ScryingAlcove,
+            Self::Spoils => GuildLandmarkKind::SpoilsVault,
+            Self::Door => GuildLandmarkKind::GuildDoor,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -40,6 +102,25 @@ pub enum AdventurerRepresentation {
         agent: AgentKey,
         station: GuildLandmark,
     },
+}
+
+impl AdventurerRepresentation {
+    #[must_use]
+    pub const fn truthful_station_kind(&self) -> Option<TruthfulStationKind> {
+        match self {
+            Self::Token { .. } => Some(TruthfulStationKind::CampaignToken),
+            Self::Projection { .. } => Some(TruthfulStationKind::CounselProjection),
+            Self::Physical {
+                station: GuildLandmark::Hearth,
+                ..
+            } => Some(TruthfulStationKind::HearthAdventurer),
+            Self::Physical {
+                station: GuildLandmark::Spoils,
+                ..
+            } => Some(TruthfulStationKind::SpoilsAdventurer),
+            Self::Physical { .. } => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

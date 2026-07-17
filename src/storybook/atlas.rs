@@ -281,21 +281,14 @@ fn application_tile(
 
 pub fn great_room_landmarks(context: &StoryContext) -> StoryFixture {
     atlas(
-        [
-            ("landmark: guild door", GuildFocus::Door),
-            ("landmark: quest wall", GuildFocus::QuestWall),
-            ("landmark: campaign table", GuildFocus::CampaignTables),
-            ("landmark: counsel bell", GuildFocus::CounselBell),
-            ("landmark: hearth", GuildFocus::Hearth),
-            ("landmark: chronicle lectern", GuildFocus::Chronicle),
-            ("landmark: scrying alcove", GuildFocus::Scrying),
-            ("landmark: spoils vault", GuildFocus::Spoils),
-        ]
-        .into_iter()
-        .map(|(label, focus)| {
-            application_tile(label, 34, 20, great_room_focus_fixture(context, focus))
-        })
-        .collect(),
+        GuildFocus::ALL
+            .iter()
+            .copied()
+            .map(|focus| {
+                let label = AssetId::Landmark(focus.landmark_kind()).label();
+                application_tile(label, 34, 20, great_room_focus_fixture(context, focus))
+            })
+            .collect(),
     )
 }
 
