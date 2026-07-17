@@ -425,6 +425,12 @@ impl Model {
         }
     }
 
+    pub fn clear_integration_notice(&mut self) {
+        if matches!(self.notice.as_ref(), Some(Notice::IntegrationDiagnostic(_))) {
+            self.notice = None;
+        }
+    }
+
     pub fn clear_action_feedback(&mut self) {
         if matches!(self.notice.as_ref(), Some(Notice::ActionFeedback(_))) {
             self.notice = None;

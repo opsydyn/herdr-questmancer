@@ -317,6 +317,23 @@ fn output_and_discovery_results_update_app_state() {
 }
 
 #[test]
+fn available_reviewr_discovery_clears_the_prior_typed_integration_notice() {
+    let mut model = Model::new(View::Guild);
+    model.set_integration_diagnostic(
+        "The spoils cannot be inspected here: Reviewr is unavailable.".to_owned(),
+    );
+
+    apply_command_result(
+        &mut model,
+        CommandResult::ReviewrAvailable(true),
+        Timestamp::from_millis(2_000),
+    );
+
+    assert!(model.reviewr_available());
+    assert_eq!(model.notice(), None);
+}
+
+#[test]
 fn operational_results_use_approved_guild_copy() {
     let mut model = Model::new(View::Guild);
 

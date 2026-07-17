@@ -244,6 +244,49 @@ fn overflowing_owner_model(tokens: bool, total: usize) -> Model {
     model
 }
 
+fn six_table_token_overflow_model(total: usize) -> Model {
+    let mut model = live_model();
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        ..DisplayPreferences::default()
+    });
+    let campaign_template = model.domain().campaigns.values().next().unwrap().clone();
+    let agent_template = model.domain().agents.values().next().unwrap().clone();
+    model.domain_mut().campaigns.clear();
+    model.domain_mut().agents.clear();
+    model.domain_mut().selected_agent = None;
+
+    for (campaign_index, label) in ["ALPHA", "BRAVO", "CEDAR", "DELTA", "EMBER", "FJORD"]
+        .into_iter()
+        .enumerate()
+    {
+        let workspace_id = WorkspaceId::new(format!("campaign-{campaign_index}"));
+        let mut campaign = campaign_template.clone();
+        campaign.workspace_id = workspace_id.clone();
+        label.clone_into(&mut campaign.label);
+        campaign.party.clear();
+        if campaign_index == 0 {
+            for index in 0..total {
+                let key = AgentKey::new(format!("narrow-token-{index:03}"));
+                let mut agent = agent_template.clone();
+                agent.key = key.clone();
+                agent.workspace_id = workspace_id.clone();
+                agent.pane_id = PaneId::new(format!("narrow-pane-{index:03}"));
+                agent.name = format!("narrow-pane-{index:03}");
+                agent.persona.name = format!("TOK-{index:03}");
+                agent.presence = Presence::Working;
+                agent.attention = GuildAttention::Clear;
+                agent.focused = false;
+                agent.custom_status = None;
+                campaign.party.push(key.clone());
+                model.domain_mut().agents.insert(key, agent);
+            }
+        }
+        model.domain_mut().campaigns.insert(workspace_id, campaign);
+    }
+    model
+}
+
 fn render(model: &Model, width: u16, height: u16) -> String {
     let buffer = render_buffer(model, width, height);
     (0..height)
@@ -312,6 +355,31 @@ fn complete_overflow_count(screen: &str, noun: &str) -> usize {
         .and_then(|count| count.strip_prefix('+'))
         .and_then(|count| count.parse().ok())
         .unwrap_or_else(|| panic!("missing complete overflow count before {noun}:\n{screen}"))
+}
+
+fn complete_overflow_in_rows(rows: &[String], nouns: &[&str]) -> (usize, String) {
+    for (index, row) in rows.iter().enumerate() {
+        let row = row.trim();
+        for noun in nouns {
+            if row == *noun
+                && let Some(count) = index
+                    .checked_sub(1)
+                    .and_then(|previous| rows[previous].trim().strip_prefix('+'))
+                    .and_then(|count| count.parse().ok())
+            {
+                return (count, (*noun).to_owned());
+            }
+            if let Some(count) = row
+                .strip_suffix(noun)
+                .map(str::trim_end)
+                .and_then(|prefix| prefix.strip_prefix('+'))
+                .and_then(|count| count.parse().ok())
+            {
+                return (count, (*noun).to_owned());
+            }
+        }
+    }
+    panic!("missing complete overflow count and noun {nouns:?}: {rows:?}");
 }
 
 #[test]
@@ -613,6 +681,105 @@ fn true_token_and_adventurer_overflow_use_complete_owner_wide_counts() {
             "visible plus explicit {noun} overflow must describe every owner: {screen}"
         );
     }
+}
+
+#[test]
+fn reviewr_discovery_race_clears_stale_copy_and_preserves_the_spoils_returnee() {
+    let mut model = model_with_presence(
+        Presence::Done,
+        GuildAttention::unread(
+            GuildSummons::SpoilsReturned,
+            Timestamp::from_millis(120_500),
+        ),
+    );
+    let _ = reduce_action(&mut model, Action::InspectSpoils);
+    assert!(matches!(
+        model.notice(),
+        Some(questmancer::app::Notice::IntegrationDiagnostic(_))
+    ));
+
+    apply_command_result(
+        &mut model,
+        CommandResult::ReviewrAvailable(true),
+        Timestamp::from_millis(122_000),
+    );
+    let screen = render(&model, 120, 40);
+
+    assert!(screen.contains("REVIEWR READY"), "{screen}");
+    assert!(screen.contains("[v] Inspect spoils"), "{screen}");
+    assert_eq!(screen.matches("Elowen Typeweaver").count(), 1, "{screen}");
+    assert_eq!(screen.matches("completed 2m").count(), 1, "{screen}");
+    assert!(!screen.contains("Reviewr is unavailable"), "{screen}");
+}
+
+#[test]
+fn spoils_copy_budget_never_sacrifices_all_returnee_identity_rows() {
+    let mut model = model_with_presence(
+        Presence::Done,
+        GuildAttention::unread(
+            GuildSummons::SpoilsReturned,
+            Timestamp::from_millis(120_500),
+        ),
+    );
+    model.set_reviewr_available(true);
+    model.set_integration_diagnostic(
+        "Reviewr accepted the request but its selected provider returned a detailed actionable integration warning for this pane.".to_owned(),
+    );
+
+    let screen = render(&model, 120, 40);
+
+    assert!(screen.contains("REVIEWR READY"), "{screen}");
+    assert!(screen.contains("[v] Inspect spoils"), "{screen}");
+    assert_eq!(screen.matches("Elowen Typeweaver").count(), 1, "{screen}");
+    assert_eq!(screen.matches("completed 2m").count(), 1, "{screen}");
+}
+
+#[test]
+fn six_narrow_tables_use_a_complete_multirow_token_overflow_summary() {
+    const TOTAL: usize = 240;
+    let model = six_table_token_overflow_model(TOTAL);
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 120, 40));
+    let table = projection
+        .guild_room
+        .as_ref()
+        .unwrap()
+        .campaigns
+        .iter()
+        .find(|campaign| campaign.workspace_id == WorkspaceId::new("campaign-0"))
+        .unwrap();
+    assert_eq!(table.area.width.saturating_sub(2), 10);
+    let rows = area_rows(&render_buffer(&model, 120, 40), table.area);
+    let (overflow, noun) = complete_overflow_in_rows(&rows, &["TOKENS"]);
+    let individually_visible = rows.join("\n").matches("TOK-").count();
+
+    assert_eq!(noun, "TOKENS");
+    assert_eq!(individually_visible + overflow, TOTAL, "{rows:?}");
+}
+
+#[test]
+fn narrow_physical_overflow_keeps_a_complete_semantic_noun_and_count() {
+    const TOTAL: usize = 240;
+    let model = overflowing_owner_model(false, TOTAL);
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 120, 40));
+    let spoils = projection
+        .guild_room
+        .as_ref()
+        .unwrap()
+        .landmarks
+        .iter()
+        .find(|landmark| landmark.landmark == ui::guild_room_projection::GuildLandmark::Spoils)
+        .unwrap();
+    let rows = area_rows(&render_buffer(&model, 120, 40), spoils.area);
+    let (overflow, noun) = complete_overflow_in_rows(&rows, &["ADVENTURERS", "AGENTS"]);
+    let noun_prefix = usize::from(noun.starts_with("ADV"));
+    let individually_visible = rows
+        .join("\n")
+        .matches("ADV")
+        .count()
+        .saturating_sub(noun_prefix);
+
+    assert!(matches!(noun.as_str(), "ADVENTURERS" | "AGENTS"));
+    assert_eq!(individually_visible + overflow, TOTAL, "{rows:?}");
 }
 
 #[test]

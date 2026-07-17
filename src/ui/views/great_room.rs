@@ -2,6 +2,7 @@ use std::{borrow::Cow, collections::HashMap};
 
 use ratatui::{
     Frame,
+    buffer::CellWidth,
     layout::Rect,
     style::Style,
     symbols::border,
@@ -88,6 +89,7 @@ pub(super) fn render(
     let copy = GreatRoomCopy::for_model(model, projection);
     let plan = great_room_render_plan(projection);
     let index = RenderIndex::new(projection);
+    let measurements = RenderMeasurements::new(projection, &index, &copy);
 
     render_architecture(frame, area, model.preferences().character_set, palette);
 
@@ -100,6 +102,7 @@ pub(super) fn render(
                 landmark,
                 LandmarkLayer::Furniture,
                 &copy,
+                measurements,
                 theme,
             );
         }
@@ -113,7 +116,7 @@ pub(super) fn render(
         }
     }
 
-    render_representations(frame, model, &plan, &index, &copy, palette);
+    render_representations(frame, model, &plan, &index, measurements, palette);
 
     for path in &plan {
         match path {
@@ -124,6 +127,7 @@ pub(super) fn render(
                 landmark,
                 LandmarkLayer::Effects,
                 &copy,
+                measurements,
                 theme,
             ),
             GuildRoomRenderPath::CampaignTable(workspace_id) => {
@@ -144,6 +148,7 @@ pub(super) fn render(
                 landmark,
                 LandmarkLayer::Labels,
                 &copy,
+                measurements,
                 theme,
             ),
             GuildRoomRenderPath::CampaignTable(workspace_id) => {
@@ -163,14 +168,10 @@ fn render_representations(
     model: &Model,
     plan: &[GuildRoomRenderPath],
     index: &RenderIndex<'_>,
-    copy: &GreatRoomCopy<'_>,
+    measurements: RenderMeasurements,
     palette: Palette,
 ) {
-    let spoils_top_rows = index
-        .landmark(&GuildLandmark::Spoils)
-        .map_or(2, |landmark| {
-            2_u16.saturating_add(content_visual_height(landmark.area, 2, &copy.spoils))
-        });
+    let spoils_top_rows = 2_u16.saturating_add(measurements.spoils_content_rows);
     let occupant_counts = plan
         .iter()
         .filter_map(|path| match path {
@@ -273,6 +274,41 @@ impl<'a> GreatRoomCopy<'a> {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+struct RenderMeasurements {
+    spoils_content_rows: u16,
+}
+
+impl RenderMeasurements {
+    fn new(
+        projection: &GuildRoomProjection,
+        index: &RenderIndex<'_>,
+        copy: &GreatRoomCopy<'_>,
+    ) -> Self {
+        let spoils_content_rows = index
+            .landmark(&GuildLandmark::Spoils)
+            .map_or(0, |landmark| {
+                let has_returnee = projection.adventurers.iter().any(|representation| {
+                    matches!(
+                        representation,
+                        AdventurerRepresentation::Physical {
+                            station: GuildLandmark::Spoils,
+                            ..
+                        }
+                    )
+                });
+                let reserved_rows = 2_u16.saturating_add(if has_returnee { 2 } else { 0 });
+                let max_content_rows = representation_inner(landmark.area)
+                    .height
+                    .saturating_sub(reserved_rows);
+                content_visual_height(landmark.area, 2, &copy.spoils).min(max_content_rows)
+            });
+        Self {
+            spoils_content_rows,
+        }
+    }
+}
+
 fn render_landmark_path(
     frame: &mut Frame<'_>,
     projection: &GuildRoomProjection,
@@ -280,6 +316,7 @@ fn render_landmark_path(
     identity: &GuildLandmark,
     layer: LandmarkLayer,
     copy: &GreatRoomCopy<'_>,
+    measurements: RenderMeasurements,
     theme: LandmarkTheme,
 ) {
     let Some(landmark) = index.landmark(identity) else {
@@ -306,7 +343,14 @@ fn render_landmark_path(
             render_scrying_alcove(frame, landmark, layer, &copy.scrying, theme);
         }
         GuildLandmark::Spoils => {
-            render_spoils_desk(frame, landmark, layer, &copy.spoils, theme);
+            render_spoils_desk(
+                frame,
+                landmark,
+                layer,
+                &copy.spoils,
+                measurements.spoils_content_rows,
+                theme,
+            );
         }
     }
 }
@@ -428,23 +472,25 @@ fn render_token(
         .max(needed_columns.min(max_columns))
         .min(max_columns)
         .min(total.max(1));
-    let full_capacity = columns.saturating_mul(usize::from(available_rows));
-    let overflow = total > full_capacity;
-    let visible_rows = available_rows.saturating_sub(u16::from(overflow));
+    let summary = OverflowSummary::for_owner(
+        total,
+        columns,
+        available_rows,
+        inner.width,
+        "TOKENS",
+        "TOKENS",
+    );
+    let visible_rows = summary.map_or(available_rows, |summary| summary.visible_rows);
     let capacity = columns.saturating_mul(usize::from(visible_rows));
-    if overflow && slot == capacity {
-        frame.render_widget(
-            Paragraph::new(format!("+{} TOKENS", total.saturating_sub(capacity)))
-                .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
-            Rect::new(
-                inner.x,
-                inner
-                    .y
-                    .saturating_add(top_rows)
-                    .saturating_add(visible_rows),
-                inner.width,
-                1,
-            ),
+    if let Some(summary) = summary
+        && slot == capacity
+    {
+        render_overflow_summary(
+            frame,
+            inner,
+            top_rows.saturating_add(visible_rows),
+            summary,
+            palette,
         );
         return;
     }
@@ -598,23 +644,25 @@ fn render_dense_figure(
         .max(needed_columns.min(max_columns))
         .min(max_columns)
         .min(total.max(1));
-    let full_capacity = columns.saturating_mul(usize::from(available_rows));
-    let overflow = total > full_capacity;
-    let visible_rows = available_rows.saturating_sub(u16::from(overflow));
+    let summary = OverflowSummary::for_owner(
+        total,
+        columns,
+        available_rows,
+        inner.width,
+        "ADVENTURERS",
+        "AGENTS",
+    );
+    let visible_rows = summary.map_or(available_rows, |summary| summary.visible_rows);
     let capacity = columns.saturating_mul(usize::from(visible_rows));
-    if overflow && slot == capacity {
-        frame.render_widget(
-            Paragraph::new(format!("+{} ADVENTURERS", total.saturating_sub(capacity)))
-                .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
-            Rect::new(
-                inner.x,
-                inner
-                    .y
-                    .saturating_add(top_rows)
-                    .saturating_add(visible_rows),
-                inner.width,
-                1,
-            ),
+    if let Some(summary) = summary
+        && slot == capacity
+    {
+        render_overflow_summary(
+            frame,
+            inner,
+            top_rows.saturating_add(visible_rows),
+            summary,
+            palette,
         );
         return;
     }
@@ -655,6 +703,93 @@ fn render_dense_figure(
         Paragraph::new(label.as_ref())
             .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
         Rect::new(label_x, y, column_width.saturating_sub(art_width), 1),
+    );
+}
+
+#[derive(Clone, Copy, Debug)]
+struct OverflowSummary {
+    visible_rows: u16,
+    count: usize,
+    noun: &'static str,
+    rows: u16,
+}
+
+impl OverflowSummary {
+    fn for_owner(
+        total: usize,
+        columns: usize,
+        available_rows: u16,
+        width: u16,
+        noun: &'static str,
+        narrow_noun: &'static str,
+    ) -> Option<Self> {
+        let full_capacity = columns.saturating_mul(usize::from(available_rows));
+        if total <= full_capacity {
+            return None;
+        }
+
+        let one_line_visible_rows = available_rows.saturating_sub(1);
+        let one_line_capacity = columns.saturating_mul(usize::from(one_line_visible_rows));
+        let one_line_count = total.saturating_sub(one_line_capacity);
+        if format!("+{one_line_count} {noun}").cell_width() <= width {
+            return Some(Self {
+                visible_rows: one_line_visible_rows,
+                count: one_line_count,
+                noun,
+                rows: 1,
+            });
+        }
+
+        if available_rows < 2 {
+            let compact = format!("+{one_line_count} {narrow_noun}");
+            debug_assert!(compact.cell_width() <= width);
+            return Some(Self {
+                visible_rows: one_line_visible_rows,
+                count: one_line_count,
+                noun: narrow_noun,
+                rows: 1,
+            });
+        }
+
+        let summary_rows = 2;
+        let visible_rows = available_rows.saturating_sub(summary_rows);
+        let capacity = columns.saturating_mul(usize::from(visible_rows));
+        let count = total.saturating_sub(capacity);
+        debug_assert!(format!("+{count}").cell_width() <= width);
+        debug_assert!(narrow_noun.cell_width() <= width);
+        Some(Self {
+            visible_rows,
+            count,
+            noun: narrow_noun,
+            rows: summary_rows,
+        })
+    }
+}
+
+fn render_overflow_summary(
+    frame: &mut Frame<'_>,
+    inner: Rect,
+    row: u16,
+    summary: OverflowSummary,
+    palette: Palette,
+) {
+    let area = Rect::new(
+        inner.x,
+        inner.y.saturating_add(row),
+        inner.width,
+        summary.rows,
+    );
+    let text = if summary.rows == 1 {
+        Text::from(format!("+{} {}", summary.count, summary.noun))
+    } else {
+        Text::from(vec![
+            Line::from(format!("+{}", summary.count)),
+            Line::from(summary.noun),
+        ])
+    };
+    frame.render_widget(
+        Paragraph::new(text).style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
+        area,
     );
 }
 

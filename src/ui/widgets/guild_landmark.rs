@@ -252,6 +252,7 @@ pub(crate) fn render_spoils_desk(
     landmark: &ProjectedLandmark,
     layer: LandmarkLayer,
     lines: &[Cow<'_, str>],
+    max_content_rows: u16,
     theme: LandmarkTheme,
 ) {
     match layer {
@@ -281,7 +282,7 @@ pub(crate) fn render_spoils_desk(
                 "LEDGER / LOCKBOX / MUG",
                 role_style(theme, ColorRole::Parchment),
             );
-            render_measured_content(frame, landmark.area, 2, lines, theme);
+            render_measured_content(frame, landmark.area, 2, lines, max_content_rows, theme);
         }
     }
 }
@@ -432,6 +433,7 @@ fn render_measured_content(
     area: Rect,
     row: u16,
     lines: &[Cow<'_, str>],
+    max_rows: u16,
     theme: LandmarkTheme,
 ) {
     let inner = landmark_inner(area);
@@ -442,6 +444,7 @@ fn render_measured_content(
     frame.render_widget(
         Paragraph::new(Text::from(
             rows.iter()
+                .take(usize::from(max_rows))
                 .map(|line| Line::from(line.as_str()))
                 .collect::<Vec<_>>(),
         ))
