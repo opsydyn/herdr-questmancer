@@ -14,6 +14,23 @@ use questmancer::{
 use ratatui::layout::Rect;
 
 #[test]
+fn guild_room_projection_is_attached_without_removing_existing_evidence() {
+    let guild = guild_populated_fixture(&StoryContext::fixed());
+    let guild_projection = render_projection_for(&guild, Rect::new(0, 0, 120, 36));
+    assert_eq!(
+        guild_projection.guild_room.as_ref().map(|room| room.mode),
+        Some(questmancer::ui::guild_room_projection::GuildRoomMode::WholeRoom)
+    );
+    assert!(!guild_projection.guild_regions.is_empty());
+    assert!(guild_projection.guild_profile_agent.is_some());
+
+    let delve = connected_delves_fixture(&StoryContext::fixed());
+    let delve_projection = render_projection_for(&delve, Rect::new(0, 0, 120, 36));
+    assert!(delve_projection.guild_room.is_none());
+    assert!(!delve_projection.delve_regions.is_empty());
+}
+
+#[test]
 fn chamber_projection_uses_the_production_full_and_compact_boundaries() {
     assert_eq!(
         chamber_presentation(Rect::new(0, 0, 28, 10)),

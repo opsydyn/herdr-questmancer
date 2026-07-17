@@ -5,6 +5,7 @@ pub mod copy;
 pub mod delve_projection;
 pub mod delve_scene;
 pub mod goblins;
+pub mod guild_room_projection;
 pub mod input;
 pub mod persona;
 pub mod pixel;
@@ -86,6 +87,7 @@ pub struct RenderProjection {
     pub delve_variants: BTreeSet<DelveVariant>,
     pub delve_regions: Vec<ProjectedDelveRegion>,
     pub delve_connected_scene_visible: bool,
+    pub guild_room: Option<guild_room_projection::GuildRoomProjection>,
     pub(crate) guild_presentation: GuildPresentation,
 }
 
@@ -169,6 +171,7 @@ fn project_delve(
 }
 
 fn project_guild(model: &Model, area: Rect, projection: &mut RenderProjection) {
+    projection.guild_room = Some(guild_room_projection::project(model, area));
     if area.width < 4 || area.height < 3 {
         return;
     }
