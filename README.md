@@ -12,8 +12,9 @@ It is a local Ratatui interface for scanning a session, reading selected output,
 counselling blocked agents, and returning to their panes. One shared model drives
 two views:
 
-- **Guild Hall** is the operational view: campaigns, party, Summons, Chronicle,
-  selected-adventurer detail, and the scrying table.
+- **Guild Hall** is one inhabited Great Room: campaigns share the hall while
+  attention, history, selected output and review actions live at stable
+  landmarks.
 - **Delve** is the spatial view: each Herdr workspace becomes a connected dungeon
   and each agent occupies a chamber with a state-specific pose.
 
@@ -81,6 +82,37 @@ opsydyn.questmancer.delve
 existing Questmancer pane. `guild` and `delve` switch an existing pane or create
 one in the requested view. `toggle` focuses Questmancer unless invoked from its
 own pane, where it closes it.
+
+## The Great Room
+
+The Guild Hall is one hall with many Campaign Tables, not a dashboard of
+separate panels. Every workspace is a campaign with its own banner, seal and
+table, while the guild shares the same landmarks:
+
+- **Guild Door** shows whether paths to Herdr are opening, joined, lost or
+  incompatible.
+- **Quest Wall** holds campaign banners, rollups and attention.
+- **Campaign Tables** hold deterministic expedition tokens for adventurers who
+  are still away delving.
+- **Counsel Bell** receives blocked adventurers asking for help.
+- **Hearth** gives idle adventurers a truthful place to rest.
+- **Chronicle Lectern** records a bounded history of guild events.
+- **Scrying Alcove** shows the selected adventurer and recent output.
+- **Spoils Desk** receives completed unseen work and offers Reviewr when that
+  integration is available.
+
+These are Truthful Stations: each live adventurer appears exactly once. Working,
+unknown and acknowledged-complete adventurers remain tokens at their Campaign
+Table; blocked adventurers are projected at the Counsel Bell; idle adventurers
+rest at the Hearth; unseen completed work returns at the Spoils Desk. Departed
+adventurers leave no body behind—the Guild Door and Chronicle retain the event.
+
+The room changes camera rather than identity as the terminal narrows. At 120
+columns and wider, the whole Great Room and every campaign table coexist. From
+80–119 columns, the camera crops around the selected campaign while preserving
+the Door, Quest Wall and Hearth. Below 80 columns, `Tab` pans a landmark camera
+around that same room. Selection, search, observe, counsel, acknowledge, output
+refresh and Spoils inspection keep the bindings below in every valid context.
 
 You can also run the binary without Herdr to inspect its offline layout:
 
@@ -262,7 +294,7 @@ matrix, creates `SHA256SUMS`, and publishes the archives and checksum together.
 
 ## Developer Storybook
 
-Review Questmancer's sprites, widgets, fixed Guild Hall scenes, Delve variants
+Review Questmancer's sprites, widgets, fixed Great Room scenes, Delve variants
 and compatibility modes without starting Herdr by running `just storybook`.
 
 ```bash

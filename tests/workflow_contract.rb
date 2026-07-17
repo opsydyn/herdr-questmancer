@@ -84,8 +84,19 @@ def require_checkout_depth(job_value, job_name)
   abort_contract("#{job_name} checkout does not set fetch-depth: 0") unless with.is_a?(Hash) && with["fetch-depth"] == 0
 end
 
-abort_contract("usage: workflow_contract.rb WORKFLOW WORKFLOW") unless ARGV.length == 2
-workflows = ARGV.map { |path| [path, load_workflow(path)] }
+def require_text(document, label, expected)
+  abort_contract("#{label} is missing: #{expected}") unless document.include?(expected)
+end
+
+workflow_paths = if ARGV.empty?
+                   [".github/workflows/release.yml", ".github/workflows/ci.yml"]
+                 elsif ARGV.length == 2
+                   ARGV
+                 else
+                   abort_contract("usage: workflow_contract.rb [WORKFLOW WORKFLOW]")
+                 end
+
+workflows = workflow_paths.map { |path| [path, load_workflow(path)] }
 release = workflows.find { |_path, jobs| %w[verify build publish].all? { |name| jobs.key?(name) } }
 ci = workflows.find { |_path, jobs| jobs.key?("check") }
 abort_contract("could not identify one release workflow and one CI workflow") unless release && ci
@@ -169,5 +180,41 @@ require_exact_uses(
   "cargo build --release",
   'git diff --check "${base_sha}"...HEAD'
 ].each { |command| require_run_line(check, "check", command) }
+
+readme = File.read("README.md")
+manual = File.read("docs/manual-test/questmancer-0.1.0.md")
+
+[
+  "cargo build\nherdr plugin link .\nherdr plugin action invoke opsydyn.questmancer.open",
+  "opsydyn.questmancer.guild",
+  "opsydyn.questmancer.delve",
+  "just storybook",
+  "developer-only Cargo feature",
+  "Guild Door",
+  "Quest Wall",
+  "Campaign Tables",
+  "Counsel Bell",
+  "Hearth",
+  "Chronicle Lectern",
+  "Scrying Alcove",
+  "Spoils Desk",
+  "Truthful Stations",
+  "one hall",
+  "landmark camera"
+].each { |expected| require_text(readme, "README", expected) }
+
+[
+  "git status --short --branch",
+  "cargo build --release",
+  "herdr plugin action invoke opsydyn.questmancer.open",
+  "herdr plugin action invoke opsydyn.questmancer.close",
+  "herdr pane report-agent",
+  "herdr pane release-agent",
+  "80x24",
+  "Herdr 0.7.4 cannot synthesize `done`",
+  "PASS",
+  "FAIL",
+  "BLOCKED"
+].each { |expected| require_text(manual, "guarded manual test", expected) }
 
 puts "workflow contracts: valid"
