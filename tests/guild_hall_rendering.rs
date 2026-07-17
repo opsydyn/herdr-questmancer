@@ -337,7 +337,10 @@ fn assert_room_border_precedes_footer(buffer: &Buffer, width: u16, height: u16) 
     let border = (0..footer_y)
         .rev()
         .map(|y| row_text(buffer, width, y))
-        .find(|row| row.starts_with('└') && row.ends_with('┘'));
+        .find(|row| {
+            (row.starts_with('└') && row.ends_with('┘'))
+                || (row.starts_with('+') && row.ends_with('+'))
+        });
     assert!(
         border.is_some(),
         "room bottom border was erased before footer row {footer_y}"
@@ -357,7 +360,7 @@ fn complete_overflow_count(screen: &str, noun: &str) -> usize {
         .unwrap_or_else(|| panic!("missing complete overflow count before {noun}:\n{screen}"))
 }
 
-fn complete_overflow_in_rows(rows: &[String], nouns: &[&str]) -> (usize, String) {
+fn overflow_in_rows(rows: &[String], nouns: &[&str]) -> Option<(usize, String)> {
     for (index, row) in rows.iter().enumerate() {
         let row = row.trim();
         for noun in nouns {
@@ -367,7 +370,7 @@ fn complete_overflow_in_rows(rows: &[String], nouns: &[&str]) -> (usize, String)
                     .and_then(|previous| rows[previous].trim().strip_prefix('+'))
                     .and_then(|count| count.parse().ok())
             {
-                return (count, (*noun).to_owned());
+                return Some((count, (*noun).to_owned()));
             }
             if let Some(count) = row
                 .strip_suffix(noun)
@@ -375,11 +378,16 @@ fn complete_overflow_in_rows(rows: &[String], nouns: &[&str]) -> (usize, String)
                 .and_then(|prefix| prefix.strip_prefix('+'))
                 .and_then(|count| count.parse().ok())
             {
-                return (count, (*noun).to_owned());
+                return Some((count, (*noun).to_owned()));
             }
         }
     }
-    panic!("missing complete overflow count and noun {nouns:?}: {rows:?}");
+    None
+}
+
+fn complete_overflow_in_rows(rows: &[String], nouns: &[&str]) -> (usize, String) {
+    overflow_in_rows(rows, nouns)
+        .unwrap_or_else(|| panic!("missing complete overflow count and noun {nouns:?}: {rows:?}"))
 }
 
 #[test]
@@ -780,6 +788,58 @@ fn narrow_physical_overflow_keeps_a_complete_semantic_noun_and_count() {
 
     assert!(matches!(noun.as_str(), "ADVENTURERS" | "AGENTS"));
     assert_eq!(individually_visible + overflow, TOTAL, "{rows:?}");
+}
+
+#[test]
+fn dense_spoils_copy_combination_always_preserves_complete_returnee_evidence() {
+    const TOTAL: usize = 3;
+    let mut model = overflowing_owner_model(false, TOTAL);
+    model.domain_mut().selected_agent = model.domain().agents.keys().next().cloned();
+    model.set_reviewr_available(true);
+    model.set_integration_diagnostic(
+        "Reviewr accepted the request but its selected provider returned a detailed actionable integration warning for all returned adventurers.".to_owned(),
+    );
+
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 120, 40));
+    let spoils = projection
+        .guild_room
+        .as_ref()
+        .unwrap()
+        .landmarks
+        .iter()
+        .find(|landmark| landmark.landmark == ui::guild_room_projection::GuildLandmark::Spoils)
+        .unwrap();
+    let buffer = render_buffer(&model, 120, 40);
+    let rows = area_rows(&buffer, spoils.area);
+    let visible = (0..TOTAL)
+        .filter(|index| rows.join("\n").contains(&format!("ADV-{index:03}")))
+        .count();
+    let overflow =
+        overflow_in_rows(&rows, &["ADVENTURERS", "AGENTS"]).map_or(0, |(count, noun)| {
+            assert!(matches!(noun.as_str(), "ADVENTURERS" | "AGENTS"));
+            count
+        });
+
+    assert!(
+        rows.iter().any(|row| row.trim() == "REVIEWR READY"),
+        "{rows:?}"
+    );
+    assert!(
+        rows.iter().any(|row| row.trim() == "[v] Inspect spoils"),
+        "{rows:?}"
+    );
+    assert_eq!(
+        visible + overflow,
+        TOTAL,
+        "zero or incomplete evidence: {rows:?}"
+    );
+    assert!(
+        rows.iter()
+            .filter(|row| row.contains("ADV-"))
+            .all(|row| !row.contains("Reviewr") && !row.contains("Inspect spoils")),
+        "copy and identity were corrupted on one row: {rows:?}"
+    );
+    assert_room_border_precedes_footer(&buffer, 120, 40);
 }
 
 #[test]

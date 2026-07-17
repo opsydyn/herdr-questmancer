@@ -253,10 +253,11 @@ pub(crate) fn render_spoils_desk(
     layer: LandmarkLayer,
     lines: &[Cow<'_, str>],
     max_content_rows: u16,
+    furniture_rows: u16,
     theme: LandmarkTheme,
 ) {
     match layer {
-        LandmarkLayer::Furniture => render_bottom_art(
+        LandmarkLayer::Furniture if furniture_rows > 0 => render_bottom_art(
             frame,
             landmark.area,
             art(
@@ -272,7 +273,7 @@ pub(crate) fn render_spoils_desk(
             ),
             role_style(theme, ColorRole::Spoils),
         ),
-        LandmarkLayer::Effects => {}
+        LandmarkLayer::Furniture | LandmarkLayer::Effects => {}
         LandmarkLayer::Labels => {
             render_heading(frame, landmark.area, "SPOILS DESK", theme);
             render_line(

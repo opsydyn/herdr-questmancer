@@ -171,7 +171,6 @@ fn render_representations(
     measurements: RenderMeasurements,
     palette: Palette,
 ) {
-    let spoils_top_rows = 2_u16.saturating_add(measurements.spoils_content_rows);
     let occupant_counts = plan
         .iter()
         .filter_map(|path| match path {
@@ -194,6 +193,7 @@ fn render_representations(
             let owner = OccupantOwner::for_representation(representation);
             let total = occupant_counts.get(&owner).copied().unwrap_or(1);
             let slot = occupant_slots.entry(owner).or_default();
+            let rows = measurements.representation_rows(representation);
             render_representation(
                 frame,
                 model,
@@ -201,7 +201,7 @@ fn render_representations(
                 representation,
                 *slot,
                 total,
-                representation_top_rows(representation, spoils_top_rows),
+                rows,
                 palette,
             );
             *slot = slot.saturating_add(1);
@@ -276,7 +276,20 @@ impl<'a> GreatRoomCopy<'a> {
 
 #[derive(Clone, Copy, Debug)]
 struct RenderMeasurements {
-    spoils_content_rows: u16,
+    spoils: SpoilsMeasurement,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct RepresentationRows {
+    top: u16,
+    bottom: u16,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct SpoilsMeasurement {
+    copy_height: u16,
+    furniture_height: u16,
+    representation_bounds: RepresentationRows,
 }
 
 impl RenderMeasurements {
@@ -285,9 +298,9 @@ impl RenderMeasurements {
         index: &RenderIndex<'_>,
         copy: &GreatRoomCopy<'_>,
     ) -> Self {
-        let spoils_content_rows = index
-            .landmark(&GuildLandmark::Spoils)
-            .map_or(0, |landmark| {
+        let spoils = index.landmark(&GuildLandmark::Spoils).map_or_else(
+            SpoilsMeasurement::default,
+            |landmark| {
                 let has_returnee = projection.adventurers.iter().any(|representation| {
                     matches!(
                         representation,
@@ -297,14 +310,63 @@ impl RenderMeasurements {
                         }
                     )
                 });
-                let reserved_rows = 2_u16.saturating_add(if has_returnee { 2 } else { 0 });
-                let max_content_rows = representation_inner(landmark.area)
-                    .height
-                    .saturating_sub(reserved_rows);
-                content_visual_height(landmark.area, 2, &copy.spoils).min(max_content_rows)
-            });
+                SpoilsMeasurement::new(
+                    landmark.area,
+                    has_returnee,
+                    content_visual_height(landmark.area, 2, &copy.spoils),
+                )
+            },
+        );
+        Self { spoils }
+    }
+
+    fn representation_rows(self, representation: &AdventurerRepresentation) -> RepresentationRows {
+        match representation {
+            AdventurerRepresentation::Physical {
+                station: GuildLandmark::Spoils,
+                ..
+            } => self.spoils.representation_bounds,
+            AdventurerRepresentation::Projection {
+                station: GuildLandmark::CounselBell,
+                ..
+            } => RepresentationRows { top: 2, bottom: 3 },
+            AdventurerRepresentation::Physical { .. }
+            | AdventurerRepresentation::Projection { .. }
+            | AdventurerRepresentation::Token { .. } => RepresentationRows { top: 2, bottom: 2 },
+        }
+    }
+}
+
+impl SpoilsMeasurement {
+    const HEADER_ROWS: u16 = 2;
+    const FURNITURE_ROWS: u16 = 2;
+    const RETURNED_IDENTITY_ROWS: u16 = 2;
+
+    fn new(area: Rect, has_returnee: bool, content_height: u16) -> Self {
+        let inner_height = representation_inner(area).height;
+        let identity_rows = if has_returnee {
+            Self::RETURNED_IDENTITY_ROWS
+        } else {
+            0
+        };
+        let content_without_furniture = inner_height
+            .saturating_sub(Self::HEADER_ROWS)
+            .saturating_sub(identity_rows);
+        let content_with_furniture = content_without_furniture.saturating_sub(Self::FURNITURE_ROWS);
+        let content_rows = content_height.min(content_without_furniture);
+        let furniture_rows = if content_rows <= content_with_furniture {
+            Self::FURNITURE_ROWS
+        } else {
+            0
+        };
+
         Self {
-            spoils_content_rows,
+            copy_height: content_rows,
+            furniture_height: furniture_rows,
+            representation_bounds: RepresentationRows {
+                top: Self::HEADER_ROWS.saturating_add(content_rows),
+                bottom: furniture_rows,
+            },
         }
     }
 }
@@ -348,7 +410,8 @@ fn render_landmark_path(
                 landmark,
                 layer,
                 &copy.spoils,
-                measurements.spoils_content_rows,
+                measurements.spoils.copy_height,
+                measurements.spoils.furniture_height,
                 theme,
             );
         }
@@ -404,7 +467,7 @@ fn render_representation(
     representation: &AdventurerRepresentation,
     slot: usize,
     total: usize,
-    top_rows: u16,
+    rows: RepresentationRows,
     palette: Palette,
 ) {
     let Some(agent) = model
@@ -425,9 +488,7 @@ fn render_representation(
         AdventurerRepresentation::Physical { .. } | AdventurerRepresentation::Projection { .. } => {
             let projected = matches!(representation, AdventurerRepresentation::Projection { .. });
             if total == 1 {
-                render_full_figure(
-                    frame, area, agent, theatre, model, top_rows, projected, palette,
-                );
+                render_full_figure(frame, area, agent, theatre, model, rows, projected, palette);
             } else {
                 render_dense_figure(
                     frame,
@@ -437,8 +498,8 @@ fn render_representation(
                     model,
                     slot,
                     total,
-                    top_rows,
-                    representation_bottom_rows(representation),
+                    rows.top,
+                    rows.bottom,
                     palette,
                 );
             }
@@ -542,7 +603,7 @@ fn render_full_figure(
     agent: &Agent,
     theatre: TheatreFrame,
     model: &Model,
-    top_rows: u16,
+    rows: RepresentationRows,
     projection: bool,
     palette: Palette,
 ) {
@@ -553,7 +614,7 @@ fn render_full_figure(
     let inner = representation_inner(area);
     let column_width = inner.width;
     let x = inner.x;
-    let y = inner.y.saturating_add(top_rows);
+    let y = inner.y.saturating_add(rows.top);
     if y >= inner.bottom() {
         return;
     }
@@ -599,7 +660,10 @@ fn render_full_figure(
         x,
         art_y,
         column_width.min(10),
-        inner.bottom().saturating_sub(art_y),
+        inner
+            .bottom()
+            .saturating_sub(rows.bottom)
+            .saturating_sub(art_y),
     );
     match model.preferences().character_set {
         CharacterSet::Unicode => {
@@ -869,30 +933,6 @@ fn representation_agent(representation: &AdventurerRepresentation) -> &AgentKey 
         AdventurerRepresentation::Physical { agent, .. }
         | AdventurerRepresentation::Token { agent, .. }
         | AdventurerRepresentation::Projection { agent, .. } => agent,
-    }
-}
-
-fn representation_top_rows(representation: &AdventurerRepresentation, spoils_top_rows: u16) -> u16 {
-    match representation {
-        AdventurerRepresentation::Physical {
-            station: GuildLandmark::Spoils,
-            ..
-        } => spoils_top_rows,
-        AdventurerRepresentation::Physical { .. }
-        | AdventurerRepresentation::Projection { .. }
-        | AdventurerRepresentation::Token { .. } => 2,
-    }
-}
-
-const fn representation_bottom_rows(representation: &AdventurerRepresentation) -> u16 {
-    match representation {
-        AdventurerRepresentation::Projection {
-            station: GuildLandmark::CounselBell,
-            ..
-        } => 3,
-        AdventurerRepresentation::Physical { .. }
-        | AdventurerRepresentation::Token { .. }
-        | AdventurerRepresentation::Projection { .. } => 2,
     }
 }
 
