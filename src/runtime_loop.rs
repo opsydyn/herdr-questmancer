@@ -288,6 +288,24 @@ pub fn apply_command_result(
                 }
             }
         }
+        CommandResult::OutputFailed { pane_id, message } => {
+            let belongs_to_selection = model
+                .selected_agent()
+                .is_none_or(|agent| agent.pane_id == pane_id);
+            if belongs_to_selection {
+                let revision = model
+                    .output_preview()
+                    .filter(|preview| preview.pane_id == pane_id)
+                    .map_or(0, |preview| preview.revision);
+                model.set_output_preview(Some(OutputPreview {
+                    pane_id,
+                    revision,
+                    text: String::new(),
+                    loading: false,
+                    error: Some(format!("load output failed: {message}")),
+                }));
+            }
+        }
         CommandResult::ReviewrAvailable(available) => {
             model.set_reviewr_available(available);
         }

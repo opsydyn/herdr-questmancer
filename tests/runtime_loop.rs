@@ -336,22 +336,23 @@ fn operational_results_use_approved_guild_copy() {
 }
 
 #[test]
-fn command_failure_is_visible_without_replacing_domain_state() {
+fn output_failure_is_scoped_to_the_selected_scrying_preview() {
     let mut model = Model::new(View::Guild);
     let before = model.domain().clone();
 
     apply_command_result(
         &mut model,
-        CommandResult::Failed {
-            operation: "load output",
+        CommandResult::OutputFailed {
+            pane_id: PaneId::new("w1:p1"),
             message: "pane vanished".into(),
         },
         Timestamp::from_millis(2_000),
     );
 
     assert_eq!(model.domain(), &before);
+    assert_eq!(model.status_message(), None);
     assert_eq!(
-        model.status_message(),
+        model.output_preview().unwrap().error.as_deref(),
         Some("load output failed: pane vanished")
     );
 }

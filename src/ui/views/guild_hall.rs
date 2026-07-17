@@ -105,7 +105,13 @@ fn connection_banner_lines(model: &Model) -> Option<Vec<Line<'static>>> {
         ConnectionState::Connecting => Some(vec![Line::from(
             "The scrying pool is waking. Connecting to Herdr.",
         )]),
-        ConnectionState::Offline | ConnectionState::Connected => None,
+        ConnectionState::Offline => connection_notice_message(model).map(|cause| {
+            vec![Line::from(format!(
+                "The scrying pool is dark. Cause: {}",
+                present(cause, model.preferences().character_set)
+            ))]
+        }),
+        ConnectionState::Connected => None,
         ConnectionState::Reconnecting { attempt } => {
             let mut lines = vec![Line::from(SCRYING_CLOUDED)];
             if let Some(cause) = connection_notice_message(model) {
@@ -165,7 +171,7 @@ fn render_wide(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCells 
     ])
     .areas(selected);
     render_adventurer(frame, adventurer, model, true);
-    render_scrying(frame, scrying, model, true);
+    render_scrying(frame, scrying, model, true, false);
     render_spoils(frame, spoils, model);
     marginalia_visible
 }
@@ -186,7 +192,7 @@ fn render_medium(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     ])
     .areas(selected);
     render_adventurer(frame, adventurer, model, true);
-    render_scrying(frame, scrying, model, true);
+    render_scrying(frame, scrying, model, true, true);
 }
 
 fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCells {
@@ -217,7 +223,7 @@ fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCel
             ])
             .areas(primary);
             render_adventurer(frame, adventurer, model, false);
-            render_scrying(frame, scrying, model, false);
+            render_scrying(frame, scrying, model, false, false);
             EffectCells::default()
         }
     };
@@ -443,7 +449,13 @@ fn adventurer_lines(
     lines
 }
 
-fn render_scrying(frame: &mut Frame<'_>, area: Rect, model: &Model, include_status: bool) {
+fn render_scrying(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    model: &Model,
+    include_status: bool,
+    include_integration_notice: bool,
+) {
     let Some(agent) = model.selected_agent() else {
         render_panel(
             frame,
@@ -484,7 +496,9 @@ fn render_scrying(frame: &mut Frame<'_>, area: Rect, model: &Model, include_stat
         lines.push(Line::styled(SCRYING_STILL, MUTED));
         lines.push(Line::styled("Select refresh to trace recent deeds.", MUTED));
     }
-    if include_status && let Some(status) = ordinary_notice_message(model) {
+    if include_status
+        && let Some(status) = scrying_notice_message(model, include_integration_notice)
+    {
         lines.push(Line::from(""));
         lines.push(Line::styled(
             present(status, model.preferences().character_set).into_owned(),
@@ -772,6 +786,16 @@ fn integration_notice_message(model: &Model) -> Option<&str> {
             | Notice::PersistenceDiagnostic(_),
         )
         | None => None,
+    }
+}
+
+fn scrying_notice_message(model: &Model, include_integration_notice: bool) -> Option<&str> {
+    match model.notice() {
+        Some(Notice::ActionFeedback(message) | Notice::PersistenceDiagnostic(message)) => {
+            Some(message)
+        }
+        Some(Notice::IntegrationDiagnostic(message)) if include_integration_notice => Some(message),
+        Some(Notice::ConnectionDiagnostic(_) | Notice::IntegrationDiagnostic(_)) | None => None,
     }
 }
 

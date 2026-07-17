@@ -260,15 +260,8 @@ async fn managed_pane_effects_are_refused_before_socket_io() {
             "send counsel",
         ),
         (
-            AgentCommand::LoadOutput {
-                pane_id: managed.clone(),
-                lines: 80,
-            },
-            "load output",
-        ),
-        (
             AgentCommand::InspectSpoils {
-                pane_id: managed,
+                pane_id: managed.clone(),
                 qualified_id: "acme.diff.inspect".to_owned(),
             },
             "open reviewr",
@@ -284,4 +277,16 @@ async fn managed_pane_effects_are_refused_before_socket_io() {
                     && message == "refused operation on the Questmancer guild pane"
         ));
     }
+
+    let output = executor
+        .execute(AgentCommand::LoadOutput {
+            pane_id: managed.clone(),
+            lines: 80,
+        })
+        .await;
+    assert!(matches!(
+        output,
+        CommandResult::OutputFailed { pane_id, message }
+            if pane_id == managed && message == "refused operation on the Questmancer guild pane"
+    ));
 }

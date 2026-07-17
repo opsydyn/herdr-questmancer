@@ -129,6 +129,28 @@ fn connected_room_never_renders_connecting_notice() {
 }
 
 #[test]
+fn offline_connection_diagnostics_render_in_connection_theatre() {
+    let startup = bootstrap_model(Model::new(View::Guild), None);
+    let startup_screen = render(&startup, 130, 32);
+    assert!(
+        startup_screen.contains("offline: launch from Herdr to connect to the live session"),
+        "{startup_screen}"
+    );
+
+    let mut disconnected = live_model();
+    apply_connection_update(
+        &mut disconnected,
+        ConnectionUpdate::Disconnected("socket closed by peer".to_owned()),
+        Timestamp::from_millis(122_000),
+    );
+    let disconnected_screen = render(&disconnected, 130, 32);
+    assert!(
+        disconnected_screen.contains("Cause: socket closed by peer"),
+        "{disconnected_screen}"
+    );
+}
+
+#[test]
 fn working_guild_hall_uses_the_injected_clock_for_elapsed_time() {
     let model = model_with_presence(Presence::Working, GuildAttention::Clear);
 
@@ -424,28 +446,58 @@ fn narrow_diagnostics_remain_visible_in_every_focused_region() {
             "duplicate Reviewr diagnostic in {title}\n{unavailable}"
         );
 
-        apply_command_result(
-            &mut model,
-            CommandResult::Failed {
-                operation: "load output",
-                message: "pane vanished".to_owned(),
-            },
-            Timestamp::from_millis(122_000),
-        );
-        let failed = render(&model, 79, 24);
-        assert!(failed.contains(title), "missing {title}\n{failed}");
-        assert!(
-            failed.contains("load output failed: pane vanished"),
-            "missing command failure in {title}\n{failed}"
-        );
-        assert_eq!(
-            failed.matches("load output failed: pane vanished").count(),
-            1,
-            "duplicate command failure in {title}\n{failed}"
-        );
-
         model.cycle_region();
     }
+}
+
+#[test]
+fn load_output_failure_is_visible_only_at_the_scrying_table() {
+    let mut model = live_model();
+    apply_command_result(
+        &mut model,
+        CommandResult::OutputFailed {
+            pane_id: PaneId::new("w1:p1"),
+            message: "pane vanished".to_owned(),
+        },
+        Timestamp::from_millis(122_000),
+    );
+
+    for title in [
+        "QUEST BOARD",
+        "PARTY ROSTER",
+        "CALLS FOR COUNSEL",
+        "CHRONICLE",
+    ] {
+        let screen = render(&model, 79, 24);
+        assert!(screen.contains(title), "missing {title}\n{screen}");
+        assert!(
+            !screen.contains("load output failed: pane vanished"),
+            "output failure leaked into {title}\n{screen}"
+        );
+        model.cycle_region();
+    }
+
+    let scrying = render(&model, 79, 24);
+    assert!(scrying.contains("SCRYING TABLE"), "{scrying}");
+    assert!(
+        scrying.contains("load output failed: pane vanished"),
+        "{scrying}"
+    );
+}
+
+#[test]
+fn wide_room_renders_reviewr_diagnostic_once_at_the_spoils_vault() {
+    let mut model = live_model();
+    let _ = reduce_action(&mut model, Action::InspectSpoils);
+
+    let screen = render(&model, 130, 32);
+    assert_eq!(
+        screen
+            .matches("The spoils cannot be inspected here")
+            .count(),
+        1,
+        "{screen}"
+    );
 }
 
 #[test]

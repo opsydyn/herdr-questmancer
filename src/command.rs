@@ -34,6 +34,10 @@ pub enum CommandResult {
         text: String,
         truncated: bool,
     },
+    OutputFailed {
+        pane_id: PaneId,
+        message: String,
+    },
     ReviewrAvailable(bool),
     SpoilsOpened,
     SnapshotLoaded(Box<SessionSnapshot>),
@@ -91,7 +95,10 @@ impl CommandExecutor {
             }
             AgentCommand::LoadOutput { pane_id, lines } => {
                 if self.is_managed_pane(&pane_id) {
-                    return Self::refused_managed_pane("load output");
+                    return CommandResult::OutputFailed {
+                        pane_id,
+                        message: "refused operation on the Questmancer guild pane".to_owned(),
+                    };
                 }
                 match self
                     .client
@@ -104,7 +111,10 @@ impl CommandExecutor {
                         text: read.text,
                         truncated: read.truncated,
                     },
-                    Err(error) => failed("load output", error),
+                    Err(error) => CommandResult::OutputFailed {
+                        pane_id,
+                        message: error.to_string(),
+                    },
                 }
             }
             AgentCommand::DiscoverReviewr { qualified_id } => {
