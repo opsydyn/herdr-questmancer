@@ -571,14 +571,29 @@ fn guild_without_elapsed_labels_or_other_effects_is_event_driven() {
 }
 
 #[test]
-fn guild_truthful_station_animations_arm_their_real_cadences() {
+fn working_campaign_tokens_do_not_arm_animation_deadlines() {
+    let mut adventurer = agent();
+    adventurer.presence = Presence::Working;
+    adventurer.presence_since = Timestamp::from_millis(0);
+    let mut model = model_with(adventurer, 0, Motion::Full);
+    add_selected_campaign(&mut model, "Ironmere");
+    model.switch_to(View::Guild);
+    model.set_settings(RuntimeSettings {
+        show_elapsed_time: false,
+        ..RuntimeSettings::default()
+    });
+
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 130, 32)),
+        None,
+        "campaign tokens render no animation frame and stay event-driven"
+    );
+}
+
+#[test]
+fn guild_sprite_stations_arm_their_real_cadences() {
     let area = Rect::new(0, 0, 130, 32);
     for (presence, attention, expected) in [
-        (
-            Presence::Working,
-            GuildAttention::Clear,
-            Duration::from_millis(167),
-        ),
         (
             Presence::Blocked,
             GuildAttention::Clear,

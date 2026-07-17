@@ -115,7 +115,8 @@ pub(crate) fn next_projected_frame_in(
             .as_ref()
             .into_iter()
             .flat_map(|room| visible_guild_agents(model, room))
-            .filter_map(|agent| {
+            .filter(|(representation, _)| representation_uses_animation(representation))
+            .filter_map(|(_, agent)| {
                 next_frame_for_agent(agent, model.now(), model.preferences().motion)
             })
             .min();
@@ -135,7 +136,7 @@ pub(crate) fn next_projected_frame_in(
 fn visible_guild_agents<'a>(
     model: &'a Model,
     room: &'a GuildRoomProjection,
-) -> impl Iterator<Item = &'a Agent> + 'a {
+) -> impl Iterator<Item = (&'a AdventurerRepresentation, &'a Agent)> + 'a {
     room.adventurers.iter().filter_map(|representation| {
         let visible = match representation {
             AdventurerRepresentation::Token { table, .. } => room
@@ -154,9 +155,14 @@ fn visible_guild_agents<'a>(
                     .domain()
                     .agents
                     .get(representation_agent(representation))
+                    .map(|agent| (representation, agent))
             })
             .flatten()
     })
+}
+
+fn representation_uses_animation(representation: &AdventurerRepresentation) -> bool {
+    !matches!(representation, AdventurerRepresentation::Token { .. })
 }
 
 fn representation_agent(representation: &AdventurerRepresentation) -> &crate::domain::AgentKey {
