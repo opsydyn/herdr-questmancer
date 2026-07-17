@@ -1,265 +1,335 @@
-#![cfg(feature = "storybook")]
-
 use questmancer::{
-    app::{CharacterSet, ColorMode, DisplayPreferences, Motion, Region},
-    domain::Presence,
-    storybook::fixtures::{
-        StoryContext, connected_delves_fixture, guild_populated_fixture, library_delve_fixture,
-    },
-    ui::{
-        ChamberPresentation, GuildRegion, PersonaRenderMode, persona_render_mode_for_chamber,
-        render_projection_for, theatre::TheatrePose, widgets::chamber_presentation,
-    },
+    app::{Model, View},
+    domain::{DomainState, Timestamp},
+    herdr::protocol::{SessionSnapshotResult, SuccessResponse},
+    ui::{GuildRoomRenderPath, great_room_render_plan, render_projection_for},
 };
 use ratatui::layout::Rect;
 
 #[test]
-fn guild_room_projection_is_attached_without_removing_existing_evidence() {
-    let guild = guild_populated_fixture(&StoryContext::fixed());
-    let guild_projection = render_projection_for(&guild, Rect::new(0, 0, 120, 36));
-    assert_eq!(
-        guild_projection.guild_room.as_ref().map(|room| room.mode),
-        Some(questmancer::ui::guild_room_projection::GuildRoomMode::WholeRoom)
-    );
-    assert!(!guild_projection.guild_regions.is_empty());
-    assert!(guild_projection.guild_profile_agent.is_some());
+fn every_projected_great_room_item_has_one_production_renderer_path() {
+    let response: SuccessResponse<SessionSnapshotResult> =
+        serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
+    let mut model = Model::new(View::Guild);
+    model.replace_domain(DomainState::from_snapshot(
+        &response.result.snapshot,
+        Timestamp::from_millis(1_000),
+    ));
+    let projection = render_projection_for(&model, Rect::new(0, 0, 160, 50));
+    let room = projection.guild_room.as_ref().unwrap();
+    let paths = great_room_render_plan(room);
 
-    let delve = connected_delves_fixture(&StoryContext::fixed());
-    let delve_projection = render_projection_for(&delve, Rect::new(0, 0, 120, 36));
-    assert!(delve_projection.guild_room.is_none());
-    assert!(!delve_projection.delve_regions.is_empty());
-}
-
-#[test]
-fn chamber_projection_uses_the_production_full_and_compact_boundaries() {
     assert_eq!(
-        chamber_presentation(Rect::new(0, 0, 28, 10)),
-        ChamberPresentation::Full
+        paths.len(),
+        room.landmarks.len() + room.campaigns.len() + room.adventurers.len()
     );
-    assert_eq!(
-        chamber_presentation(Rect::new(0, 0, 27, 10)),
-        ChamberPresentation::CompactScene
-    );
-    assert_eq!(
-        chamber_presentation(Rect::new(0, 0, 28, 9)),
-        ChamberPresentation::CompactScene
-    );
-    assert_eq!(
-        chamber_presentation(Rect::new(0, 0, 14, 7)),
-        ChamberPresentation::Text
-    );
-    assert_eq!(
-        chamber_presentation(Rect::new(0, 0, 14, 8)),
-        ChamberPresentation::CompactScene
-    );
-}
-
-#[test]
-fn persona_projection_is_exact_at_unicode_ascii_and_departed_boundaries() {
-    for character_set in [CharacterSet::Unicode, CharacterSet::Ascii] {
+    for landmark in &room.landmarks {
         assert_eq!(
-            persona_render_mode_for_chamber(
-                ChamberPresentation::Text,
-                TheatrePose::Delving,
-                character_set,
-            ),
-            PersonaRenderMode::None
+            paths
+                .iter()
+                .filter(|path| {
+                    **path == GuildRoomRenderPath::Landmark(landmark.landmark.clone())
+                })
+                .count(),
+            1,
+            "projected landmark {:?} lacks a unique production path",
+            landmark.landmark
         );
+    }
+    for campaign in &room.campaigns {
         assert_eq!(
-            persona_render_mode_for_chamber(
-                ChamberPresentation::CompactScene,
-                TheatrePose::Delving,
-                character_set,
-            ),
-            match character_set {
-                CharacterSet::Unicode => PersonaRenderMode::Full,
-                CharacterSet::Ascii => PersonaRenderMode::Silhouette,
-            }
+            paths
+                .iter()
+                .filter(|path| {
+                    **path == GuildRoomRenderPath::CampaignTable(campaign.workspace_id.clone())
+                })
+                .count(),
+            1,
+            "projected campaign {:?} lacks a unique production path",
+            campaign.workspace_id
         );
+    }
+    for adventurer in &room.adventurers {
         assert_eq!(
-            persona_render_mode_for_chamber(
-                ChamberPresentation::Full,
-                TheatrePose::Departed,
-                character_set,
-            ),
-            PersonaRenderMode::None
+            paths
+                .iter()
+                .filter(|path| {
+                    **path == GuildRoomRenderPath::Representation(adventurer.clone())
+                })
+                .count(),
+            1,
+            "projected representation {adventurer:?} lacks a unique production path"
         );
     }
 }
 
-#[test]
-fn departed_projection_never_claims_persona_art() {
-    let mut model = connected_delves_fixture(&StoryContext::fixed());
-    for agent in model.domain_mut().agents.values_mut() {
-        agent.presence = Presence::Exited;
+#[cfg(feature = "storybook")]
+mod storybook_projection {
+
+    use questmancer::{
+        app::{CharacterSet, ColorMode, DisplayPreferences, Motion, Region},
+        domain::Presence,
+        storybook::fixtures::{
+            StoryContext, connected_delves_fixture, guild_populated_fixture, library_delve_fixture,
+        },
+        ui::{
+            ChamberPresentation, GuildRegion, PersonaRenderMode, persona_render_mode_for_chamber,
+            render_projection_for, theatre::TheatrePose, widgets::chamber_presentation,
+        },
+    };
+    use ratatui::layout::Rect;
+
+    #[test]
+    fn guild_room_projection_is_attached_without_removing_existing_evidence() {
+        let guild = guild_populated_fixture(&StoryContext::fixed());
+        let guild_projection = render_projection_for(&guild, Rect::new(0, 0, 120, 36));
+        assert_eq!(
+            guild_projection.guild_room.as_ref().map(|room| room.mode),
+            Some(questmancer::ui::guild_room_projection::GuildRoomMode::WholeRoom)
+        );
+        assert!(!guild_projection.guild_regions.is_empty());
+        assert!(guild_projection.guild_profile_agent.is_some());
+
+        let delve = connected_delves_fixture(&StoryContext::fixed());
+        let delve_projection = render_projection_for(&delve, Rect::new(0, 0, 120, 36));
+        assert!(delve_projection.guild_room.is_none());
+        assert!(!delve_projection.delve_regions.is_empty());
     }
 
-    for (width, height) in [(130, 36), (60, 36), (60, 18)] {
+    #[test]
+    fn chamber_projection_uses_the_production_full_and_compact_boundaries() {
+        assert_eq!(
+            chamber_presentation(Rect::new(0, 0, 28, 10)),
+            ChamberPresentation::Full
+        );
+        assert_eq!(
+            chamber_presentation(Rect::new(0, 0, 27, 10)),
+            ChamberPresentation::CompactScene
+        );
+        assert_eq!(
+            chamber_presentation(Rect::new(0, 0, 28, 9)),
+            ChamberPresentation::CompactScene
+        );
+        assert_eq!(
+            chamber_presentation(Rect::new(0, 0, 14, 7)),
+            ChamberPresentation::Text
+        );
+        assert_eq!(
+            chamber_presentation(Rect::new(0, 0, 14, 8)),
+            ChamberPresentation::CompactScene
+        );
+    }
+
+    #[test]
+    fn persona_projection_is_exact_at_unicode_ascii_and_departed_boundaries() {
         for character_set in [CharacterSet::Unicode, CharacterSet::Ascii] {
-            model.set_preferences(DisplayPreferences {
-                motion: Motion::Full,
-                character_set,
-                color_mode: ColorMode::Xterm256,
-            });
+            assert_eq!(
+                persona_render_mode_for_chamber(
+                    ChamberPresentation::Text,
+                    TheatrePose::Delving,
+                    character_set,
+                ),
+                PersonaRenderMode::None
+            );
+            assert_eq!(
+                persona_render_mode_for_chamber(
+                    ChamberPresentation::CompactScene,
+                    TheatrePose::Delving,
+                    character_set,
+                ),
+                match character_set {
+                    CharacterSet::Unicode => PersonaRenderMode::Full,
+                    CharacterSet::Ascii => PersonaRenderMode::Silhouette,
+                }
+            );
+            assert_eq!(
+                persona_render_mode_for_chamber(
+                    ChamberPresentation::Full,
+                    TheatrePose::Departed,
+                    character_set,
+                ),
+                PersonaRenderMode::None
+            );
+        }
+    }
+
+    #[test]
+    fn departed_projection_never_claims_persona_art() {
+        let mut model = connected_delves_fixture(&StoryContext::fixed());
+        for agent in model.domain_mut().agents.values_mut() {
+            agent.presence = Presence::Exited;
+        }
+
+        for (width, height) in [(130, 36), (60, 36), (60, 18)] {
+            for character_set in [CharacterSet::Unicode, CharacterSet::Ascii] {
+                model.set_preferences(DisplayPreferences {
+                    motion: Motion::Full,
+                    character_set,
+                    color_mode: ColorMode::Xterm256,
+                });
+                let projection = render_projection_for(&model, Rect::new(0, 0, width, height));
+                assert!(
+                    projection
+                        .visible_agents
+                        .iter()
+                        .all(|agent| agent.persona == PersonaRenderMode::None),
+                    "Departed {character_set:?} projection at {width}x{height} claimed persona art"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn intermediate_delve_size_projects_a_full_chamber_missed_by_endpoints() {
+        let model = library_delve_fixture(&StoryContext::fixed());
+        let reference = render_projection_for(&model, Rect::new(0, 0, 130, 36));
+        let minimum = render_projection_for(&model, Rect::new(0, 0, 60, 18));
+        let intermediate = render_projection_for(&model, Rect::new(0, 0, 60, 36));
+
+        assert!(
+            reference
+                .visible_agents
+                .iter()
+                .all(|agent| { agent.chamber == Some(ChamberPresentation::CompactScene) })
+        );
+        assert!(
+            minimum
+                .visible_agents
+                .iter()
+                .all(|agent| { agent.chamber == Some(ChamberPresentation::Text) })
+        );
+        assert!(
+            intermediate
+                .visible_agents
+                .iter()
+                .any(|agent| { agent.chamber == Some(ChamberPresentation::Full) })
+        );
+    }
+
+    #[test]
+    fn unicode_full_chambers_project_full_personas_while_ascii_projects_silhouettes() {
+        let mut unicode = library_delve_fixture(&StoryContext::fixed());
+        let unicode_projection = render_projection_for(&unicode, Rect::new(0, 0, 60, 36));
+        assert!(
+            unicode_projection
+                .visible_agents
+                .iter()
+                .any(|agent| { agent.persona == PersonaRenderMode::Full })
+        );
+
+        unicode.set_preferences(DisplayPreferences {
+            motion: Motion::Full,
+            character_set: CharacterSet::Ascii,
+            color_mode: ColorMode::Ansi16,
+        });
+        let ascii_projection = render_projection_for(&unicode, Rect::new(0, 0, 60, 36));
+        assert!(
+            ascii_projection
+                .visible_agents
+                .iter()
+                .all(|agent| { agent.persona != PersonaRenderMode::Full })
+        );
+        assert!(
+            ascii_projection
+                .visible_agents
+                .iter()
+                .any(|agent| { agent.persona == PersonaRenderMode::Silhouette })
+        );
+    }
+
+    #[test]
+    fn guild_projection_owns_profile_visibility_at_responsive_boundaries() {
+        let mut model = guild_populated_fixture(&StoryContext::fixed());
+        let wide = render_projection_for(&model, Rect::new(0, 0, 120, 36));
+        assert!(wide.guild_regions.contains(&GuildRegion::AdventurerProfile));
+        assert!(wide.guild_profile_agent.is_some());
+
+        let medium = render_projection_for(&model, Rect::new(0, 0, 80, 24));
+        assert!(
+            medium
+                .guild_regions
+                .contains(&GuildRegion::AdventurerProfile)
+        );
+        assert!(medium.guild_profile_agent.is_some());
+
+        model.set_region(Region::QuestBoard);
+        let focused = render_projection_for(&model, Rect::new(0, 0, 79, 24));
+        assert_eq!(focused.guild_regions, [GuildRegion::QuestBoard].into());
+        assert!(focused.guild_profile_agent.is_none());
+    }
+
+    #[test]
+    fn projected_chamber_rectangles_are_the_exact_rendered_agent_regions() {
+        for (model, width, height) in [
+            (connected_delves_fixture(&StoryContext::fixed()), 60, 18),
+            (connected_delves_fixture(&StoryContext::fixed()), 60, 36),
+            (connected_delves_fixture(&StoryContext::fixed()), 130, 36),
+        ] {
             let projection = render_projection_for(&model, Rect::new(0, 0, width, height));
-            assert!(
-                projection
-                    .visible_agents
-                    .iter()
-                    .all(|agent| agent.persona == PersonaRenderMode::None),
-                "Departed {character_set:?} projection at {width}x{height} claimed persona art"
-            );
-        }
-    }
-}
-
-#[test]
-fn intermediate_delve_size_projects_a_full_chamber_missed_by_endpoints() {
-    let model = library_delve_fixture(&StoryContext::fixed());
-    let reference = render_projection_for(&model, Rect::new(0, 0, 130, 36));
-    let minimum = render_projection_for(&model, Rect::new(0, 0, 60, 18));
-    let intermediate = render_projection_for(&model, Rect::new(0, 0, 60, 36));
-
-    assert!(
-        reference
-            .visible_agents
-            .iter()
-            .all(|agent| { agent.chamber == Some(ChamberPresentation::CompactScene) })
-    );
-    assert!(
-        minimum
-            .visible_agents
-            .iter()
-            .all(|agent| { agent.chamber == Some(ChamberPresentation::Text) })
-    );
-    assert!(
-        intermediate
-            .visible_agents
-            .iter()
-            .any(|agent| { agent.chamber == Some(ChamberPresentation::Full) })
-    );
-}
-
-#[test]
-fn unicode_full_chambers_project_full_personas_while_ascii_projects_silhouettes() {
-    let mut unicode = library_delve_fixture(&StoryContext::fixed());
-    let unicode_projection = render_projection_for(&unicode, Rect::new(0, 0, 60, 36));
-    assert!(
-        unicode_projection
-            .visible_agents
-            .iter()
-            .any(|agent| { agent.persona == PersonaRenderMode::Full })
-    );
-
-    unicode.set_preferences(DisplayPreferences {
-        motion: Motion::Full,
-        character_set: CharacterSet::Ascii,
-        color_mode: ColorMode::Ansi16,
-    });
-    let ascii_projection = render_projection_for(&unicode, Rect::new(0, 0, 60, 36));
-    assert!(
-        ascii_projection
-            .visible_agents
-            .iter()
-            .all(|agent| { agent.persona != PersonaRenderMode::Full })
-    );
-    assert!(
-        ascii_projection
-            .visible_agents
-            .iter()
-            .any(|agent| { agent.persona == PersonaRenderMode::Silhouette })
-    );
-}
-
-#[test]
-fn guild_projection_owns_profile_visibility_at_responsive_boundaries() {
-    let mut model = guild_populated_fixture(&StoryContext::fixed());
-    let wide = render_projection_for(&model, Rect::new(0, 0, 120, 36));
-    assert!(wide.guild_regions.contains(&GuildRegion::AdventurerProfile));
-    assert!(wide.guild_profile_agent.is_some());
-
-    let medium = render_projection_for(&model, Rect::new(0, 0, 80, 24));
-    assert!(
-        medium
-            .guild_regions
-            .contains(&GuildRegion::AdventurerProfile)
-    );
-    assert!(medium.guild_profile_agent.is_some());
-
-    model.set_region(Region::QuestBoard);
-    let focused = render_projection_for(&model, Rect::new(0, 0, 79, 24));
-    assert_eq!(focused.guild_regions, [GuildRegion::QuestBoard].into());
-    assert!(focused.guild_profile_agent.is_none());
-}
-
-#[test]
-fn projected_chamber_rectangles_are_the_exact_rendered_agent_regions() {
-    for (model, width, height) in [
-        (connected_delves_fixture(&StoryContext::fixed()), 60, 18),
-        (connected_delves_fixture(&StoryContext::fixed()), 60, 36),
-        (connected_delves_fixture(&StoryContext::fixed()), 130, 36),
-    ] {
-        let projection = render_projection_for(&model, Rect::new(0, 0, width, height));
-        let buffer = questmancer::storybook::ui::render_application_buffer(&model, width, height);
-        for projected in &projection.visible_agents {
-            let area = projected
-                .chamber_area
-                .expect("every projected Delve agent must retain its chamber rectangle");
-            let name = &model.domain().agents.get(&projected.key).unwrap().name;
-            assert!(
-                rect_text(&buffer, area).contains(name),
-                "projected chamber {area:?} did not contain {name} at {width}x{height}"
-            );
-        }
-    }
-}
-
-#[test]
-fn connected_and_active_delve_regions_match_the_rendered_variant_and_selection() {
-    let mut model = connected_delves_fixture(&StoryContext::fixed());
-    for (width, expected_multiple) in [(80, false), (130, true)] {
-        let projection = render_projection_for(&model, Rect::new(0, 0, width, 36));
-        assert_eq!(projection.delve_regions.len() > 1, expected_multiple);
-        let buffer = questmancer::storybook::ui::render_application_buffer(&model, width, 36);
-        for delve in &projection.delve_regions {
-            assert!(
-                rect_text(&buffer, delve.area).contains(variant_marker(delve.variant)),
-                "projected {:?} architecture was not rendered in {:?}:\n{}",
-                delve.variant,
-                delve.area,
-                rect_text(&buffer, delve.area)
-            );
+            let buffer =
+                questmancer::storybook::ui::render_application_buffer(&model, width, height);
+            for projected in &projection.visible_agents {
+                let area = projected
+                    .chamber_area
+                    .expect("every projected Delve agent must retain its chamber rectangle");
+                let name = &model.domain().agents.get(&projected.key).unwrap().name;
+                assert!(
+                    rect_text(&buffer, area).contains(name),
+                    "projected chamber {area:?} did not contain {name} at {width}x{height}"
+                );
+            }
         }
     }
 
-    let initial_workspace = model.selected_agent().unwrap().workspace_id.clone();
-    let selected_key = model
-        .domain()
-        .agents
-        .values()
-        .find(|agent| agent.workspace_id != initial_workspace)
-        .unwrap()
-        .key
-        .clone();
-    model.domain_mut().selected_agent = Some(selected_key);
-    let selected = render_projection_for(&model, Rect::new(0, 0, 80, 36));
-    assert_eq!(selected.delve_regions.len(), 1);
-    let selected_workspace = model.selected_agent().unwrap().workspace_id.clone();
-    assert_eq!(selected.delve_regions[0].workspace_id, selected_workspace);
-    assert!(selected.delve_regions[0].active);
-}
+    #[test]
+    fn connected_and_active_delve_regions_match_the_rendered_variant_and_selection() {
+        let mut model = connected_delves_fixture(&StoryContext::fixed());
+        for (width, expected_multiple) in [(80, false), (130, true)] {
+            let projection = render_projection_for(&model, Rect::new(0, 0, width, 36));
+            assert_eq!(projection.delve_regions.len() > 1, expected_multiple);
+            let buffer = questmancer::storybook::ui::render_application_buffer(&model, width, 36);
+            for delve in &projection.delve_regions {
+                assert!(
+                    rect_text(&buffer, delve.area).contains(variant_marker(delve.variant)),
+                    "projected {:?} architecture was not rendered in {:?}:\n{}",
+                    delve.variant,
+                    delve.area,
+                    rect_text(&buffer, delve.area)
+                );
+            }
+        }
 
-fn rect_text(buffer: &ratatui::buffer::Buffer, area: Rect) -> String {
-    (area.y..area.bottom())
-        .flat_map(|y| (area.x..area.right()).map(move |x| buffer.cell((x, y)).unwrap().symbol()))
-        .collect()
-}
+        let initial_workspace = model.selected_agent().unwrap().workspace_id.clone();
+        let selected_key = model
+            .domain()
+            .agents
+            .values()
+            .find(|agent| agent.workspace_id != initial_workspace)
+            .unwrap()
+            .key
+            .clone();
+        model.domain_mut().selected_agent = Some(selected_key);
+        let selected = render_projection_for(&model, Rect::new(0, 0, 80, 36));
+        assert_eq!(selected.delve_regions.len(), 1);
+        let selected_workspace = model.selected_agent().unwrap().workspace_id.clone();
+        assert_eq!(selected.delve_regions[0].workspace_id, selected_workspace);
+        assert!(selected.delve_regions[0].active);
+    }
 
-const fn variant_marker(variant: questmancer::ui::delve_scene::DelveVariant) -> &'static str {
-    use questmancer::ui::delve_scene::DelveVariant;
-    match variant {
-        DelveVariant::ForgottenLibrary => "FORGOTTEN LIBRARY",
-        DelveVariant::MossyUndercroft => "MOSSY UNDERCROFT",
-        DelveVariant::OldWatchtower => "STAIR / NARROW LANDING",
+    fn rect_text(buffer: &ratatui::buffer::Buffer, area: Rect) -> String {
+        (area.y..area.bottom())
+            .flat_map(|y| {
+                (area.x..area.right()).map(move |x| buffer.cell((x, y)).unwrap().symbol())
+            })
+            .collect()
+    }
+
+    const fn variant_marker(variant: questmancer::ui::delve_scene::DelveVariant) -> &'static str {
+        use questmancer::ui::delve_scene::DelveVariant;
+        match variant {
+            DelveVariant::ForgottenLibrary => "FORGOTTEN LIBRARY",
+            DelveVariant::MossyUndercroft => "MOSSY UNDERCROFT",
+            DelveVariant::OldWatchtower => "STAIR / NARROW LANDING",
+        }
     }
 }

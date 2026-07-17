@@ -414,8 +414,8 @@ fn inspection_application_story_uses_the_full_production_renderer() {
     reduce(&mut app, Action::Inspect, &stories);
     let screen = render_storybook(&app, &stories, 130, 33);
     assert!(screen.contains("QUESTMANCER'S GUILD HALL"));
-    assert!(screen.contains("PARTY ROSTER"));
-    assert!(screen.contains("CALLS FOR COUNSEL"));
+    assert!(screen.contains("QUEST WALL"));
+    assert!(screen.contains("COUNSEL BELL"));
     assert!(screen.contains("[esc] catalogue"));
 }
 
@@ -447,13 +447,14 @@ fn guild_regions_atlas_exercises_every_region_through_one_production_application
     };
     let screen = buffer_text(&storybook_ui::render_application_buffer(model, 120, 34));
     for marker in [
-        "QUEST BOARD",
-        "PARTY ROSTER",
-        "CALLS FOR COUNSEL",
-        "CHRONICLE",
-        "ADVENTURER",
-        "SCRYING TABLE",
-        "SPOILS VAULT",
+        "GUILD DOOR",
+        "QUEST WALL",
+        "COUNSEL BELL",
+        "HEARTH",
+        "CHRONICLE LECTERN",
+        "SCRYING ALCOVE",
+        "SPOILS DESK",
+        "CAMPAIGN TABLE",
     ] {
         assert!(screen.contains(marker), "missing {marker}: {screen}");
     }

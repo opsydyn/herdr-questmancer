@@ -1,5 +1,6 @@
 mod adventurer_card;
 mod chamber;
+pub(crate) mod guild_landmark;
 pub(crate) mod presentation;
 
 pub use adventurer_card::{

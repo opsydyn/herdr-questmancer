@@ -64,6 +64,74 @@ fn model_with_presence(presence: Presence, attention: GuildAttention) -> Model {
     model
 }
 
+fn wide_room_model() -> Model {
+    let mut model = live_model();
+    model.set_output_preview(Some(OutputPreview {
+        pane_id: PaneId::new("w1:p1"),
+        revision: 7,
+        text: "schema choice?".to_owned(),
+        loading: false,
+        error: None,
+    }));
+    let template = model.domain().agents.values().next().unwrap().clone();
+    let workspace_id = template.workspace_id.clone();
+    let fixtures = [
+        (
+            "agent-counsel",
+            "Aster Counsel",
+            Presence::Blocked,
+            GuildAttention::Clear,
+            false,
+        ),
+        (
+            "agent-hearth",
+            "Bran Hearth",
+            Presence::Idle,
+            GuildAttention::Clear,
+            false,
+        ),
+        (
+            "agent-spoils",
+            "Cora Spoils",
+            Presence::Done,
+            GuildAttention::unread(
+                GuildSummons::SpoilsReturned,
+                Timestamp::from_millis(120_500),
+            ),
+            false,
+        ),
+        (
+            "agent-token",
+            "Dain Token",
+            Presence::Working,
+            GuildAttention::Clear,
+            true,
+        ),
+    ];
+
+    model.domain_mut().agents.clear();
+    let mut party = Vec::new();
+    for (key, name, presence, attention, focused) in fixtures {
+        let mut agent = template.clone();
+        agent.key = AgentKey::new(key);
+        name.clone_into(&mut agent.persona.name);
+        agent.presence = presence;
+        agent.attention = attention;
+        agent.focused = focused;
+        agent.custom_status = None;
+        party.push(agent.key.clone());
+        model.domain_mut().agents.insert(agent.key.clone(), agent);
+    }
+    model.domain_mut().selected_agent = Some(AgentKey::new("agent-token"));
+    model
+        .domain_mut()
+        .campaigns
+        .get_mut(&workspace_id)
+        .unwrap()
+        .party = party;
+    model
+}
+
 fn render(model: &Model, width: u16, height: u16) -> String {
     let buffer = render_buffer(model, width, height);
     (0..height)
@@ -88,16 +156,116 @@ fn wide_guild_hall_renders_every_operational_region() {
     let screen = render(&live_model(), 130, 32);
 
     assert!(screen.contains("QUESTMANCER'S GUILD HALL"));
-    assert!(screen.contains("QUEST BOARD"));
-    assert!(screen.contains("PARTY ROSTER"));
-    assert!(screen.contains("CALLS FOR COUNSEL"));
-    assert!(screen.contains("SCRYING TABLE"));
-    assert!(screen.contains("SPOILS VAULT"));
-    assert!(screen.contains("CHRONICLE"));
+    for landmark in [
+        "GUILD DOOR",
+        "QUEST WALL",
+        "CAMPAIGN TABLE: webmaster",
+        "COUNSEL BELL",
+        "HEARTH",
+        "CHRONICLE LECTERN",
+        "SCRYING ALCOVE",
+        "SPOILS DESK",
+    ] {
+        assert!(screen.contains(landmark), "missing {landmark}:\n{screen}");
+    }
     assert!(screen.contains("Elowen"));
     assert!(screen.contains("requests counsel"));
     assert!(screen.contains("blocked 2m"));
-    assert!(screen.contains("which schema should I use?"));
+    assert!(screen.contains("which schema should I"));
+    assert!(screen.contains("use?"));
+}
+
+#[test]
+fn wide_guild_is_one_great_room() {
+    let model = wide_room_model();
+
+    for (width, height) in [(120, 40), (160, 50)] {
+        let screen = render(&model, width, height);
+
+        for landmark in [
+            "GUILD DOOR",
+            "QUEST WALL",
+            "COUNSEL BELL",
+            "HEARTH",
+            "CHRONICLE LECTERN",
+            "SCRYING ALCOVE",
+            "SPOILS DESK",
+        ] {
+            assert!(
+                screen.contains(landmark),
+                "missing {landmark} at {width}x{height}:\n{screen}"
+            );
+        }
+        assert!(screen.contains("CAMPAIGN BANNER: webmaster"), "{screen}");
+        assert!(screen.contains("CAMPAIGN TABLE: webmaster"), "{screen}");
+        assert!(screen.contains("SELECTED LAMP"), "{screen}");
+        assert!(screen.contains("schema choice?"), "{screen}");
+        for name in ["Aster Counsel", "Bran Hearth", "Cora Spoils", "Dain Token"] {
+            assert_eq!(
+                screen.matches(name).count(),
+                1,
+                "{name} did not have one visible representation at {width}x{height}:\n{screen}"
+            );
+        }
+        for old_panel in [
+            "QUEST BOARD",
+            "PARTY ROSTER",
+            "CALLS FOR COUNSEL",
+            "SCRYING TABLE",
+            "SPOILS VAULT",
+        ] {
+            assert!(
+                !screen.contains(old_panel),
+                "old panel {old_panel} survived at {width}x{height}:\n{screen}"
+            );
+        }
+    }
+}
+
+#[test]
+fn empty_wide_guild_still_renders_a_furnished_room() {
+    let screen = render(&Model::new(View::Guild), 160, 40);
+
+    for fixture in [
+        "QUEST WALL",
+        "MAPS / COMMISSIONS",
+        "HEARTH",
+        "MUGS / BEDROLLS",
+        "The hearth is warm. The guild awaits its next commission.",
+    ] {
+        assert!(screen.contains(fixture), "missing {fixture}:\n{screen}");
+    }
+}
+
+#[test]
+fn unavailable_reviewr_leaves_a_quiet_furnished_spoils_desk() {
+    let screen = render(&live_model(), 160, 40);
+
+    assert!(screen.contains("SPOILS DESK"), "{screen}");
+    assert!(screen.contains("LEDGER / LOCKBOX / MUG"), "{screen}");
+    assert!(!screen.contains("Reviewr is unavailable."), "{screen}");
+    assert!(!screen.contains("SPOILS VAULT"), "{screen}");
+}
+
+#[test]
+fn failed_output_clouds_only_the_furnished_scrying_alcove() {
+    let mut model = live_model();
+    apply_command_result(
+        &mut model,
+        CommandResult::OutputFailed {
+            pane_id: PaneId::new("w1:p1"),
+            message: "pane vanished".to_owned(),
+        },
+        Timestamp::from_millis(122_000),
+    );
+
+    let screen = render(&model, 160, 40);
+    assert!(screen.contains("SCRYING ALCOVE"), "{screen}");
+    assert!(screen.contains("MIRROR / CANDLES / BOOKS"), "{screen}");
+    assert!(screen.contains("The scrying pool has clouded."), "{screen}");
+    assert!(screen.contains("load output failed:"), "{screen}");
+    assert!(screen.contains("pane vanished"), "{screen}");
+    assert!(!screen.contains("SCRYING TABLE"), "{screen}");
 }
 
 #[test]
@@ -132,10 +300,17 @@ fn connected_room_never_renders_connecting_notice() {
 fn offline_connection_diagnostics_render_in_connection_theatre() {
     let startup = bootstrap_model(Model::new(View::Guild), None);
     let startup_screen = render(&startup, 130, 32);
-    assert!(
-        startup_screen.contains("offline: launch from Herdr to connect to the live session"),
-        "{startup_screen}"
-    );
+    for fragment in [
+        "OFFLINE / door closed",
+        "Cause: offline: launch",
+        "from Herdr to connect to",
+        "the live session",
+    ] {
+        assert!(
+            startup_screen.contains(fragment),
+            "missing {fragment}:\n{startup_screen}"
+        );
+    }
 
     let mut disconnected = live_model();
     apply_connection_update(
@@ -145,7 +320,15 @@ fn offline_connection_diagnostics_render_in_connection_theatre() {
     );
     let disconnected_screen = render(&disconnected, 130, 32);
     assert!(
-        disconnected_screen.contains("Cause: socket closed by peer"),
+        disconnected_screen.contains("Cause: socket"),
+        "{disconnected_screen}"
+    );
+    assert!(
+        disconnected_screen.contains("socket closed by"),
+        "{disconnected_screen}"
+    );
+    assert!(
+        disconnected_screen.contains("peer"),
         "{disconnected_screen}"
     );
 }
@@ -491,10 +674,12 @@ fn wide_room_renders_reviewr_diagnostic_once_at_the_spoils_vault() {
     let _ = reduce_action(&mut model, Action::InspectSpoils);
 
     let screen = render(&model, 130, 32);
+    assert!(
+        screen.contains("The spoils cannot be inspected"),
+        "{screen}"
+    );
     assert_eq!(
-        screen
-            .matches("The spoils cannot be inspected here")
-            .count(),
+        screen.matches("Reviewr is unavailable.").count(),
         1,
         "{screen}"
     );

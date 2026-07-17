@@ -30,6 +30,7 @@ use self::{
     widgets::chamber_presentation,
 };
 
+pub use views::great_room::{GuildRoomRenderPath, great_room_render_plan};
 pub use widgets::ChamberPresentation;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]

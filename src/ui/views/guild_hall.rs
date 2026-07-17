@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Rect},
     symbols::border,
     text::{Line, Text},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 use std::time::Duration;
 
@@ -14,10 +14,13 @@ use crate::{
         EffectCells, GuildGoblinEvidence, GuildPresentation, RenderProjection,
         copy::{self, EMPTY_GUILD, SCRYING_CLOUDED, SCRYING_STILL},
         goblins,
+        guild_room_projection::GuildRoomMode,
         theme::{ACCENT, INK, MUTED},
         widgets::presentation::present,
     },
 };
+
+use super::great_room;
 
 const ASCII_BORDER: border::Set<'static> = border::Set {
     top_left: "+",
@@ -46,6 +49,20 @@ pub(crate) fn render(
     let [body, footer] =
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(area);
+    if let Some(room) = projection
+        .guild_room
+        .as_ref()
+        .filter(|room| room.mode == GuildRoomMode::WholeRoom)
+    {
+        let marginalia = great_room::render(frame, model, room);
+        let sprites = goblins::render(frame, body, model);
+        render_footer(frame, footer, &footer_lines);
+        return GuildGoblinEvidence {
+            sprites,
+            marginalia,
+        };
+    }
+
     let title = format!(
         " QUESTMANCER'S GUILD HALL - {} ",
         connection_label(model.connection())
@@ -64,12 +81,11 @@ pub(crate) fn render(
 
     let content = render_connection_banner(frame, inner, model);
     let marginalia_visible = match projection.guild_presentation {
-        GuildPresentation::Tiny => EffectCells::default(),
+        GuildPresentation::Tiny | GuildPresentation::Wide => EffectCells::default(),
         GuildPresentation::Empty => {
             render_empty(frame, content);
             EffectCells::default()
         }
-        GuildPresentation::Wide => render_wide(frame, content, model),
         GuildPresentation::Medium => {
             render_medium(frame, content, model);
             EffectCells::default()
@@ -143,37 +159,6 @@ fn render_empty(frame: &mut Frame<'_>, area: Rect) {
             .wrap(Wrap { trim: true }),
         area,
     );
-}
-
-fn render_wide(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCells {
-    let [board, guild, selected] = ratatui::layout::Layout::horizontal([
-        Constraint::Percentage(25),
-        Constraint::Percentage(36),
-        Constraint::Min(42),
-    ])
-    .areas(area);
-    render_quest_board(frame, board, model);
-
-    let [party, summons, chronicle] = ratatui::layout::Layout::vertical([
-        Constraint::Percentage(34),
-        Constraint::Percentage(30),
-        Constraint::Min(5),
-    ])
-    .areas(guild);
-    render_party(frame, party, model);
-    render_summons(frame, summons, model);
-    let marginalia_visible = render_chronicle(frame, chronicle, model);
-
-    let [adventurer, scrying, spoils] = ratatui::layout::Layout::vertical([
-        Constraint::Length(selected.height.min(9)),
-        Constraint::Min(5),
-        Constraint::Length(selected.height.min(5)),
-    ])
-    .areas(selected);
-    render_adventurer(frame, adventurer, model, true);
-    render_scrying(frame, scrying, model, true, false);
-    render_spoils(frame, spoils, model);
-    marginalia_visible
 }
 
 fn render_medium(frame: &mut Frame<'_>, area: Rect, model: &Model) {
@@ -514,28 +499,19 @@ fn render_scrying(
     );
 }
 
-fn render_spoils(frame: &mut Frame<'_>, area: Rect, model: &Model) {
-    let mut lines = vec![if model.reviewr_available() {
-        Line::from("Reviewr stands ready.")
-    } else {
-        Line::styled("Reviewr is unavailable.", MUTED)
-    }];
-    if let Some(status) = integration_notice_message(model) {
-        lines.push(Line::styled(
-            present(status, model.preferences().character_set).into_owned(),
-            ACCENT,
-        ));
-    }
-    render_panel(
-        frame,
-        area,
-        " SPOILS VAULT ",
-        Text::from(lines),
-        model.preferences().character_set,
-    );
-}
-
 fn footer_lines(model: &Model, width: u16) -> Vec<String> {
+    let mut notices = if width >= 120 {
+        match model.notice() {
+            Some(Notice::ActionFeedback(message) | Notice::PersistenceDiagnostic(message)) => {
+                vec![present(message, model.preferences().character_set).into_owned()]
+            }
+            Some(Notice::ConnectionDiagnostic(_) | Notice::IntegrationDiagnostic(_)) | None => {
+                Vec::new()
+            }
+        }
+    } else {
+        Vec::new()
+    };
     let mut actions = vec!["[1] Guild Hall", "[2] Delve"];
     if width < 80 {
         actions.push(match model.region() {
@@ -560,7 +536,8 @@ fn footer_lines(model: &Model, width: u16) -> Vec<String> {
             }
         }
     }
-    pack_actions(&actions, usize::from(width))
+    notices.extend(pack_actions(&actions, usize::from(width)));
+    notices
 }
 
 fn pack_actions(actions: &[&str], width: usize) -> Vec<String> {
@@ -586,6 +563,7 @@ fn render_footer(frame: &mut Frame<'_>, area: Rect, lines: &[String]) {
     if area.is_empty() {
         return;
     }
+    frame.render_widget(Clear, area);
     frame.render_widget(
         Paragraph::new(Text::from(
             lines.iter().cloned().map(Line::from).collect::<Vec<_>>(),
@@ -774,18 +752,6 @@ fn ordinary_notice_message(model: &Model) -> Option<&str> {
             | Notice::IntegrationDiagnostic(message),
         ) => Some(message),
         Some(Notice::ConnectionDiagnostic(_)) | None => None,
-    }
-}
-
-fn integration_notice_message(model: &Model) -> Option<&str> {
-    match model.notice() {
-        Some(Notice::IntegrationDiagnostic(message)) => Some(message),
-        Some(
-            Notice::ConnectionDiagnostic(_)
-            | Notice::ActionFeedback(_)
-            | Notice::PersistenceDiagnostic(_),
-        )
-        | None => None,
     }
 }
 
