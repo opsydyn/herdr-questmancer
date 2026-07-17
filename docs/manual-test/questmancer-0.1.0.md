@@ -36,36 +36,66 @@ PREEXISTING_MANAGED_PANE_ID=""
 MANAGED_PANE_IS_TEST_OWNED=0
 LIVE_TESTS_PERMITTED=0
 
+resolve_existing_root() {
+  local candidate_root=$1
+  test -n "$candidate_root" \
+    && test "$candidate_root" != "/" \
+    && test -d "$candidate_root" \
+    || return 1
+  (cd -- "$candidate_root" && pwd -P)
+}
+
 BASELINE_SNAPSHOT="$(mktemp)"
 BASELINE_PLUGIN_LIST="$(mktemp)"
 herdr api snapshot >"$BASELINE_SNAPSHOT"
 herdr plugin list --json >"$BASELINE_PLUGIN_LIST"
 
-BASELINE_FOCUS_PANE_ID="$(jq -r '
-  .result.panes[]? | select(.focused == true) | .pane_id
-' "$BASELINE_SNAPSHOT" | head -n 1)"
-BASELINE_PANE_IDS="$(jq -r '.result.panes[]?.pane_id' "$BASELINE_SNAPSHOT" | sort)"
-BASELINE_TAB_IDS="$(jq -r '.result.tabs[]?.tab_id' "$BASELINE_SNAPSHOT" | sort)"
-BASELINE_MANAGED_PANE_ID="$(jq -r '
-  .result.panes[]?
-  | select(((.label // .title // "") | ascii_downcase | contains("questmancer")))
-  | .pane_id
-' "$BASELINE_SNAPSHOT" | head -n 1)"
-REGISTRATION_SOURCE_ROOT="$(jq -r '
-  .. | objects | select(.id? == "opsydyn.questmancer")
-  | (.source_root? // .source_path? // (.source? | if type == "object" then (.root? // .path?) else empty end) // empty)
-' "$BASELINE_PLUGIN_LIST" | head -n 1)"
-if test -n "$REGISTRATION_SOURCE_ROOT"; then
-  REGISTRATION_SOURCE_ROOT="$(cd "$REGISTRATION_SOURCE_ROOT" && pwd -P)"
+BASELINE_FOCUS_PANE_ID="$(jq -er '.result.snapshot.focused_pane_id // empty' \
+  "$BASELINE_SNAPSHOT" 2>/dev/null || true)"
+BASELINE_FOCUS_TAB_ID="$(jq -er '.result.snapshot.focused_tab_id // empty' \
+  "$BASELINE_SNAPSHOT" 2>/dev/null || true)"
+BASELINE_PANE_IDS="$(jq -r '.result.snapshot.panes[]?.pane_id' \
+  "$BASELINE_SNAPSHOT" | sort)"
+BASELINE_TAB_IDS="$(jq -r '.result.snapshot.tabs[]?.tab_id' \
+  "$BASELINE_SNAPSHOT" | sort)"
+
+PLUGIN_MATCH_COUNT="$(jq '[.result.plugins[]? \
+  | select(.plugin_id == "opsydyn.questmancer")] | length' \
+  "$BASELINE_PLUGIN_LIST")"
+REGISTRATION_SOURCE_ROOT_RAW=""
+REGISTRATION_SOURCE_ROOT=""
+if test "$PLUGIN_MATCH_COUNT" -gt 0; then
   PREEXISTING_LINK=1
 fi
+if test "$PLUGIN_MATCH_COUNT" = 1; then
+  REGISTRATION_SOURCE_ROOT_RAW="$(jq -er '
+    .result.plugins[]?
+    | select(.plugin_id == "opsydyn.questmancer")
+    | .plugin_root
+  ' "$BASELINE_PLUGIN_LIST" 2>/dev/null || true)"
+  REGISTRATION_SOURCE_ROOT="$(resolve_existing_root \
+    "$REGISTRATION_SOURCE_ROOT_RAW" 2>/dev/null || true)"
+fi
 BASELINE_REGISTRATION_SOURCE_ROOT="$REGISTRATION_SOURCE_ROOT"
+
+HERDR_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+QUESTMANCER_RUNTIME="$HERDR_STATE_HOME/herdr/plugins/opsydyn.questmancer/runtime.json"
+RUNTIME_PANE_ID="$(jq -er '.pane_id | select(type == "string" and length > 0)' \
+  "$QUESTMANCER_RUNTIME" 2>/dev/null || true)"
+BASELINE_MANAGED_PANE_ID="$(jq -r --arg pane "$RUNTIME_PANE_ID" '
+  .result.snapshot.panes[]?
+  | select(.pane_id == $pane)
+  | .pane_id
+' "$BASELINE_SNAPSHOT" | head -n 1)"
 PREEXISTING_MANAGED_PANE_ID="$BASELINE_MANAGED_PANE_ID"
 ```
 
 Record the baseline focus, pane/tab lists, registration root and any managed
-pane. The title/label check is intentionally conservative: uncertainty blocks
-the live pass rather than risking a protected pane.
+pane. The installed 0.7.4 snapshot does not expose pane titles or labels, so
+the managed-pane identity comes from Questmancer's runtime registration and is
+accepted only when that exact pane still exists in the snapshot. An absent,
+duplicate, empty, root (`/`), missing or otherwise unresolved plugin root keeps
+the live gate closed; it is never passed to `cd`.
 
 ### 1. Baseline the environment
 
@@ -98,12 +128,22 @@ Only when the baseline proves the plugin is absent:
 ```bash
 herdr plugin link "$TEST_CHECKOUT"
 TEST_CREATED_LINK=1
-herdr plugin list --json >"$BASELINE_PLUGIN_LIST"
-REGISTRATION_SOURCE_ROOT="$(jq -r '
-  .. | objects | select(.id? == "opsydyn.questmancer")
-  | (.source_root? // .source_path? // (.source? | if type == "object" then (.root? // .path?) else empty end) // empty)
-' "$BASELINE_PLUGIN_LIST" | head -n 1)"
-REGISTRATION_SOURCE_ROOT="$(cd "$REGISTRATION_SOURCE_ROOT" && pwd -P)"
+POST_LINK_PLUGIN_LIST="$(mktemp)"
+herdr plugin list --json >"$POST_LINK_PLUGIN_LIST"
+PLUGIN_MATCH_COUNT="$(jq '[.result.plugins[]?
+  | select(.plugin_id == "opsydyn.questmancer")] | length'
+  "$POST_LINK_PLUGIN_LIST")"
+REGISTRATION_SOURCE_ROOT_RAW=""
+REGISTRATION_SOURCE_ROOT=""
+if test "$PLUGIN_MATCH_COUNT" = 1; then
+  REGISTRATION_SOURCE_ROOT_RAW="$(jq -er '
+    .result.plugins[]?
+    | select(.plugin_id == "opsydyn.questmancer")
+    | .plugin_root
+  ' "$POST_LINK_PLUGIN_LIST" 2>/dev/null || true)"
+  REGISTRATION_SOURCE_ROOT="$(resolve_existing_root
+    "$REGISTRATION_SOURCE_ROOT_RAW" 2>/dev/null || true)"
+fi
 ```
 
 Verify version `0.1.0`, minimum Herdr `0.7.4`, local source, enabled status and
@@ -114,7 +154,9 @@ Before continuing, prove that the registration points to this exact resolved
 checkout and that there was no protected managed pane in the baseline:
 
 ```bash
-if test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT" \
+if test "$PLUGIN_MATCH_COUNT" = 1 \
+  && test -n "$REGISTRATION_SOURCE_ROOT" \
+  && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT" \
   && test -z "$BASELINE_MANAGED_PANE_ID"; then
   LIVE_TESTS_PERMITTED=1
 fi
@@ -160,12 +202,17 @@ if test "$LIVE_TESTS_PERMITTED" = 1 \
 POST_OPEN_SNAPSHOT="$(mktemp)"
 herdr api snapshot >"$POST_OPEN_SNAPSHOT"
 MANAGED_PANE_ID="$(jq -r '
-  .result.panes[]?
-  | select(((.label // .title // "") | ascii_downcase | contains("questmancer")))
+  .result.snapshot.panes[]?
   | .pane_id
-' "$POST_OPEN_SNAPSHOT" | head -n 1)"
+' "$POST_OPEN_SNAPSHOT" | sort | comm -13 \
+  <(printf '%s\n' "$BASELINE_PANE_IDS") -)"
+MANAGED_PANE_COUNT="$(printf '%s\n' "$MANAGED_PANE_ID" | sed '/^$/d' | wc -l | tr -d ' ')"
+if test "$MANAGED_PANE_COUNT" != 1; then
+  printf '%s\n' 'Managed pane discovery was ambiguous; block remaining live rows.' >&2
+  LIVE_TESTS_PERMITTED=0
+fi
 MANAGED_TAB_ID="$(jq -r --arg pane "$MANAGED_PANE_ID" '
-  .result.panes[]? | select(.pane_id == $pane) | .tab_id
+  .result.snapshot.panes[]? | select(.pane_id == $pane) | .tab_id
 ' "$POST_OPEN_SNAPSHOT" | head -n 1)"
 test -n "$MANAGED_PANE_ID" && test -n "$MANAGED_TAB_ID" || {
   printf '%s\n' 'Managed pane discovery was ambiguous; block remaining live rows.' >&2
@@ -195,11 +242,17 @@ WORKSPACE_ID=$(herdr workspace list |
   jq -r '.result.workspaces[] | select(.focused) | .workspace_id' |
   head -n 1)
 TEST_LABEL="questmancer-great-room-$(date +%s)"
-herdr tab create --workspace "$WORKSPACE_ID" --cwd "$PWD" \
-  --label "$TEST_LABEL" --focus
+TAB_CREATE_JSON="$(herdr tab create --workspace "$WORKSPACE_ID" --cwd "$PWD" \
+  --label "$TEST_LABEL" --focus)"
+TAB_ID="$(jq -er '.result.tab.tab_id' <<<"$TAB_CREATE_JSON")"
 TEST_CREATED_TAB=1
-TAB_ID=$(herdr tab current | jq -r '.result.tab.tab_id // .result.tab_id')
-PANE_ID=$(herdr pane current | jq -r '.result.pane.pane_id')
+CURRENT_PANE_JSON="$(herdr pane current)"
+CURRENT_TAB_ID="$(jq -er '.result.pane.tab_id' <<<"$CURRENT_PANE_JSON")"
+PANE_ID="$(jq -er '.result.pane.pane_id' <<<"$CURRENT_PANE_JSON")"
+test "$CURRENT_TAB_ID" = "$TAB_ID" || {
+  printf '%s\n' 'Focused pane does not belong to the created tab; block live rows.' >&2
+  LIVE_TESTS_PERMITTED=0
+}
 TEST_CREATED_PANE=1
 SOURCE_ID="questmancer-manual-$(date +%s)-$$-$RANDOM"
 
@@ -284,8 +337,9 @@ retain the same campaign identity and actions through the cropped-room camera.
 Also inspect landmark-camera navigation below 80 columns when safe.
 
 If the controlling PTY cannot resize or capture the user's terminal, record
-these checks as `BLOCKED` with the available `herdr pane read --source visible
---format text` evidence. Never substitute a text read for a screenshot claim.
+these checks as `BLOCKED` with the available `herdr pane read
+"$MANAGED_PANE_ID" --source visible --format text` evidence. Never substitute a
+text read for a screenshot claim.
 
 ### 7. Clean up only test-created resources and verify restoration
 
@@ -321,10 +375,8 @@ fi
 
 CURRENT_SNAPSHOT="$(mktemp)"
 herdr api snapshot >"$CURRENT_SNAPSHOT"
-CURRENT_MANAGED_PANE_ID="$(jq -r '
-  .result.panes[]?
-  | select(((.label // .title // "") | ascii_downcase | contains("questmancer")))
-  | .pane_id
+CURRENT_MANAGED_PANE_ID="$(jq -r --arg pane "${MANAGED_PANE_ID:-}" '
+  .result.snapshot.panes[]? | select(.pane_id == $pane) | .pane_id
 ' "$CURRENT_SNAPSHOT" | head -n 1)"
 if test "$TEST_CREATED_MANAGED_PANE" = 1 \
   && test -n "${MANAGED_PANE_ID:-}" \
@@ -332,17 +384,22 @@ if test "$TEST_CREATED_MANAGED_PANE" = 1 \
   && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
   herdr plugin action invoke opsydyn.questmancer.close
 fi
-if test "$TEST_CREATED_LINK" = 1 \
-  && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
+if test "$TEST_CREATED_LINK" = 1; then
   herdr plugin unlink opsydyn.questmancer
 fi
 
-if test -n "${BASELINE_FOCUS_PANE_ID:-}" \
-  && herdr api snapshot | jq -e --arg pane "$BASELINE_FOCUS_PANE_ID" \
-    '.result.panes[]? | select(.pane_id == $pane)' >/dev/null; then
-  herdr pane focus "$BASELINE_FOCUS_PANE_ID"
+if test -n "${BASELINE_FOCUS_TAB_ID:-}" \
+  && herdr api snapshot | jq -e --arg tab "$BASELINE_FOCUS_TAB_ID" \
+    '.result.snapshot.tabs[]? | select(.tab_id == $tab)' >/dev/null; then
+  herdr tab focus "$BASELINE_FOCUS_TAB_ID"
 fi
 ```
+
+Herdr 0.7.4 exposes exact tab focus but `herdr pane focus` only moves in a
+direction relative to a pane. The procedure therefore restores the exact
+baseline tab and records the final pane ID for comparison; it does not claim
+that the previously focused pane within a multi-pane tab can be restored by
+the CLI.
 
 Never stop a pre-existing server. Finally run the comparison rather than relying
 on a successful cleanup command:
@@ -365,19 +422,24 @@ FINAL_SNAPSHOT="$(mktemp)"
 FINAL_PLUGIN_LIST="$(mktemp)"
 herdr api snapshot >"$FINAL_SNAPSHOT"
 herdr plugin list --json >"$FINAL_PLUGIN_LIST"
-FINAL_PANE_IDS="$(jq -r '.result.panes[]?.pane_id' "$FINAL_SNAPSHOT" | sort)"
-FINAL_TAB_IDS="$(jq -r '.result.tabs[]?.tab_id' "$FINAL_SNAPSHOT" | sort)"
-FINAL_FOCUS_PANE_ID="$(jq -r '.result.panes[]? | select(.focused == true) | .pane_id' "$FINAL_SNAPSHOT" | head -n 1)"
-FINAL_REGISTRATION_SOURCE_ROOT="$(jq -r '
-  .. | objects | select(.id? == "opsydyn.questmancer")
-  | (.source_root? // .source_path? // (.source? | if type == "object" then (.root? // .path?) else empty end) // empty)
-' "$FINAL_PLUGIN_LIST" | head -n 1)"
-if test -n "$FINAL_REGISTRATION_SOURCE_ROOT"; then
-  FINAL_REGISTRATION_SOURCE_ROOT="$(cd "$FINAL_REGISTRATION_SOURCE_ROOT" && pwd -P)"
-fi
+FINAL_PANE_IDS="$(jq -r '.result.snapshot.panes[]?.pane_id' "$FINAL_SNAPSHOT" | sort)"
+FINAL_TAB_IDS="$(jq -r '.result.snapshot.tabs[]?.tab_id' "$FINAL_SNAPSHOT" | sort)"
+FINAL_FOCUS_PANE_ID="$(jq -er '.result.snapshot.focused_pane_id // empty' \
+  "$FINAL_SNAPSHOT" 2>/dev/null || true)"
+FINAL_FOCUS_TAB_ID="$(jq -er '.result.snapshot.focused_tab_id // empty' \
+  "$FINAL_SNAPSHOT" 2>/dev/null || true)"
+FINAL_REGISTRATION_SOURCE_ROOT_RAW="$(jq -er '
+  .result.plugins[]?
+  | select(.plugin_id == "opsydyn.questmancer")
+  | .plugin_root
+' "$FINAL_PLUGIN_LIST" 2>/dev/null || true)"
+FINAL_REGISTRATION_SOURCE_ROOT="$(resolve_existing_root \
+  "$FINAL_REGISTRATION_SOURCE_ROOT_RAW" 2>/dev/null || true)"
 test "$FINAL_PANE_IDS" = "$BASELINE_PANE_IDS"
 test "$FINAL_TAB_IDS" = "$BASELINE_TAB_IDS"
-test "$FINAL_FOCUS_PANE_ID" = "$BASELINE_FOCUS_PANE_ID"
+test "$FINAL_FOCUS_TAB_ID" = "$BASELINE_FOCUS_TAB_ID"
+printf 'baseline/final pane focus (informational): %s / %s\n' \
+  "${BASELINE_FOCUS_PANE_ID:-none}" "${FINAL_FOCUS_PANE_ID:-none}"
 if test "$PREEXISTING_LINK" = 1; then
   test "$FINAL_REGISTRATION_SOURCE_ROOT" = "$BASELINE_REGISTRATION_SOURCE_ROOT"
 else
@@ -551,8 +613,8 @@ herdr pane report-agent "$PANE_ID" --source "$SOURCE_ID" \
 
 The test selected the synthetic agent through `/`, acknowledged it with Space,
 closed and reopened Questmancer while the agent stayed blocked, and inspected
-only the two test-owned panes with `herdr pane read --source visible --format
-text`.
+only the two test-owned panes with `herdr pane read "$PANE_ID" --source visible
+--format text` (and the separately captured managed pane ID).
 
 ## Persistence evidence
 

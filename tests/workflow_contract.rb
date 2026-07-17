@@ -88,6 +88,10 @@ def require_text(document, label, expected)
   abort_contract("#{label} is missing: #{expected}") unless document.include?(expected)
 end
 
+def forbid_text(document, label, forbidden)
+  abort_contract("#{label} contains invalid workflow text: #{forbidden}") if document.include?(forbidden)
+end
+
 workflow_paths = if ARGV.empty?
                    [".github/workflows/release.yml", ".github/workflows/ci.yml"]
                  elsif ARGV.length == 2
@@ -205,9 +209,20 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
 
 [
   'TEST_CHECKOUT="$(pwd -P)"',
+  'REGISTRATION_SOURCE_ROOT_RAW=',
   'REGISTRATION_SOURCE_ROOT=',
+  'test "$candidate_root" != "/"',
+  'test -d "$candidate_root"',
+  '.result.plugins[]?',
+  'select(.plugin_id == "opsydyn.questmancer")',
+  '.plugin_root',
+  '.result.snapshot.panes[]?',
+  '.result.snapshot.tabs[]?',
+  '.result.snapshot.focused_pane_id',
+  '.result.snapshot.focused_tab_id',
   'test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"',
   "BASELINE_FOCUS_PANE_ID=",
+  "BASELINE_FOCUS_TAB_ID=",
   "PREEXISTING_LINK=0",
   "PREEXISTING_MANAGED_PANE_ID=",
   "TEST_CREATED_LINK=0",
@@ -223,16 +238,31 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
   "herdr plugin action invoke opsydyn.questmancer.close",
   "herdr pane report-agent",
   "herdr pane release-agent",
+  'CURRENT_PANE_JSON="$(herdr pane current)"',
+  "TAB_ID=\"$(jq -er '.result.tab.tab_id'",
+  "CURRENT_TAB_ID=\"$(jq -er '.result.pane.tab_id'",
+  "PANE_ID=\"$(jq -er '.result.pane.pane_id'",
   "80x24",
   "Herdr 0.7.4 cannot synthesize `done`",
   'herdr pane release-agent "$PANE_ID"',
   'herdr plugin unlink opsydyn.questmancer',
-  'herdr pane focus "$BASELINE_FOCUS_PANE_ID"',
+  'herdr tab focus "$BASELINE_FOCUS_TAB_ID"',
   "FINAL_REGISTRATION_SOURCE_ROOT=",
   "Final baseline comparison",
   "PASS",
   "FAIL",
   "BLOCKED"
 ].each { |expected| require_text(manual, "guarded manual test", expected) }
+
+[
+  ".result.panes",
+  ".result.tabs",
+  ".source_root?",
+  ".source_path?",
+  "herdr tab current",
+  'herdr pane focus "$BASELINE_FOCUS_PANE_ID"',
+  "herdr pane read --source",
+  ".label // .title"
+].each { |forbidden| forbid_text(manual, "guarded manual test", forbidden) }
 
 puts "workflow contracts: valid"
