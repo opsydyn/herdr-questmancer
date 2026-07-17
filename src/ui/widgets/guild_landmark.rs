@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use ratatui::{
     Frame,
+    buffer::CellWidth,
     layout::Rect,
     style::Style,
     text::{Line, Text},
@@ -229,7 +230,7 @@ pub(crate) fn render_scrying_alcove(
         }
         LandmarkLayer::Labels => {
             render_heading(frame, landmark.area, "SCRYING ALCOVE", theme);
-            let caption = if landmark.area.width <= 24 {
+            let caption = if landmark_inner(landmark.area).width < 24 {
                 "MIRROR / CANDLES"
             } else {
                 "MIRROR / CANDLES / BOOKS"
@@ -280,7 +281,7 @@ pub(crate) fn render_spoils_desk(
                 "LEDGER / LOCKBOX / MUG",
                 role_style(theme, ColorRole::Parchment),
             );
-            render_content(frame, landmark.area, 2, lines, theme);
+            render_measured_content(frame, landmark.area, 2, lines, theme);
         }
     }
 }
@@ -416,6 +417,92 @@ fn render_content(
         .wrap(Wrap { trim: false }),
         content_area,
     );
+}
+
+pub(crate) fn content_visual_height(area: Rect, row: u16, lines: &[Cow<'_, str>]) -> u16 {
+    let inner = landmark_inner(area);
+    if inner.is_empty() || row >= inner.height {
+        return 0;
+    }
+    u16::try_from(wrapped_content_lines(lines, inner.width).len()).unwrap_or(u16::MAX)
+}
+
+fn render_measured_content(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    row: u16,
+    lines: &[Cow<'_, str>],
+    theme: LandmarkTheme,
+) {
+    let inner = landmark_inner(area);
+    if inner.is_empty() || row >= inner.height {
+        return;
+    }
+    let rows = wrapped_content_lines(lines, inner.width);
+    frame.render_widget(
+        Paragraph::new(Text::from(
+            rows.iter()
+                .map(|line| Line::from(line.as_str()))
+                .collect::<Vec<_>>(),
+        ))
+        .style(role_style(theme, ColorRole::Parchment)),
+        Rect::new(
+            inner.x,
+            inner.y.saturating_add(row),
+            inner.width,
+            inner.height.saturating_sub(row),
+        ),
+    );
+}
+
+fn wrapped_content_lines(lines: &[Cow<'_, str>], width: u16) -> Vec<String> {
+    if width == 0 {
+        return Vec::new();
+    }
+    lines
+        .iter()
+        .flat_map(|line| wrap_content_line(line, width))
+        .collect()
+}
+
+fn wrap_content_line(line: &str, width: u16) -> Vec<String> {
+    if line.is_empty() {
+        return vec![String::new()];
+    }
+    let mut rows = Vec::new();
+    let mut row = String::new();
+    let mut row_width = 0_u16;
+    for word in line.split_whitespace() {
+        let word_width = word.cell_width();
+        let additional = word_width.saturating_add(u16::from(!row.is_empty()));
+        if !row.is_empty() && row_width.saturating_add(additional) > width {
+            rows.push(std::mem::take(&mut row));
+            row_width = 0;
+        }
+        if word_width > width {
+            for character in word.chars() {
+                let mut encoded = [0; 4];
+                let character_width = character.encode_utf8(&mut encoded).cell_width();
+                if !row.is_empty() && row_width.saturating_add(character_width) > width {
+                    rows.push(std::mem::take(&mut row));
+                    row_width = 0;
+                }
+                row.push(character);
+                row_width = row_width.saturating_add(character_width);
+            }
+        } else {
+            if !row.is_empty() {
+                row.push(' ');
+                row_width = row_width.saturating_add(1);
+            }
+            row.push_str(word);
+            row_width = row_width.saturating_add(word_width);
+        }
+    }
+    if !row.is_empty() {
+        rows.push(row);
+    }
+    rows
 }
 
 fn render_line(frame: &mut Frame<'_>, area: Rect, row: u16, text: &str, style: Style) {

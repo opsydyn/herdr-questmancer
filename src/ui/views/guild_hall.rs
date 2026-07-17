@@ -38,6 +38,7 @@ pub(crate) fn render(
     frame: &mut Frame<'_>,
     model: &Model,
     projection: &RenderProjection,
+    layout: &GuildLayout,
 ) -> GuildGoblinEvidence {
     let area = frame.area();
     if area.width < 4 || area.height < 3 {
@@ -45,11 +46,8 @@ pub(crate) fn render(
         return GuildGoblinEvidence::default();
     }
 
-    let footer_projection = footer_projection(model, area.width);
-    let footer_height = footer_projection.height();
-    let [body, footer] =
-        ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
-            .areas(area);
+    let body = layout.body;
+    let footer = layout.footer;
     if let Some(room) = projection
         .guild_room
         .as_ref()
@@ -57,7 +55,7 @@ pub(crate) fn render(
     {
         let marginalia = great_room::render(frame, body, model, room);
         let sprites = goblins::render(frame, body, model);
-        render_footer(frame, footer, &footer_projection);
+        render_footer(frame, footer, &layout.footer_projection);
         return GuildGoblinEvidence {
             sprites,
             marginalia,
@@ -95,7 +93,7 @@ pub(crate) fn render(
     };
 
     let sprite_visible = goblins::render(frame, content, model);
-    render_footer(frame, footer, &footer_projection);
+    render_footer(frame, footer, &layout.footer_projection);
     GuildGoblinEvidence {
         sprites: sprite_visible,
         marginalia: marginalia_visible,
@@ -506,6 +504,40 @@ struct FooterProjection {
     actions: Vec<String>,
 }
 
+#[derive(Debug)]
+pub(crate) struct GuildLayout {
+    body: Rect,
+    footer: Rect,
+    footer_projection: FooterProjection,
+}
+
+impl GuildLayout {
+    pub(crate) const fn room_area(&self) -> Rect {
+        self.body
+    }
+}
+
+pub(crate) fn layout(model: &Model, area: Rect) -> GuildLayout {
+    let footer_projection = footer_projection(model, area.width);
+    if area.width < 4 || area.height < 3 {
+        return GuildLayout {
+            body: area,
+            footer: Rect::default(),
+            footer_projection,
+        };
+    }
+    let [body, footer] = ratatui::layout::Layout::vertical([
+        Constraint::Min(1),
+        Constraint::Length(footer_projection.height()),
+    ])
+    .areas(area);
+    GuildLayout {
+        body,
+        footer,
+        footer_projection,
+    }
+}
+
 impl FooterProjection {
     fn height(&self) -> u16 {
         u16::try_from(self.notice_lines.len().saturating_add(self.actions.len()))
@@ -860,17 +892,6 @@ fn guild_content_area(model: &Model, terminal_area: Rect) -> Rect {
         ratatui::layout::Layout::vertical([Constraint::Length(banner_height), Constraint::Min(0)])
             .areas(inner);
     content
-}
-
-pub(crate) fn room_area(model: &Model, terminal_area: Rect) -> Rect {
-    if terminal_area.width < 4 || terminal_area.height < 3 {
-        return terminal_area;
-    }
-    let footer_height = footer_projection(model, terminal_area.width).height();
-    let [body, _footer] =
-        ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
-            .areas(terminal_area);
-    body
 }
 
 fn visible_party_slots(model: &Model, area: Rect) -> Vec<ElapsedSlot<'_>> {

@@ -116,7 +116,10 @@ impl RenderProjection {
 pub fn render_projection_for(model: &Model, area: Rect) -> RenderProjection {
     let mut projection = RenderProjection::default();
     match model.view() {
-        View::Guild => project_guild(model, area, &mut projection),
+        View::Guild => {
+            let layout = views::guild_hall::layout(model, area);
+            project_guild(model, area, layout.room_area(), &mut projection);
+        }
         View::Delve => {
             let delve = delve_projection::render_projection(model, area);
             project_delve(model, &delve, &mut projection);
@@ -171,11 +174,8 @@ fn project_delve(
         .collect();
 }
 
-fn project_guild(model: &Model, area: Rect, projection: &mut RenderProjection) {
-    projection.guild_room = Some(guild_room_projection::project(
-        model,
-        views::guild_hall::room_area(model, area),
-    ));
+fn project_guild(model: &Model, area: Rect, room_area: Rect, projection: &mut RenderProjection) {
+    projection.guild_room = Some(guild_room_projection::project(model, room_area));
     if area.width < 4 || area.height < 3 {
         return;
     }
@@ -311,8 +311,11 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
 pub fn render_with_projection(frame: &mut Frame<'_>, model: &Model) -> RenderProjection {
     let (projection, goblin_evidence) = match model.view() {
         View::Guild => {
-            let projection = render_projection_for(model, frame.area());
-            let evidence = views::guild_hall::render(frame, model, &projection);
+            let area = frame.area();
+            let layout = views::guild_hall::layout(model, area);
+            let mut projection = RenderProjection::default();
+            project_guild(model, area, layout.room_area(), &mut projection);
+            let evidence = views::guild_hall::render(frame, model, &projection, &layout);
             (projection, evidence)
         }
         View::Delve => {

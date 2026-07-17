@@ -197,6 +197,53 @@ fn crowded_owner_model() -> Model {
     model
 }
 
+fn overflowing_owner_model(tokens: bool, total: usize) -> Model {
+    let mut model = live_model();
+    model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Ascii,
+        ..DisplayPreferences::default()
+    });
+    let template = model.domain().agents.values().next().unwrap().clone();
+    let workspace_id = template.workspace_id.clone();
+    model.domain_mut().agents.clear();
+    let mut party = Vec::new();
+
+    for index in 0..total {
+        let prefix = if tokens { "TOK" } else { "ADV" };
+        let key = AgentKey::new(format!("overflow-{prefix}-{index:03}"));
+        let mut agent = template.clone();
+        agent.key = key.clone();
+        agent.pane_id = PaneId::new(format!("pane-{prefix}-{index:03}"));
+        agent.name = format!("pane-{prefix}-{index:03}");
+        agent.persona.name = format!("{prefix}-{index:03}");
+        agent.presence = if tokens {
+            Presence::Working
+        } else {
+            Presence::Done
+        };
+        agent.attention = if tokens {
+            GuildAttention::Clear
+        } else {
+            GuildAttention::unread(
+                GuildSummons::SpoilsReturned,
+                Timestamp::from_millis(120_500),
+            )
+        };
+        agent.focused = tokens;
+        agent.custom_status = None;
+        party.push(key.clone());
+        model.domain_mut().agents.insert(key, agent);
+    }
+    model.domain_mut().selected_agent = None;
+    model
+        .domain_mut()
+        .campaigns
+        .get_mut(&workspace_id)
+        .unwrap()
+        .party = party;
+    model
+}
+
 fn render(model: &Model, width: u16, height: u16) -> String {
     let buffer = render_buffer(model, width, height);
     (0..height)
@@ -252,6 +299,19 @@ fn assert_room_border_precedes_footer(buffer: &Buffer, width: u16, height: u16) 
         border.is_some(),
         "room bottom border was erased before footer row {footer_y}"
     );
+}
+
+fn complete_overflow_count(screen: &str, noun: &str) -> usize {
+    let words = screen.split_whitespace().collect::<Vec<_>>();
+    let noun_index = words
+        .iter()
+        .position(|word| *word == noun)
+        .unwrap_or_else(|| panic!("missing complete overflow noun {noun}:\n{screen}"));
+    words
+        .get(noun_index.saturating_sub(1))
+        .and_then(|count| count.strip_prefix('+'))
+        .and_then(|count| count.parse().ok())
+        .unwrap_or_else(|| panic!("missing complete overflow count before {noun}:\n{screen}"))
 }
 
 #[test]
@@ -488,6 +548,94 @@ fn minimum_wide_scrying_uses_a_complete_short_furniture_caption() {
         "{rows:?}"
     );
     assert!(!rows.iter().any(|row| row.ends_with("BOO")), "{rows:?}");
+}
+
+#[test]
+fn spoils_diagnostic_and_single_returnee_do_not_overwrite_each_other_or_the_room_wall() {
+    let mut model = model_with_presence(
+        Presence::Done,
+        GuildAttention::unread(
+            GuildSummons::SpoilsReturned,
+            Timestamp::from_millis(120_500),
+        ),
+    );
+    let _ = reduce_action(&mut model, Action::InspectSpoils);
+
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 120, 40));
+    let spoils = projection
+        .guild_room
+        .as_ref()
+        .unwrap()
+        .landmarks
+        .iter()
+        .find(|landmark| landmark.landmark == ui::guild_room_projection::GuildLandmark::Spoils)
+        .unwrap()
+        .area;
+    let buffer = render_buffer(&model, 120, 40);
+    let screen = render(&model, 120, 40);
+    let rows = area_rows(&buffer, spoils);
+    let normalized = rows
+        .join(" ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    let diagnostic = "The spoils cannot be inspected here: Reviewr is unavailable.";
+
+    assert_eq!(screen.matches("Elowen Typeweaver").count(), 1, "{screen}");
+    assert_eq!(screen.matches("completed 2m").count(), 1, "{screen}");
+    assert!(normalized.contains(diagnostic), "{rows:?}");
+    assert!(
+        rows.iter()
+            .filter(|row| row.contains("Elowen Typeweaver") || row.contains("completed 2m"))
+            .all(|row| !row.contains("Reviewr") && !row.contains("spoils cannot")),
+        "identity/status was mixed with diagnostic copy: {rows:?}"
+    );
+    assert_room_border_precedes_footer(&buffer, 120, 40);
+}
+
+#[test]
+fn true_token_and_adventurer_overflow_use_complete_owner_wide_counts() {
+    const TOTAL: usize = 240;
+    for (tokens, noun) in [(true, "TOKENS"), (false, "ADVENTURERS")] {
+        let model = overflowing_owner_model(tokens, TOTAL);
+        let screen = render(&model, 120, 40);
+        let overflow = complete_overflow_count(&screen, noun);
+        let individually_visible = if tokens {
+            screen.matches("TOK-").count()
+        } else {
+            screen.matches("ADV").count().saturating_sub(1)
+        };
+
+        assert!(overflow > 0, "fixture did not overflow {noun}:\n{screen}");
+        assert_eq!(
+            individually_visible + overflow,
+            TOTAL,
+            "visible plus explicit {noun} overflow must describe every owner: {screen}"
+        );
+    }
+}
+
+#[test]
+fn scrying_caption_uses_inner_width_at_the_twenty_five_cell_boundary() {
+    let model = live_model();
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 125, 40));
+    let area = projection
+        .guild_room
+        .as_ref()
+        .unwrap()
+        .landmarks
+        .iter()
+        .find(|landmark| landmark.landmark == ui::guild_room_projection::GuildLandmark::Scrying)
+        .unwrap()
+        .area;
+    assert_eq!(area.width, 25, "boundary fixture drifted: {area:?}");
+    let rows = area_rows(&render_buffer(&model, 125, 40), area);
+
+    assert!(
+        rows.iter().any(|row| row.trim() == "MIRROR / CANDLES"),
+        "{rows:?}"
+    );
+    assert!(!rows.iter().any(|row| row.contains("BOOK")), "{rows:?}");
 }
 
 #[test]

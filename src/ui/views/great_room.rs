@@ -24,9 +24,10 @@ use crate::{
         theatre::{TheatreFrame, TheatrePose, frame_for},
         widgets::{
             guild_landmark::{
-                LandmarkLayer, LandmarkTheme, render_campaign_table, render_chronicle_lectern,
-                render_chronicle_marginalia, render_counsel_bell, render_door, render_hearth,
-                render_quest_wall, render_scrying_alcove, render_spoils_desk,
+                LandmarkLayer, LandmarkTheme, content_visual_height, render_campaign_table,
+                render_chronicle_lectern, render_chronicle_marginalia, render_counsel_bell,
+                render_door, render_hearth, render_quest_wall, render_scrying_alcove,
+                render_spoils_desk,
             },
             presentation::present,
         },
@@ -165,6 +166,11 @@ fn render_representations(
     copy: &GreatRoomCopy<'_>,
     palette: Palette,
 ) {
+    let spoils_top_rows = index
+        .landmark(&GuildLandmark::Spoils)
+        .map_or(2, |landmark| {
+            2_u16.saturating_add(content_visual_height(landmark.area, 2, &copy.spoils))
+        });
     let occupant_counts = plan
         .iter()
         .filter_map(|path| match path {
@@ -194,7 +200,7 @@ fn render_representations(
                 representation,
                 *slot,
                 total,
-                representation_top_rows(representation, copy),
+                representation_top_rows(representation, spoils_top_rows),
                 palette,
             );
             *slot = slot.saturating_add(1);
@@ -422,7 +428,26 @@ fn render_token(
         .max(needed_columns.min(max_columns))
         .min(max_columns)
         .min(total.max(1));
-    let capacity = columns.saturating_mul(usize::from(available_rows));
+    let full_capacity = columns.saturating_mul(usize::from(available_rows));
+    let overflow = total > full_capacity;
+    let visible_rows = available_rows.saturating_sub(u16::from(overflow));
+    let capacity = columns.saturating_mul(usize::from(visible_rows));
+    if overflow && slot == capacity {
+        frame.render_widget(
+            Paragraph::new(format!("+{} TOKENS", total.saturating_sub(capacity)))
+                .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
+            Rect::new(
+                inner.x,
+                inner
+                    .y
+                    .saturating_add(top_rows)
+                    .saturating_add(visible_rows),
+                inner.width,
+                1,
+            ),
+        );
+        return;
+    }
     if slot >= capacity {
         return;
     }
@@ -447,12 +472,7 @@ fn render_token(
         CharacterSet::Unicode => "◆",
         CharacterSet::Ascii => "o",
     };
-    let label = if total > capacity && slot == capacity.saturating_sub(1) {
-        format!(
-            "+{} TOKENS",
-            total.saturating_sub(capacity).saturating_add(1)
-        )
-    } else if total == 1 {
+    let label = if total == 1 {
         format!(
             "{marker} {} [TOKEN / {}]",
             present(&agent.persona.name, model.preferences().character_set),
@@ -488,7 +508,7 @@ fn render_full_figure(
     let column_width = inner.width;
     let x = inner.x;
     let y = inner.y.saturating_add(top_rows);
-    if y >= area.bottom() {
+    if y >= inner.bottom() {
         return;
     }
 
@@ -517,6 +537,8 @@ fn render_full_figure(
             Rect::new(x, y.saturating_add(7), column_width, 1),
         )
     };
+    let label_area = label_area.intersection(inner);
+    let status_area = status_area.intersection(inner);
     frame.render_widget(
         Paragraph::new(label.as_ref())
             .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
@@ -531,7 +553,7 @@ fn render_full_figure(
         x,
         art_y,
         column_width.min(10),
-        area.bottom().saturating_sub(art_y),
+        inner.bottom().saturating_sub(art_y),
     );
     match model.preferences().character_set {
         CharacterSet::Unicode => {
@@ -576,7 +598,26 @@ fn render_dense_figure(
         .max(needed_columns.min(max_columns))
         .min(max_columns)
         .min(total.max(1));
-    let capacity = columns.saturating_mul(usize::from(available_rows));
+    let full_capacity = columns.saturating_mul(usize::from(available_rows));
+    let overflow = total > full_capacity;
+    let visible_rows = available_rows.saturating_sub(u16::from(overflow));
+    let capacity = columns.saturating_mul(usize::from(visible_rows));
+    if overflow && slot == capacity {
+        frame.render_widget(
+            Paragraph::new(format!("+{} ADVENTURERS", total.saturating_sub(capacity)))
+                .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
+            Rect::new(
+                inner.x,
+                inner
+                    .y
+                    .saturating_add(top_rows)
+                    .saturating_add(visible_rows),
+                inner.width,
+                1,
+            ),
+        );
+        return;
+    }
     if slot >= capacity {
         return;
     }
@@ -594,17 +635,6 @@ fn render_dense_figure(
         return;
     }
     let x = inner.x.saturating_add(column.saturating_mul(column_width));
-    if total > capacity && slot == capacity.saturating_sub(1) {
-        frame.render_widget(
-            Paragraph::new(format!(
-                "+{} ADVENTURERS",
-                total.saturating_sub(capacity).saturating_add(1)
-            ))
-            .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
-            Rect::new(x, y, column_width, 1),
-        );
-        return;
-    }
     let art_width = column_width.min(2);
     match model.preferences().character_set {
         CharacterSet::Unicode => {
@@ -707,15 +737,12 @@ fn representation_agent(representation: &AdventurerRepresentation) -> &AgentKey 
     }
 }
 
-fn representation_top_rows(
-    representation: &AdventurerRepresentation,
-    copy: &GreatRoomCopy<'_>,
-) -> u16 {
+fn representation_top_rows(representation: &AdventurerRepresentation, spoils_top_rows: u16) -> u16 {
     match representation {
         AdventurerRepresentation::Physical {
             station: GuildLandmark::Spoils,
             ..
-        } => 2_u16.saturating_add(u16::try_from(copy.spoils.len()).unwrap_or(u16::MAX)),
+        } => spoils_top_rows,
         AdventurerRepresentation::Physical { .. }
         | AdventurerRepresentation::Projection { .. }
         | AdventurerRepresentation::Token { .. } => 2,
