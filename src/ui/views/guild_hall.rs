@@ -501,6 +501,7 @@ fn render_scrying(
 #[derive(Debug)]
 struct FooterProjection {
     notice_lines: Vec<String>,
+    ledger_lines: Vec<String>,
     actions: Vec<String>,
 }
 
@@ -518,7 +519,7 @@ impl GuildLayout {
 }
 
 pub(crate) fn layout(model: &Model, area: Rect) -> GuildLayout {
-    let footer_projection = footer_projection(model, area.width);
+    let footer_projection = footer_projection(model, area);
     if area.width < 4 || area.height < 3 {
         return GuildLayout {
             body: area,
@@ -540,18 +541,28 @@ pub(crate) fn layout(model: &Model, area: Rect) -> GuildLayout {
 
 impl FooterProjection {
     fn height(&self) -> u16 {
-        u16::try_from(self.notice_lines.len().saturating_add(self.actions.len()))
-            .unwrap_or(u16::MAX)
+        u16::try_from(
+            self.notice_lines
+                .len()
+                .saturating_add(self.ledger_lines.len())
+                .saturating_add(self.actions.len()),
+        )
+        .unwrap_or(u16::MAX)
     }
 }
 
-fn footer_projection(model: &Model, width: u16) -> FooterProjection {
+fn footer_projection(model: &Model, area: Rect) -> FooterProjection {
+    let width = area.width;
     let notice = if width >= 120 {
         match model.notice() {
             Some(Notice::ActionFeedback(message) | Notice::PersistenceDiagnostic(message)) => {
                 Some(present(message, model.preferences().character_set).into_owned())
             }
-            Some(Notice::ConnectionDiagnostic(_) | Notice::IntegrationDiagnostic(_)) | None => None,
+            Some(Notice::IntegrationDiagnostic(message)) => {
+                Some(present(message, model.preferences().character_set).into_owned())
+            }
+            Some(Notice::ConnectionDiagnostic(_) | Notice::ReviewrAvailabilityDiagnostic(_))
+            | None => None,
         }
     } else {
         None
@@ -584,8 +595,29 @@ fn footer_projection(model: &Model, width: u16) -> FooterProjection {
     let notice_lines = notice
         .as_deref()
         .map_or_else(Vec::new, |message| wrap_footer_notice(message, width));
+    let ledger_lines =
+        if width >= 120 && (area.height <= 21 || model.domain().campaigns.len() >= 12) {
+            model
+                .domain()
+                .campaigns
+                .values()
+                .filter(|campaign| !campaign.party.is_empty())
+                .map(|campaign| {
+                    let label = campaign.label.trim();
+                    let label = if label.is_empty() {
+                        campaign.workspace_id.as_str()
+                    } else {
+                        label
+                    };
+                    format!("TOKEN LEDGER: {label} {} TOKENS", campaign.party.len())
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
     FooterProjection {
         notice_lines,
+        ledger_lines,
         actions,
     }
 }
@@ -660,7 +692,15 @@ fn render_footer(frame: &mut Frame<'_>, area: Rect, projection: &FooterProjectio
     }
     frame.render_widget(Clear, area);
     let [notice_area, actions_area] = ratatui::layout::Layout::vertical([
-        Constraint::Length(u16::try_from(projection.notice_lines.len()).unwrap_or(u16::MAX)),
+        Constraint::Length(
+            u16::try_from(
+                projection
+                    .notice_lines
+                    .len()
+                    .saturating_add(projection.ledger_lines.len()),
+            )
+            .unwrap_or(u16::MAX),
+        ),
         Constraint::Min(0),
     ])
     .areas(area);
@@ -669,6 +709,7 @@ fn render_footer(frame: &mut Frame<'_>, area: Rect, projection: &FooterProjectio
             projection
                 .notice_lines
                 .iter()
+                .chain(&projection.ledger_lines)
                 .map(|line| Line::from(line.as_str()))
                 .collect::<Vec<_>>(),
         ))
@@ -853,6 +894,7 @@ fn connection_notice_message(model: &Model) -> Option<&str> {
         Some(
             Notice::ActionFeedback(_)
             | Notice::PersistenceDiagnostic(_)
+            | Notice::ReviewrAvailabilityDiagnostic(_)
             | Notice::IntegrationDiagnostic(_),
         )
         | None => None,
@@ -864,6 +906,7 @@ fn ordinary_notice_message(model: &Model) -> Option<&str> {
         Some(
             Notice::ActionFeedback(message)
             | Notice::PersistenceDiagnostic(message)
+            | Notice::ReviewrAvailabilityDiagnostic(message)
             | Notice::IntegrationDiagnostic(message),
         ) => Some(message),
         Some(Notice::ConnectionDiagnostic(_)) | None => None,
@@ -875,13 +918,20 @@ fn scrying_notice_message(model: &Model, include_integration_notice: bool) -> Op
         Some(Notice::ActionFeedback(message) | Notice::PersistenceDiagnostic(message)) => {
             Some(message)
         }
-        Some(Notice::IntegrationDiagnostic(message)) if include_integration_notice => Some(message),
-        Some(Notice::ConnectionDiagnostic(_) | Notice::IntegrationDiagnostic(_)) | None => None,
+        Some(
+            Notice::ReviewrAvailabilityDiagnostic(message) | Notice::IntegrationDiagnostic(message),
+        ) if include_integration_notice => Some(message),
+        Some(
+            Notice::ConnectionDiagnostic(_)
+            | Notice::ReviewrAvailabilityDiagnostic(_)
+            | Notice::IntegrationDiagnostic(_),
+        )
+        | None => None,
     }
 }
 
 fn guild_content_area(model: &Model, terminal_area: Rect) -> Rect {
-    let footer_height = footer_projection(model, terminal_area.width).height();
+    let footer_height = footer_projection(model, terminal_area).height();
     let [body, _footer] =
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(terminal_area);

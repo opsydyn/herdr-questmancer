@@ -86,6 +86,7 @@ pub enum Notice {
     ConnectionDiagnostic(String),
     ActionFeedback(String),
     PersistenceDiagnostic(String),
+    ReviewrAvailabilityDiagnostic(String),
     IntegrationDiagnostic(String),
 }
 
@@ -95,6 +96,7 @@ impl Notice {
             Self::ConnectionDiagnostic(message)
             | Self::ActionFeedback(message)
             | Self::PersistenceDiagnostic(message)
+            | Self::ReviewrAvailabilityDiagnostic(message)
             | Self::IntegrationDiagnostic(message) => message,
         }
     }
@@ -415,6 +417,10 @@ impl Model {
         self.notice = Some(Notice::IntegrationDiagnostic(message));
     }
 
+    pub fn set_reviewr_availability_diagnostic(&mut self, message: String) {
+        self.notice = Some(Notice::ReviewrAvailabilityDiagnostic(message));
+    }
+
     pub fn clear_connection_notice(&mut self) {
         if self
             .notice
@@ -425,8 +431,11 @@ impl Model {
         }
     }
 
-    pub fn clear_integration_notice(&mut self) {
-        if matches!(self.notice.as_ref(), Some(Notice::IntegrationDiagnostic(_))) {
+    pub fn clear_reviewr_availability_notice(&mut self) {
+        if matches!(
+            self.notice.as_ref(),
+            Some(Notice::ReviewrAvailabilityDiagnostic(_))
+        ) {
             self.notice = None;
         }
     }

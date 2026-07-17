@@ -192,7 +192,7 @@ fn inspect_spoils(model: &mut Model, commands: &mut Vec<AgentCommand>) {
             "The spoils cannot be inspected here: no adventurer is selected.".to_owned(),
         ),
         SelectedPane::Available(_) if !model.reviewr_available() => {
-            model.set_integration_diagnostic(
+            model.set_reviewr_availability_diagnostic(
                 "The spoils cannot be inspected here: Reviewr is unavailable.".to_owned(),
             );
         }

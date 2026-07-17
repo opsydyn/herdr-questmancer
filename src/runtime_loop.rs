@@ -309,7 +309,7 @@ pub fn apply_command_result(
         CommandResult::ReviewrAvailable(available) => {
             model.set_reviewr_available(available);
             if available {
-                model.clear_integration_notice();
+                model.clear_reviewr_availability_notice();
             }
         }
         CommandResult::SpoilsOpened => {

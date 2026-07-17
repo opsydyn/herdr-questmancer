@@ -87,6 +87,7 @@ fn modal_notice_message(model: &Model) -> Option<&str> {
         Some(
             Notice::ActionFeedback(message)
             | Notice::PersistenceDiagnostic(message)
+            | Notice::ReviewrAvailabilityDiagnostic(message)
             | Notice::IntegrationDiagnostic(message),
         ) => Some(message),
         Some(Notice::ConnectionDiagnostic(_)) | None => None,

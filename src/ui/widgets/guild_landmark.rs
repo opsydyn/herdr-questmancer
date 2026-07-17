@@ -253,6 +253,7 @@ pub(crate) fn render_spoils_desk(
     layer: LandmarkLayer,
     lines: &[Cow<'_, str>],
     max_content_rows: u16,
+    copy_truncated: bool,
     furniture_rows: u16,
     theme: LandmarkTheme,
 ) {
@@ -283,7 +284,17 @@ pub(crate) fn render_spoils_desk(
                 "LEDGER / LOCKBOX / MUG",
                 role_style(theme, ColorRole::Parchment),
             );
-            render_measured_content(frame, landmark.area, 2, lines, max_content_rows, theme);
+            let visible_copy_rows = max_content_rows.saturating_sub(u16::from(copy_truncated));
+            render_measured_content(frame, landmark.area, 2, lines, visible_copy_rows, theme);
+            if copy_truncated && max_content_rows > 0 {
+                render_line(
+                    frame,
+                    landmark.area,
+                    2_u16.saturating_add(max_content_rows).saturating_sub(1),
+                    "[more] Diagnostic continued below",
+                    role_style(theme, ColorRole::Parchment),
+                );
+            }
         }
     }
 }

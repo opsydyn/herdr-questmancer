@@ -288,6 +288,7 @@ struct RepresentationRows {
 #[derive(Clone, Copy, Debug, Default)]
 struct SpoilsMeasurement {
     copy_height: u16,
+    copy_truncated: bool,
     furniture_height: u16,
     representation_bounds: RepresentationRows,
 }
@@ -362,6 +363,7 @@ impl SpoilsMeasurement {
 
         Self {
             copy_height: content_rows,
+            copy_truncated: content_height > content_rows,
             furniture_height: furniture_rows,
             representation_bounds: RepresentationRows {
                 top: Self::HEADER_ROWS.saturating_add(content_rows),
@@ -411,6 +413,7 @@ fn render_landmark_path(
                 layer,
                 &copy.spoils,
                 measurements.spoils.copy_height,
+                measurements.spoils.copy_truncated,
                 measurements.spoils.furniture_height,
                 theme,
             );
@@ -804,23 +807,17 @@ impl OverflowSummary {
             });
         }
 
-        if available_rows < 2 {
-            let compact = format!("+{one_line_count} {narrow_noun}");
-            debug_assert!(compact.cell_width() <= width);
-            return Some(Self {
-                visible_rows: one_line_visible_rows,
-                count: one_line_count,
-                noun: narrow_noun,
-                rows: 1,
-            });
+        if available_rows < 2 || narrow_noun.cell_width() > width {
+            return None;
         }
 
         let summary_rows = 2;
         let visible_rows = available_rows.saturating_sub(summary_rows);
         let capacity = columns.saturating_mul(usize::from(visible_rows));
         let count = total.saturating_sub(capacity);
-        debug_assert!(format!("+{count}").cell_width() <= width);
-        debug_assert!(narrow_noun.cell_width() <= width);
+        if format!("+{count}").cell_width() > width {
+            return None;
+        }
         Some(Self {
             visible_rows,
             count,
@@ -1079,7 +1076,10 @@ fn spoils_lines(model: &Model) -> Vec<Cow<'_, str>> {
         lines.push(Cow::Borrowed("REVIEWR READY"));
         lines.push(Cow::Borrowed("[v] Inspect spoils"));
     }
-    if let Some(Notice::IntegrationDiagnostic(message)) = model.notice() {
+    if let Some(
+        Notice::ReviewrAvailabilityDiagnostic(message) | Notice::IntegrationDiagnostic(message),
+    ) = model.notice()
+    {
         lines.push(present(message, model.preferences().character_set));
     }
     lines

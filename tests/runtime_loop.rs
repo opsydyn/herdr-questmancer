@@ -13,11 +13,13 @@ use questmancer::{
         protocol::{SessionSnapshot, SessionSnapshotResult, SuccessResponse, WireEvent},
         supervisor::ConnectionUpdate,
     },
+    interaction::reduce_action,
     runtime_loop::{
         RuntimeConnection, RuntimeEffects, RuntimeEvent, apply_command_result,
         apply_connection_update, bootstrap_model,
     },
     terminal::{AnimationScheduler, RuntimeClock},
+    ui::input::Action,
     ui::theatre::{TheatrePose, frame_for},
     update::Command,
 };
@@ -319,7 +321,7 @@ fn output_and_discovery_results_update_app_state() {
 #[test]
 fn available_reviewr_discovery_clears_the_prior_typed_integration_notice() {
     let mut model = Model::new(View::Guild);
-    model.set_integration_diagnostic(
+    model.set_reviewr_availability_diagnostic(
         "The spoils cannot be inspected here: Reviewr is unavailable.".to_owned(),
     );
 
@@ -331,6 +333,33 @@ fn available_reviewr_discovery_clears_the_prior_typed_integration_notice() {
 
     assert!(model.reviewr_available());
     assert_eq!(model.notice(), None);
+}
+
+#[test]
+fn available_reviewr_discovery_preserves_a_newer_adapter_diagnostic() {
+    let mut model = Model::new(View::Guild);
+    model.replace_domain(DomainState::from_snapshot(
+        &snapshot(),
+        Timestamp::from_millis(1_000),
+    ));
+
+    let _ = reduce_action(&mut model, Action::InspectSpoils);
+    model.set_integration_diagnostic(
+        "Herdr adapter could not decode the refreshed sidebar row.".to_owned(),
+    );
+
+    apply_command_result(
+        &mut model,
+        CommandResult::ReviewrAvailable(true),
+        Timestamp::from_millis(2_000),
+    );
+
+    assert_eq!(
+        model.notice(),
+        Some(&Notice::IntegrationDiagnostic(
+            "Herdr adapter could not decode the refreshed sidebar row.".to_owned(),
+        ))
+    );
 }
 
 #[test]

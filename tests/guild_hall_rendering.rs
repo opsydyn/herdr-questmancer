@@ -703,7 +703,7 @@ fn reviewr_discovery_race_clears_stale_copy_and_preserves_the_spoils_returnee() 
     let _ = reduce_action(&mut model, Action::InspectSpoils);
     assert!(matches!(
         model.notice(),
-        Some(questmancer::app::Notice::IntegrationDiagnostic(_))
+        Some(questmancer::app::Notice::ReviewrAvailabilityDiagnostic(_))
     ));
 
     apply_command_result(
@@ -743,6 +743,36 @@ fn spoils_copy_budget_never_sacrifices_all_returnee_identity_rows() {
 }
 
 #[test]
+fn long_ready_spoils_diagnostic_announces_continuation_and_retains_its_tail() {
+    let mut model = model_with_presence(
+        Presence::Done,
+        GuildAttention::unread(
+            GuildSummons::SpoilsReturned,
+            Timestamp::from_millis(120_500),
+        ),
+    );
+    model.set_reviewr_available(true);
+    let diagnostic = "Reviewr accepted the request but the Herdr adapter could not decode the selected pane metadata, so no spoiler report was opened.";
+    model.set_integration_diagnostic(diagnostic.to_owned());
+
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 120, 40));
+    let spoils = projection
+        .guild_room
+        .as_ref()
+        .unwrap()
+        .landmarks
+        .iter()
+        .find(|landmark| landmark.landmark == ui::guild_room_projection::GuildLandmark::Spoils)
+        .unwrap();
+    let rows = area_rows(&render_buffer(&model, 120, 40), spoils.area);
+    let screen = render(&model, 120, 40);
+    let normalized = screen.split_whitespace().collect::<Vec<_>>().join(" ");
+
+    assert!(rows.iter().any(|row| row.contains("continued")), "{rows:?}");
+    assert!(normalized.contains(diagnostic), "{screen}");
+}
+
+#[test]
 fn six_narrow_tables_use_a_complete_multirow_token_overflow_summary() {
     const TOTAL: usize = 240;
     let model = six_table_token_overflow_model(TOTAL);
@@ -762,6 +792,66 @@ fn six_narrow_tables_use_a_complete_multirow_token_overflow_summary() {
 
     assert_eq!(noun, "TOKENS");
     assert_eq!(individually_visible + overflow, TOTAL, "{rows:?}");
+}
+
+#[test]
+fn short_wide_room_keeps_a_complete_token_aggregate_for_each_overflowing_table() {
+    const TOTAL: usize = 240;
+    let model = six_table_token_overflow_model(TOTAL);
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 120, 21));
+    let table = projection
+        .guild_room
+        .as_ref()
+        .unwrap()
+        .campaigns
+        .iter()
+        .find(|campaign| campaign.workspace_id == WorkspaceId::new("campaign-0"))
+        .unwrap();
+    let screen = render(&model, 120, 21);
+    assert!(
+        screen
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .contains("240 TOKENS"),
+        "{table:?}\n{screen}"
+    );
+}
+
+#[test]
+fn sub_six_cell_campaign_table_routes_a_complete_token_aggregate() {
+    const TOTAL: usize = 240;
+    let mut model = six_table_token_overflow_model(TOTAL);
+    let template = model.domain().campaigns.values().next().unwrap().clone();
+    for index in 6..12 {
+        let workspace_id = WorkspaceId::new(format!("campaign-{index}"));
+        let mut campaign = template.clone();
+        campaign.workspace_id = workspace_id.clone();
+        campaign.label = format!("CAMPAIGN-{index}");
+        campaign.party.clear();
+        model.domain_mut().campaigns.insert(workspace_id, campaign);
+    }
+
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 120, 40));
+    let table = projection
+        .guild_room
+        .as_ref()
+        .unwrap()
+        .campaigns
+        .iter()
+        .find(|campaign| campaign.workspace_id == WorkspaceId::new("campaign-0"))
+        .unwrap();
+    assert!(table.area.width.saturating_sub(2) < 6, "{table:?}");
+
+    let screen = render(&model, 120, 40);
+    assert!(
+        screen
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .contains("240 TOKENS"),
+        "{screen}"
+    );
 }
 
 #[test]
