@@ -1,7 +1,9 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::{
-    app::{ConnectionState, DisplayPreferences, Modal, Model, Motion, OutputPreview, View},
+    app::{
+        ConnectionState, DisplayPreferences, GuildFocus, Modal, Model, Motion, OutputPreview, View,
+    },
     domain::{
         AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, ChronicleEntry, ChronicleEvent,
         DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp,
@@ -287,14 +289,140 @@ pub fn guild_populated_fixture(context: &StoryContext) -> Model {
     model
 }
 
-pub fn guild_disconnected_fixture(context: &StoryContext) -> Model {
+/// The canonical Great Room review fixture. Its names are authored rather than
+/// inferred so visual reviews remain stable across protocol and persona changes.
+pub fn great_room_fixture(context: &StoryContext) -> Model {
     let mut model = guild_fixture(context);
+    for (campaign, label) in
+        model
+            .domain_mut()
+            .campaigns
+            .values_mut()
+            .zip(["Ironmere", "Saltwatch", "Moonfen"])
+    {
+        label.clone_into(&mut campaign.label);
+    }
+    model
+}
+
+pub fn great_room_empty_fixture(context: &StoryContext) -> Model {
+    guild_empty_fixture(context)
+}
+
+pub fn great_room_one_campaign_fixture(context: &StoryContext) -> Model {
+    let mut model = great_room_fixture(context);
+    let retained = model.domain().campaigns.keys().next().cloned();
+    if let Some(retained) = retained {
+        let party = model.domain().campaigns[&retained].party.clone();
+        let domain = model.domain_mut();
+        domain
+            .campaigns
+            .retain(|workspace_id, _| workspace_id == &retained);
+        domain.agents.retain(|key, _| party.contains(key));
+        domain.selected_agent = party.first().cloned();
+    }
+    model
+}
+
+pub fn great_room_reviewr_unavailable_fixture(context: &StoryContext) -> Model {
+    let mut model = great_room_fixture(context);
+    model.set_reviewr_available(false);
+    model.set_reviewr_availability_diagnostic("Reviewr is unavailable.".to_owned());
+    model
+}
+
+pub fn great_room_scrying_failed_fixture(context: &StoryContext) -> Model {
+    let mut model = great_room_fixture(context);
+    model.set_guild_focus(GuildFocus::Scrying);
+    if let Some(selected) = model.selected_agent().cloned() {
+        model.set_output_preview(Some(OutputPreview {
+            pane_id: selected.pane_id,
+            revision: selected.pane_revision,
+            text: String::new(),
+            loading: false,
+            error: Some("The scrying pool could not read this pane.".to_owned()),
+        }));
+    }
+    model
+}
+
+pub fn great_room_focus_fixture(context: &StoryContext, focus: GuildFocus) -> Model {
+    let mut model = great_room_fixture(context);
+    model.set_guild_focus(focus);
+    model
+}
+
+pub fn campaign_token_fixture(context: &StoryContext) -> Model {
+    truthful_station_fixture(
+        *context,
+        "Ironmere-Pathfinder",
+        Presence::Working,
+        GuildAttention::Clear,
+        GuildFocus::CampaignTables,
+    )
+}
+
+pub fn counsel_projection_fixture(context: &StoryContext) -> Model {
+    truthful_station_fixture(
+        *context,
+        "Saltwatch-Counsellor",
+        Presence::Blocked,
+        GuildAttention::unread(
+            GuildSummons::CounselRequested,
+            Timestamp::from_millis(31_000),
+        ),
+        GuildFocus::CounselBell,
+    )
+}
+
+pub fn hearth_adventurer_fixture(context: &StoryContext) -> Model {
+    truthful_station_fixture(
+        *context,
+        "Moonfen-Restkeeper",
+        Presence::Idle,
+        GuildAttention::Clear,
+        GuildFocus::Hearth,
+    )
+}
+
+pub fn spoils_adventurer_fixture(context: &StoryContext) -> Model {
+    truthful_station_fixture(
+        *context,
+        "Ironmere-Returnee",
+        Presence::Done,
+        GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(61_000)),
+        GuildFocus::Spoils,
+    )
+}
+
+fn truthful_station_fixture(
+    context: StoryContext,
+    id: &'static str,
+    presence: Presence,
+    attention: GuildAttention,
+    focus: GuildFocus,
+) -> Model {
+    let workspace_id = WorkspaceId::new("storybook-truthful-stations");
+    let agent = agent_fixture(id, workspace_id.clone(), presence, attention, true);
+    let agent_key = agent.key.clone();
+    let campaign = campaign_fixture(workspace_id.clone(), "Ironmere", vec![agent_key.clone()]);
+    let mut model = guild_empty_fixture(&context);
+    let domain = model.domain_mut();
+    domain.campaigns.insert(workspace_id, campaign);
+    domain.agents.insert(agent_key.clone(), agent);
+    domain.selected_agent = Some(agent_key);
+    model.set_guild_focus(focus);
+    model
+}
+
+pub fn guild_disconnected_fixture(context: &StoryContext) -> Model {
+    let mut model = great_room_fixture(context);
     model.set_connection(ConnectionState::Offline);
     model
 }
 
 pub fn guild_reconnecting_fixture(context: &StoryContext) -> Model {
-    let mut model = guild_fixture(context);
+    let mut model = great_room_fixture(context);
     model.set_connection(ConnectionState::Reconnecting { attempt: 3 });
     model
 }
@@ -400,13 +528,19 @@ pub fn modal_fixture(modal: Modal) -> Model {
 }
 
 pub fn compatibility_fixture(preferences: DisplayPreferences) -> Model {
-    let mut model = connected_delves_fixture(&StoryContext::fixed());
+    let mut model = great_room_fixture(&StoryContext::fixed());
+    for agent in model.domain_mut().agents.values_mut() {
+        agent.attention = GuildAttention::Clear;
+        agent.custom_status = None;
+    }
+    model.domain_mut().chronicle = Chronicle::new(5);
+    model.set_output_preview(None);
     model.set_preferences(preferences);
     model
 }
 
 pub fn motion_compatibility_fixture(motion: Motion) -> Model {
-    let mut model = connected_delves_fixture(&StoryContext::fixed());
+    let mut model = compatibility_fixture(DisplayPreferences::default());
     let retained = model
         .domain()
         .agents

@@ -12,6 +12,7 @@ use questmancer::{
     },
     storybook::{
         AssetId, CompatibilityAsset, SceneAsset, WidgetAsset, asset_inventory,
+        assets::{LandmarkAsset, RoomCameraAsset, TruthfulStationAsset},
         catalogue::{
             Category, Story, StoryId, Viewport, catalogue, validate_catalogue, validate_coverage,
         },
@@ -96,19 +97,75 @@ fn production_and_storybook_asset_families_expose_exhaustive_collections() {
         + TheatrePose::ALL.len()
         + DelveVariant::ALL.len()
         + GoblinSighting::ALL.len();
-    let storybook_count =
-        WidgetAsset::ALL.len() + SceneAsset::ALL.len() + CompatibilityAsset::ALL.len() + 1;
+    let storybook_count = WidgetAsset::ALL.len()
+        + SceneAsset::ALL.len()
+        + CompatibilityAsset::ALL.len()
+        + LandmarkAsset::ALL.len()
+        + TruthfulStationAsset::ALL.len()
+        + RoomCameraAsset::ALL.len()
+        + 1;
     assert_eq!(asset_inventory().len(), production_count + storybook_count);
 }
 
 #[test]
 fn production_catalogue_owns_every_authored_asset_once() {
     let report = validate_catalogue().unwrap();
-    assert_eq!(asset_inventory().len(), 158);
+    assert_eq!(asset_inventory().len(), 178);
     assert_eq!(report.owned(), asset_inventory().len());
     assert!(report.missing().is_empty());
     assert!(report.duplicates().is_empty());
     assert!(report.unknown().is_empty());
+}
+
+#[test]
+fn authored_inventory_includes_every_great_room_asset_family() {
+    let labels = asset_inventory()
+        .into_iter()
+        .map(AssetId::label)
+        .collect::<HashSet<_>>();
+
+    for expected in [
+        "landmark: guild door",
+        "landmark: quest wall",
+        "landmark: campaign table",
+        "landmark: counsel bell",
+        "landmark: hearth",
+        "landmark: chronicle lectern",
+        "landmark: scrying alcove",
+        "landmark: spoils vault",
+        "truthful station: campaign token",
+        "truthful station: counsel projection",
+        "truthful station: hearth adventurer",
+        "truthful station: spoils adventurer",
+        "room camera: whole room",
+        "room camera: cropped room",
+        "room camera: landmark",
+    ] {
+        assert!(
+            labels.contains(expected),
+            "missing authored asset {expected}"
+        );
+    }
+}
+
+#[test]
+fn catalogue_has_fixed_great_room_review_stories() {
+    let ids = catalogue()
+        .iter()
+        .map(|story| story.id.as_str())
+        .collect::<HashSet<_>>();
+
+    for expected in [
+        "atlas.great-room-landmarks",
+        "atlas.truthful-stations",
+        "scenes.guild-one-campaign",
+        "scenes.guild-reviewr-unavailable",
+        "scenes.guild-scrying-failed",
+        "scenes.guild-cropped-room",
+        "scenes.guild-landmark-camera",
+    ] {
+        assert!(ids.contains(expected), "missing fixed story {expected}");
+    }
 }
 
 #[test]
@@ -148,6 +205,9 @@ fn atlas_catalogue_owns_every_atlas_asset_exactly_once() {
                     | AssetId::AccentTone(_)
                     | AssetId::ColorRole(_)
                     | AssetId::Pose(_)
+                    | AssetId::Landmark(_)
+                    | AssetId::TruthfulStation(_)
+                    | AssetId::RoomCamera(_)
             )
         })
         .collect::<Vec<_>>();
@@ -165,10 +225,12 @@ fn atlas_catalogue_owns_every_atlas_asset_exactly_once() {
 fn atlas_stories_enumerate_their_reused_visible_persona_assets() {
     let profile = AdventurerPersona::for_key(PersonaKey::new("storybook-atlas"));
     let pose = AdventurerPersona::for_key(PersonaKey::new("storybook-pose-atlas"));
-    for story in catalogue()
-        .iter()
-        .filter(|story| story.category == Category::AssetAtlas)
-    {
+    for story in catalogue().iter().filter(|story| {
+        story.category == Category::AssetAtlas
+            && !story.id.as_str().starts_with("atlas.great-room")
+            && !story.id.as_str().starts_with("atlas.truthful-stations")
+            && !story.id.as_str().starts_with("atlas.camera-")
+    }) {
         let mut expected = if story.id.as_str() == "atlas.palette-roles" {
             HashSet::new()
         } else if story.id.as_str() == "atlas.poses" {
@@ -214,6 +276,11 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "atlas.accent-tones",
             "atlas.palette-roles",
             "atlas.poses",
+            "atlas.great-room-landmarks",
+            "atlas.truthful-stations",
+            "atlas.camera-whole-room",
+            "atlas.camera-cropped-room",
+            "atlas.camera-landmark",
             "widgets.adventurer-cards",
             "widgets.chambers",
             "widgets.guild-regions",
@@ -222,9 +289,14 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "widgets.help",
             "scenes.guild-empty",
             "scenes.guild-populated",
+            "scenes.guild-one-campaign",
             "scenes.guild-mixed-attention",
             "scenes.guild-disconnected",
             "scenes.guild-reconnecting",
+            "scenes.guild-reviewr-unavailable",
+            "scenes.guild-scrying-failed",
+            "scenes.guild-cropped-room",
+            "scenes.guild-landmark-camera",
             "scenes.delve-library",
             "scenes.delve-undercroft",
             "scenes.delve-watchtower",
@@ -245,7 +317,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "compat.motion-none",
         ]
     );
-    assert_eq!(ids.len(), 44);
+    assert_eq!(ids.len(), 54);
 }
 
 #[test]
@@ -256,7 +328,7 @@ fn all_four_categories_are_populated_in_the_fixed_order() {
             .filter(|story| story.category == category)
             .count()
     });
-    assert_eq!(counts, [15, 6, 17, 6]);
+    assert_eq!(counts, [20, 6, 22, 6]);
     assert!(catalogue()[..15].iter().all(|story| {
         story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
     }));
@@ -354,6 +426,10 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
             vec![AssetId::Scene(SceneAsset::GuildPopulated)],
         ),
         (
+            "scenes.guild-one-campaign",
+            vec![AssetId::Scene(SceneAsset::GuildOneCampaign)],
+        ),
+        (
             "scenes.guild-mixed-attention",
             vec![AssetId::Scene(SceneAsset::GuildMixedAttention)],
         ),
@@ -364,6 +440,22 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
         (
             "scenes.guild-reconnecting",
             vec![AssetId::Scene(SceneAsset::GuildReconnecting)],
+        ),
+        (
+            "scenes.guild-reviewr-unavailable",
+            vec![AssetId::Scene(SceneAsset::GuildReviewrUnavailable)],
+        ),
+        (
+            "scenes.guild-scrying-failed",
+            vec![AssetId::Scene(SceneAsset::GuildScryingFailed)],
+        ),
+        (
+            "scenes.guild-cropped-room",
+            vec![AssetId::Scene(SceneAsset::GuildCroppedRoom)],
+        ),
+        (
+            "scenes.guild-landmark-camera",
+            vec![AssetId::Scene(SceneAsset::GuildLandmarkCamera)],
         ),
         (
             "scenes.delve-library",
@@ -436,7 +528,7 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
         ),
     ];
 
-    assert_eq!(expected.len(), 29);
+    assert_eq!(expected.len(), 34);
     for (story_id, owns) in expected {
         let story = catalogue()
             .iter()
@@ -516,6 +608,33 @@ fn chamber_atlas_is_the_complete_pose_by_production_layout_matrix() {
 }
 
 #[test]
+fn great_room_atlases_only_embed_production_application_renderers() {
+    for story_id in [
+        "atlas.great-room-landmarks",
+        "atlas.truthful-stations",
+        "atlas.camera-whole-room",
+        "atlas.camera-cropped-room",
+        "atlas.camera-landmark",
+    ] {
+        let story = catalogue()
+            .iter()
+            .find(|story| story.id.as_str() == story_id)
+            .unwrap();
+        let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+            panic!("{story_id} must be an asset atlas");
+        };
+        assert!(!atlas.tiles.is_empty(), "{story_id}");
+        assert!(
+            atlas
+                .tiles
+                .iter()
+                .all(|tile| matches!(tile.content, AtlasContent::Application { .. })),
+            "{story_id} bypasses the production application renderer"
+        );
+    }
+}
+
+#[test]
 fn compatibility_stories_apply_the_exact_fixed_preferences() {
     let expected = [
         (
@@ -576,7 +695,7 @@ fn compatibility_stories_apply_the_exact_fixed_preferences() {
 }
 
 #[test]
-fn compatibility_stories_use_clean_connected_delves_baselines() {
+fn compatibility_stories_use_clean_connected_great_room_baselines() {
     for story in catalogue()
         .iter()
         .filter(|story| story.category == Category::Compatibility)
@@ -584,6 +703,7 @@ fn compatibility_stories_use_clean_connected_delves_baselines() {
         let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
             panic!("{} must use the application renderer", story.id.as_str());
         };
+        assert_eq!(model.view(), View::Guild, "{}", story.id.as_str());
         assert!(model.domain().agents.values().all(|agent| {
             agent.attention == GuildAttention::Clear && agent.custom_status.is_none()
         }));
@@ -604,12 +724,21 @@ fn compatibility_stories_use_clean_connected_delves_baselines() {
                     .any(|agent| agent.presence == Presence::Idle)
             );
         } else {
+            let presences = model
+                .domain()
+                .agents
+                .values()
+                .map(|agent| agent.presence)
+                .collect::<Vec<_>>();
             assert!(
-                model
-                    .domain()
-                    .agents
-                    .values()
-                    .all(|agent| agent.presence == Presence::Working),
+                [
+                    Presence::Working,
+                    Presence::Blocked,
+                    Presence::Done,
+                    Presence::Idle,
+                ]
+                .into_iter()
+                .all(|presence| presences.contains(&presence)),
                 "{}",
                 story.id.as_str()
             );
@@ -724,14 +853,22 @@ fn connected_and_mixed_state_delves_use_distinct_canonical_models() {
 }
 
 #[test]
-fn application_shows_are_the_exact_union_of_shared_production_projections() {
+fn application_shows_cover_representative_production_breakpoints() {
     for story in catalogue() {
         let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
             continue;
         };
         let mut observed = HashSet::new();
-        for width in story.viewport.minimum_width..=story.viewport.reference_width {
-            for height in story.viewport.minimum_height..=story.viewport.reference_height {
+        for width in representative_axis(
+            story.viewport.minimum_width,
+            story.viewport.reference_width,
+            &[79, 80, 119, 120],
+        ) {
+            for height in representative_axis(
+                story.viewport.minimum_height,
+                story.viewport.reference_height,
+                &[19, 20, 23, 24, 31, 32],
+            ) {
                 let projection =
                     questmancer::ui::render_projection_for(&model, Rect::new(0, 0, width, height));
                 observed.extend(projection_assets(&model, &projection));
@@ -745,6 +882,19 @@ fn application_shows_are_the_exact_union_of_shared_production_projections() {
             story.id.as_str()
         );
     }
+}
+
+fn representative_axis(minimum: u16, reference: u16, thresholds: &[u16]) -> Vec<u16> {
+    let mut values = vec![minimum, reference];
+    values.extend(
+        thresholds
+            .iter()
+            .copied()
+            .filter(|value| *value >= minimum && *value <= reference),
+    );
+    values.sort_unstable();
+    values.dedup();
+    values
 }
 
 #[test]

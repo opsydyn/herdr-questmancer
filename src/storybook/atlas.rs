@@ -1,5 +1,5 @@
 use crate::{
-    app::DisplayPreferences,
+    app::{DisplayPreferences, GuildFocus},
     domain::{AdventurerPersona, PersonaKey},
     ui::{
         persona::{compose_chamber_adventurer_for_palette, compose_profile_adventurer},
@@ -15,8 +15,9 @@ use super::{
         GARBS, HAIR_SHAPES, HAIR_TONES, HEAD_SHAPES, KEEPSAKES, LEGWEAR, POSES, SKIN_TONES,
     },
     fixtures::{
-        AssetAtlas, AtlasContent, AtlasTile, StoryContext, StoryFixture, guild_fixture,
-        guild_populated_fixture,
+        AssetAtlas, AtlasContent, AtlasTile, StoryContext, StoryFixture, campaign_token_fixture,
+        counsel_projection_fixture, great_room_focus_fixture, guild_fixture,
+        guild_populated_fixture, hearth_adventurer_fixture, spoils_adventurer_fixture,
     },
 };
 
@@ -262,6 +263,96 @@ pub fn guild_regions(context: &StoryContext) -> StoryFixture {
             model: guild_populated_fixture(context),
         },
     }])
+}
+
+fn application_tile(
+    label: &'static str,
+    preferred_width: u16,
+    preferred_height: u16,
+    model: crate::app::Model,
+) -> AtlasTile {
+    AtlasTile {
+        label,
+        preferred_width,
+        preferred_height,
+        content: AtlasContent::Application { model },
+    }
+}
+
+pub fn great_room_landmarks(context: &StoryContext) -> StoryFixture {
+    atlas(
+        [
+            ("landmark: guild door", GuildFocus::Door),
+            ("landmark: quest wall", GuildFocus::QuestWall),
+            ("landmark: campaign table", GuildFocus::CampaignTables),
+            ("landmark: counsel bell", GuildFocus::CounselBell),
+            ("landmark: hearth", GuildFocus::Hearth),
+            ("landmark: chronicle lectern", GuildFocus::Chronicle),
+            ("landmark: scrying alcove", GuildFocus::Scrying),
+            ("landmark: spoils vault", GuildFocus::Spoils),
+        ]
+        .into_iter()
+        .map(|(label, focus)| {
+            application_tile(label, 34, 20, great_room_focus_fixture(context, focus))
+        })
+        .collect(),
+    )
+}
+
+pub fn truthful_stations(context: &StoryContext) -> StoryFixture {
+    atlas(vec![
+        application_tile(
+            "truthful station: campaign token",
+            34,
+            20,
+            campaign_token_fixture(context),
+        ),
+        application_tile(
+            "truthful station: counsel projection",
+            34,
+            20,
+            counsel_projection_fixture(context),
+        ),
+        application_tile(
+            "truthful station: hearth adventurer",
+            34,
+            20,
+            hearth_adventurer_fixture(context),
+        ),
+        application_tile(
+            "truthful station: spoils adventurer",
+            34,
+            20,
+            spoils_adventurer_fixture(context),
+        ),
+    ])
+}
+
+pub fn great_room_whole_camera(context: &StoryContext) -> StoryFixture {
+    atlas(vec![application_tile(
+        "room camera: whole room",
+        124,
+        38,
+        great_room_focus_fixture(context, GuildFocus::QuestWall),
+    )])
+}
+
+pub fn great_room_cropped_camera(context: &StoryContext) -> StoryFixture {
+    atlas(vec![application_tile(
+        "room camera: cropped room",
+        102,
+        34,
+        great_room_focus_fixture(context, GuildFocus::CampaignTables),
+    )])
+}
+
+pub fn great_room_landmark_camera(context: &StoryContext) -> StoryFixture {
+    atlas(vec![application_tile(
+        "room camera: landmark",
+        78,
+        26,
+        great_room_focus_fixture(context, GuildFocus::Scrying),
+    )])
 }
 
 fn widget_inputs(

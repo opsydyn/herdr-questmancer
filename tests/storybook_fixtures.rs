@@ -1,18 +1,26 @@
 #![cfg(feature = "storybook")]
 
 use questmancer::{
-    app::{CharacterSet, ColorMode, ConnectionState, DisplayPreferences, Modal, Motion, View},
+    app::{
+        CharacterSet, ColorMode, ConnectionState, DisplayPreferences, GuildFocus, Modal, Motion,
+        View,
+    },
     domain::{AgentKey, GuildSummons, Presence, WorkspaceId},
     storybook::fixtures::{
-        FIXED_NOW, StoryContext, campaign_fixture, compatibility_fixture, delve_fixture,
-        goblin_biscuit_id, goblin_chest_id, goblin_hand_id, goblin_scroll_id, guild_fixture,
-        library_id, modal_fixture, undercroft_id, watchtower_id,
+        FIXED_NOW, StoryContext, campaign_fixture, campaign_token_fixture, compatibility_fixture,
+        counsel_projection_fixture, delve_fixture, goblin_biscuit_id, goblin_chest_id,
+        goblin_hand_id, goblin_scroll_id, great_room_fixture, great_room_one_campaign_fixture,
+        great_room_reviewr_unavailable_fixture, great_room_scrying_failed_fixture, guild_fixture,
+        hearth_adventurer_fixture, library_id, modal_fixture, spoils_adventurer_fixture,
+        undercroft_id, watchtower_id,
     },
     ui::{
         delve_scene::{DelveVariant, variant_for_campaign},
         goblins::{GoblinSighting, sighting_for_campaign},
+        guild_room_projection::{AdventurerRepresentation, GuildLandmark, project},
     },
 };
+use ratatui::layout::Rect;
 
 #[test]
 fn fixtures_are_value_deterministic() {
@@ -161,6 +169,107 @@ fn compatibility_fixture_applies_exact_preferences_to_a_delve() {
 
     let model = compatibility_fixture(preferences);
 
-    assert_eq!(model.view(), View::Delve);
+    assert_eq!(model.view(), View::Guild);
     assert_eq!(model.preferences(), &preferences);
+}
+
+#[test]
+fn great_room_fixture_freezes_authored_campaigns_and_personas() {
+    let context = StoryContext::fixed();
+    let first = great_room_fixture(&context);
+    let second = great_room_fixture(&context);
+
+    assert_eq!(first, second);
+    assert_eq!(first.now(), FIXED_NOW);
+    assert_eq!(first.view(), View::Guild);
+    assert_eq!(
+        first
+            .domain()
+            .campaigns
+            .values()
+            .map(|campaign| campaign.label.as_str())
+            .collect::<Vec<_>>(),
+        ["Ironmere", "Saltwatch", "Moonfen"]
+    );
+    assert_eq!(
+        great_room_one_campaign_fixture(&context)
+            .domain()
+            .campaigns
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn great_room_failure_fixtures_preserve_actionable_semantics() {
+    let reviewr = great_room_reviewr_unavailable_fixture(&StoryContext::fixed());
+    assert!(!reviewr.reviewr_available());
+    assert_eq!(reviewr.status_message(), Some("Reviewr is unavailable."));
+
+    let scrying = great_room_scrying_failed_fixture(&StoryContext::fixed());
+    assert_eq!(scrying.guild_focus(), GuildFocus::Scrying);
+    assert_eq!(
+        scrying
+            .output_preview()
+            .and_then(|preview| preview.error.as_deref()),
+        Some("The scrying pool could not read this pane.")
+    );
+}
+
+#[test]
+fn truthful_station_fixtures_project_each_authored_representation() {
+    let context = StoryContext::fixed();
+    let cases = [
+        (
+            campaign_token_fixture(&context),
+            "campaign token",
+            GuildFocus::CampaignTables,
+        ),
+        (
+            counsel_projection_fixture(&context),
+            "counsel projection",
+            GuildFocus::CounselBell,
+        ),
+        (
+            hearth_adventurer_fixture(&context),
+            "hearth adventurer",
+            GuildFocus::Hearth,
+        ),
+        (
+            spoils_adventurer_fixture(&context),
+            "spoils adventurer",
+            GuildFocus::Spoils,
+        ),
+    ];
+
+    for (model, label, focus) in cases {
+        assert_eq!(model.guild_focus(), focus, "{label}");
+        let projection = project(&model, Rect::new(0, 0, 78, 26));
+        let representation = projection.adventurers.first().expect(label);
+        match (label, representation) {
+            ("campaign token", AdventurerRepresentation::Token { .. })
+            | (
+                "counsel projection",
+                AdventurerRepresentation::Projection {
+                    station: GuildLandmark::CounselBell,
+                    ..
+                },
+            )
+            | (
+                "hearth adventurer",
+                AdventurerRepresentation::Physical {
+                    station: GuildLandmark::Hearth,
+                    ..
+                },
+            )
+            | (
+                "spoils adventurer",
+                AdventurerRepresentation::Physical {
+                    station: GuildLandmark::Spoils,
+                    ..
+                },
+            ) => {}
+            _ => panic!("{label} projected as {representation:?}"),
+        }
+    }
 }

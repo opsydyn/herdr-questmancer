@@ -31,6 +31,9 @@ pub enum AssetId {
     DelveVariant(DelveVariant),
     GoblinSighting(GoblinSighting),
     GoblinOutbreak,
+    Landmark(LandmarkAsset),
+    TruthfulStation(TruthfulStationAsset),
+    RoomCamera(RoomCameraAsset),
     Widget(WidgetAsset),
     Scene(SceneAsset),
     Compatibility(CompatibilityAsset),
@@ -64,12 +67,41 @@ storybook_asset_enum!(WidgetAsset {
     Help,
 });
 
+storybook_asset_enum!(LandmarkAsset {
+    GuildDoor,
+    QuestWall,
+    CampaignTable,
+    CounselBell,
+    Hearth,
+    ChronicleLectern,
+    ScryingAlcove,
+    SpoilsVault,
+});
+
+storybook_asset_enum!(TruthfulStationAsset {
+    CampaignToken,
+    CounselProjection,
+    HearthAdventurer,
+    SpoilsAdventurer,
+});
+
+storybook_asset_enum!(RoomCameraAsset {
+    WholeRoom,
+    CroppedRoom,
+    Landmark,
+});
+
 storybook_asset_enum!(SceneAsset {
     GuildEmpty,
     GuildPopulated,
+    GuildOneCampaign,
     GuildMixedAttention,
     GuildDisconnected,
     GuildReconnecting,
+    GuildReviewrUnavailable,
+    GuildScryingFailed,
+    GuildCroppedRoom,
+    GuildLandmarkCamera,
     ConnectedDelves,
     MixedStateDelve,
     NarrowGuild,
@@ -258,6 +290,27 @@ impl AssetId {
                 GoblinSighting::StolenBiscuit => "goblin sighting: stolen biscuit",
             },
             Self::GoblinOutbreak => "goblin outbreak",
+            Self::Landmark(value) => match value {
+                LandmarkAsset::GuildDoor => "landmark: guild door",
+                LandmarkAsset::QuestWall => "landmark: quest wall",
+                LandmarkAsset::CampaignTable => "landmark: campaign table",
+                LandmarkAsset::CounselBell => "landmark: counsel bell",
+                LandmarkAsset::Hearth => "landmark: hearth",
+                LandmarkAsset::ChronicleLectern => "landmark: chronicle lectern",
+                LandmarkAsset::ScryingAlcove => "landmark: scrying alcove",
+                LandmarkAsset::SpoilsVault => "landmark: spoils vault",
+            },
+            Self::TruthfulStation(value) => match value {
+                TruthfulStationAsset::CampaignToken => "truthful station: campaign token",
+                TruthfulStationAsset::CounselProjection => "truthful station: counsel projection",
+                TruthfulStationAsset::HearthAdventurer => "truthful station: hearth adventurer",
+                TruthfulStationAsset::SpoilsAdventurer => "truthful station: spoils adventurer",
+            },
+            Self::RoomCamera(value) => match value {
+                RoomCameraAsset::WholeRoom => "room camera: whole room",
+                RoomCameraAsset::CroppedRoom => "room camera: cropped room",
+                RoomCameraAsset::Landmark => "room camera: landmark",
+            },
             Self::Widget(value) => match value {
                 WidgetAsset::AdventurerCardFull => "widget: adventurer card full",
                 WidgetAsset::AdventurerCardCompact => "widget: adventurer card compact",
@@ -277,9 +330,14 @@ impl AssetId {
             Self::Scene(value) => match value {
                 SceneAsset::GuildEmpty => "scene: guild empty",
                 SceneAsset::GuildPopulated => "scene: guild populated",
+                SceneAsset::GuildOneCampaign => "scene: guild one campaign",
                 SceneAsset::GuildMixedAttention => "scene: guild mixed attention",
                 SceneAsset::GuildDisconnected => "scene: guild disconnected",
                 SceneAsset::GuildReconnecting => "scene: guild reconnecting",
+                SceneAsset::GuildReviewrUnavailable => "scene: guild Reviewr unavailable",
+                SceneAsset::GuildScryingFailed => "scene: guild Scrying failed",
+                SceneAsset::GuildCroppedRoom => "scene: guild cropped room",
+                SceneAsset::GuildLandmarkCamera => "scene: guild landmark camera",
                 SceneAsset::ConnectedDelves => "scene: connected delves",
                 SceneAsset::MixedStateDelve => "scene: mixed-state delve",
                 SceneAsset::NarrowGuild => "scene: narrow guild",
@@ -347,6 +405,19 @@ asset_family!(
 );
 const GOBLIN_OUTBREAK: &[AssetId] = &[AssetId::GoblinOutbreak];
 asset_family!(WIDGETS, widget_assets, WidgetAsset, Widget);
+asset_family!(LANDMARKS, landmark_assets, LandmarkAsset, Landmark);
+asset_family!(
+    TRUTHFUL_STATIONS,
+    truthful_station_assets,
+    TruthfulStationAsset,
+    TruthfulStation
+);
+asset_family!(
+    ROOM_CAMERAS,
+    room_camera_assets,
+    RoomCameraAsset,
+    RoomCamera
+);
 asset_family!(SCENES, scene_assets, SceneAsset, Scene);
 asset_family!(
     COMPATIBILITY,
@@ -377,6 +448,9 @@ pub fn asset_inventory() -> Vec<AssetId> {
         DELVE_VARIANTS,
         GOBLIN_SIGHTINGS,
         GOBLIN_OUTBREAK,
+        LANDMARKS,
+        TRUTHFUL_STATIONS,
+        ROOM_CAMERAS,
         WIDGETS,
         SCENES,
         COMPATIBILITY,

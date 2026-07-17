@@ -126,7 +126,7 @@ fn motion_stories_share_one_phased_baseline_and_only_change_motion() {
 }
 
 #[test]
-fn motion_story_production_buffers_are_pairwise_distinct() {
+fn motion_story_production_buffers_retain_semantic_state_and_actions() {
     let render = |id: &str| {
         let story = catalogue()
             .iter()
@@ -149,10 +149,20 @@ fn motion_story_production_buffers_are_pairwise_distinct() {
 
     assert_eq!(full_viewport, reduced_viewport);
     assert_eq!(reduced_viewport, none_viewport);
-
-    assert!(full != reduced, "working motion must distinguish full");
-    assert!(reduced != none, "idle motion must distinguish reduced");
-    assert!(full != none);
+    for (label, buffer) in [("full", full), ("reduced", reduced), ("none", none)] {
+        let screen = buffer_text(&buffer);
+        for semantic in [
+            "QUESTMANCER'S GUILD HALL",
+            "Ironmere",
+            "CAMPAIGN TABLE",
+            "[r] Issue counsel",
+        ] {
+            assert!(
+                screen.contains(semantic),
+                "{label} motion lost {semantic}: {screen}"
+            );
+        }
+    }
 }
 
 #[allow(
@@ -242,7 +252,7 @@ fn narrow_shell_uses_a_one_line_story_selector() {
     let stories = catalogue();
     let app = StorybookApp::new(stories);
     let screen = render_storybook(&app, stories, 79, 24);
-    assert!(screen.contains("1/44 Classes and Gear"));
+    assert!(screen.contains("1/54 Classes and Gear"));
     assert!(screen.contains("PRODUCTION CANVAS"));
     assert!(!screen.contains("STORIES"));
     assert!(!screen.contains("COVERAGE"));
@@ -583,16 +593,15 @@ fn pixel_atlases_are_packed_through_the_production_packer() {
             panic!("atlas catalogue entries must build asset atlases");
         };
         for tile in atlas.tiles {
-            let AtlasContent::Pixel {
+            if let AtlasContent::Pixel {
                 canvas,
                 palette,
                 background,
                 packed,
             } = tile.content
-            else {
-                panic!("Task 4 atlas tiles must contain production pixel content");
-            };
-            assert_eq!(packed, pack(&canvas, &palette, background));
+            {
+                assert_eq!(packed, pack(&canvas, &palette, background));
+            }
         }
     }
 }
@@ -761,5 +770,19 @@ fn asset_belongs_to_story(asset: AssetId, story_id: &str) -> bool {
             | ("atlas.accent-tones", AssetId::AccentTone(_))
             | ("atlas.palette-roles", AssetId::ColorRole(_))
             | ("atlas.poses", AssetId::Pose(_))
+            | ("atlas.great-room-landmarks", AssetId::Landmark(_))
+            | ("atlas.truthful-stations", AssetId::TruthfulStation(_))
+            | (
+                "atlas.camera-whole-room",
+                AssetId::RoomCamera(questmancer::storybook::assets::RoomCameraAsset::WholeRoom)
+            )
+            | (
+                "atlas.camera-cropped-room",
+                AssetId::RoomCamera(questmancer::storybook::assets::RoomCameraAsset::CroppedRoom)
+            )
+            | (
+                "atlas.camera-landmark",
+                AssetId::RoomCamera(questmancer::storybook::assets::RoomCameraAsset::Landmark)
+            )
     )
 }

@@ -26,7 +26,8 @@ use super::{
     AssetId, CompatibilityAsset, SceneAsset, WidgetAsset,
     assets::{
         ACCENT_TONES, ANCESTRIES, BODY_PROPORTIONS, CLASSES, COLOR_ROLES, FACE_DETAILS, FOOTWEAR,
-        GARBS, GEAR, HAIR_SHAPES, HAIR_TONES, HEAD_SHAPES, KEEPSAKES, LEGWEAR, POSES, SKIN_TONES,
+        GARBS, GEAR, HAIR_SHAPES, HAIR_TONES, HEAD_SHAPES, KEEPSAKES, LEGWEAR, LandmarkAsset,
+        POSES, RoomCameraAsset, SKIN_TONES, TruthfulStationAsset,
     },
     atlas,
     fixtures::{self, AtlasContent, StoryContext, StoryFixture},
@@ -253,6 +254,8 @@ const WIDGET_VIEWPORT: Viewport = Viewport::new(120, 36, 60, 18);
 const GUILD_REGIONS_VIEWPORT: Viewport = Viewport::new(122, 36, 122, 36);
 const SCENE_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
 const NARROW_VIEWPORT: Viewport = Viewport::new(64, 24, 48, 18);
+const CROPPED_ROOM_VIEWPORT: Viewport = Viewport::new(100, 32, 80, 18);
+const LANDMARK_CAMERA_VIEWPORT: Viewport = Viewport::new(78, 26, 48, 18);
 const COMPATIBILITY_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
 
 macro_rules! atlas_story {
@@ -290,6 +293,25 @@ const GUILD_REGIONS: &[AssetId] = &[
 const COUNSEL: &[AssetId] = &[AssetId::Widget(WidgetAsset::Counsel)];
 const SEARCH: &[AssetId] = &[AssetId::Widget(WidgetAsset::Search)];
 const HELP: &[AssetId] = &[AssetId::Widget(WidgetAsset::Help)];
+const GREAT_ROOM_LANDMARKS: &[AssetId] = &[
+    AssetId::Landmark(LandmarkAsset::GuildDoor),
+    AssetId::Landmark(LandmarkAsset::QuestWall),
+    AssetId::Landmark(LandmarkAsset::CampaignTable),
+    AssetId::Landmark(LandmarkAsset::CounselBell),
+    AssetId::Landmark(LandmarkAsset::Hearth),
+    AssetId::Landmark(LandmarkAsset::ChronicleLectern),
+    AssetId::Landmark(LandmarkAsset::ScryingAlcove),
+    AssetId::Landmark(LandmarkAsset::SpoilsVault),
+];
+const TRUTHFUL_STATIONS: &[AssetId] = &[
+    AssetId::TruthfulStation(TruthfulStationAsset::CampaignToken),
+    AssetId::TruthfulStation(TruthfulStationAsset::CounselProjection),
+    AssetId::TruthfulStation(TruthfulStationAsset::HearthAdventurer),
+    AssetId::TruthfulStation(TruthfulStationAsset::SpoilsAdventurer),
+];
+const WHOLE_ROOM_CAMERA: &[AssetId] = &[AssetId::RoomCamera(RoomCameraAsset::WholeRoom)];
+const CROPPED_ROOM_CAMERA: &[AssetId] = &[AssetId::RoomCamera(RoomCameraAsset::CroppedRoom)];
+const LANDMARK_CAMERA: &[AssetId] = &[AssetId::RoomCamera(RoomCameraAsset::Landmark)];
 
 #[allow(
     clippy::too_many_lines,
@@ -433,6 +455,52 @@ fn build_catalogue() -> Vec<Story> {
             POSES,
             pose_reuses
         ),
+        atlas_story!(
+            "atlas.great-room-landmarks",
+            "Great Room Landmarks",
+            "Every authored Great Room landmark through the production room renderer.",
+            atlas::great_room_landmarks,
+            GREAT_ROOM_LANDMARKS,
+            widget_atlas_shows(atlas::great_room_landmarks)
+        ),
+        atlas_story!(
+            "atlas.truthful-stations",
+            "Truthful Stations",
+            "Every authored adventurer representation at its truthful station.",
+            atlas::truthful_stations,
+            TRUTHFUL_STATIONS,
+            widget_atlas_shows(atlas::truthful_stations)
+        ),
+        complete_story(
+            "atlas.camera-whole-room",
+            "Whole Room Camera",
+            Category::AssetAtlas,
+            "The production Great Room at the whole-room breakpoint.",
+            Viewport::new(130, 40, 120, 36),
+            atlas::great_room_whole_camera,
+            WHOLE_ROOM_CAMERA,
+            widget_atlas_shows(atlas::great_room_whole_camera),
+        ),
+        complete_story(
+            "atlas.camera-cropped-room",
+            "Cropped Room Camera",
+            Category::AssetAtlas,
+            "The production Great Room at the cropped-room breakpoint.",
+            Viewport::new(108, 36, 80, 30),
+            atlas::great_room_cropped_camera,
+            CROPPED_ROOM_CAMERA,
+            widget_atlas_shows(atlas::great_room_cropped_camera),
+        ),
+        complete_story(
+            "atlas.camera-landmark",
+            "Landmark Camera",
+            Category::AssetAtlas,
+            "The production Great Room at the landmark-camera breakpoint.",
+            Viewport::new(80, 30, 48, 24),
+            atlas::great_room_landmark_camera,
+            LANDMARK_CAMERA,
+            widget_atlas_shows(atlas::great_room_landmark_camera),
+        ),
     ];
 
     stories.extend([
@@ -511,6 +579,13 @@ fn build_catalogue() -> Vec<Story> {
             SCENE_VIEWPORT,
         ),
         scene_story(
+            "scenes.guild-one-campaign",
+            "Guild One Campaign",
+            SceneAsset::GuildOneCampaign,
+            guild_one_campaign,
+            SCENE_VIEWPORT,
+        ),
+        scene_story(
             "scenes.guild-mixed-attention",
             "Guild Mixed Attention",
             SceneAsset::GuildMixedAttention,
@@ -530,6 +605,34 @@ fn build_catalogue() -> Vec<Story> {
             SceneAsset::GuildReconnecting,
             guild_reconnecting,
             SCENE_VIEWPORT,
+        ),
+        scene_story(
+            "scenes.guild-reviewr-unavailable",
+            "Reviewr Unavailable",
+            SceneAsset::GuildReviewrUnavailable,
+            guild_reviewr_unavailable,
+            SCENE_VIEWPORT,
+        ),
+        scene_story(
+            "scenes.guild-scrying-failed",
+            "Scrying Failed",
+            SceneAsset::GuildScryingFailed,
+            guild_scrying_failed,
+            SCENE_VIEWPORT,
+        ),
+        scene_story(
+            "scenes.guild-cropped-room",
+            "Guild Cropped Room",
+            SceneAsset::GuildCroppedRoom,
+            guild_populated,
+            CROPPED_ROOM_VIEWPORT,
+        ),
+        scene_story(
+            "scenes.guild-landmark-camera",
+            "Guild Landmark Camera",
+            SceneAsset::GuildLandmarkCamera,
+            guild_landmark_camera,
+            LANDMARK_CAMERA_VIEWPORT,
         ),
         delve_variant_story(
             "scenes.delve-library",
@@ -765,8 +868,18 @@ fn application_shows(build: StoryBuilder, viewport: Viewport) -> &'static [Asset
         unreachable!("application stories must produce Application fixtures");
     };
     let mut shows = Vec::new();
-    for width in viewport.minimum_width..=viewport.reference_width {
-        for height in viewport.minimum_height..=viewport.reference_height {
+    let widths = representative_axis(
+        viewport.minimum_width,
+        viewport.reference_width,
+        &[79, 80, 119, 120],
+    );
+    let heights = representative_axis(
+        viewport.minimum_height,
+        viewport.reference_height,
+        &[19, 20, 23, 24, 31, 32],
+    );
+    for width in widths {
+        for &height in &heights {
             let area = Rect::new(0, 0, width, height);
             shows.extend(projection_assets(
                 &model,
@@ -775,6 +888,19 @@ fn application_shows(build: StoryBuilder, viewport: Viewport) -> &'static [Asset
         }
     }
     canonical_shows(&[], &shows)
+}
+
+fn representative_axis(minimum: u16, reference: u16, thresholds: &[u16]) -> Vec<u16> {
+    let mut values = vec![minimum, reference];
+    values.extend(
+        thresholds
+            .iter()
+            .copied()
+            .filter(|value| *value >= minimum && *value <= reference),
+    );
+    values.sort_unstable();
+    values.dedup();
+    values
 }
 
 fn projection_assets(
@@ -936,7 +1062,7 @@ fn compatibility_story(
         id,
         title,
         Category::Compatibility,
-        "The fixed production Delve under one display preference profile.",
+        "The fixed production Great Room under one display preference profile.",
         COMPATIBILITY_VIEWPORT,
         build,
         owns,
@@ -962,19 +1088,34 @@ fn help(_: &StoryContext) -> StoryFixture {
     application(fixtures::modal_fixture(Modal::Help))
 }
 fn guild_empty(context: &StoryContext) -> StoryFixture {
-    application(fixtures::guild_empty_fixture(context))
+    application(fixtures::great_room_empty_fixture(context))
 }
 fn guild_populated(context: &StoryContext) -> StoryFixture {
-    application(fixtures::guild_populated_fixture(context))
+    application(fixtures::great_room_fixture(context))
+}
+fn guild_one_campaign(context: &StoryContext) -> StoryFixture {
+    application(fixtures::great_room_one_campaign_fixture(context))
 }
 fn guild_mixed_attention(context: &StoryContext) -> StoryFixture {
-    application(fixtures::guild_fixture(context))
+    application(fixtures::great_room_fixture(context))
 }
 fn guild_disconnected(context: &StoryContext) -> StoryFixture {
     application(fixtures::guild_disconnected_fixture(context))
 }
 fn guild_reconnecting(context: &StoryContext) -> StoryFixture {
     application(fixtures::guild_reconnecting_fixture(context))
+}
+fn guild_reviewr_unavailable(context: &StoryContext) -> StoryFixture {
+    application(fixtures::great_room_reviewr_unavailable_fixture(context))
+}
+fn guild_scrying_failed(context: &StoryContext) -> StoryFixture {
+    application(fixtures::great_room_scrying_failed_fixture(context))
+}
+fn guild_landmark_camera(context: &StoryContext) -> StoryFixture {
+    application(fixtures::great_room_focus_fixture(
+        context,
+        crate::app::GuildFocus::Scrying,
+    ))
 }
 fn delve_library(context: &StoryContext) -> StoryFixture {
     application(fixtures::library_delve_fixture(context))
