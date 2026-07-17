@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use ratatui::{
     Frame,
     layout::Rect,
@@ -32,7 +34,7 @@ pub(crate) fn render_door(
     frame: &mut Frame<'_>,
     landmark: &ProjectedLandmark,
     layer: LandmarkLayer,
-    lines: &[String],
+    lines: &[Cow<'_, str>],
     theme: LandmarkTheme,
 ) {
     match layer {
@@ -87,16 +89,16 @@ pub(crate) fn render_quest_wall(
                 role_style(theme, ColorRole::Parchment),
             );
             let banners = if campaigns.is_empty() {
-                vec!["No campaign banners are hung.".to_owned()]
+                vec![Cow::Borrowed("No campaign banners are hung.")]
             } else {
                 campaigns
                     .iter()
                     .map(|campaign| {
-                        format!(
+                        Cow::Owned(format!(
                             "CAMPAIGN BANNER: {}  SEAL {:04X}",
                             present(&campaign.label, theme.character_set),
                             campaign.seal & 0xFFFF
-                        )
+                        ))
                     })
                     .collect()
             };
@@ -109,7 +111,7 @@ pub(crate) fn render_counsel_bell(
     frame: &mut Frame<'_>,
     landmark: &ProjectedLandmark,
     layer: LandmarkLayer,
-    lines: &[String],
+    lines: &[Cow<'_, str>],
     theme: LandmarkTheme,
 ) {
     match layer {
@@ -135,7 +137,7 @@ pub(crate) fn render_hearth(
     frame: &mut Frame<'_>,
     landmark: &ProjectedLandmark,
     layer: LandmarkLayer,
-    lines: &[String],
+    lines: &[Cow<'_, str>],
     theme: LandmarkTheme,
 ) {
     match layer {
@@ -174,7 +176,7 @@ pub(crate) fn render_chronicle_lectern(
     frame: &mut Frame<'_>,
     landmark: &ProjectedLandmark,
     layer: LandmarkLayer,
-    lines: &[String],
+    lines: &[Cow<'_, str>],
     theme: LandmarkTheme,
 ) {
     match layer {
@@ -200,7 +202,7 @@ pub(crate) fn render_scrying_alcove(
     frame: &mut Frame<'_>,
     landmark: &ProjectedLandmark,
     layer: LandmarkLayer,
-    lines: &[String],
+    lines: &[Cow<'_, str>],
     theme: LandmarkTheme,
 ) {
     match layer {
@@ -227,11 +229,16 @@ pub(crate) fn render_scrying_alcove(
         }
         LandmarkLayer::Labels => {
             render_heading(frame, landmark.area, "SCRYING ALCOVE", theme);
+            let caption = if landmark.area.width <= 24 {
+                "MIRROR / CANDLES"
+            } else {
+                "MIRROR / CANDLES / BOOKS"
+            };
             render_line(
                 frame,
                 landmark.area,
                 1,
-                "MIRROR / CANDLES / BOOKS",
+                caption,
                 role_style(theme, ColorRole::Parchment),
             );
             render_content(frame, landmark.area, 3, lines, theme);
@@ -243,7 +250,7 @@ pub(crate) fn render_spoils_desk(
     frame: &mut Frame<'_>,
     landmark: &ProjectedLandmark,
     layer: LandmarkLayer,
-    lines: &[String],
+    lines: &[Cow<'_, str>],
     theme: LandmarkTheme,
 ) {
     match layer {
@@ -284,6 +291,7 @@ pub(crate) fn render_campaign_table(
     layer: LandmarkLayer,
     theme: LandmarkTheme,
 ) {
+    let compact_identity = campaign.area.width <= 14;
     match layer {
         LandmarkLayer::Furniture => render_bottom_art(
             frame,
@@ -306,7 +314,7 @@ pub(crate) fn render_campaign_table(
                 render_line(
                     frame,
                     campaign.area,
-                    1,
+                    if compact_identity { 3 } else { 2 },
                     "[LIT] SELECTED LAMP",
                     role_style(theme, ColorRole::Selection),
                 );
@@ -315,21 +323,41 @@ pub(crate) fn render_campaign_table(
                 render_line(
                     frame,
                     campaign.area,
-                    2,
+                    if compact_identity { 4 } else { 3 },
                     "[LIVE] FOCUSED EXPEDITION",
                     role_style(theme, ColorRole::RuneGlow),
                 );
             }
         }
-        LandmarkLayer::Labels => render_heading(
-            frame,
-            campaign.area,
-            &format!(
-                "CAMPAIGN TABLE: {}",
-                present(&campaign.label, theme.character_set)
-            ),
-            theme,
-        ),
+        LandmarkLayer::Labels => {
+            if compact_identity {
+                render_heading(frame, campaign.area, "TABLE", theme);
+                render_line(
+                    frame,
+                    campaign.area,
+                    1,
+                    present(&campaign.label, theme.character_set).as_ref(),
+                    role_style(theme, ColorRole::Parchment),
+                );
+            } else {
+                render_heading(
+                    frame,
+                    campaign.area,
+                    &format!(
+                        "CAMPAIGN TABLE: {}",
+                        present(&campaign.label, theme.character_set)
+                    ),
+                    theme,
+                );
+            }
+            render_line(
+                frame,
+                campaign.area,
+                if compact_identity { 2 } else { 1 },
+                &format!("#{:04X}", campaign.seal & 0xFFFF),
+                role_style(theme, ColorRole::Parchment),
+            );
+        }
     }
 }
 
@@ -364,7 +392,7 @@ fn render_content(
     frame: &mut Frame<'_>,
     area: Rect,
     row: u16,
-    lines: &[String],
+    lines: &[Cow<'_, str>],
     theme: LandmarkTheme,
 ) {
     let inner = landmark_inner(area);
@@ -379,7 +407,10 @@ fn render_content(
     );
     frame.render_widget(
         Paragraph::new(Text::from(
-            lines.iter().cloned().map(Line::from).collect::<Vec<_>>(),
+            lines
+                .iter()
+                .map(|line| Line::from(line.as_ref()))
+                .collect::<Vec<_>>(),
         ))
         .style(role_style(theme, ColorRole::Parchment))
         .wrap(Wrap { trim: false }),
@@ -393,7 +424,7 @@ fn render_line(frame: &mut Frame<'_>, area: Rect, row: u16, text: &str, style: S
         return;
     }
     frame.render_widget(
-        Paragraph::new(text.to_owned()).style(style),
+        Paragraph::new(text).style(style),
         Rect::new(inner.x, inner.y.saturating_add(row), inner.width, 1),
     );
 }

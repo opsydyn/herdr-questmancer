@@ -6,7 +6,7 @@ use questmancer::{
     command::CommandResult,
     domain::{
         AgentKey, ChronicleEntry, ChronicleEvent, DomainState, Epithet, GuildAttention,
-        GuildSummons, PaneId, Presence, Timestamp,
+        GuildSummons, PaneId, Presence, Timestamp, WorkspaceId,
     },
     herdr::{
         environment::HerdrEnvironment,
@@ -22,6 +22,7 @@ use ratatui::{
     Terminal,
     backend::TestBackend,
     buffer::{Buffer, CellWidth},
+    layout::Rect,
 };
 use std::time::Duration;
 
@@ -132,6 +133,70 @@ fn wide_room_model() -> Model {
     model
 }
 
+fn crowded_owner_model() -> Model {
+    let mut model = live_model();
+    let template = model.domain().agents.values().next().unwrap().clone();
+    let workspace_id = template.workspace_id.clone();
+    model.domain_mut().agents.clear();
+    let mut party = Vec::new();
+
+    let mut insert = |key: String, name: String, presence: Presence, attention: GuildAttention| {
+        let mut agent = template.clone();
+        agent.key = AgentKey::new(key.clone());
+        agent.pane_id = PaneId::new(format!("pane-{key}"));
+        agent.name = format!("pane-{key}");
+        agent.persona.name = name;
+        agent.presence = presence;
+        agent.attention = attention;
+        agent.focused = false;
+        agent.custom_status = None;
+        party.push(agent.key.clone());
+        model.domain_mut().agents.insert(agent.key.clone(), agent);
+    };
+
+    for suffix in ["A", "B", "C"] {
+        insert(
+            format!("counsel-{suffix}"),
+            format!("CNS-{suffix}"),
+            Presence::Blocked,
+            GuildAttention::Clear,
+        );
+        insert(
+            format!("hearth-{suffix}"),
+            format!("HTH-{suffix}"),
+            Presence::Idle,
+            GuildAttention::Clear,
+        );
+        insert(
+            format!("spoils-{suffix}"),
+            format!("SPL-{suffix}"),
+            Presence::Done,
+            GuildAttention::unread(
+                GuildSummons::SpoilsReturned,
+                Timestamp::from_millis(120_500),
+            ),
+        );
+    }
+    for index in 0..17 {
+        insert(
+            format!("token-{index:02}"),
+            format!("TKN-{index:02}"),
+            Presence::Working,
+            GuildAttention::Clear,
+        );
+    }
+
+    let selected = AgentKey::new("token-00");
+    model.domain_mut().selected_agent = Some(selected);
+    model
+        .domain_mut()
+        .campaigns
+        .get_mut(&workspace_id)
+        .unwrap()
+        .party = party;
+    model
+}
+
 fn render(model: &Model, width: u16, height: u16) -> String {
     let buffer = render_buffer(model, width, height);
     (0..height)
@@ -149,6 +214,44 @@ fn render_buffer(model: &Model, width: u16, height: u16) -> Buffer {
     let mut terminal = Terminal::new(backend).unwrap();
     terminal.draw(|frame| ui::render(frame, model)).unwrap();
     terminal.backend().buffer().clone()
+}
+
+fn area_rows(buffer: &Buffer, area: Rect) -> Vec<String> {
+    let inner = Rect::new(
+        area.x.saturating_add(1),
+        area.y.saturating_add(1),
+        area.width.saturating_sub(2),
+        area.height.saturating_sub(2),
+    );
+    (inner.y..inner.bottom())
+        .map(|y| {
+            (inner.x..inner.right())
+                .map(|x| buffer.cell((x, y)).unwrap().symbol())
+                .collect::<String>()
+                .trim_end()
+                .to_owned()
+        })
+        .collect()
+}
+
+fn row_text(buffer: &Buffer, width: u16, y: u16) -> String {
+    (0..width)
+        .map(|x| buffer.cell((x, y)).unwrap().symbol())
+        .collect()
+}
+
+fn assert_room_border_precedes_footer(buffer: &Buffer, width: u16, height: u16) {
+    let footer_y = (0..height)
+        .find(|y| row_text(buffer, width, *y).contains("[1] Guild Hall"))
+        .expect("footer action row");
+    let border = (0..footer_y)
+        .rev()
+        .map(|y| row_text(buffer, width, y))
+        .find(|row| row.starts_with('└') && row.ends_with('┘'));
+    assert!(
+        border.is_some(),
+        "room bottom border was erased before footer row {footer_y}"
+    );
 }
 
 #[test]
@@ -220,6 +323,171 @@ fn wide_guild_is_one_great_room() {
             );
         }
     }
+}
+
+#[test]
+fn crowded_wide_room_preserves_every_final_representation_and_bottom_architecture() {
+    let model = crowded_owner_model();
+    let buffer = render_buffer(&model, 120, 40);
+    let screen = render(&model, 120, 40);
+
+    for suffix in ["A", "B", "C"] {
+        for prefix in ["CNS", "HTH", "SPL"] {
+            let name = format!("{prefix}-{suffix}");
+            assert_eq!(
+                screen.matches(&name).count(),
+                1,
+                "{name} lost or duplicated in final frame:\n{screen}"
+            );
+        }
+    }
+    for index in 0..17 {
+        let name = format!("TKN-{index:02}");
+        assert_eq!(
+            screen.matches(&name).count(),
+            1,
+            "{name} lost or duplicated in final frame:\n{screen}"
+        );
+    }
+    assert!(screen.contains("└────────┘"), "{screen}");
+    assert_room_border_precedes_footer(&buffer, 120, 40);
+}
+
+#[test]
+fn spoils_action_copy_requires_an_actionable_selected_pane() {
+    let spoils_rows = |model: &Model| {
+        let projection = ui::render_projection_for(model, Rect::new(0, 0, 120, 40));
+        let area = projection
+            .guild_room
+            .as_ref()
+            .unwrap()
+            .landmarks
+            .iter()
+            .find(|landmark| landmark.landmark == ui::guild_room_projection::GuildLandmark::Spoils)
+            .unwrap()
+            .area;
+        area_rows(&render_buffer(model, 120, 40), area)
+    };
+
+    let mut missing = live_model();
+    missing.set_reviewr_available(true);
+    missing.domain_mut().selected_agent = None;
+    let missing_rows = spoils_rows(&missing);
+    assert!(!missing_rows.iter().any(|row| row.contains("Reviewr ready")));
+    assert!(
+        !missing_rows
+            .iter()
+            .any(|row| row.contains("Inspect spoils"))
+    );
+
+    let mut managed = live_model();
+    managed.set_reviewr_available(true);
+    managed.set_managed_pane_id(Some(PaneId::new("w1:p1")));
+    let managed_rows = spoils_rows(&managed);
+    assert!(!managed_rows.iter().any(|row| row.contains("Reviewr ready")));
+    assert!(
+        !managed_rows
+            .iter()
+            .any(|row| row.contains("Inspect spoils"))
+    );
+
+    let mut actionable = live_model();
+    actionable.set_reviewr_available(true);
+    let actionable_rows = spoils_rows(&actionable);
+    assert!(
+        actionable_rows
+            .iter()
+            .any(|row| row.trim() == "REVIEWR READY"),
+        "{actionable_rows:?}"
+    );
+    assert!(
+        actionable_rows
+            .iter()
+            .any(|row| row.trim() == "[v] Inspect spoils"),
+        "{actionable_rows:?}"
+    );
+}
+
+#[test]
+fn six_minimum_wide_campaign_tables_keep_distinct_labels_and_seals() {
+    let mut model = live_model();
+    let template = model.domain().campaigns.values().next().unwrap().clone();
+    model.domain_mut().campaigns.clear();
+    model.domain_mut().agents.clear();
+    model.domain_mut().selected_agent = None;
+    for (index, label) in ["ALPHA", "BRAVO", "CEDAR", "DELTA", "EMBER", "FJORD"]
+        .into_iter()
+        .enumerate()
+    {
+        let workspace_id = WorkspaceId::new(format!("campaign-{index}"));
+        let mut campaign = template.clone();
+        campaign.workspace_id = workspace_id.clone();
+        campaign.label = label.to_owned();
+        campaign.party.clear();
+        model.domain_mut().campaigns.insert(workspace_id, campaign);
+    }
+
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 120, 40));
+    let room = projection.guild_room.as_ref().unwrap();
+    let buffer = render_buffer(&model, 120, 40);
+    assert_eq!(room.campaigns.len(), 6);
+    for campaign in &room.campaigns {
+        let rows = area_rows(&buffer, campaign.area);
+        assert!(
+            rows.iter().any(|row| row.trim() == campaign.label),
+            "missing distinct table label {} in {rows:?}",
+            campaign.label
+        );
+        let seal = format!("#{:04X}", campaign.seal & 0xFFFF);
+        assert!(
+            rows.iter().any(|row| row.trim() == seal),
+            "missing table seal {seal} for {} in {rows:?}",
+            campaign.label
+        );
+    }
+}
+
+#[test]
+fn long_wide_footer_diagnostics_wrap_without_erasing_the_room() {
+    let message = "Persistence failed while writing /very/long/questmancer/state/history/for/the/current/guild/session.json because the destination directory is read only; the previous valid state remains intact and no Chronicle entry was discarded.";
+
+    for persistence in [false, true] {
+        let mut model = wide_room_model();
+        if persistence {
+            model.set_persistence_diagnostic(message.to_owned());
+        } else {
+            model.set_action_feedback(message.to_owned());
+        }
+        let buffer = render_buffer(&model, 120, 40);
+        let screen = render(&model, 120, 40);
+        let normalized = screen.split_whitespace().collect::<Vec<_>>().join(" ");
+        assert!(normalized.contains(message), "{screen}");
+        assert!(screen.contains("HEARTH"), "{screen}");
+        assert!(screen.contains("└────────┘"), "{screen}");
+        assert_room_border_precedes_footer(&buffer, 120, 40);
+    }
+}
+
+#[test]
+fn minimum_wide_scrying_uses_a_complete_short_furniture_caption() {
+    let model = live_model();
+    let projection = ui::render_projection_for(&model, Rect::new(0, 0, 120, 40));
+    let area = projection
+        .guild_room
+        .as_ref()
+        .unwrap()
+        .landmarks
+        .iter()
+        .find(|landmark| landmark.landmark == ui::guild_room_projection::GuildLandmark::Scrying)
+        .unwrap()
+        .area;
+    let rows = area_rows(&render_buffer(&model, 120, 40), area);
+
+    assert!(
+        rows.iter().any(|row| row.trim() == "MIRROR / CANDLES"),
+        "{rows:?}"
+    );
+    assert!(!rows.iter().any(|row| row.ends_with("BOO")), "{rows:?}");
 }
 
 #[test]

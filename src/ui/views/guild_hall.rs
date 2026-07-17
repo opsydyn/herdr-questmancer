@@ -1,5 +1,6 @@
 use ratatui::{
     Frame,
+    buffer::CellWidth,
     layout::{Alignment, Constraint, Rect},
     symbols::border,
     text::{Line, Text},
@@ -44,8 +45,8 @@ pub(crate) fn render(
         return GuildGoblinEvidence::default();
     }
 
-    let footer_lines = footer_lines(model, area.width);
-    let footer_height = u16::try_from(footer_lines.len()).unwrap_or(u16::MAX);
+    let footer_projection = footer_projection(model, area.width);
+    let footer_height = footer_projection.height();
     let [body, footer] =
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(area);
@@ -54,9 +55,9 @@ pub(crate) fn render(
         .as_ref()
         .filter(|room| room.mode == GuildRoomMode::WholeRoom)
     {
-        let marginalia = great_room::render(frame, model, room);
+        let marginalia = great_room::render(frame, body, model, room);
         let sprites = goblins::render(frame, body, model);
-        render_footer(frame, footer, &footer_lines);
+        render_footer(frame, footer, &footer_projection);
         return GuildGoblinEvidence {
             sprites,
             marginalia,
@@ -94,7 +95,7 @@ pub(crate) fn render(
     };
 
     let sprite_visible = goblins::render(frame, content, model);
-    render_footer(frame, footer, &footer_lines);
+    render_footer(frame, footer, &footer_projection);
     GuildGoblinEvidence {
         sprites: sprite_visible,
         marginalia: marginalia_visible,
@@ -499,18 +500,29 @@ fn render_scrying(
     );
 }
 
-fn footer_lines(model: &Model, width: u16) -> Vec<String> {
-    let mut notices = if width >= 120 {
+#[derive(Debug)]
+struct FooterProjection {
+    notice_lines: Vec<String>,
+    actions: Vec<String>,
+}
+
+impl FooterProjection {
+    fn height(&self) -> u16 {
+        u16::try_from(self.notice_lines.len().saturating_add(self.actions.len()))
+            .unwrap_or(u16::MAX)
+    }
+}
+
+fn footer_projection(model: &Model, width: u16) -> FooterProjection {
+    let notice = if width >= 120 {
         match model.notice() {
             Some(Notice::ActionFeedback(message) | Notice::PersistenceDiagnostic(message)) => {
-                vec![present(message, model.preferences().character_set).into_owned()]
+                Some(present(message, model.preferences().character_set).into_owned())
             }
-            Some(Notice::ConnectionDiagnostic(_) | Notice::IntegrationDiagnostic(_)) | None => {
-                Vec::new()
-            }
+            Some(Notice::ConnectionDiagnostic(_) | Notice::IntegrationDiagnostic(_)) | None => None,
         }
     } else {
-        Vec::new()
+        None
     };
     let mut actions = vec!["[1] Guild Hall", "[2] Delve"];
     if width < 80 {
@@ -536,8 +548,59 @@ fn footer_lines(model: &Model, width: u16) -> Vec<String> {
             }
         }
     }
-    notices.extend(pack_actions(&actions, usize::from(width)));
-    notices
+    let actions = pack_actions(&actions, usize::from(width));
+    let notice_lines = notice
+        .as_deref()
+        .map_or_else(Vec::new, |message| wrap_footer_notice(message, width));
+    FooterProjection {
+        notice_lines,
+        actions,
+    }
+}
+
+fn wrap_footer_notice(message: &str, width: u16) -> Vec<String> {
+    if width == 0 {
+        return Vec::new();
+    }
+    let mut rows = Vec::new();
+    let mut row = String::new();
+    let mut row_width = 0_u16;
+    for word in message.split_whitespace() {
+        let mut chunks = Vec::new();
+        let mut chunk = String::new();
+        let mut chunk_width = 0_u16;
+        for character in word.chars() {
+            let mut encoded = [0; 4];
+            let character_width = character.encode_utf8(&mut encoded).cell_width();
+            if !chunk.is_empty() && chunk_width.saturating_add(character_width) > width {
+                chunks.push(std::mem::take(&mut chunk));
+                chunk_width = 0;
+            }
+            chunk.push(character);
+            chunk_width = chunk_width.saturating_add(character_width);
+        }
+        if !chunk.is_empty() {
+            chunks.push(chunk);
+        }
+        for chunk in chunks {
+            let chunk_width = chunk.cell_width();
+            let additional = chunk_width.saturating_add(u16::from(!row.is_empty()));
+            if !row.is_empty() && row_width.saturating_add(additional) > width {
+                rows.push(std::mem::take(&mut row));
+                row_width = 0;
+            }
+            if !row.is_empty() {
+                row.push(' ');
+                row_width = row_width.saturating_add(1);
+            }
+            row.push_str(&chunk);
+            row_width = row_width.saturating_add(chunk_width);
+        }
+    }
+    if !row.is_empty() {
+        rows.push(row);
+    }
+    rows
 }
 
 fn pack_actions(actions: &[&str], width: usize) -> Vec<String> {
@@ -559,17 +622,37 @@ fn pack_actions(actions: &[&str], width: usize) -> Vec<String> {
     rows
 }
 
-fn render_footer(frame: &mut Frame<'_>, area: Rect, lines: &[String]) {
+fn render_footer(frame: &mut Frame<'_>, area: Rect, projection: &FooterProjection) {
     if area.is_empty() {
         return;
     }
     frame.render_widget(Clear, area);
+    let [notice_area, actions_area] = ratatui::layout::Layout::vertical([
+        Constraint::Length(u16::try_from(projection.notice_lines.len()).unwrap_or(u16::MAX)),
+        Constraint::Min(0),
+    ])
+    .areas(area);
     frame.render_widget(
         Paragraph::new(Text::from(
-            lines.iter().cloned().map(Line::from).collect::<Vec<_>>(),
+            projection
+                .notice_lines
+                .iter()
+                .map(|line| Line::from(line.as_str()))
+                .collect::<Vec<_>>(),
         ))
         .style(MUTED),
-        area,
+        notice_area,
+    );
+    frame.render_widget(
+        Paragraph::new(Text::from(
+            projection
+                .actions
+                .iter()
+                .map(|line| Line::from(line.as_str()))
+                .collect::<Vec<_>>(),
+        ))
+        .style(MUTED),
+        actions_area,
     );
 }
 
@@ -766,8 +849,7 @@ fn scrying_notice_message(model: &Model, include_integration_notice: bool) -> Op
 }
 
 fn guild_content_area(model: &Model, terminal_area: Rect) -> Rect {
-    let footer_height =
-        u16::try_from(footer_lines(model, terminal_area.width).len()).unwrap_or(u16::MAX);
+    let footer_height = footer_projection(model, terminal_area.width).height();
     let [body, _footer] =
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
             .areas(terminal_area);
@@ -778,6 +860,17 @@ fn guild_content_area(model: &Model, terminal_area: Rect) -> Rect {
         ratatui::layout::Layout::vertical([Constraint::Length(banner_height), Constraint::Min(0)])
             .areas(inner);
     content
+}
+
+pub(crate) fn room_area(model: &Model, terminal_area: Rect) -> Rect {
+    if terminal_area.width < 4 || terminal_area.height < 3 {
+        return terminal_area;
+    }
+    let footer_height = footer_projection(model, terminal_area.width).height();
+    let [body, _footer] =
+        ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
+            .areas(terminal_area);
+    body
 }
 
 fn visible_party_slots(model: &Model, area: Rect) -> Vec<ElapsedSlot<'_>> {

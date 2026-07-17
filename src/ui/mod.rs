@@ -172,7 +172,10 @@ fn project_delve(
 }
 
 fn project_guild(model: &Model, area: Rect, projection: &mut RenderProjection) {
-    projection.guild_room = Some(guild_room_projection::project(model, area));
+    projection.guild_room = Some(guild_room_projection::project(
+        model,
+        views::guild_hall::room_area(model, area),
+    ));
     if area.width < 4 || area.height < 3 {
         return;
     }

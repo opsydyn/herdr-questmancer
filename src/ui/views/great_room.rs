@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use ratatui::{
     Frame,
@@ -75,6 +75,7 @@ pub fn great_room_render_plan(projection: &GuildRoomProjection) -> Vec<GuildRoom
 
 pub(super) fn render(
     frame: &mut Frame<'_>,
+    area: Rect,
     model: &Model,
     projection: &GuildRoomProjection,
 ) -> EffectCells {
@@ -85,14 +86,16 @@ pub(super) fn render(
     };
     let copy = GreatRoomCopy::for_model(model, projection);
     let plan = great_room_render_plan(projection);
+    let index = RenderIndex::new(projection);
 
-    render_architecture(frame, model.preferences().character_set, palette);
+    render_architecture(frame, area, model.preferences().character_set, palette);
 
     for path in &plan {
         if let GuildRoomRenderPath::Landmark(landmark) = path {
             render_landmark_path(
                 frame,
                 projection,
+                &index,
                 landmark,
                 LandmarkLayer::Furniture,
                 &copy,
@@ -103,59 +106,27 @@ pub(super) fn render(
 
     for path in &plan {
         if let GuildRoomRenderPath::CampaignTable(workspace_id) = path
-            && let Some(campaign) = campaign_for(projection, workspace_id)
+            && let Some(campaign) = index.campaign(workspace_id)
         {
             render_campaign_table(frame, campaign, LandmarkLayer::Furniture, theme);
         }
     }
 
-    let occupant_counts = plan
-        .iter()
-        .filter_map(|path| match path {
-            GuildRoomRenderPath::Representation(representation) => {
-                Some(OccupantOwner::for_representation(representation))
-            }
-            GuildRoomRenderPath::Landmark(_) | GuildRoomRenderPath::CampaignTable(_) => None,
-        })
-        .fold(
-            BTreeMap::<OccupantOwner, usize>::new(),
-            |mut counts, owner| {
-                let count = counts.entry(owner).or_default();
-                *count = count.saturating_add(1);
-                counts
-            },
-        );
-    let mut occupant_slots = BTreeMap::<OccupantOwner, usize>::new();
-    for path in &plan {
-        if let GuildRoomRenderPath::Representation(representation) = path {
-            let owner = OccupantOwner::for_representation(representation);
-            let total = occupant_counts.get(&owner).copied().unwrap_or(1);
-            let slot = occupant_slots.entry(owner).or_default();
-            render_representation(
-                frame,
-                model,
-                projection,
-                representation,
-                *slot,
-                total,
-                palette,
-            );
-            *slot = slot.saturating_add(1);
-        }
-    }
+    render_representations(frame, model, &plan, &index, &copy, palette);
 
     for path in &plan {
         match path {
             GuildRoomRenderPath::Landmark(landmark) => render_landmark_path(
                 frame,
                 projection,
+                &index,
                 landmark,
                 LandmarkLayer::Effects,
                 &copy,
                 theme,
             ),
             GuildRoomRenderPath::CampaignTable(workspace_id) => {
-                if let Some(campaign) = campaign_for(projection, workspace_id) {
+                if let Some(campaign) = index.campaign(workspace_id) {
                     render_campaign_table(frame, campaign, LandmarkLayer::Effects, theme);
                 }
             }
@@ -168,13 +139,14 @@ pub(super) fn render(
             GuildRoomRenderPath::Landmark(landmark) => render_landmark_path(
                 frame,
                 projection,
+                &index,
                 landmark,
                 LandmarkLayer::Labels,
                 &copy,
                 theme,
             ),
             GuildRoomRenderPath::CampaignTable(workspace_id) => {
-                if let Some(campaign) = campaign_for(projection, workspace_id) {
+                if let Some(campaign) = index.campaign(workspace_id) {
                     render_campaign_table(frame, campaign, LandmarkLayer::Labels, theme);
                 }
             }
@@ -182,21 +154,108 @@ pub(super) fn render(
         }
     }
 
-    render_goblin_marginalia(frame, model, projection, theme)
+    render_goblin_marginalia(frame, model, projection, &index, theme)
+}
+
+fn render_representations(
+    frame: &mut Frame<'_>,
+    model: &Model,
+    plan: &[GuildRoomRenderPath],
+    index: &RenderIndex<'_>,
+    copy: &GreatRoomCopy<'_>,
+    palette: Palette,
+) {
+    let occupant_counts = plan
+        .iter()
+        .filter_map(|path| match path {
+            GuildRoomRenderPath::Representation(representation) => {
+                Some(OccupantOwner::for_representation(representation))
+            }
+            GuildRoomRenderPath::Landmark(_) | GuildRoomRenderPath::CampaignTable(_) => None,
+        })
+        .fold(
+            HashMap::<OccupantOwner, usize>::new(),
+            |mut counts, owner| {
+                let count = counts.entry(owner).or_default();
+                *count = count.saturating_add(1);
+                counts
+            },
+        );
+    let mut occupant_slots = HashMap::<OccupantOwner, usize>::new();
+    for path in plan {
+        if let GuildRoomRenderPath::Representation(representation) = path {
+            let owner = OccupantOwner::for_representation(representation);
+            let total = occupant_counts.get(&owner).copied().unwrap_or(1);
+            let slot = occupant_slots.entry(owner).or_default();
+            render_representation(
+                frame,
+                model,
+                index,
+                representation,
+                *slot,
+                total,
+                representation_top_rows(representation, copy),
+                palette,
+            );
+            *slot = slot.saturating_add(1);
+        }
+    }
+}
+
+struct RenderIndex<'a> {
+    landmarks: HashMap<GuildLandmark, &'a ProjectedLandmark>,
+    campaigns: HashMap<WorkspaceId, &'a ProjectedCampaignTable>,
+}
+
+impl<'a> RenderIndex<'a> {
+    fn new(projection: &'a GuildRoomProjection) -> Self {
+        Self {
+            landmarks: projection
+                .landmarks
+                .iter()
+                .map(|landmark| (landmark.landmark.clone(), landmark))
+                .collect(),
+            campaigns: projection
+                .campaigns
+                .iter()
+                .map(|campaign| (campaign.workspace_id.clone(), campaign))
+                .collect(),
+        }
+    }
+
+    fn landmark(&self, identity: &GuildLandmark) -> Option<&'a ProjectedLandmark> {
+        self.landmarks.get(identity).copied()
+    }
+
+    fn campaign(&self, workspace_id: &WorkspaceId) -> Option<&'a ProjectedCampaignTable> {
+        self.campaigns.get(workspace_id).copied()
+    }
+
+    fn representation_area(&self, representation: &AdventurerRepresentation) -> Option<Rect> {
+        match representation {
+            AdventurerRepresentation::Physical { station, .. }
+            | AdventurerRepresentation::Projection { station, .. } => {
+                self.landmark(station).map(|landmark| landmark.area)
+            }
+            AdventurerRepresentation::Token { table, .. } => {
+                self.campaign(table).map(|campaign| campaign.area)
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
-struct GreatRoomCopy {
-    door: Vec<String>,
-    counsel: Vec<String>,
-    hearth: Vec<String>,
-    chronicle: Vec<String>,
-    scrying: Vec<String>,
-    spoils: Vec<String>,
+struct GreatRoomCopy<'a> {
+    door: Vec<Cow<'a, str>>,
+    counsel: Vec<Cow<'a, str>>,
+    hearth: Vec<Cow<'a, str>>,
+    chronicle: Vec<Cow<'a, str>>,
+    scrying: Vec<Cow<'a, str>>,
+    spoils: Vec<Cow<'a, str>>,
 }
 
-impl GreatRoomCopy {
-    fn for_model(model: &Model, projection: &GuildRoomProjection) -> Self {
+impl<'a> GreatRoomCopy<'a> {
+    fn for_model(model: &'a Model, projection: &GuildRoomProjection) -> Self {
         Self {
             door: door_lines(model),
             counsel: counsel_lines(projection),
@@ -211,12 +270,13 @@ impl GreatRoomCopy {
 fn render_landmark_path(
     frame: &mut Frame<'_>,
     projection: &GuildRoomProjection,
+    index: &RenderIndex<'_>,
     identity: &GuildLandmark,
     layer: LandmarkLayer,
-    copy: &GreatRoomCopy,
+    copy: &GreatRoomCopy<'_>,
     theme: LandmarkTheme,
 ) {
-    let Some(landmark) = landmark_for(projection, identity) else {
+    let Some(landmark) = index.landmark(identity) else {
         return;
     };
     match identity {
@@ -225,7 +285,7 @@ fn render_landmark_path(
             render_quest_wall(frame, landmark, layer, &projection.campaigns, theme);
         }
         GuildLandmark::CampaignTable(workspace_id) => {
-            if let Some(campaign) = campaign_for(projection, workspace_id) {
+            if let Some(campaign) = index.campaign(workspace_id) {
                 render_campaign_table(frame, campaign, layer, theme);
             }
         }
@@ -245,8 +305,12 @@ fn render_landmark_path(
     }
 }
 
-fn render_architecture(frame: &mut Frame<'_>, character_set: CharacterSet, palette: Palette) {
-    let area = frame.area();
+fn render_architecture(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    character_set: CharacterSet,
+    palette: Palette,
+) {
     if area.is_empty() {
         return;
     }
@@ -265,7 +329,7 @@ fn render_architecture(frame: &mut Frame<'_>, character_set: CharacterSet, palet
     frame.render_widget(room, area);
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 enum OccupantOwner {
     Landmark(GuildLandmark),
     Campaign(WorkspaceId),
@@ -286,10 +350,11 @@ impl OccupantOwner {
 fn render_representation(
     frame: &mut Frame<'_>,
     model: &Model,
-    projection: &GuildRoomProjection,
+    index: &RenderIndex<'_>,
     representation: &AdventurerRepresentation,
     slot: usize,
     total: usize,
+    top_rows: u16,
     palette: Palette,
 ) {
     let Some(agent) = model
@@ -299,26 +364,34 @@ fn render_representation(
     else {
         return;
     };
-    let Some(area) = representation_area(projection, representation) else {
+    let Some(area) = index.representation_area(representation) else {
         return;
     };
     let theatre = frame_for(agent, model.now(), model.preferences());
     match representation {
         AdventurerRepresentation::Token { .. } => {
-            render_token(frame, area, agent, theatre, model, slot, palette);
+            render_token(frame, area, agent, theatre, model, slot, total, palette);
         }
         AdventurerRepresentation::Physical { .. } | AdventurerRepresentation::Projection { .. } => {
-            render_full_figure(
-                frame,
-                area,
-                agent,
-                theatre,
-                model,
-                slot,
-                total,
-                matches!(representation, AdventurerRepresentation::Projection { .. }),
-                palette,
-            );
+            let projected = matches!(representation, AdventurerRepresentation::Projection { .. });
+            if total == 1 {
+                render_full_figure(
+                    frame, area, agent, theatre, model, top_rows, projected, palette,
+                );
+            } else {
+                render_dense_figure(
+                    frame,
+                    area,
+                    agent,
+                    theatre,
+                    model,
+                    slot,
+                    total,
+                    top_rows,
+                    representation_bottom_rows(representation),
+                    palette,
+                );
+            }
         }
     }
 }
@@ -330,39 +403,80 @@ fn render_token(
     theatre: TheatreFrame,
     model: &Model,
     slot: usize,
+    total: usize,
     palette: Palette,
 ) {
-    let Ok(slot) = u16::try_from(slot) else {
-        return;
-    };
-    let y = area.y.saturating_add(4).saturating_add(slot);
-    if y >= area.bottom() {
+    let inner = representation_inner(area);
+    if inner.is_empty() {
         return;
     }
+    let top_rows = if area.width <= 14 { 5 } else { 4 }.min(inner.height);
+    let available_rows = inner.height.saturating_sub(top_rows).saturating_sub(2);
+    if available_rows == 0 {
+        return;
+    }
+    let max_columns = usize::from((inner.width / 6).max(1));
+    let preferred_columns = usize::from((inner.width / 14).max(1)).min(total.max(1));
+    let needed_columns = total.max(1).div_ceil(usize::from(available_rows));
+    let columns = preferred_columns
+        .max(needed_columns.min(max_columns))
+        .min(max_columns)
+        .min(total.max(1));
+    let capacity = columns.saturating_mul(usize::from(available_rows));
+    if slot >= capacity {
+        return;
+    }
+    let Ok(columns_u16) = u16::try_from(columns) else {
+        return;
+    };
+    let column_width = inner.width / columns_u16.max(1);
+    let row = slot / columns;
+    let column = slot % columns;
+    let Ok(row) = u16::try_from(row) else {
+        return;
+    };
+    let Ok(column) = u16::try_from(column) else {
+        return;
+    };
+    let y = inner.y.saturating_add(top_rows).saturating_add(row);
+    if y >= inner.bottom().saturating_sub(2) {
+        return;
+    }
+    let x = inner.x.saturating_add(column.saturating_mul(column_width));
     let marker = match model.preferences().character_set {
         CharacterSet::Unicode => "◆",
         CharacterSet::Ascii => "o",
     };
-    let label = format!(
-        "{marker} {} [TOKEN / {}]",
-        present(&agent.persona.name, model.preferences().character_set),
-        status_label(theatre.pose, agent, model)
-    );
+    let label = if total > capacity && slot == capacity.saturating_sub(1) {
+        format!(
+            "+{} TOKENS",
+            total.saturating_sub(capacity).saturating_add(1)
+        )
+    } else if total == 1 {
+        format!(
+            "{marker} {} [TOKEN / {}]",
+            present(&agent.persona.name, model.preferences().character_set),
+            status_label(theatre.pose, agent, model)
+        )
+    } else {
+        format!(
+            "{marker} {}",
+            present(&agent.persona.name, model.preferences().character_set)
+        )
+    };
     frame.render_widget(
         Paragraph::new(label).style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
-        Rect::new(area.x.saturating_add(2), y, area.width.saturating_sub(4), 1),
+        Rect::new(x, y, column_width, 1),
     );
 }
 
-#[allow(clippy::too_many_arguments)]
 fn render_full_figure(
     frame: &mut Frame<'_>,
     area: Rect,
     agent: &Agent,
     theatre: TheatreFrame,
     model: &Model,
-    slot: usize,
-    total: usize,
+    top_rows: u16,
     projection: bool,
     palette: Palette,
 ) {
@@ -370,32 +484,15 @@ fn render_full_figure(
         return;
     }
     let compact_horizontal = area.height < 12 && area.width >= 26;
-    let capacity = if compact_horizontal {
-        usize::from((area.width.saturating_sub(2) / 26).max(1))
-    } else {
-        usize::from((area.width.saturating_sub(2) / 18).max(1))
-    };
-    let columns = capacity.min(total.max(1));
-    let row = slot / columns;
-    let column = slot % columns;
-    let column_width = area.width.saturating_sub(2) / u16::try_from(columns).unwrap_or(1);
-    let x = area.x.saturating_add(1).saturating_add(
-        u16::try_from(column)
-            .unwrap_or(u16::MAX)
-            .saturating_mul(column_width),
-    );
-    let row_height = if compact_horizontal { 6 } else { 9 };
-    let y = area.y.saturating_add(3).saturating_add(
-        u16::try_from(row)
-            .unwrap_or(u16::MAX)
-            .saturating_mul(row_height),
-    );
+    let inner = representation_inner(area);
+    let column_width = inner.width;
+    let x = inner.x;
+    let y = inner.y.saturating_add(top_rows);
     if y >= area.bottom() {
         return;
     }
 
-    let name = present(&agent.persona.name, model.preferences().character_set).into_owned();
-    let label = name;
+    let label = present(&agent.persona.name, model.preferences().character_set);
     let status = status_label(theatre.pose, agent, model);
     let status = if projection {
         format!("PROJECTED / {status}")
@@ -421,7 +518,8 @@ fn render_full_figure(
         )
     };
     frame.render_widget(
-        Paragraph::new(label).style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
+        Paragraph::new(label.as_ref())
+            .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
         label_area,
     );
     frame.render_widget(
@@ -448,6 +546,95 @@ fn render_full_figure(
             art_area,
         ),
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn render_dense_figure(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    agent: &Agent,
+    theatre: TheatreFrame,
+    model: &Model,
+    slot: usize,
+    total: usize,
+    top_rows: u16,
+    bottom_rows: u16,
+    palette: Palette,
+) {
+    let inner = representation_inner(area);
+    let available_rows = inner
+        .height
+        .saturating_sub(top_rows)
+        .saturating_sub(bottom_rows);
+    if inner.width < 3 || available_rows == 0 {
+        return;
+    }
+    let max_columns = usize::from((inner.width / 5).max(1));
+    let preferred_columns = usize::from((inner.width / 18).max(1)).min(total.max(1));
+    let needed_columns = total.max(1).div_ceil(usize::from(available_rows));
+    let columns = preferred_columns
+        .max(needed_columns.min(max_columns))
+        .min(max_columns)
+        .min(total.max(1));
+    let capacity = columns.saturating_mul(usize::from(available_rows));
+    if slot >= capacity {
+        return;
+    }
+    let Ok(columns_u16) = u16::try_from(columns) else {
+        return;
+    };
+    let column_width = inner.width / columns_u16.max(1);
+    let row = slot / columns;
+    let column = slot % columns;
+    let (Ok(row), Ok(column)) = (u16::try_from(row), u16::try_from(column)) else {
+        return;
+    };
+    let y = inner.y.saturating_add(top_rows).saturating_add(row);
+    if y >= inner.bottom().saturating_sub(bottom_rows) {
+        return;
+    }
+    let x = inner.x.saturating_add(column.saturating_mul(column_width));
+    if total > capacity && slot == capacity.saturating_sub(1) {
+        frame.render_widget(
+            Paragraph::new(format!(
+                "+{} ADVENTURERS",
+                total.saturating_sub(capacity).saturating_add(1)
+            ))
+            .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
+            Rect::new(x, y, column_width, 1),
+        );
+        return;
+    }
+    let art_width = column_width.min(2);
+    match model.preferences().character_set {
+        CharacterSet::Unicode => {
+            let canvas = compose_chamber_adventurer_for_palette(&agent.persona, theatre, palette);
+            frame.render_widget(
+                Paragraph::new(pack(&canvas, &palette, ColorRole::DarkStone)),
+                Rect::new(x, y, art_width, 1),
+            );
+        }
+        CharacterSet::Ascii => frame.render_widget(
+            Paragraph::new(ascii_figure(theatre.pose).remove(0)),
+            Rect::new(x, y, art_width, 1),
+        ),
+    }
+    let label_x = x.saturating_add(art_width);
+    let label = present(&agent.persona.name, model.preferences().character_set);
+    frame.render_widget(
+        Paragraph::new(label.as_ref())
+            .style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
+        Rect::new(label_x, y, column_width.saturating_sub(art_width), 1),
+    );
+}
+
+const fn representation_inner(area: Rect) -> Rect {
+    Rect::new(
+        area.x.saturating_add(1),
+        area.y.saturating_add(1),
+        area.width.saturating_sub(2),
+        area.height.saturating_sub(2),
+    )
 }
 
 fn ascii_figure(pose: TheatrePose) -> Vec<Line<'static>> {
@@ -520,67 +707,59 @@ fn representation_agent(representation: &AdventurerRepresentation) -> &AgentKey 
     }
 }
 
-fn representation_area(
-    projection: &GuildRoomProjection,
+fn representation_top_rows(
     representation: &AdventurerRepresentation,
-) -> Option<Rect> {
+    copy: &GreatRoomCopy<'_>,
+) -> u16 {
     match representation {
-        AdventurerRepresentation::Physical { station, .. }
-        | AdventurerRepresentation::Projection { station, .. } => {
-            landmark_for(projection, station).map(|landmark| landmark.area)
-        }
-        AdventurerRepresentation::Token { table, .. } => {
-            campaign_for(projection, table).map(|campaign| campaign.area)
-        }
+        AdventurerRepresentation::Physical {
+            station: GuildLandmark::Spoils,
+            ..
+        } => 2_u16.saturating_add(u16::try_from(copy.spoils.len()).unwrap_or(u16::MAX)),
+        AdventurerRepresentation::Physical { .. }
+        | AdventurerRepresentation::Projection { .. }
+        | AdventurerRepresentation::Token { .. } => 2,
     }
 }
 
-fn landmark_for<'a>(
-    projection: &'a GuildRoomProjection,
-    identity: &GuildLandmark,
-) -> Option<&'a ProjectedLandmark> {
-    projection
-        .landmarks
-        .iter()
-        .find(|landmark| &landmark.landmark == identity)
+const fn representation_bottom_rows(representation: &AdventurerRepresentation) -> u16 {
+    match representation {
+        AdventurerRepresentation::Projection {
+            station: GuildLandmark::CounselBell,
+            ..
+        } => 3,
+        AdventurerRepresentation::Physical { .. }
+        | AdventurerRepresentation::Token { .. }
+        | AdventurerRepresentation::Projection { .. } => 2,
+    }
 }
 
-fn campaign_for<'a>(
-    projection: &'a GuildRoomProjection,
-    workspace_id: &WorkspaceId,
-) -> Option<&'a ProjectedCampaignTable> {
-    projection
-        .campaigns
-        .iter()
-        .find(|campaign| &campaign.workspace_id == workspace_id)
-}
-
-fn door_lines(model: &Model) -> Vec<String> {
+fn door_lines(model: &Model) -> Vec<Cow<'_, str>> {
     let mut lines = match model.connection() {
-        ConnectionState::Offline => vec!["OFFLINE / door closed".to_owned()],
-        ConnectionState::Connecting => vec!["CONNECTING / door opening".to_owned()],
-        ConnectionState::Connected => vec!["CONNECTED / door open".to_owned()],
+        ConnectionState::Offline => vec![Cow::Borrowed("OFFLINE / door closed")],
+        ConnectionState::Connecting => vec![Cow::Borrowed("CONNECTING / door opening")],
+        ConnectionState::Connected => vec![Cow::Borrowed("CONNECTED / door open")],
         ConnectionState::Reconnecting { attempt } => vec![
-            "RECONNECTING / door barred".to_owned(),
-            format!("attempt {attempt}"),
+            Cow::Borrowed("RECONNECTING / door barred"),
+            Cow::Owned(format!("attempt {attempt}")),
         ],
         ConnectionState::Incompatible { expected, actual } => vec![
-            "INCOMPATIBLE / door sealed".to_owned(),
-            format!("protocol {actual}; expected {expected}"),
+            Cow::Borrowed("INCOMPATIBLE / door sealed"),
+            Cow::Owned(format!("protocol {actual}; expected {expected}")),
         ],
     };
     if !matches!(model.connection(), ConnectionState::Connected)
         && let Some(Notice::ConnectionDiagnostic(message)) = model.notice()
     {
-        lines.push(format!(
+        lines.push(Cow::Owned(format!(
             "Cause: {}",
             present(message, model.preferences().character_set)
-        ));
+        )));
     }
     lines
 }
 
-fn counsel_lines(projection: &GuildRoomProjection) -> Vec<String> {
+fn counsel_lines(projection: &GuildRoomProjection) -> Vec<Cow<'static, str>> {
     let count = projection
         .adventurers
         .iter()
@@ -595,15 +774,15 @@ fn counsel_lines(projection: &GuildRoomProjection) -> Vec<String> {
         })
         .count();
     match count {
-        0 => vec!["The bell is quiet.".to_owned()],
-        1 => vec!["requests counsel".to_owned()],
-        count => vec![format!("{count} request counsel")],
+        0 => vec![Cow::Borrowed("The bell is quiet.")],
+        1 => vec![Cow::Borrowed("requests counsel")],
+        count => vec![Cow::Owned(format!("{count} request counsel"))],
     }
 }
 
-fn hearth_lines(model: &Model, projection: &GuildRoomProjection) -> Vec<String> {
+fn hearth_lines<'a>(model: &'a Model, projection: &GuildRoomProjection) -> Vec<Cow<'a, str>> {
     if model.domain().agents.is_empty() {
-        return vec![EMPTY_GUILD.to_owned()];
+        return vec![Cow::Borrowed(EMPTY_GUILD)];
     }
     let resting = projection
         .adventurers
@@ -619,13 +798,13 @@ fn hearth_lines(model: &Model, projection: &GuildRoomProjection) -> Vec<String> 
         })
         .count();
     if resting == 0 {
-        vec!["Warm coals wait beside the communal rug.".to_owned()]
+        vec![Cow::Borrowed("Warm coals wait beside the communal rug.")]
     } else {
         Vec::new()
     }
 }
 
-fn chronicle_lines(model: &Model) -> Vec<String> {
+fn chronicle_lines(model: &Model) -> Vec<Cow<'_, str>> {
     let lines = model
         .domain()
         .chronicle
@@ -633,26 +812,28 @@ fn chronicle_lines(model: &Model) -> Vec<String> {
         .iter()
         .rev()
         .take(5)
-        .map(|entry| present(&entry.summary, model.preferences().character_set).into_owned())
+        .map(|entry| present(&entry.summary, model.preferences().character_set))
         .collect::<Vec<_>>();
     if lines.is_empty() {
-        vec!["No deeds recorded yet.".to_owned()]
+        vec![Cow::Borrowed("No deeds recorded yet.")]
     } else {
         lines
     }
 }
 
-fn scrying_lines(model: &Model) -> Vec<String> {
+fn scrying_lines(model: &Model) -> Vec<Cow<'_, str>> {
     let Some(agent) = model.selected_agent() else {
-        return vec![SCRYING_STILL.to_owned()];
+        return vec![Cow::Borrowed(SCRYING_STILL)];
     };
-    let mut lines = vec![format!(
+    let mut lines = vec![Cow::Owned(format!(
         "SELECTED PANE: {}",
         present(&agent.name, model.preferences().character_set)
-    )];
+    ))];
     if model.managed_pane_id() == Some(&agent.pane_id) {
-        lines.push(SCRYING_STILL.to_owned());
-        lines.push("Cause: the Questmancer's own pane is never observed.".to_owned());
+        lines.push(Cow::Borrowed(SCRYING_STILL));
+        lines.push(Cow::Borrowed(
+            "Cause: the Questmancer's own pane is never observed.",
+        ));
         return lines;
     }
     match model
@@ -660,40 +841,44 @@ fn scrying_lines(model: &Model) -> Vec<String> {
         .filter(|preview| preview.pane_id == agent.pane_id)
     {
         Some(preview) if preview.error.is_some() => {
-            lines.push("The scrying pool has clouded.".to_owned());
-            lines.push(format!(
+            lines.push(Cow::Borrowed("The scrying pool has clouded."));
+            lines.push(Cow::Owned(format!(
                 "Cause: {}",
                 present(
                     preview.error.as_deref().unwrap_or_default(),
                     model.preferences().character_set
                 )
-            ));
+            )));
         }
         Some(preview) if preview.loading => {
-            lines.push(SCRYING_STILL.to_owned());
-            lines.push("Tracing the selected adventurer...".to_owned());
+            lines.push(Cow::Borrowed(SCRYING_STILL));
+            lines.push(Cow::Borrowed("Tracing the selected adventurer..."));
         }
         Some(preview) => lines.extend(
             preview
                 .text
                 .lines()
-                .map(|line| present(line, model.preferences().character_set).into_owned()),
+                .map(|line| present(line, model.preferences().character_set)),
         ),
         None => {
-            lines.push(SCRYING_STILL.to_owned());
-            lines.push("Select refresh to trace recent deeds.".to_owned());
+            lines.push(Cow::Borrowed(SCRYING_STILL));
+            lines.push(Cow::Borrowed("Select refresh to trace recent deeds."));
         }
     }
     lines
 }
 
-fn spoils_lines(model: &Model) -> Vec<String> {
+fn spoils_lines(model: &Model) -> Vec<Cow<'_, str>> {
     let mut lines = Vec::new();
-    if model.reviewr_available() {
-        lines.push("Reviewr ready: [v] Inspect spoils".to_owned());
+    let actionable = model.selected_agent().is_some_and(|agent| {
+        model.reviewr_available() && model.managed_pane_id() != Some(&agent.pane_id)
+    });
+    if actionable {
+        lines.push(Cow::Borrowed("REVIEWR READY"));
+        lines.push(Cow::Borrowed("[v] Inspect spoils"));
     }
     if let Some(Notice::IntegrationDiagnostic(message)) = model.notice() {
-        lines.push(present(message, model.preferences().character_set).into_owned());
+        lines.push(present(message, model.preferences().character_set));
     }
     lines
 }
@@ -729,12 +914,13 @@ fn render_goblin_marginalia(
     frame: &mut Frame<'_>,
     model: &Model,
     projection: &GuildRoomProjection,
+    index: &RenderIndex<'_>,
     theme: LandmarkTheme,
 ) -> EffectCells {
     if !model.goblins().is_visible(model.now()) || projection.adventurers.is_empty() {
         return EffectCells::default();
     }
-    let Some(chronicle) = landmark_for(projection, &GuildLandmark::Chronicle) else {
+    let Some(chronicle) = index.landmark(&GuildLandmark::Chronicle) else {
         return EffectCells::default();
     };
     let before = frame.buffer_mut().clone();
