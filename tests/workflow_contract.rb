@@ -92,6 +92,14 @@ def forbid_text(document, label, forbidden)
   abort_contract("#{label} contains invalid workflow text: #{forbidden}") if document.include?(forbidden)
 end
 
+def require_text_order(document, label, before, after)
+  before_index = document.index(before)
+  after_index = document.index(after)
+  unless before_index && after_index && before_index < after_index
+    abort_contract("#{label} must place #{before.inspect} before #{after.inspect}")
+  end
+end
+
 workflow_paths = if ARGV.empty?
                    [".github/workflows/release.yml", ".github/workflows/ci.yml"]
                  elsif ARGV.length == 2
@@ -187,6 +195,7 @@ require_exact_uses(
 
 readme = File.read("README.md")
 manual = File.read("docs/manual-test/questmancer-0.1.0.md")
+plan = File.read("docs/superpowers/plans/2026-07-17-questmancer-great-room.md")
 
 [
   "cargo build\nherdr plugin link .\nherdr plugin action invoke opsydyn.questmancer.open",
@@ -225,6 +234,7 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
   "BASELINE_FOCUS_TAB_ID=",
   "PREEXISTING_LINK=0",
   "PREEXISTING_MANAGED_PANE_ID=",
+  'test -z "$PREEXISTING_MANAGED_PANE_ID"',
   "BASELINE_LABELLED_MANAGED_PANE_IDS=",
   ".label? | strings | ascii_downcase | contains(\"questmancer\")",
   "TEST_CREATED_LINK=0",
@@ -236,6 +246,9 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
   "TEST_CREATED_TAB=0",
   "TEST_CREATED_PANE=0",
   "LIVE_TESTS_PERMITTED=0",
+  "DISPOSABLE_IDENTITY_VERIFIED=0",
+  'if test "$DISPOSABLE_IDENTITY_VERIFIED" = 1; then',
+  "Skip directly to restoration after any disposable identity mismatch.",
   "All live rows are BLOCKED unless `LIVE_TESTS_PERMITTED=1`.",
   "git status --short --branch",
   "cargo build --release",
@@ -243,10 +256,10 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
   "herdr plugin action invoke opsydyn.questmancer.close",
   "herdr pane report-agent",
   "herdr pane release-agent",
-  'CURRENT_PANE_JSON="$(herdr pane current)"',
-  "TAB_ID=\"$(jq -er '.result.tab.tab_id'",
-  "CURRENT_TAB_ID=\"$(jq -er '.result.pane.tab_id'",
-  "PANE_ID=\"$(jq -er '.result.pane.pane_id'",
+  'CURRENT_PANE_JSON="$(herdr pane current 2>/dev/null || true)"',
+  "TAB_ID_FROM_RESPONSE=\"$(jq -er '.result.tab.tab_id",
+  "CURRENT_TAB_ID=\"$(jq -er '.result.pane.tab_id",
+  "PANE_ID=\"$(jq -er '.result.pane.pane_id",
   "80x24",
   "Herdr 0.7.4 cannot synthesize `done`",
   'herdr pane release-agent "$PANE_ID"',
@@ -264,6 +277,36 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
   "BLOCKED"
 ].each { |expected| require_text(manual, "guarded manual test", expected) }
 
+require_text_order(
+  manual,
+  "guarded manual test",
+  'if test "$DISPOSABLE_IDENTITY_VERIFIED" = 1; then',
+  'herdr pane report-agent "$PANE_ID"'
+)
+
+[
+  "## Post-merge candidate acceptance — pending",
+  "The merged checkout commit and plugin registration root must match exactly.",
+  "Do not repoint or unlink a protected registration.",
+  "- [ ] Candidate open and singleton behaviour",
+  "- [ ] Real `done` transition observed"
+].each { |expected| require_text(manual, "post-merge candidate acceptance", expected) }
+
+[
+  "- [x] The Guild Hall reads as one inhabited Great Room rather than bordered panels.",
+  "- [x] Standard and 4096-case property suites pass without excessive rejection.",
+  "- [x] Format, Clippy, all-feature tests, script tests, property stress, release build, and workflow contract pass.",
+  "- [ ] Guarded live candidate open, interactions, persistence, and screenshots pass.",
+  "- [ ] Real `done` transition is observed in live post-merge acceptance.",
+  "- [ ] Manual-test resources are cleaned up and the original Herdr environment is restored."
+].each { |expected| require_text(plan, "Great Room final acceptance", expected) }
+
+forbid_text(
+  plan,
+  "Great Room final acceptance",
+  "Format, Clippy, all-feature tests, script tests, release build, and guarded Herdr checks pass."
+)
+
 [
   ".result.panes",
   ".result.tabs",
@@ -273,7 +316,8 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
   'herdr pane focus "$BASELINE_FOCUS_PANE_ID"',
   'herdr pane close "$PANE_ID"',
   "herdr pane read --source",
-  ".label // .title"
+  ".label // .title",
+  "BASELINE_MANAGED_PANE_ID"
 ].each { |forbidden| forbid_text(manual, "guarded manual test", forbidden) }
 
 puts "workflow contracts: valid"

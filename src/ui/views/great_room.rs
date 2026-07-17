@@ -11,7 +11,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{CharacterSet, ConnectionState, Model, Notice},
+    app::{CharacterSet, ConnectionState, Model},
     domain::{Agent, AgentKey, GuildSummons, Timestamp, WorkspaceId},
     ui::{
         EffectCells,
@@ -259,6 +259,87 @@ fn render_representations(
     }
 }
 
+pub(crate) fn elapsed_label_is_visible(
+    model: &Model,
+    projection: &GuildRoomProjection,
+    representation: &AdventurerRepresentation,
+    now: Timestamp,
+) -> bool {
+    if !model.settings().show_elapsed_time {
+        return false;
+    }
+    let owner = OccupantOwner::for_representation(representation);
+    let owner_count = projection
+        .adventurers
+        .iter()
+        .filter(|candidate| OccupantOwner::for_representation(candidate) == owner)
+        .count();
+    if owner_count != 1 {
+        return false;
+    }
+    let Some(agent) = model
+        .domain()
+        .agents
+        .get(representation_agent(representation))
+    else {
+        return false;
+    };
+    let index = RenderIndex::new(projection);
+    let Some(area) = index.representation_area(representation) else {
+        return false;
+    };
+    let status = status_label_at(
+        frame_for(agent, now, model.preferences()).pose,
+        agent,
+        model,
+        now,
+    );
+    match representation {
+        AdventurerRepresentation::Token { .. } => {
+            let grid = token_grid(area, 1);
+            let marker = match model.preferences().character_set {
+                CharacterSet::Unicode => "◆",
+                CharacterSet::Ascii => "o",
+            };
+            let label = format!(
+                "{marker} {} [TOKEN / {status}]",
+                present(&agent.persona.name, model.preferences().character_set)
+            );
+            grid.available_rows > 0 && label.cell_width() <= grid.inner.width
+        }
+        AdventurerRepresentation::Physical { .. } | AdventurerRepresentation::Projection { .. } => {
+            if area.width < 4 || area.height < 4 {
+                return false;
+            }
+            let copy = GreatRoomCopy::for_model(model, projection);
+            let rows = RenderMeasurements::new(projection, &index, &copy)
+                .representation_rows(representation);
+            let inner = representation_inner(area);
+            let y = inner.y.saturating_add(rows.top);
+            if y >= inner.bottom() {
+                return false;
+            }
+            let status_area = if area.height < 12 && area.width >= 26 {
+                Rect::new(
+                    inner.x.saturating_add(11),
+                    y.saturating_add(1),
+                    inner.width.saturating_sub(11),
+                    1,
+                )
+            } else {
+                Rect::new(inner.x, y.saturating_add(7), inner.width, 1)
+            }
+            .intersection(inner);
+            let status = if matches!(representation, AdventurerRepresentation::Projection { .. }) {
+                format!("PROJECTED / {status}")
+            } else {
+                status
+            };
+            !status_area.is_empty() && status.cell_width() <= status_area.width
+        }
+    }
+}
+
 struct RenderIndex<'a> {
     landmarks: HashMap<GuildLandmark, &'a ProjectedLandmark>,
     campaigns: HashMap<WorkspaceId, &'a ProjectedCampaignTable>,
@@ -388,6 +469,20 @@ impl RenderMeasurements {
     }
 }
 
+pub(crate) fn integration_continuation_required(
+    model: &Model,
+    projection: &GuildRoomProjection,
+) -> bool {
+    if model.integration_diagnostic().is_none() {
+        return false;
+    }
+    let index = RenderIndex::new(projection);
+    let copy = GreatRoomCopy::for_model(model, projection);
+    RenderMeasurements::new(projection, &index, &copy)
+        .spoils
+        .copy_truncated
+}
+
 impl SpoilsMeasurement {
     const HEADER_ROWS: u16 = 2;
     const FURNITURE_ROWS: u16 = 2;
@@ -514,10 +609,8 @@ fn render_camera_context(
     if area.is_empty() {
         return;
     }
-    let text = match model.notice() {
-        Some(Notice::ConnectionDiagnostic(message))
-            if !matches!(model.connection(), ConnectionState::Connected) =>
-        {
+    let text = match model.connection_diagnostic() {
+        Some(message) if !matches!(model.connection(), ConnectionState::Connected) => {
             format!(
                 "{base} / Cause: {}",
                 present(message, model.preferences().character_set)
@@ -1098,29 +1191,28 @@ fn door_lines(model: &Model) -> Vec<Cow<'_, str>> {
         ],
     };
     if !matches!(model.connection(), ConnectionState::Connected)
-        && let Some(Notice::ConnectionDiagnostic(message)) = model.notice()
+        && let Some(message) = model.connection_diagnostic()
     {
         lines.push(Cow::Owned(format!(
             "Cause: {}",
             present(message, model.preferences().character_set)
         )));
     }
-    lines
-}
-
-fn counsel_lines(model: &Model, projection: &GuildRoomProjection) -> Vec<Cow<'static, str>> {
     let departed = model
         .domain()
         .agents
         .values()
         .filter(|agent| agent.attention.summons() == Some(GuildSummons::AdventurerDeparted))
         .count();
-    if departed == 1 {
-        return vec![Cow::Borrowed("1 adventurer departed")];
+    match departed {
+        0 => {}
+        1 => lines.push(Cow::Borrowed("1 adventurer departed")),
+        count => lines.push(Cow::Owned(format!("{count} adventurers departed"))),
     }
-    if departed > 1 {
-        return vec![Cow::Owned(format!("{departed} adventurers departed"))];
-    }
+    lines
+}
+
+fn counsel_lines(_model: &Model, projection: &GuildRoomProjection) -> Vec<Cow<'static, str>> {
     let count = projection
         .adventurers
         .iter()
@@ -1238,27 +1330,24 @@ fn spoils_lines<'a>(model: &'a Model, projection: &GuildRoomProjection) -> Vec<C
         lines.push(Cow::Borrowed("REVIEWR READY"));
         lines.push(Cow::Borrowed("[v] Inspect spoils"));
     }
-    if let Some(notice) = model.notice() {
-        match notice {
-            Notice::ReviewrAvailabilityDiagnostic(_message)
-                if projection.mode
-                    == crate::ui::guild_room_projection::GuildRoomMode::CroppedRoom =>
-            {
-                lines.push(Cow::Borrowed("REVIEWR UNAVAILABLE"));
-            }
-            Notice::ReviewrAvailabilityDiagnostic(message)
-            | Notice::IntegrationDiagnostic(message) => {
-                lines.push(present(message, model.preferences().character_set));
-            }
-            Notice::ConnectionDiagnostic(_)
-            | Notice::ActionFeedback(_)
-            | Notice::PersistenceDiagnostic(_) => {}
+    if let Some(message) = model.reviewr_availability_diagnostic() {
+        if projection.mode == crate::ui::guild_room_projection::GuildRoomMode::CroppedRoom {
+            lines.push(Cow::Borrowed("REVIEWR UNAVAILABLE"));
+        } else {
+            lines.push(present(message, model.preferences().character_set));
         }
+    }
+    if let Some(message) = model.integration_diagnostic() {
+        lines.push(present(message, model.preferences().character_set));
     }
     lines
 }
 
 fn status_label(pose: TheatrePose, agent: &Agent, model: &Model) -> String {
+    status_label_at(pose, agent, model, model.now())
+}
+
+fn status_label_at(pose: TheatrePose, agent: &Agent, model: &Model, now: Timestamp) -> String {
     let state = match pose {
         TheatrePose::Delving => "working",
         TheatrePose::SeekingCounsel => "blocked",
@@ -1270,10 +1359,7 @@ fn status_label(pose: TheatrePose, agent: &Agent, model: &Model) -> String {
     if !model.settings().show_elapsed_time {
         return state.to_owned();
     }
-    format!(
-        "{state} {}",
-        elapsed_label(agent.presence_since, model.now())
-    )
+    format!("{state} {}", elapsed_label(agent.presence_since, now))
 }
 
 fn elapsed_label(since: Timestamp, now: Timestamp) -> String {

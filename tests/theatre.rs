@@ -4,8 +4,8 @@ use questmancer::{
         View,
     },
     domain::{
-        Agent, AgentKey, Campaign, DomainState, GuildAttention, GuildSummons, Presence, Timestamp,
-        WorkspaceId,
+        Agent, AgentKey, Campaign, DomainState, GuildAttention, GuildSummons, PaneId, Presence,
+        Timestamp, WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ui::theatre::{RenderCadence, TheatrePose, cadence_for, frame_for},
@@ -56,6 +56,19 @@ fn model_with(agent: Agent, now: i64, motion: Motion) -> Model {
         color_mode: ColorMode::Xterm256,
     });
     model
+}
+
+fn add_selected_campaign(model: &mut Model, label: &str) {
+    let selected = model.selected_agent().unwrap().clone();
+    model.domain_mut().campaigns.insert(
+        selected.workspace_id.clone(),
+        Campaign {
+            workspace_id: selected.workspace_id.clone(),
+            label: label.to_owned(),
+            cwd: std::path::PathBuf::new(),
+            party: vec![selected.key.clone()],
+        },
+    );
 }
 
 fn two_campaign_model(selected_presence: Presence, hidden_presence: Presence) -> Model {
@@ -525,8 +538,9 @@ fn guild_elapsed_labels_arm_exact_second_and_minute_boundaries() {
     working.presence_since = Timestamp::from_millis(0);
     let area = Rect::new(0, 0, 120, 24);
 
-    let mut model = model_with(working, 1_250, Motion::Full);
+    let mut model = model_with(working, 1_250, Motion::None);
     model.switch_to(View::Guild);
+    add_selected_campaign(&mut model, "Ironmere");
     assert_eq!(
         questmancer::ui::theatre::next_visible_frame_in(&model, area),
         Some(Duration::from_millis(750))
@@ -557,6 +571,91 @@ fn guild_without_elapsed_labels_or_other_effects_is_event_driven() {
 }
 
 #[test]
+fn guild_truthful_station_animations_arm_their_real_cadences() {
+    let area = Rect::new(0, 0, 130, 32);
+    for (presence, attention, expected) in [
+        (
+            Presence::Working,
+            GuildAttention::Clear,
+            Duration::from_millis(167),
+        ),
+        (
+            Presence::Blocked,
+            GuildAttention::Clear,
+            Duration::from_millis(500),
+        ),
+        (
+            Presence::Idle,
+            GuildAttention::Clear,
+            Duration::from_millis(1_000),
+        ),
+        (
+            Presence::Done,
+            GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(0)),
+            Duration::from_millis(125),
+        ),
+    ] {
+        let mut adventurer = agent();
+        adventurer.presence = presence;
+        adventurer.presence_since = Timestamp::from_millis(0);
+        adventurer.attention = attention;
+        let mut model = model_with(adventurer, 0, Motion::Full);
+        add_selected_campaign(&mut model, "Ironmere");
+        model.switch_to(View::Guild);
+        model.set_settings(RuntimeSettings {
+            show_elapsed_time: false,
+            ..RuntimeSettings::default()
+        });
+
+        assert_eq!(
+            questmancer::ui::theatre::next_visible_frame_in(&model, area),
+            Some(expected),
+            "presence {presence:?}"
+        );
+    }
+}
+
+#[test]
+fn guild_elapsed_deadlines_follow_projected_truthful_stations() {
+    let mut blocked = agent();
+    blocked.presence = Presence::Blocked;
+    blocked.presence_since = Timestamp::from_millis(0);
+    let mut model = model_with(blocked, 1_250, Motion::None);
+    model.switch_to(View::Guild);
+
+    model.set_guild_focus(GuildFocus::Scrying);
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 79, 24)),
+        None,
+        "Scrying camera does not render the Counsel projection elapsed label"
+    );
+
+    model.set_guild_focus(GuildFocus::CounselBell);
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 79, 24)),
+        Some(Duration::from_millis(750)),
+        "Counsel camera renders the blocked projection elapsed label"
+    );
+}
+
+#[test]
+fn dense_truthful_station_without_elapsed_copy_does_not_arm_elapsed_deadline() {
+    let mut first = agent();
+    first.presence = Presence::Blocked;
+    first.presence_since = Timestamp::from_millis(0);
+    let mut second = first.clone();
+    second.key = AgentKey::new("agent-second");
+    second.pane_id = PaneId::new("w1:p2");
+    let mut model = model_with(first, 1_250, Motion::None);
+    model.domain_mut().agents.insert(second.key.clone(), second);
+
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 130, 32)),
+        None
+    );
+}
+
+#[test]
 fn hidden_medium_delve_animation_does_not_arm_a_deadline() {
     let model = two_campaign_model(Presence::Exited, Presence::Working);
 
@@ -577,7 +676,7 @@ fn visible_medium_delve_animation_still_arms_a_deadline() {
 }
 
 #[test]
-fn clipped_guild_roster_entries_do_not_move_the_elapsed_deadline() {
+fn dense_campaign_tokens_without_elapsed_copy_do_not_arm_a_deadline() {
     let mut domain = DomainState::default();
     for index in 0..6 {
         let mut adventurer = agent();
@@ -588,15 +687,28 @@ fn clipped_guild_roster_entries_do_not_move_the_elapsed_deadline() {
         domain.agents.insert(adventurer.key.clone(), adventurer);
     }
     domain.selected_agent = domain.agents.keys().next().cloned();
+    domain.campaigns.insert(
+        WorkspaceId::new("w1"),
+        Campaign {
+            workspace_id: WorkspaceId::new("w1"),
+            label: "Ironmere".to_owned(),
+            cwd: std::path::PathBuf::new(),
+            party: domain.agents.keys().cloned().collect(),
+        },
+    );
 
     let mut model = Model::new(View::Guild);
     model.replace_domain(domain);
+    model.set_preferences(DisplayPreferences {
+        motion: Motion::None,
+        ..preferences()
+    });
     model.set_guild_focus(GuildFocus::CampaignTables);
     model.set_now(Timestamp::from_millis(1_250));
 
     assert_eq!(
         questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 60, 10)),
-        Some(Duration::from_millis(750))
+        None
     );
 }
 
@@ -623,31 +735,21 @@ fn shrinking_minute_label_arms_when_the_next_value_becomes_visible() {
     let mut working = agent();
     working.presence = Presence::Working;
     working.presence_since = Timestamp::from_millis(0);
-    let mut model = model_with(working, 10_500, Motion::Full);
+    working.persona.name = "X".to_owned();
+    let mut model = model_with(working, 10_500, Motion::None);
     model.switch_to(View::Guild);
+    add_selected_campaign(&mut model, "Ironmere");
 
-    for (focus, area) in [
-        (GuildFocus::CampaignTables, Rect::new(0, 0, 16, 20)),
-        (GuildFocus::Scrying, Rect::new(0, 0, 14, 40)),
-    ] {
-        model.set_guild_focus(focus);
-        assert_eq!(
-            questmancer::ui::theatre::next_visible_frame_in(&model, area),
-            Some(Duration::from_millis(49_500)),
-            "focus {focus:?}"
-        );
-    }
+    model.set_guild_focus(GuildFocus::CampaignTables);
+    let area = Rect::new(0, 0, 28, 20);
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, area),
+        Some(Duration::from_millis(49_500))
+    );
 
     model.set_now(Timestamp::from_millis(59_500));
-    for (focus, area) in [
-        (GuildFocus::CampaignTables, Rect::new(0, 0, 16, 20)),
-        (GuildFocus::Scrying, Rect::new(0, 0, 14, 40)),
-    ] {
-        model.set_guild_focus(focus);
-        assert_eq!(
-            questmancer::ui::theatre::next_visible_frame_in(&model, area),
-            Some(Duration::from_millis(500)),
-            "focus {focus:?}"
-        );
-    }
+    assert_eq!(
+        questmancer::ui::theatre::next_visible_frame_in(&model, area),
+        Some(Duration::from_millis(500))
+    );
 }

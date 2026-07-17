@@ -6,7 +6,12 @@ use crate::{
 use ratatui::layout::Rect;
 use std::time::Duration;
 
-use super::{delve_projection::visible_agent_keys, views::guild_hall::next_elapsed_label_in};
+use super::{
+    RenderProjection,
+    delve_projection::visible_agent_keys,
+    guild_room_projection::{AdventurerRepresentation, GuildRoomProjection},
+    views::guild_hall::next_elapsed_label_in,
+};
 
 macro_rules! theatre_poses {
     ($($variant:ident),+ $(,)?) => {
@@ -91,19 +96,30 @@ pub fn cadence_for(model: &Model) -> RenderCadence {
 /// nominal FPS. Different agents can have interleaved boundaries, and a done
 /// transition has an exact terminal boundary at one second.
 pub fn next_visible_frame_in(model: &Model, render_area: Rect) -> Option<Duration> {
-    next_projected_frame_in(model, render_area, Some(model.preferences().motion))
+    let projection = super::render_projection_for(model, render_area);
+    next_projected_frame_in(model, render_area, &projection)
 }
 
 pub(crate) fn next_projected_frame_in(
     model: &Model,
     render_area: Rect,
-    guild_goblin_motion: Option<Motion>,
+    projection: &RenderProjection,
 ) -> Option<Duration> {
     if model.view() == View::Guild {
-        let goblins = guild_goblin_motion
+        let goblins = projection
+            .guild_goblin_motion(model.preferences().motion)
             .and_then(|motion| model.goblins().next_visible_frame_in(model.now(), motion));
-        let elapsed = next_elapsed_label_in(model, render_area);
-        return goblins.into_iter().chain(elapsed).min();
+        let elapsed = next_elapsed_label_in(model, projection.guild_room.as_ref());
+        let theatre = projection
+            .guild_room
+            .as_ref()
+            .into_iter()
+            .flat_map(|room| visible_guild_agents(model, room))
+            .filter_map(|agent| {
+                next_frame_for_agent(agent, model.now(), model.preferences().motion)
+            })
+            .min();
+        return goblins.into_iter().chain(elapsed).chain(theatre).min();
     }
     if model.preferences().motion == Motion::None {
         return None;
@@ -114,6 +130,41 @@ pub(crate) fn next_projected_frame_in(
         .filter_map(|key| model.domain().agents.get(&key))
         .filter_map(|agent| next_frame_for_agent(agent, model.now(), model.preferences().motion))
         .min()
+}
+
+fn visible_guild_agents<'a>(
+    model: &'a Model,
+    room: &'a GuildRoomProjection,
+) -> impl Iterator<Item = &'a Agent> + 'a {
+    room.adventurers.iter().filter_map(|representation| {
+        let visible = match representation {
+            AdventurerRepresentation::Token { table, .. } => room
+                .campaigns
+                .iter()
+                .any(|campaign| campaign.workspace_id == *table && !campaign.area.is_empty()),
+            AdventurerRepresentation::Physical { station, .. }
+            | AdventurerRepresentation::Projection { station, .. } => room
+                .landmarks
+                .iter()
+                .any(|landmark| landmark.landmark == *station && !landmark.area.is_empty()),
+        };
+        visible
+            .then(|| {
+                model
+                    .domain()
+                    .agents
+                    .get(representation_agent(representation))
+            })
+            .flatten()
+    })
+}
+
+fn representation_agent(representation: &AdventurerRepresentation) -> &crate::domain::AgentKey {
+    match representation {
+        AdventurerRepresentation::Physical { agent, .. }
+        | AdventurerRepresentation::Token { agent, .. }
+        | AdventurerRepresentation::Projection { agent, .. } => agent,
+    }
 }
 
 fn animation_frame(agent: &Agent, pose: TheatrePose, now: Timestamp, motion: Motion) -> u8 {

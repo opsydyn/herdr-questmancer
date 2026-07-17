@@ -41,6 +41,47 @@ fn notices_retain_their_origin_and_connection_clear_is_selective() {
 }
 
 #[test]
+fn typed_notice_origins_coexist_and_clear_independently() {
+    let mut model = Model::new(View::Guild);
+    model.set_connection_diagnostic("socket closed".to_owned());
+    model.set_action_feedback("Counsel issued.".to_owned());
+    model.set_persistence_diagnostic("state write delayed".to_owned());
+    model.set_reviewr_availability_diagnostic("Reviewr is unavailable.".to_owned());
+    model.set_integration_diagnostic("plugin discovery failed".to_owned());
+
+    assert_eq!(model.connection_diagnostic(), Some("socket closed"));
+    assert_eq!(model.action_feedback(), Some("Counsel issued."));
+    assert_eq!(model.persistence_diagnostic(), Some("state write delayed"));
+    assert_eq!(
+        model.reviewr_availability_diagnostic(),
+        Some("Reviewr is unavailable.")
+    );
+    assert_eq!(
+        model.integration_diagnostic(),
+        Some("plugin discovery failed")
+    );
+
+    model.clear_connection_notice();
+    assert_eq!(model.connection_diagnostic(), None);
+    assert_eq!(model.action_feedback(), Some("Counsel issued."));
+    assert_eq!(model.persistence_diagnostic(), Some("state write delayed"));
+    assert_eq!(
+        model.integration_diagnostic(),
+        Some("plugin discovery failed")
+    );
+
+    model.clear_action_feedback();
+    model.clear_reviewr_availability_notice();
+    assert_eq!(model.action_feedback(), None);
+    assert_eq!(model.reviewr_availability_diagnostic(), None);
+    assert_eq!(model.persistence_diagnostic(), Some("state write delayed"));
+    assert_eq!(
+        model.integration_diagnostic(),
+        Some("plugin discovery failed")
+    );
+}
+
+#[test]
 fn managed_pane_round_trips_through_model() {
     let mut model = Model::new(View::Guild);
     let pane_id = PaneId::new("w2:p3");

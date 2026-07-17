@@ -567,16 +567,18 @@
 
 ## Final acceptance checklist
 
-- [ ] The Guild Hall reads as one inhabited Great Room rather than bordered panels.
-- [ ] Wide mode renders Door, Quest Wall, all campaign tables, Counsel Bell, Hearth, Chronicle, Scrying, and Spoils.
-- [ ] Every non-exited adventurer has exactly one approved representation; exited adventurers have none.
-- [ ] Full-body sprites occur only at Counsel, Hearth, and Spoils truth stations.
-- [ ] Wide, medium, and narrow cameras retain one stable room and campaign identity.
-- [ ] Existing observe, counsel, acknowledge, refresh, search, and Reviewr actions retain command parity.
-- [ ] Connected theatre cannot retain a connecting diagnostic.
-- [ ] The Delve route-home row cannot render residual `HOMET PATH` text.
-- [ ] Empty, disconnected, incompatible, and integration-unavailable states remain readable and furnished.
-- [ ] Storybook inventories every authored production room asset once and exposes all fixed scenes.
-- [ ] Standard and 4096-case property suites pass without excessive rejection.
-- [ ] Format, Clippy, all-feature tests, script tests, release build, and guarded Herdr checks pass.
+- [x] The Guild Hall reads as one inhabited Great Room rather than bordered panels.
+- [x] Wide mode renders Door, Quest Wall, all campaign tables, Counsel Bell, Hearth, Chronicle, Scrying, and Spoils.
+- [x] Every non-exited adventurer has exactly one approved representation; exited adventurers have none.
+- [x] Full-body sprites occur only at Counsel, Hearth, and Spoils truth stations.
+- [x] Wide, medium, and narrow cameras retain one stable room and campaign identity.
+- [x] Existing observe, counsel, acknowledge, refresh, search, and Reviewr actions retain command parity.
+- [x] Connected theatre cannot retain a connecting diagnostic.
+- [x] The Delve route-home row cannot render residual `HOMET PATH` text.
+- [x] Empty, disconnected, incompatible, and integration-unavailable states remain readable and furnished.
+- [x] Storybook inventories every authored production room asset once and exposes all fixed scenes.
+- [x] Standard and 4096-case property suites pass without excessive rejection.
+- [x] Format, Clippy, all-feature tests, script tests, property stress, release build, and workflow contract pass.
+- [ ] Guarded live candidate open, interactions, persistence, and screenshots pass.
+- [ ] Real `done` transition is observed in live post-merge acceptance.
 - [ ] Manual-test resources are cleaned up and the original Herdr environment is restored.

@@ -138,6 +138,26 @@ impl Notice {
     }
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+struct Notices {
+    connection: Option<Notice>,
+    action: Option<Notice>,
+    persistence: Option<Notice>,
+    reviewr: Option<Notice>,
+    integration: Option<Notice>,
+}
+
+impl Notices {
+    fn primary(&self) -> Option<&Notice> {
+        self.action
+            .as_ref()
+            .or(self.persistence.as_ref())
+            .or(self.reviewr.as_ref())
+            .or(self.integration.as_ref())
+            .or(self.connection.as_ref())
+    }
+}
+
 macro_rules! guild_focus {
     ($default:ident; $($variant:ident),+ $(,)?) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -199,7 +219,7 @@ pub struct Model {
     guild_focus: GuildFocus,
     modal: Modal,
     output_preview: Option<OutputPreview>,
-    notice: Option<Notice>,
+    notices: Box<Notices>,
     reviewr_available: bool,
     now: Timestamp,
     preferences: DisplayPreferences,
@@ -218,7 +238,7 @@ impl Model {
             guild_focus: GuildFocus::QuestWall,
             modal: Modal::None,
             output_preview: None,
-            notice: None,
+            notices: Box::default(),
             reviewr_available: false,
             now: Timestamp::from_millis(0),
             preferences: DisplayPreferences::default(),
@@ -450,56 +470,63 @@ impl Model {
     }
 
     pub fn status_message(&self) -> Option<&str> {
-        self.notice.as_ref().map(Notice::message)
+        self.notice().map(Notice::message)
     }
 
-    pub const fn notice(&self) -> Option<&Notice> {
-        self.notice.as_ref()
+    pub fn notice(&self) -> Option<&Notice> {
+        self.notices.primary()
+    }
+
+    pub fn connection_diagnostic(&self) -> Option<&str> {
+        self.notices.connection.as_ref().map(Notice::message)
+    }
+
+    pub fn action_feedback(&self) -> Option<&str> {
+        self.notices.action.as_ref().map(Notice::message)
+    }
+
+    pub fn persistence_diagnostic(&self) -> Option<&str> {
+        self.notices.persistence.as_ref().map(Notice::message)
+    }
+
+    pub fn reviewr_availability_diagnostic(&self) -> Option<&str> {
+        self.notices.reviewr.as_ref().map(Notice::message)
+    }
+
+    pub fn integration_diagnostic(&self) -> Option<&str> {
+        self.notices.integration.as_ref().map(Notice::message)
     }
 
     pub fn set_connection_diagnostic(&mut self, message: String) {
-        self.notice = Some(Notice::ConnectionDiagnostic(message));
+        self.notices.connection = Some(Notice::ConnectionDiagnostic(message));
     }
 
     pub fn set_action_feedback(&mut self, message: String) {
-        self.notice = Some(Notice::ActionFeedback(message));
+        self.notices.action = Some(Notice::ActionFeedback(message));
     }
 
     pub fn set_persistence_diagnostic(&mut self, message: String) {
-        self.notice = Some(Notice::PersistenceDiagnostic(message));
+        self.notices.persistence = Some(Notice::PersistenceDiagnostic(message));
     }
 
     pub fn set_integration_diagnostic(&mut self, message: String) {
-        self.notice = Some(Notice::IntegrationDiagnostic(message));
+        self.notices.integration = Some(Notice::IntegrationDiagnostic(message));
     }
 
     pub fn set_reviewr_availability_diagnostic(&mut self, message: String) {
-        self.notice = Some(Notice::ReviewrAvailabilityDiagnostic(message));
+        self.notices.reviewr = Some(Notice::ReviewrAvailabilityDiagnostic(message));
     }
 
     pub fn clear_connection_notice(&mut self) {
-        if self
-            .notice
-            .as_ref()
-            .is_some_and(Notice::is_connection_diagnostic)
-        {
-            self.notice = None;
-        }
+        self.notices.connection = None;
     }
 
     pub fn clear_reviewr_availability_notice(&mut self) {
-        if matches!(
-            self.notice.as_ref(),
-            Some(Notice::ReviewrAvailabilityDiagnostic(_))
-        ) {
-            self.notice = None;
-        }
+        self.notices.reviewr = None;
     }
 
     pub fn clear_action_feedback(&mut self) {
-        if matches!(self.notice.as_ref(), Some(Notice::ActionFeedback(_))) {
-            self.notice = None;
-        }
+        self.notices.action = None;
     }
 
     pub fn selected_agent_key(&self) -> Option<&AgentKey> {

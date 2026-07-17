@@ -36,6 +36,7 @@ PREEXISTING_MANAGED_PANE_ID=""
 PREEXISTING_MANAGED_PANE_IDS=""
 MANAGED_PANE_IS_TEST_OWNED=0
 LIVE_TESTS_PERMITTED=0
+DISPOSABLE_IDENTITY_VERIFIED=0
 
 resolve_existing_root() {
   local candidate_root=$1
@@ -210,12 +211,12 @@ checkout and that there was no protected managed pane in the baseline:
 if test "$PLUGIN_MATCH_COUNT" = 1 \
   && test -n "$REGISTRATION_SOURCE_ROOT" \
   && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT" \
-  && test -z "$BASELINE_MANAGED_PANE_ID"; then
+  && test -z "$PREEXISTING_MANAGED_PANE_ID"; then
   LIVE_TESTS_PERMITTED=1
 fi
 printf 'candidate root: %s\n' "$TEST_CHECKOUT"
 printf 'registered root: %s\n' "$REGISTRATION_SOURCE_ROOT"
-printf 'baseline managed pane: %s\n' "${BASELINE_MANAGED_PANE_ID:-none}"
+printf 'baseline managed pane: %s\n' "${PREEXISTING_MANAGED_PANE_ID:-none}"
 printf 'live tests permitted: %s\n' "$LIVE_TESTS_PERMITTED"
 ```
 
@@ -273,43 +274,97 @@ pane. Never target Codex, Questmancer, or another agent-owned pane.
 if test "$LIVE_TESTS_PERMITTED" = 1 \
   && test "$MANAGED_PANE_IS_TEST_OWNED" = 1 \
   && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
-WORKSPACE_ID=$(herdr workspace list |
-  jq -r '.result.workspaces[] | select(.focused) | .workspace_id' |
-  head -n 1)
-TEST_LABEL="questmancer-great-room-$(date +%s)"
-TAB_CREATE_JSON="$(herdr tab create --workspace "$WORKSPACE_ID" --cwd "$PWD" \
-  --label "$TEST_LABEL" --focus)"
-TAB_ID="$(jq -er '.result.tab.tab_id' <<<"$TAB_CREATE_JSON")"
-TEST_CREATED_TAB=1
-CURRENT_PANE_JSON="$(herdr pane current)"
-CURRENT_TAB_ID="$(jq -er '.result.pane.tab_id' <<<"$CURRENT_PANE_JSON")"
-PANE_ID="$(jq -er '.result.pane.pane_id' <<<"$CURRENT_PANE_JSON")"
-test "$CURRENT_TAB_ID" = "$TAB_ID" || {
-  printf '%s\n' 'Focused pane does not belong to the created tab; block live rows.' >&2
-  LIVE_TESTS_PERMITTED=0
-}
-TEST_CREATED_PANE=1
-SOURCE_ID="questmancer-manual-$(date +%s)-$$-$RANDOM"
+  DISPOSABLE_IDENTITY_VERIFIED=0
+  WORKSPACE_ID="$(herdr workspace list 2>/dev/null |
+    jq -er '.result.workspaces[] | select(.focused) | .workspace_id' |
+    head -n 1 || true)"
+  TEST_LABEL="questmancer-great-room-$(date +%s)"
+  PRE_DISPOSABLE_SNAPSHOT="$(mktemp)"
+  POST_DISPOSABLE_SNAPSHOT="$(mktemp)"
+  herdr api snapshot >"$PRE_DISPOSABLE_SNAPSHOT"
 
-herdr pane report-agent "$PANE_ID" \
-  --source "$SOURCE_ID" \
-  --agent questmancer-smoke \
-  --state working \
-  --message "mapping the Great Room" \
-  --seq 1
-TEST_CREATED_REPORT=1
+  if test -z "$WORKSPACE_ID"; then
+    printf '%s\n' 'No exact focused workspace identity; block live rows.' >&2
+    LIVE_TESTS_PERMITTED=0
+  elif ! TAB_CREATE_JSON="$(herdr tab create --workspace "$WORKSPACE_ID" --cwd "$PWD" \
+    --label "$TEST_LABEL" --focus)"; then
+    printf '%s\n' 'Disposable tab creation failed; block live rows.' >&2
+    LIVE_TESTS_PERMITTED=0
+  else
+    herdr api snapshot >"$POST_DISPOSABLE_SNAPSHOT"
+    TAB_ID_FROM_RESPONSE="$(jq -er '.result.tab.tab_id | select(type == "string" and length > 0)' \
+      <<<"$TAB_CREATE_JSON" 2>/dev/null || true)"
+    TAB_ID_FROM_DELTA="$(jq -r --slurpfile before "$PRE_DISPOSABLE_SNAPSHOT" '
+      ($before[0].result.snapshot.tabs // [] | map(.tab_id)) as $baseline
+      | .result.snapshot.tabs[]?
+      | select((.tab_id as $id | $baseline | index($id)) == null)
+      | .tab_id
+    ' "$POST_DISPOSABLE_SNAPSHOT")"
+    TAB_DELTA_COUNT="$(printf '%s\n' "$TAB_ID_FROM_DELTA" | sed '/^$/d' | wc -l | tr -d ' ')"
 
-herdr pane report-agent "$PANE_ID" \
-  --source "$SOURCE_ID" \
-  --agent questmancer-smoke \
-  --state blocked \
-  --message "Counsel requested at the sealed gate" \
-  --seq 2
+    if test "$TAB_DELTA_COUNT" = 1 \
+      && { test -z "$TAB_ID_FROM_RESPONSE" \
+        || test "$TAB_ID_FROM_RESPONSE" = "$TAB_ID_FROM_DELTA"; }; then
+      TAB_ID="$TAB_ID_FROM_DELTA"
+      TEST_CREATED_TAB=1
+      CURRENT_PANE_JSON="$(herdr pane current 2>/dev/null || true)"
+      CURRENT_TAB_ID="$(jq -er '.result.pane.tab_id | select(type == "string" and length > 0)' \
+        <<<"$CURRENT_PANE_JSON" 2>/dev/null || true)"
+      PANE_ID="$(jq -er '.result.pane.pane_id | select(type == "string" and length > 0)' \
+        <<<"$CURRENT_PANE_JSON" 2>/dev/null || true)"
+      CURRENT_IDENTITY_COUNT="$(jq -r --arg pane "$PANE_ID" --arg tab "$TAB_ID" '
+        [.result.snapshot.panes[]?
+          | select(.pane_id == $pane and .tab_id == $tab)]
+        | length
+      ' "$POST_DISPOSABLE_SNAPSHOT")"
+      PANE_WAS_BASELINE="$(printf '%s\n' "$BASELINE_PANE_IDS" |
+        grep -Fxc "$PANE_ID" || true)"
+
+      if test -n "$CURRENT_TAB_ID" \
+        && test -n "$PANE_ID" \
+        && test "$CURRENT_TAB_ID" = "$TAB_ID" \
+        && test "$CURRENT_IDENTITY_COUNT" = 1 \
+        && test "$PANE_WAS_BASELINE" = 0; then
+        DISPOSABLE_IDENTITY_VERIFIED=1
+        TEST_CREATED_PANE=1
+      else
+        printf '%s\n' 'Focused pane does not exactly match the created tab; block live rows.' >&2
+        LIVE_TESTS_PERMITTED=0
+      fi
+    else
+      printf '%s\n' 'Created tab identity is missing or ambiguous; block live rows.' >&2
+      LIVE_TESTS_PERMITTED=0
+    fi
+  fi
+
+  if test "$DISPOSABLE_IDENTITY_VERIFIED" = 1; then
+    SOURCE_ID="questmancer-manual-$(date +%s)-$$-$RANDOM"
+    if herdr pane report-agent "$PANE_ID" \
+      --source "$SOURCE_ID" \
+      --agent questmancer-smoke \
+      --state working \
+      --message "mapping the Great Room" \
+      --seq 1; then
+      TEST_CREATED_REPORT=1
+      herdr pane report-agent "$PANE_ID" \
+        --source "$SOURCE_ID" \
+        --agent questmancer-smoke \
+        --state blocked \
+        --message "Counsel requested at the sealed gate" \
+        --seq 2 || LIVE_TESTS_PERMITTED=0
+    else
+      LIVE_TESTS_PERMITTED=0
+    fi
+  fi
 else
   printf '%s\n' 'BLOCKED: synthetic-agent ownership guard failed.'
   LIVE_TESTS_PERMITTED=0
 fi
 ```
+
+Skip directly to restoration after any disposable identity mismatch. Never set
+`TEST_CREATED_PANE`, create `SOURCE_ID`, or call `report-agent` unless
+`DISPOSABLE_IDENTITY_VERIFIED=1` was proven by the post-create snapshot.
 
 Confirm the snapshot contains only this test-owned synthetic source and that
 Questmancer renders its blocked Summons at the Counsel Bell.
@@ -535,6 +590,23 @@ else
   test -z "$FINAL_REGISTRATION_SOURCE_ROOT"
 fi
 ```
+
+## Post-merge candidate acceptance — pending
+
+Run this only after the feature commit is merged into the checkout that Herdr
+will load. The merged checkout commit and plugin registration root must match exactly.
+Use either an isolated disposable Herdr session or prove that no managed
+Questmancer pane existed at baseline. Do not repoint or unlink a protected registration.
+
+- [ ] Candidate open and singleton behaviour
+- [ ] Synthetic state reports and safe agent interactions
+- [ ] Persistence across a candidate-owned close and reopen
+- [ ] Wide Great Room screenshot
+- [ ] Exact 80x24 screenshot
+- [ ] Real `done` transition observed
+
+Until those rows are completed under the ownership guards above, they remain
+manual acceptance work rather than evidence from the automated gate.
 
 ## Great Room release-candidate record — 2026-07-17
 

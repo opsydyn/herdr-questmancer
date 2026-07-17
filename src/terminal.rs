@@ -155,11 +155,7 @@ impl AnimationScheduler {
         projection: RenderProjection,
         clock: &RuntimeClock,
     ) {
-        let Some(period) = next_projected_frame_in(
-            model,
-            render_area,
-            projection.guild_goblin_motion(model.preferences().motion),
-        ) else {
+        let Some(period) = next_projected_frame_in(model, render_area, &projection) else {
             self.sleep = None;
             return;
         };

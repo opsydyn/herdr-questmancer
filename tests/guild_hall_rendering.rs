@@ -1221,10 +1221,70 @@ fn departed_adventurer_is_visible_in_the_narrow_projection() {
     );
 
     let mut model = model;
-    model.set_guild_focus(questmancer::app::GuildFocus::CounselBell);
+    model.set_guild_focus(questmancer::app::GuildFocus::Door);
     let screen = render(&model, 60, 18);
 
     assert!(screen.contains("departed"));
+}
+
+#[test]
+fn departure_evidence_uses_the_door_without_hiding_counsel_truth() {
+    let mut model = live_model();
+    let mut departed = model.domain().agents.values().next().unwrap().clone();
+    departed.key = AgentKey::new("departed-agent");
+    departed.pane_id = PaneId::new("w1:p9");
+    departed.persona.name = "Orin Departed".to_owned();
+    departed.presence = Presence::Exited;
+    departed.attention = GuildAttention::unread(
+        GuildSummons::AdventurerDeparted,
+        Timestamp::from_millis(61_000),
+    );
+    model
+        .domain_mut()
+        .agents
+        .insert(departed.key.clone(), departed);
+
+    model.set_guild_focus(questmancer::app::GuildFocus::CounselBell);
+    let counsel = render(&model, 79, 24);
+    assert!(counsel.contains("requests counsel"), "{counsel}");
+    assert!(!counsel.contains("departed"), "{counsel}");
+
+    model.set_guild_focus(questmancer::app::GuildFocus::Door);
+    let door = render(&model, 79, 24);
+    assert!(door.contains("1 adventurer departed"), "{door}");
+}
+
+#[test]
+fn operational_notices_remain_visible_in_cropped_and_landmark_cameras() {
+    let mut model = live_model();
+    model.set_action_feedback("Counsel reached the expedition.".to_owned());
+    model.set_persistence_diagnostic("Chronicle save is delayed.".to_owned());
+
+    for width in [79, 80, 119] {
+        let screen = render(&model, width, 24);
+        assert!(
+            screen.contains("Counsel reached the expedition."),
+            "width {width}\n{screen}"
+        );
+        assert!(
+            screen.contains("Chronicle save is delayed."),
+            "width {width}\n{screen}"
+        );
+    }
+}
+
+#[test]
+fn wide_integration_diagnostic_is_rendered_once_at_spoils() {
+    let mut model = live_model();
+    model.set_integration_diagnostic("Review bridge discovery failed.".to_owned());
+
+    let screen = render(&model, 130, 32);
+    assert_eq!(
+        screen.matches("Review bridge discovery").count(),
+        1,
+        "{screen}"
+    );
+    assert_eq!(screen.matches("failed.").count(), 1, "{screen}");
 }
 
 #[test]

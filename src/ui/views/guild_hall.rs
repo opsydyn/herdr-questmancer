@@ -9,13 +9,16 @@ use ratatui::{
 use std::time::Duration;
 
 use crate::{
-    app::{CharacterSet, ConnectionState, GuildFocus, Model, Notice},
+    app::{CharacterSet, ConnectionState, GuildFocus, Model},
     domain::{Agent, AgentKey, CampaignStatus, GuildSummons, Presence},
     ui::{
         EffectCells, GuildGoblinEvidence, GuildPresentation, RenderProjection,
         copy::{self, EMPTY_GUILD, SCRYING_CLOUDED, SCRYING_STILL},
         goblins,
-        guild_room_projection::{GuildRoomMode, project as project_guild_room},
+        guild_room_projection::{
+            AdventurerRepresentation, GuildRoomMode, GuildRoomProjection,
+            project as project_guild_room,
+        },
         theme::{ACCENT, INK, MUTED},
         widgets::presentation::present,
     },
@@ -549,19 +552,6 @@ impl FooterProjection {
 
 fn footer_projection(model: &Model, area: Rect) -> FooterProjection {
     let width = area.width;
-    let notice = if width >= 120 {
-        match model.notice() {
-            Some(
-                Notice::ActionFeedback(message)
-                | Notice::PersistenceDiagnostic(message)
-                | Notice::IntegrationDiagnostic(message),
-            ) => Some(present(message, model.preferences().character_set).into_owned()),
-            Some(Notice::ConnectionDiagnostic(_) | Notice::ReviewrAvailabilityDiagnostic(_))
-            | None => None,
-        }
-    } else {
-        None
-    };
     let mut actions = vec!["[1] Guild Hall", "[2] Delve"];
     if width < 80 {
         actions.push("[tab] Next landmark");
@@ -582,9 +572,26 @@ fn footer_projection(model: &Model, area: Rect) -> FooterProjection {
         }
     }
     let actions = pack_actions(&actions, usize::from(width));
-    let notice_lines = notice
-        .as_deref()
-        .map_or_else(Vec::new, |message| wrap_footer_notice(message, width));
+    let mut notice_lines = [model.action_feedback(), model.persistence_diagnostic()]
+        .into_iter()
+        .flatten()
+        .flat_map(|message| {
+            let message = present(message, model.preferences().character_set);
+            wrap_footer_notice(&message, width)
+        })
+        .collect::<Vec<_>>();
+    let provisional_footer_height = notice_lines.len().saturating_add(actions.len());
+    let provisional_body = body_for_footer(
+        area,
+        u16::try_from(provisional_footer_height).unwrap_or(u16::MAX),
+    );
+    let provisional_room = project_guild_room(model, provisional_body);
+    if great_room::integration_continuation_required(model, &provisional_room)
+        && let Some(message) = model.integration_diagnostic()
+    {
+        let message = present(message, model.preferences().character_set);
+        notice_lines.extend(wrap_footer_notice(&message, width));
+    }
     let mut projection = FooterProjection {
         notice_lines,
         ledger_lines: Vec::new(),
@@ -808,196 +815,52 @@ fn elapsed_label_at(agent: &Agent, now: crate::domain::Timestamp) -> String {
     }
 }
 
-pub(crate) fn next_elapsed_label_in(model: &Model, area: Rect) -> Option<Duration> {
-    if !model.settings().show_elapsed_time
-        || model.domain().agents.is_empty()
-        || area.width < 4
-        || area.height < 3
-    {
+pub(crate) fn next_elapsed_label_in(
+    model: &Model,
+    projection: Option<&GuildRoomProjection>,
+) -> Option<Duration> {
+    if !model.settings().show_elapsed_time || model.domain().agents.is_empty() {
         return None;
     }
-
-    visible_elapsed_slots(model, area)
-        .into_iter()
-        .filter_map(|slot| next_visible_elapsed_change(slot, model))
+    let projection = projection?;
+    projection
+        .adventurers
+        .iter()
+        .filter_map(|representation| {
+            let agent = model
+                .domain()
+                .agents
+                .get(representation_agent(representation))?;
+            next_projected_elapsed_change(model, projection, representation, agent)
+        })
         .min()
 }
 
-#[derive(Clone, Copy)]
-enum ElapsedSurface {
-    Party(Rect),
-    Adventurer(Rect),
-}
-
-#[derive(Clone, Copy)]
-struct ElapsedSlot<'a> {
-    agent: &'a Agent,
-    surface: ElapsedSurface,
-}
-
-fn visible_elapsed_slots(model: &Model, terminal_area: Rect) -> Vec<ElapsedSlot<'_>> {
-    let content = guild_content_area(model, terminal_area);
-    if content.is_empty() {
-        return Vec::new();
-    }
-
-    if terminal_area.width >= 120 {
-        let [_board, guild, selected] = ratatui::layout::Layout::horizontal([
-            Constraint::Percentage(25),
-            Constraint::Percentage(36),
-            Constraint::Min(42),
-        ])
-        .areas(content);
-        let [party, _summons, _chronicle] = ratatui::layout::Layout::vertical([
-            Constraint::Percentage(34),
-            Constraint::Percentage(30),
-            Constraint::Min(5),
-        ])
-        .areas(guild);
-        let [adventurer, _scrying, _spoils] = ratatui::layout::Layout::vertical([
-            Constraint::Length(selected.height.min(9)),
-            Constraint::Min(5),
-            Constraint::Length(selected.height.min(5)),
-        ])
-        .areas(selected);
-        let mut visible = visible_party_slots(model, party);
-        push_selected_elapsed_slot(&mut visible, model, adventurer);
-        return visible;
-    }
-
-    if terminal_area.width >= 80 {
-        let [overview, selected] =
-            ratatui::layout::Layout::horizontal([Constraint::Percentage(44), Constraint::Min(38)])
-                .areas(content);
-        let [_board, party] =
-            ratatui::layout::Layout::vertical([Constraint::Percentage(45), Constraint::Min(5)])
-                .areas(overview);
-        let [adventurer, _scrying] = ratatui::layout::Layout::vertical([
-            Constraint::Length(selected.height.min(9)),
-            Constraint::Min(4),
-        ])
-        .areas(selected);
-        let mut visible = visible_party_slots(model, party);
-        push_selected_elapsed_slot(&mut visible, model, adventurer);
-        return visible;
-    }
-
-    let [primary, _diagnostic] = if ordinary_notice_message(model).is_some() {
-        ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(2)])
-            .areas(content)
-    } else {
-        [content, Rect::default()]
-    };
-    match model.guild_focus() {
-        GuildFocus::CampaignTables => visible_party_slots(model, primary),
-        GuildFocus::Scrying | GuildFocus::Hearth | GuildFocus::Spoils => {
-            let card_height = primary.height.saturating_sub(4).min(7);
-            let [adventurer, _scrying] = ratatui::layout::Layout::vertical([
-                Constraint::Length(card_height),
-                Constraint::Min(4),
-            ])
-            .areas(primary);
-            let mut visible = Vec::new();
-            push_selected_elapsed_slot(&mut visible, model, adventurer);
-            visible
-        }
-        GuildFocus::QuestWall
-        | GuildFocus::CounselBell
-        | GuildFocus::Chronicle
-        | GuildFocus::Door => Vec::new(),
-    }
-}
-
 fn connection_notice_message(model: &Model) -> Option<&str> {
-    match model.notice() {
-        Some(Notice::ConnectionDiagnostic(message)) => Some(message),
-        Some(
-            Notice::ActionFeedback(_)
-            | Notice::PersistenceDiagnostic(_)
-            | Notice::ReviewrAvailabilityDiagnostic(_)
-            | Notice::IntegrationDiagnostic(_),
-        )
-        | None => None,
-    }
+    model.connection_diagnostic()
 }
 
 fn ordinary_notice_message(model: &Model) -> Option<&str> {
-    match model.notice() {
-        Some(
-            Notice::ActionFeedback(message)
-            | Notice::PersistenceDiagnostic(message)
-            | Notice::ReviewrAvailabilityDiagnostic(message)
-            | Notice::IntegrationDiagnostic(message),
-        ) => Some(message),
-        Some(Notice::ConnectionDiagnostic(_)) | None => None,
-    }
+    model
+        .action_feedback()
+        .or_else(|| model.persistence_diagnostic())
+        .or_else(|| model.reviewr_availability_diagnostic())
+        .or_else(|| model.integration_diagnostic())
 }
 
 fn scrying_notice_message(model: &Model, include_integration_notice: bool) -> Option<&str> {
-    match model.notice() {
-        Some(Notice::ActionFeedback(message) | Notice::PersistenceDiagnostic(message)) => {
-            Some(message)
-        }
-        Some(
-            Notice::ReviewrAvailabilityDiagnostic(message) | Notice::IntegrationDiagnostic(message),
-        ) if include_integration_notice => Some(message),
-        Some(
-            Notice::ConnectionDiagnostic(_)
-            | Notice::ReviewrAvailabilityDiagnostic(_)
-            | Notice::IntegrationDiagnostic(_),
-        )
-        | None => None,
-    }
-}
-
-fn guild_content_area(model: &Model, terminal_area: Rect) -> Rect {
-    let footer_height = footer_projection(model, terminal_area).height();
-    let [body, _footer] =
-        ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
-            .areas(terminal_area);
-    let inner = Block::default().borders(Borders::ALL).inner(body);
-    let banner_height = connection_banner_lines(model)
-        .map_or(0, |lines| u16::try_from(lines.len()).unwrap_or(u16::MAX));
-    let [_banner, content] =
-        ratatui::layout::Layout::vertical([Constraint::Length(banner_height), Constraint::Min(0)])
-            .areas(inner);
-    content
-}
-
-fn visible_party_slots(model: &Model, area: Rect) -> Vec<ElapsedSlot<'_>> {
     model
-        .domain()
-        .agents
-        .values()
-        .take(panel_line_capacity(area))
-        .map(|agent| ElapsedSlot {
-            agent,
-            surface: ElapsedSurface::Party(area),
+        .action_feedback()
+        .or_else(|| model.persistence_diagnostic())
+        .or_else(|| {
+            include_integration_notice
+                .then(|| {
+                    model
+                        .reviewr_availability_diagnostic()
+                        .or_else(|| model.integration_diagnostic())
+                })
+                .flatten()
         })
-        .collect()
-}
-
-fn push_selected_elapsed_slot<'a>(
-    visible: &mut Vec<ElapsedSlot<'a>>,
-    model: &'a Model,
-    area: Rect,
-) {
-    if panel_line_capacity(area) >= 4
-        && let Some(selected) = model.selected_agent()
-    {
-        visible.push(ElapsedSlot {
-            agent: selected,
-            surface: ElapsedSurface::Adventurer(area),
-        });
-    }
-}
-
-fn panel_line_capacity(area: Rect) -> usize {
-    if area.width <= 2 {
-        0
-    } else {
-        usize::from(area.height.saturating_sub(2))
-    }
 }
 
 fn party_elapsed_fits(agent: &Agent, model: &Model, area: Rect) -> bool {
@@ -1041,28 +904,35 @@ fn adventurer_elapsed_fits_at(
             <= usize::from(area.width.saturating_sub(2))
 }
 
-fn next_visible_elapsed_change(slot: ElapsedSlot<'_>, model: &Model) -> Option<Duration> {
+fn next_projected_elapsed_change(
+    model: &Model,
+    projection: &GuildRoomProjection,
+    representation: &AdventurerRepresentation,
+    agent: &Agent,
+) -> Option<Duration> {
     let now = model.now();
-    let immediate_delay = next_elapsed_boundary(slot.agent, now);
+    let immediate_delay = next_elapsed_boundary(agent, now);
     let immediate = timestamp_after(now, immediate_delay);
-    if elapsed_fits(slot, model, now) || elapsed_fits(slot, model, immediate) {
+    if great_room::elapsed_label_is_visible(model, projection, representation, now)
+        || great_room::elapsed_label_is_visible(model, projection, representation, immediate)
+    {
         return Some(immediate_delay);
     }
 
-    let elapsed = slot.agent.presence_since.elapsed_until(now);
-    if now >= slot.agent.presence_since && elapsed.as_secs() >= 60 {
+    let elapsed = agent.presence_since.elapsed_until(now);
+    if now >= agent.presence_since && elapsed.as_secs() >= 60 {
         return None;
     }
-    let minute_boundary = timestamp_after(slot.agent.presence_since, Duration::from_secs(60));
-    elapsed_fits(slot, model, minute_boundary).then(|| now.elapsed_until(minute_boundary))
+    let minute_boundary = timestamp_after(agent.presence_since, Duration::from_secs(60));
+    great_room::elapsed_label_is_visible(model, projection, representation, minute_boundary)
+        .then(|| now.elapsed_until(minute_boundary))
 }
 
-fn elapsed_fits(slot: ElapsedSlot<'_>, model: &Model, now: crate::domain::Timestamp) -> bool {
-    match slot.surface {
-        ElapsedSurface::Party(area) => party_elapsed_fits_at(slot.agent, model, area, now),
-        ElapsedSurface::Adventurer(area) => {
-            adventurer_elapsed_fits_at(slot.agent, model, area, now)
-        }
+fn representation_agent(representation: &AdventurerRepresentation) -> &AgentKey {
+    match representation {
+        AdventurerRepresentation::Physical { agent, .. }
+        | AdventurerRepresentation::Token { agent, .. }
+        | AdventurerRepresentation::Projection { agent, .. } => agent,
     }
 }
 

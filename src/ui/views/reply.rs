@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{CharacterSet, Modal, Model, Notice},
+    app::{CharacterSet, Modal, Model},
     ui::{
         theme::{ACCENT, INK, MUTED},
         widgets::presentation::present,
@@ -83,13 +83,9 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
 }
 
 fn modal_notice_message(model: &Model) -> Option<&str> {
-    match model.notice() {
-        Some(
-            Notice::ActionFeedback(message)
-            | Notice::PersistenceDiagnostic(message)
-            | Notice::ReviewrAvailabilityDiagnostic(message)
-            | Notice::IntegrationDiagnostic(message),
-        ) => Some(message),
-        Some(Notice::ConnectionDiagnostic(_)) | None => None,
-    }
+    model
+        .action_feedback()
+        .or_else(|| model.persistence_diagnostic())
+        .or_else(|| model.reviewr_availability_diagnostic())
+        .or_else(|| model.integration_diagnostic())
 }
