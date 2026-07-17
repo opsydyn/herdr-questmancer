@@ -8,7 +8,7 @@ use ratatui::{
 use std::time::Duration;
 
 use crate::{
-    app::{CharacterSet, ConnectionState, Model, Region},
+    app::{CharacterSet, ConnectionState, Model, Notice, Region},
     domain::{Agent, AgentKey, CampaignStatus, GuildSummons, Presence},
     ui::{
         EffectCells, GuildGoblinEvidence, GuildPresentation, RenderProjection,
@@ -108,7 +108,7 @@ fn connection_banner_lines(model: &Model) -> Option<Vec<Line<'static>>> {
         ConnectionState::Offline | ConnectionState::Connected => None,
         ConnectionState::Reconnecting { attempt } => {
             let mut lines = vec![Line::from(SCRYING_CLOUDED)];
-            if let Some(cause) = model.status_message() {
+            if let Some(cause) = connection_notice_message(model) {
                 lines.push(Line::from(format!(
                     "Cause: {}",
                     present(cause, model.preferences().character_set)
@@ -190,7 +190,7 @@ fn render_medium(frame: &mut Frame<'_>, area: Rect, model: &Model) {
 }
 
 fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCells {
-    let [primary, diagnostic] = if model.status_message().is_some() {
+    let [primary, diagnostic] = if ordinary_notice_message(model).is_some() {
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(2)]).areas(area)
     } else {
         [area, Rect::default()]
@@ -221,7 +221,7 @@ fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCel
             EffectCells::default()
         }
     };
-    if let Some(status) = model.status_message() {
+    if let Some(status) = ordinary_notice_message(model) {
         frame.render_widget(
             Paragraph::new(present(status, model.preferences().character_set).into_owned())
                 .style(ACCENT),
@@ -484,7 +484,7 @@ fn render_scrying(frame: &mut Frame<'_>, area: Rect, model: &Model, include_stat
         lines.push(Line::styled(SCRYING_STILL, MUTED));
         lines.push(Line::styled("Select refresh to trace recent deeds.", MUTED));
     }
-    if include_status && let Some(status) = model.status_message() {
+    if include_status && let Some(status) = ordinary_notice_message(model) {
         lines.push(Line::from(""));
         lines.push(Line::styled(
             present(status, model.preferences().character_set).into_owned(),
@@ -506,10 +506,7 @@ fn render_spoils(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     } else {
         Line::styled("Reviewr is unavailable.", MUTED)
     }];
-    if let Some(status) = model
-        .status_message()
-        .filter(|status| status.starts_with("The spoils cannot"))
-    {
+    if let Some(status) = integration_notice_message(model) {
         lines.push(Line::styled(
             present(status, model.preferences().character_set).into_owned(),
             ACCENT,
@@ -720,7 +717,7 @@ fn visible_elapsed_slots(model: &Model, terminal_area: Rect) -> Vec<ElapsedSlot<
         return visible;
     }
 
-    let [primary, _diagnostic] = if model.status_message().is_some() {
+    let [primary, _diagnostic] = if ordinary_notice_message(model).is_some() {
         ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(2)])
             .areas(content)
     } else {
@@ -740,6 +737,41 @@ fn visible_elapsed_slots(model: &Model, terminal_area: Rect) -> Vec<ElapsedSlot<
             visible
         }
         Region::QuestBoard | Region::Summons | Region::Chronicle => Vec::new(),
+    }
+}
+
+fn connection_notice_message(model: &Model) -> Option<&str> {
+    match model.notice() {
+        Some(Notice::ConnectionDiagnostic(message)) => Some(message),
+        Some(
+            Notice::ActionFeedback(_)
+            | Notice::PersistenceDiagnostic(_)
+            | Notice::IntegrationDiagnostic(_),
+        )
+        | None => None,
+    }
+}
+
+fn ordinary_notice_message(model: &Model) -> Option<&str> {
+    match model.notice() {
+        Some(
+            Notice::ActionFeedback(message)
+            | Notice::PersistenceDiagnostic(message)
+            | Notice::IntegrationDiagnostic(message),
+        ) => Some(message),
+        Some(Notice::ConnectionDiagnostic(_)) | None => None,
+    }
+}
+
+fn integration_notice_message(model: &Model) -> Option<&str> {
+    match model.notice() {
+        Some(Notice::IntegrationDiagnostic(message)) => Some(message),
+        Some(
+            Notice::ConnectionDiagnostic(_)
+            | Notice::ActionFeedback(_)
+            | Notice::PersistenceDiagnostic(_),
+        )
+        | None => None,
     }
 }
 

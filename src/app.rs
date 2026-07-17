@@ -81,6 +81,29 @@ pub enum ConnectionState {
     },
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Notice {
+    ConnectionDiagnostic(String),
+    ActionFeedback(String),
+    PersistenceDiagnostic(String),
+    IntegrationDiagnostic(String),
+}
+
+impl Notice {
+    pub fn message(&self) -> &str {
+        match self {
+            Self::ConnectionDiagnostic(message)
+            | Self::ActionFeedback(message)
+            | Self::PersistenceDiagnostic(message)
+            | Self::IntegrationDiagnostic(message) => message,
+        }
+    }
+
+    pub const fn is_connection_diagnostic(&self) -> bool {
+        matches!(self, Self::ConnectionDiagnostic(_))
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Region {
     #[default]
@@ -121,7 +144,7 @@ pub struct Model {
     region: Region,
     modal: Modal,
     output_preview: Option<OutputPreview>,
-    status_message: Option<String>,
+    notice: Option<Notice>,
     reviewr_available: bool,
     now: Timestamp,
     preferences: DisplayPreferences,
@@ -140,7 +163,7 @@ impl Model {
             region: Region::QuestBoard,
             modal: Modal::None,
             output_preview: None,
-            status_message: None,
+            notice: None,
             reviewr_available: false,
             now: Timestamp::from_millis(0),
             preferences: DisplayPreferences::default(),
@@ -369,11 +392,43 @@ impl Model {
     }
 
     pub fn status_message(&self) -> Option<&str> {
-        self.status_message.as_deref()
+        self.notice.as_ref().map(Notice::message)
     }
 
-    pub fn set_status_message(&mut self, message: Option<String>) {
-        self.status_message = message;
+    pub const fn notice(&self) -> Option<&Notice> {
+        self.notice.as_ref()
+    }
+
+    pub fn set_connection_diagnostic(&mut self, message: String) {
+        self.notice = Some(Notice::ConnectionDiagnostic(message));
+    }
+
+    pub fn set_action_feedback(&mut self, message: String) {
+        self.notice = Some(Notice::ActionFeedback(message));
+    }
+
+    pub fn set_persistence_diagnostic(&mut self, message: String) {
+        self.notice = Some(Notice::PersistenceDiagnostic(message));
+    }
+
+    pub fn set_integration_diagnostic(&mut self, message: String) {
+        self.notice = Some(Notice::IntegrationDiagnostic(message));
+    }
+
+    pub fn clear_connection_notice(&mut self) {
+        if self
+            .notice
+            .as_ref()
+            .is_some_and(Notice::is_connection_diagnostic)
+        {
+            self.notice = None;
+        }
+    }
+
+    pub fn clear_action_feedback(&mut self) {
+        if matches!(self.notice.as_ref(), Some(Notice::ActionFeedback(_))) {
+            self.notice = None;
+        }
     }
 
     pub fn selected_agent_key(&self) -> Option<&AgentKey> {

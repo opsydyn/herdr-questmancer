@@ -9,11 +9,12 @@ use questmancer::{
         GuildSummons, PaneId, Presence, Timestamp,
     },
     herdr::{
+        environment::HerdrEnvironment,
         protocol::{SessionSnapshotResult, SuccessResponse},
         supervisor::ConnectionUpdate,
     },
     interaction::reduce_action,
-    runtime_loop::{apply_command_result, apply_connection_update},
+    runtime_loop::{apply_command_result, apply_connection_update, bootstrap_model},
     ui,
     ui::input::Action,
 };
@@ -107,6 +108,24 @@ fn empty_guild_hall_is_warm_and_ready() {
     let screen = render(&model, 80, 24);
 
     assert!(screen.contains("The hearth is warm. The guild awaits its next commission."));
+}
+
+#[test]
+fn connected_room_never_renders_connecting_notice() {
+    let environment = HerdrEnvironment::new("/tmp/herdr.sock", "/usr/bin/herdr");
+    let mut model = bootstrap_model(Model::new(View::Guild), Some(&environment));
+    let response: SuccessResponse<SessionSnapshotResult> =
+        serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
+
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(response.result.snapshot),
+        Timestamp::from_millis(1_000),
+    );
+
+    let screen = render(&model, 130, 32);
+    assert!(screen.contains("CONNECTED"), "{screen}");
+    assert!(!screen.contains("connecting to Herdr"), "{screen}");
 }
 
 #[test]
@@ -492,7 +511,7 @@ fn ascii_guild_hall_sanitizes_all_external_text_and_border_glyphs() {
         loading: false,
         error: None,
     }));
-    model.set_status_message(Some("Diagnostic ⚠\u{7}".to_owned()));
+    model.set_action_feedback("Diagnostic ⚠\u{7}".to_owned());
 
     let screen = render(&model, 130, 32);
 

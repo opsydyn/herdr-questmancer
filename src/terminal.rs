@@ -330,7 +330,7 @@ pub async fn run(initial_view: Option<View>) -> Result<()> {
     let mut model = bootstrap_model(startup.model, environment.as_ref());
     model.set_managed_pane_id(managed_pane_id);
     if let Some(diagnostic) = collected_diagnostics.last() {
-        model.set_status_message(Some(diagnostic.to_string()));
+        model.set_persistence_diagnostic(diagnostic.to_string());
     }
     let clock = RuntimeClock::new(sample_wall_time());
     model.set_now(clock.now());
@@ -486,9 +486,9 @@ async fn run_offline_loop(
                 );
                 let effects = dispatch_action_effects(persistence, model, reduction).await;
                 if !effects.agent_commands.is_empty() {
-                    model.set_status_message(Some(
+                    model.set_persistence_diagnostic(
                         "offline: action unavailable until connected to Herdr".to_owned(),
-                    ));
+                    );
                 }
                 record_dispatch_errors(
                     model,
@@ -556,7 +556,7 @@ fn record_diagnostic(
     diagnostics: &mut Vec<PersistenceDiagnostic>,
     diagnostic: PersistenceDiagnostic,
 ) {
-    model.set_status_message(Some(diagnostic.to_string()));
+    model.set_persistence_diagnostic(diagnostic.to_string());
     if !diagnostics.contains(&diagnostic) {
         diagnostics.push(diagnostic);
     }

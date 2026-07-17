@@ -188,11 +188,11 @@ impl Drop for RuntimeConnection {
 pub fn bootstrap_model(mut model: Model, environment: Option<&HerdrEnvironment>) -> Model {
     if environment.is_some() {
         model.set_connection(ConnectionState::Connecting);
-        model.set_status_message(Some("connecting to Herdr".to_owned()));
+        model.set_connection_diagnostic("connecting to Herdr".to_owned());
     } else {
-        model.set_status_message(Some(
+        model.set_connection_diagnostic(
             "offline: launch from Herdr to connect to the live session".to_owned(),
-        ));
+        );
     }
     model
 }
@@ -203,6 +203,7 @@ pub fn apply_connection_update(
     observed_at: Timestamp,
 ) -> RuntimeEffects {
     let discover_reviewr = matches!(connection_update, ConnectionUpdate::Connected(_));
+    let diagnostic_is_connection = matches!(&connection_update, ConnectionUpdate::Disconnected(_));
     let before = selected_revision(model);
     let actions = adapt_update_excluding(
         connection_update,
@@ -217,9 +218,21 @@ pub fn apply_connection_update(
             AdapterAction::Apply(event) => {
                 apply_domain_event(model, *event, &mut effects);
             }
-            AdapterAction::SetConnection(connection) => model.set_connection(connection),
+            AdapterAction::SetConnection(connection) => {
+                let connected = connection == ConnectionState::Connected;
+                model.set_connection(connection);
+                if connected {
+                    model.clear_connection_notice();
+                }
+            }
             AdapterAction::RequestSnapshot => push_unique_refresh(&mut effects.agent_commands),
-            AdapterAction::Diagnostic(message) => model.set_status_message(Some(message)),
+            AdapterAction::Diagnostic(message) => {
+                if diagnostic_is_connection {
+                    model.set_connection_diagnostic(message);
+                } else {
+                    model.set_integration_diagnostic(message);
+                }
+            }
         }
     }
 
@@ -248,10 +261,10 @@ pub fn apply_command_result(
     let mut effects = RuntimeEffects::default();
     match result {
         CommandResult::Focused(pane_id) => {
-            model.set_status_message(Some(format!("observing {pane_id}")));
+            model.set_action_feedback(format!("observing {pane_id}"));
         }
         CommandResult::CounselSent(_) => {
-            model.set_status_message(Some(COUNSEL_ISSUED.to_owned()));
+            model.set_action_feedback(COUNSEL_ISSUED.to_owned());
         }
         CommandResult::OutputLoaded {
             pane_id,
@@ -271,7 +284,7 @@ pub fn apply_command_result(
                     error: None,
                 }));
                 if truncated {
-                    model.set_status_message(Some("output preview was truncated".to_owned()));
+                    model.set_action_feedback("output preview was truncated".to_owned());
                 }
             }
         }
@@ -279,7 +292,7 @@ pub fn apply_command_result(
             model.set_reviewr_available(available);
         }
         CommandResult::SpoilsOpened => {
-            model.set_status_message(Some("Spoils inspected.".to_owned()));
+            model.set_action_feedback("Spoils inspected.".to_owned());
         }
         CommandResult::SnapshotLoaded(snapshot) => {
             apply_domain_event(
@@ -293,7 +306,7 @@ pub fn apply_command_result(
             );
         }
         CommandResult::Failed { operation, message } => {
-            model.set_status_message(Some(format!("{operation} failed: {message}")));
+            model.set_action_feedback(format!("{operation} failed: {message}"));
         }
     }
     effects

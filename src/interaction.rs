@@ -112,11 +112,10 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
 fn observe_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     match selected_pane_state(model) {
         SelectedPane::Available(pane_id) => commands.push(AgentCommand::FocusPane(pane_id)),
-        SelectedPane::Managed => model.set_status_message(Some(
-            "The Questmancer cannot observe its own managed pane.".to_owned(),
-        )),
+        SelectedPane::Managed => model
+            .set_action_feedback("The Questmancer cannot observe its own managed pane.".to_owned()),
         SelectedPane::Missing => {
-            model.set_status_message(Some("No adventurer is selected to observe.".to_owned()));
+            model.set_action_feedback("No adventurer is selected to observe.".to_owned());
         }
     }
 }
@@ -124,11 +123,11 @@ fn observe_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
 fn refresh_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     match selected_pane_state(model) {
         SelectedPane::Available(pane_id) => commands.push(load_output(model, pane_id)),
-        SelectedPane::Managed => model.set_status_message(Some(
+        SelectedPane::Managed => model.set_action_feedback(
             "The scrying table cannot observe the Questmancer's own managed pane.".to_owned(),
-        )),
+        ),
         SelectedPane::Missing => {
-            model.set_status_message(Some("No adventurer is selected to scry.".to_owned()));
+            model.set_action_feedback("No adventurer is selected to scry.".to_owned());
         }
     }
 }
@@ -186,16 +185,16 @@ fn selected_pane(model: &Model) -> Option<crate::domain::PaneId> {
 
 fn inspect_spoils(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     match selected_pane_state(model) {
-        SelectedPane::Managed => model.set_status_message(Some(
+        SelectedPane::Managed => model.set_action_feedback(
             "The spoils cannot be inspected for the Questmancer's own managed pane.".to_owned(),
-        )),
-        SelectedPane::Missing => model.set_status_message(Some(
+        ),
+        SelectedPane::Missing => model.set_action_feedback(
             "The spoils cannot be inspected here: no adventurer is selected.".to_owned(),
-        )),
+        ),
         SelectedPane::Available(_) if !model.reviewr_available() => {
-            model.set_status_message(Some(
+            model.set_integration_diagnostic(
                 "The spoils cannot be inspected here: Reviewr is unavailable.".to_owned(),
-            ));
+            );
         }
         SelectedPane::Available(pane_id) => commands.push(AgentCommand::InspectSpoils {
             pane_id,
@@ -207,26 +206,25 @@ fn inspect_spoils(model: &mut Model, commands: &mut Vec<AgentCommand>) {
 fn open_counsel(model: &mut Model) {
     match selected_pane_state(model) {
         SelectedPane::Available(_) => model.open_counsel(),
-        SelectedPane::Managed => model.set_status_message(Some(
+        SelectedPane::Managed => model.set_action_feedback(
             "Counsel cannot be issued to the Questmancer's own managed pane.".to_owned(),
-        )),
-        SelectedPane::Missing => model.set_status_message(Some(
-            "Counsel cannot be issued: no adventurer is selected.".to_owned(),
-        )),
+        ),
+        SelectedPane::Missing => model
+            .set_action_feedback("Counsel cannot be issued: no adventurer is selected.".to_owned()),
     }
 }
 
 fn mark_read(model: &mut Model) {
     let Some(agent) = model.selected_agent() else {
-        model.set_status_message(Some("No adventurer is selected to acknowledge.".to_owned()));
+        model.set_action_feedback("No adventurer is selected to acknowledge.".to_owned());
         return;
     };
     if !agent.attention.is_unread() {
-        model.set_status_message(Some("No unread summons await acknowledgement.".to_owned()));
+        model.set_action_feedback("No unread summons await acknowledgement.".to_owned());
         return;
     }
     model.mark_selected_attention_read();
-    model.set_status_message(Some(SUMMONS_ACKNOWLEDGED.to_owned()));
+    model.set_action_feedback(SUMMONS_ACKNOWLEDGED.to_owned());
 }
 
 fn submit_counsel(model: &mut Model, commands: &mut Vec<AgentCommand>) {
@@ -234,23 +232,21 @@ fn submit_counsel(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         return;
     };
     if draft.trim().is_empty() {
-        model.set_status_message(Some(
-            "Counsel cannot be issued: the message is empty.".to_owned(),
-        ));
+        model.set_action_feedback("Counsel cannot be issued: the message is empty.".to_owned());
         return;
     }
     let pane_id = match selected_pane_state(model) {
         SelectedPane::Available(pane_id) => pane_id,
         SelectedPane::Managed => {
-            model.set_status_message(Some(
+            model.set_action_feedback(
                 "Counsel cannot be issued to the Questmancer's own managed pane.".to_owned(),
-            ));
+            );
             return;
         }
         SelectedPane::Missing => {
-            model.set_status_message(Some(
+            model.set_action_feedback(
                 "Counsel cannot be issued: no adventurer is selected.".to_owned(),
-            ));
+            );
             return;
         }
     };
@@ -270,13 +266,11 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         let now = model.now();
         model.goblins_mut().release(now);
         model.dismiss_modal();
-        model.set_status_message(Some("The goblins deny any involvement.".to_owned()));
+        model.set_action_feedback("The goblins deny any involvement.".to_owned());
         return;
     }
     if query.is_empty() {
-        model.set_status_message(Some(
-            "Enter an adventurer or campaign to search.".to_owned(),
-        ));
+        model.set_action_feedback("Enter an adventurer or campaign to search.".to_owned());
         return;
     }
     let matched = model.domain().agents.iter().find_map(|(key, agent)| {
@@ -289,14 +283,14 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     });
 
     let Some(agent_key) = matched else {
-        model.set_status_message(Some(no_match(&query)));
+        model.set_action_feedback(no_match(&query));
         return;
     };
     let before = selected_pane(model);
     model.domain_mut().selected_agent = Some(agent_key);
     let after = selected_pane(model);
     model.dismiss_modal();
-    model.set_status_message(None);
+    model.clear_action_feedback();
     if after != before
         && let Some(pane_id) = after
     {

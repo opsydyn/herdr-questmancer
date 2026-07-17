@@ -502,7 +502,7 @@ fn acknowledgement_claims_success_only_for_an_unread_summons() {
         .next()
         .unwrap()
         .attention = GuildAttention::Clear;
-    clear.set_status_message(None);
+    clear.clear_action_feedback();
 
     let clear_result = reduce_action(&mut clear, Action::AcknowledgeSummons);
 
@@ -519,7 +519,7 @@ fn acknowledgement_claims_success_only_for_an_unread_summons() {
         summons: GuildSummons::CounselRequested,
         since: Timestamp::from_millis(500),
     };
-    read.set_status_message(None);
+    read.clear_action_feedback();
 
     let read_result = reduce_action(&mut read, Action::AcknowledgeSummons);
 
@@ -527,7 +527,7 @@ fn acknowledgement_claims_success_only_for_an_unread_summons() {
     assert_ne!(read.status_message(), Some("Summons acknowledged."));
 
     let mut unread = live_model_with_two_agents();
-    unread.set_status_message(None);
+    unread.clear_action_feedback();
 
     let unread_result = reduce_action(&mut unread, Action::AcknowledgeSummons);
 

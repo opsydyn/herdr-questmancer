@@ -1,6 +1,8 @@
 use futures_util::FutureExt;
 use questmancer::{
-    app::{ConnectionState, DisplayPreferences, Model, Motion, Region, RuntimeSettings, View},
+    app::{
+        ConnectionState, DisplayPreferences, Model, Motion, Notice, Region, RuntimeSettings, View,
+    },
     command::{AgentCommand, CommandResult},
     domain::{
         AdventurerPersona, Agent, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId,
@@ -383,6 +385,68 @@ fn startup_with_plugin_environment_begins_connecting() {
     assert_eq!(model.connection(), &ConnectionState::Connecting);
     assert_eq!(model.view(), View::Delve);
     assert_eq!(model.status_message(), Some("connecting to Herdr"));
+}
+
+#[test]
+fn connected_clears_only_connection_notice() {
+    let environment = HerdrEnvironment::new("/tmp/herdr.sock", "/usr/bin/herdr");
+    let mut model = bootstrap_model(Model::new(View::Guild), Some(&environment));
+
+    assert_eq!(
+        model.notice(),
+        Some(&Notice::ConnectionDiagnostic(
+            "connecting to Herdr".to_owned()
+        ))
+    );
+
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(snapshot()),
+        Timestamp::from_millis(1_000),
+    );
+
+    assert_eq!(model.connection(), &ConnectionState::Connected);
+    assert_eq!(model.notice(), None);
+
+    let mut action = Model::new(View::Guild);
+    action.set_action_feedback("counsel issued".to_owned());
+    apply_connection_update(
+        &mut action,
+        ConnectionUpdate::Connected(snapshot()),
+        Timestamp::from_millis(1_000),
+    );
+    assert_eq!(
+        action.notice(),
+        Some(&Notice::ActionFeedback("counsel issued".to_owned()))
+    );
+
+    let mut persistence = Model::new(View::Guild);
+    persistence.set_persistence_diagnostic("state file is unreadable".to_owned());
+    apply_connection_update(
+        &mut persistence,
+        ConnectionUpdate::Connected(snapshot()),
+        Timestamp::from_millis(1_000),
+    );
+    assert_eq!(
+        persistence.notice(),
+        Some(&Notice::PersistenceDiagnostic(
+            "state file is unreadable".to_owned()
+        ))
+    );
+
+    let mut integration = Model::new(View::Guild);
+    integration.set_integration_diagnostic("Reviewr is unavailable".to_owned());
+    apply_connection_update(
+        &mut integration,
+        ConnectionUpdate::Connected(snapshot()),
+        Timestamp::from_millis(1_000),
+    );
+    assert_eq!(
+        integration.notice(),
+        Some(&Notice::IntegrationDiagnostic(
+            "Reviewr is unavailable".to_owned()
+        ))
+    );
 }
 
 #[test]

@@ -1,5 +1,5 @@
 use questmancer::{
-    app::{ConnectionState, Modal, Model, Region, View},
+    app::{ConnectionState, Modal, Model, Notice, Region, View},
     domain::{AgentKey, DomainState, PaneId, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
 };
@@ -23,6 +23,21 @@ fn starts_in_requested_view() {
 fn new_model_has_no_managed_pane() {
     let model = Model::new(View::Guild);
     assert_eq!(model.managed_pane_id(), None);
+}
+
+#[test]
+fn notices_retain_their_origin_and_connection_clear_is_selective() {
+    let mut model = Model::new(View::Guild);
+    model.set_connection_diagnostic("connecting to Herdr".to_owned());
+    model.clear_connection_notice();
+    assert_eq!(model.notice(), None);
+
+    model.set_action_feedback("Counsel issued.".to_owned());
+    model.clear_connection_notice();
+    assert_eq!(
+        model.notice(),
+        Some(&Notice::ActionFeedback("Counsel issued.".to_owned()))
+    );
 }
 
 #[test]
