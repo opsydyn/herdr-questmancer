@@ -204,6 +204,19 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
 ].each { |expected| require_text(readme, "README", expected) }
 
 [
+  'TEST_CHECKOUT="$(pwd -P)"',
+  'REGISTRATION_SOURCE_ROOT=',
+  'test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"',
+  "BASELINE_FOCUS_PANE_ID=",
+  "PREEXISTING_LINK=0",
+  "PREEXISTING_MANAGED_PANE_ID=",
+  "TEST_CREATED_LINK=0",
+  "TEST_CREATED_MANAGED_PANE=0",
+  "MANAGED_PANE_IS_TEST_OWNED=0",
+  "TEST_CREATED_TAB=0",
+  "TEST_CREATED_PANE=0",
+  "LIVE_TESTS_PERMITTED=0",
+  "All live rows are BLOCKED unless `LIVE_TESTS_PERMITTED=1`.",
   "git status --short --branch",
   "cargo build --release",
   "herdr plugin action invoke opsydyn.questmancer.open",
@@ -212,6 +225,11 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
   "herdr pane release-agent",
   "80x24",
   "Herdr 0.7.4 cannot synthesize `done`",
+  'herdr pane release-agent "$PANE_ID"',
+  'herdr plugin unlink opsydyn.questmancer',
+  'herdr pane focus "$BASELINE_FOCUS_PANE_ID"',
+  "FINAL_REGISTRATION_SOURCE_ROOT=",
+  "Final baseline comparison",
   "PASS",
   "FAIL",
   "BLOCKED"

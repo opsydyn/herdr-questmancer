@@ -12,6 +12,61 @@ visual check, not evidence of a product defect.
 Run from the Questmancer checkout. Keep the literal source path in
 `TEST_CHECKOUT`; do not use a broad directory or an unrelated checkout.
 
+### 0. Establish the candidate boundary and ownership ledger
+
+Resolve the checkout before any build, link, open, report, or focus command.
+The five `TEST_CREATED_*` flags are deliberately initialized to `0`: change a
+flag only after its corresponding command succeeded and capture the resulting
+ID immediately. A protected resource is never retroactively made test-owned.
+
+```bash
+TEST_CHECKOUT="$(pwd -P)"
+test -n "$TEST_CHECKOUT" && test "$TEST_CHECKOUT" != "/" || {
+  printf '%s\n' 'Refusing to test from an unresolved or root checkout.' >&2
+  exit 1
+}
+
+TEST_CREATED_LINK=0
+TEST_CREATED_MANAGED_PANE=0
+TEST_CREATED_TAB=0
+TEST_CREATED_PANE=0
+TEST_CREATED_REPORT=0
+PREEXISTING_LINK=0
+PREEXISTING_MANAGED_PANE_ID=""
+MANAGED_PANE_IS_TEST_OWNED=0
+LIVE_TESTS_PERMITTED=0
+
+BASELINE_SNAPSHOT="$(mktemp)"
+BASELINE_PLUGIN_LIST="$(mktemp)"
+herdr api snapshot >"$BASELINE_SNAPSHOT"
+herdr plugin list --json >"$BASELINE_PLUGIN_LIST"
+
+BASELINE_FOCUS_PANE_ID="$(jq -r '
+  .result.panes[]? | select(.focused == true) | .pane_id
+' "$BASELINE_SNAPSHOT" | head -n 1)"
+BASELINE_PANE_IDS="$(jq -r '.result.panes[]?.pane_id' "$BASELINE_SNAPSHOT" | sort)"
+BASELINE_TAB_IDS="$(jq -r '.result.tabs[]?.tab_id' "$BASELINE_SNAPSHOT" | sort)"
+BASELINE_MANAGED_PANE_ID="$(jq -r '
+  .result.panes[]?
+  | select(((.label // .title // "") | ascii_downcase | contains("questmancer")))
+  | .pane_id
+' "$BASELINE_SNAPSHOT" | head -n 1)"
+REGISTRATION_SOURCE_ROOT="$(jq -r '
+  .. | objects | select(.id? == "opsydyn.questmancer")
+  | (.source_root? // .source_path? // (.source? | if type == "object" then (.root? // .path?) else empty end) // empty)
+' "$BASELINE_PLUGIN_LIST" | head -n 1)"
+if test -n "$REGISTRATION_SOURCE_ROOT"; then
+  REGISTRATION_SOURCE_ROOT="$(cd "$REGISTRATION_SOURCE_ROOT" && pwd -P)"
+  PREEXISTING_LINK=1
+fi
+BASELINE_REGISTRATION_SOURCE_ROOT="$REGISTRATION_SOURCE_ROOT"
+PREEXISTING_MANAGED_PANE_ID="$BASELINE_MANAGED_PANE_ID"
+```
+
+Record the baseline focus, pane/tab lists, registration root and any managed
+pane. The title/label check is intentionally conservative: uncertainty blocks
+the live pass rather than risking a protected pane.
+
 ### 1. Baseline the environment
 
 ```bash
@@ -41,40 +96,111 @@ herdr plugin list --json
 Only when the baseline proves the plugin is absent:
 
 ```bash
-herdr plugin link .
+herdr plugin link "$TEST_CHECKOUT"
+TEST_CREATED_LINK=1
+herdr plugin list --json >"$BASELINE_PLUGIN_LIST"
+REGISTRATION_SOURCE_ROOT="$(jq -r '
+  .. | objects | select(.id? == "opsydyn.questmancer")
+  | (.source_root? // .source_path? // (.source? | if type == "object" then (.root? // .path?) else empty end) // empty)
+' "$BASELINE_PLUGIN_LIST" | head -n 1)"
+REGISTRATION_SOURCE_ROOT="$(cd "$REGISTRATION_SOURCE_ROOT" && pwd -P)"
 ```
 
 Verify version `0.1.0`, minimum Herdr `0.7.4`, local source, enabled status and
 the five actions `open`, `close`, `toggle`, `guild`, and `delve`. Remember
 whether this test created the link so only that link may be removed later.
 
+Before continuing, prove that the registration points to this exact resolved
+checkout and that there was no protected managed pane in the baseline:
+
+```bash
+if test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT" \
+  && test -z "$BASELINE_MANAGED_PANE_ID"; then
+  LIVE_TESTS_PERMITTED=1
+fi
+printf 'candidate root: %s\n' "$TEST_CHECKOUT"
+printf 'registered root: %s\n' "$REGISTRATION_SOURCE_ROOT"
+printf 'baseline managed pane: %s\n' "${BASELINE_MANAGED_PANE_ID:-none}"
+printf 'live tests permitted: %s\n' "$LIVE_TESTS_PERMITTED"
+```
+
+All live rows are BLOCKED unless `LIVE_TESTS_PERMITTED=1`. If it remains `0`,
+mark every open/singleton/report/interaction/screenshot row `BLOCKED`, explain
+the root or protected-pane mismatch, and jump directly to step 7's restoration
+verification. Do not use a protected pane as a substitute candidate.
+
 ### 3. Verify singleton open
+
+Run this step only when `LIVE_TESTS_PERMITTED=1`.
 
 Invoke open twice and compare snapshots:
 
 ```bash
-herdr plugin action invoke opsydyn.questmancer.open
-herdr plugin action invoke opsydyn.questmancer.open
-herdr api snapshot
+if test "$LIVE_TESTS_PERMITTED" = 1 \
+  && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT" \
+  && test -z "$PREEXISTING_MANAGED_PANE_ID"; then
+  herdr plugin action invoke opsydyn.questmancer.open
+  herdr plugin action invoke opsydyn.questmancer.open
+  herdr api snapshot
+else
+  printf '%s\n' 'BLOCKED: candidate root or managed-pane ownership guard failed.'
+  LIVE_TESTS_PERMITTED=0
+fi
 ```
 
 Exactly one managed Questmancer pane should exist. Record its pane/tab ID and
 whether this run created it. Inspect the corresponding plugin action logs. Do
 not close a managed pane that existed in the baseline.
 
+Capture only the newly created managed pane and stop if discovery is ambiguous:
+
+```bash
+if test "$LIVE_TESTS_PERMITTED" = 1 \
+  && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
+POST_OPEN_SNAPSHOT="$(mktemp)"
+herdr api snapshot >"$POST_OPEN_SNAPSHOT"
+MANAGED_PANE_ID="$(jq -r '
+  .result.panes[]?
+  | select(((.label // .title // "") | ascii_downcase | contains("questmancer")))
+  | .pane_id
+' "$POST_OPEN_SNAPSHOT" | head -n 1)"
+MANAGED_TAB_ID="$(jq -r --arg pane "$MANAGED_PANE_ID" '
+  .result.panes[]? | select(.pane_id == $pane) | .tab_id
+' "$POST_OPEN_SNAPSHOT" | head -n 1)"
+test -n "$MANAGED_PANE_ID" && test -n "$MANAGED_TAB_ID" || {
+  printf '%s\n' 'Managed pane discovery was ambiguous; block remaining live rows.' >&2
+  LIVE_TESTS_PERMITTED=0
+}
+if test "$LIVE_TESTS_PERMITTED" = 1; then
+  TEST_CREATED_MANAGED_PANE=1
+  MANAGED_PANE_IS_TEST_OWNED=1
+fi
+fi
+```
+
 ### 4. Create one disposable plain pane and synthetic adventurer
+
+Run this step only when `LIVE_TESTS_PERMITTED=1` and
+`MANAGED_PANE_IS_TEST_OWNED=1`. Otherwise leave `TEST_CREATED_TAB`,
+`TEST_CREATED_PANE`, and `TEST_CREATED_REPORT` at `0` and go to step 7.
 
 Use the currently focused workspace, but create a new test-owned tab and plain
 pane. Never target Codex, Questmancer, or another agent-owned pane.
 
 ```bash
+if test "$LIVE_TESTS_PERMITTED" = 1 \
+  && test "$MANAGED_PANE_IS_TEST_OWNED" = 1 \
+  && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
 WORKSPACE_ID=$(herdr workspace list |
   jq -r '.result.workspaces[] | select(.focused) | .workspace_id' |
   head -n 1)
 TEST_LABEL="questmancer-great-room-$(date +%s)"
 herdr tab create --workspace "$WORKSPACE_ID" --cwd "$PWD" \
   --label "$TEST_LABEL" --focus
+TEST_CREATED_TAB=1
+TAB_ID=$(herdr tab current | jq -r '.result.tab.tab_id // .result.tab_id')
 PANE_ID=$(herdr pane current | jq -r '.result.pane.pane_id')
+TEST_CREATED_PANE=1
 SOURCE_ID="questmancer-manual-$(date +%s)-$$-$RANDOM"
 
 herdr pane report-agent "$PANE_ID" \
@@ -83,6 +209,7 @@ herdr pane report-agent "$PANE_ID" \
   --state working \
   --message "mapping the Great Room" \
   --seq 1
+TEST_CREATED_REPORT=1
 
 herdr pane report-agent "$PANE_ID" \
   --source "$SOURCE_ID" \
@@ -90,6 +217,10 @@ herdr pane report-agent "$PANE_ID" \
   --state blocked \
   --message "Counsel requested at the sealed gate" \
   --seq 2
+else
+  printf '%s\n' 'BLOCKED: synthetic-agent ownership guard failed.'
+  LIVE_TESTS_PERMITTED=0
+fi
 ```
 
 Confirm the snapshot contains only this test-owned synthetic source and that
@@ -102,6 +233,11 @@ claim live `done`, Hearth/resting, or Spoils coverage from an ambiguous
 synthetic transition.
 
 ### 5. Exercise safe commands and persistence
+
+Run this step only when `LIVE_TESTS_PERMITTED=1`,
+`MANAGED_PANE_IS_TEST_OWNED=1`, and all three synthetic ownership flags are
+`1`. Otherwise mark every interaction and persistence row `BLOCKED` and go to
+step 7.
 
 In Questmancer, search `/` for `questmancer-smoke` before acting. Verify the
 result owns `PANE_ID`; do not use `j`/`k` when an adjacent selection could be a
@@ -119,8 +255,15 @@ While the synthetic adventurer remains blocked, close and reopen only a
 Questmancer pane created by this run:
 
 ```bash
-herdr plugin action invoke opsydyn.questmancer.close
-herdr plugin action invoke opsydyn.questmancer.open
+if test "$LIVE_TESTS_PERMITTED" = 1 \
+  && test "$MANAGED_PANE_IS_TEST_OWNED" = 1 \
+  && test "$TEST_CREATED_REPORT" = 1 \
+  && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
+  herdr plugin action invoke opsydyn.questmancer.close
+  herdr plugin action invoke opsydyn.questmancer.open
+else
+  printf '%s\n' 'BLOCKED: persistence restart ownership guard failed.'
+fi
 ```
 
 Confirm the saved Guild Hall view, selected persona and acknowledged Summons
@@ -128,6 +271,10 @@ survive. If the managed pane existed before the test, mark restart persistence
 `BLOCKED` instead of closing it.
 
 ### 6. Capture Great Room evidence
+
+Run this step only when `LIVE_TESTS_PERMITTED=1` and
+`MANAGED_PANE_IS_TEST_OWNED=1`; otherwise record both visual rows as `BLOCKED`
+and go to step 7.
 
 With the synthetic adventurer selected, capture one wide screenshot at 120
 columns or more and one exact 80x24 screenshot. The wide image must show one
@@ -140,26 +287,65 @@ If the controlling PTY cannot resize or capture the user's terminal, record
 these checks as `BLOCKED` with the available `herdr pane read --source visible
 --format text` evidence. Never substitute a text read for a screenshot claim.
 
-### 7. Clean up only test-created resources
+### 7. Clean up only test-created resources and verify restoration
 
-Return and release the synthetic source with increasing sequence numbers:
+This is the only cleanup path. Each mutation is conditioned on the exact flag
+and captured ID. If a capture is missing or no longer matches the live
+snapshot, leave the resource untouched, record `BLOCKED`, and do not guess.
+
+Return and release the synthetic source only when this run created it:
 
 ```bash
-herdr pane report-agent "$PANE_ID" \
-  --source "$SOURCE_ID" \
-  --agent questmancer-smoke \
-  --state working \
-  --message "manual test complete" \
-  --seq 3
-herdr pane release-agent "$PANE_ID" \
-  --source "$SOURCE_ID" \
-  --agent questmancer-smoke \
-  --seq 4
+if test "$TEST_CREATED_REPORT" = 1 \
+  && test "$TEST_CREATED_PANE" = 1 \
+  && test -n "${PANE_ID:-}" \
+  && test -n "${SOURCE_ID:-}"; then
+  herdr pane report-agent "$PANE_ID" \
+    --source "$SOURCE_ID" \
+    --agent questmancer-smoke \
+    --state working \
+    --message "manual test complete" \
+    --seq 3
+  herdr pane release-agent "$PANE_ID" \
+    --source "$SOURCE_ID" \
+    --agent questmancer-smoke \
+    --seq 4
+fi
+
+if test "$TEST_CREATED_PANE" = 1 && test -n "${PANE_ID:-}"; then
+  herdr pane close "$PANE_ID"
+fi
+if test "$TEST_CREATED_TAB" = 1 && test -n "${TAB_ID:-}"; then
+  herdr tab close "$TAB_ID"
+fi
+
+CURRENT_SNAPSHOT="$(mktemp)"
+herdr api snapshot >"$CURRENT_SNAPSHOT"
+CURRENT_MANAGED_PANE_ID="$(jq -r '
+  .result.panes[]?
+  | select(((.label // .title // "") | ascii_downcase | contains("questmancer")))
+  | .pane_id
+' "$CURRENT_SNAPSHOT" | head -n 1)"
+if test "$TEST_CREATED_MANAGED_PANE" = 1 \
+  && test -n "${MANAGED_PANE_ID:-}" \
+  && test "$CURRENT_MANAGED_PANE_ID" = "$MANAGED_PANE_ID" \
+  && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
+  herdr plugin action invoke opsydyn.questmancer.close
+fi
+if test "$TEST_CREATED_LINK" = 1 \
+  && test "$REGISTRATION_SOURCE_ROOT" = "$TEST_CHECKOUT"; then
+  herdr plugin unlink opsydyn.questmancer
+fi
+
+if test -n "${BASELINE_FOCUS_PANE_ID:-}" \
+  && herdr api snapshot | jq -e --arg pane "$BASELINE_FOCUS_PANE_ID" \
+    '.result.panes[]? | select(.pane_id == $pane)' >/dev/null; then
+  herdr pane focus "$BASELINE_FOCUS_PANE_ID"
+fi
 ```
 
-Close only the disposable test pane/tab and only a Questmancer pane created by
-this run. Unlink only if this run created the link. Stop Herdr only if this run
-started it. Finally run:
+Never stop a pre-existing server. Finally run the comparison rather than relying
+on a successful cleanup command:
 
 ```bash
 herdr api snapshot
@@ -168,9 +354,36 @@ herdr status
 git status --short --branch
 ```
 
+### Final baseline comparison
+
 Compare pane IDs, tab IDs, focus, server state and protected plugin links with
 the baseline. The environment is restored only when those protected resources
-match and the synthetic source is absent.
+match and the synthetic source is absent:
+
+```bash
+FINAL_SNAPSHOT="$(mktemp)"
+FINAL_PLUGIN_LIST="$(mktemp)"
+herdr api snapshot >"$FINAL_SNAPSHOT"
+herdr plugin list --json >"$FINAL_PLUGIN_LIST"
+FINAL_PANE_IDS="$(jq -r '.result.panes[]?.pane_id' "$FINAL_SNAPSHOT" | sort)"
+FINAL_TAB_IDS="$(jq -r '.result.tabs[]?.tab_id' "$FINAL_SNAPSHOT" | sort)"
+FINAL_FOCUS_PANE_ID="$(jq -r '.result.panes[]? | select(.focused == true) | .pane_id' "$FINAL_SNAPSHOT" | head -n 1)"
+FINAL_REGISTRATION_SOURCE_ROOT="$(jq -r '
+  .. | objects | select(.id? == "opsydyn.questmancer")
+  | (.source_root? // .source_path? // (.source? | if type == "object" then (.root? // .path?) else empty end) // empty)
+' "$FINAL_PLUGIN_LIST" | head -n 1)"
+if test -n "$FINAL_REGISTRATION_SOURCE_ROOT"; then
+  FINAL_REGISTRATION_SOURCE_ROOT="$(cd "$FINAL_REGISTRATION_SOURCE_ROOT" && pwd -P)"
+fi
+test "$FINAL_PANE_IDS" = "$BASELINE_PANE_IDS"
+test "$FINAL_TAB_IDS" = "$BASELINE_TAB_IDS"
+test "$FINAL_FOCUS_PANE_ID" = "$BASELINE_FOCUS_PANE_ID"
+if test "$PREEXISTING_LINK" = 1; then
+  test "$FINAL_REGISTRATION_SOURCE_ROOT" = "$BASELINE_REGISTRATION_SOURCE_ROOT"
+else
+  test -z "$FINAL_REGISTRATION_SOURCE_ROOT"
+fi
+```
 
 ## Great Room release-candidate record — 2026-07-17
 
