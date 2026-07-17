@@ -451,14 +451,34 @@ fn route_home_replaces_the_complete_architecture_row() {
         character_set: CharacterSet::Unicode,
         ..DisplayPreferences::default()
     });
-    let unicode_screen = render(&unicode_model, 160, 50);
-    assert!(
-        unicode_screen.contains("◄─── HOME PATH"),
-        "Unicode route-home row must retain the complete landmark:\n{unicode_screen}"
+    let unicode_buffer = render_buffer(&unicode_model, 160, 50);
+    let unicode_route_row = (first.rect.y..first.rect.bottom())
+        .map(|y| {
+            (first.rect.x..first.rect.right())
+                .map(|x| unicode_buffer.cell((x, y)).unwrap().symbol())
+                .collect::<String>()
+        })
+        .find(|row| row.contains("◄─── HOME"))
+        .unwrap_or_else(|| {
+            panic!("connected multi-Delve fixture must render the Unicode route-home row")
+        });
+    let unicode_expected = format!(
+        "| ◄─── HOME PATH{:width$}|",
+        "",
+        width = usize::from(first.rect.width).saturating_sub(3 + "◄─── HOME PATH".chars().count())
+    );
+
+    assert_eq!(
+        unicode_route_row, unicode_expected,
+        "Unicode route-home row must own the full architecture row"
     );
     assert!(
-        !unicode_screen.contains("HOMET PATH"),
-        "Unicode route-home overlay left residual architecture text:\n{unicode_screen}"
+        !unicode_route_row.contains("TORCHLIT PATH"),
+        "Unicode route-home row retained the underlying architecture"
+    );
+    assert!(
+        !unicode_route_row.contains("HOMET PATH"),
+        "Unicode route-home overlay left residual architecture text"
     );
 }
 
