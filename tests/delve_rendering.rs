@@ -391,13 +391,15 @@ fn first_delve_has_a_coordinate_visible_route_home() {
     let screen = render(&model, 160, 40);
     let route_y =
         (first.rect.y.saturating_add(1)..first.rect.bottom().saturating_sub(1)).find(|&y| {
-            ascii_cell(&screen, first.rect.x, y) == b'<'
+            ascii_cell(&screen, first.rect.x, y) == b'|'
+                && ascii_cell(&screen, first.rect.x.saturating_add(1), y) == b' '
+                && ascii_cell(&screen, first.rect.x.saturating_add(2), y) == b'<'
                 && (1..=3).all(|offset| {
-                    ascii_cell(&screen, first.rect.x.saturating_add(offset), y) == b'-'
+                    ascii_cell(&screen, first.rect.x.saturating_add(offset + 2), y) == b'-'
                 })
         });
 
-    let route_y = route_y.expect("route home must open the first Delve's outer wall");
+    let route_y = route_y.expect("route home must replace the first Delve's complete row");
     let row = screen.lines().nth(usize::from(route_y)).unwrap();
     assert!(
         row.contains("HOME"),
@@ -407,11 +409,68 @@ fn first_delve_has_a_coordinate_visible_route_home() {
 }
 
 #[test]
+fn route_home_replaces_the_complete_architecture_row() {
+    let model = four_campaign_ascii_model();
+    let area = Rect::new(1, 1, 158, 47);
+    let first = layout_delves(
+        &model.domain().campaigns,
+        &model.domain().agents,
+        area,
+        None,
+    )
+    .remove(0);
+    let screen = render(&model, 160, 50);
+    let route_row = screen
+        .lines()
+        .find(|row| row.contains("<--- HOME"))
+        .unwrap_or_else(|| {
+            panic!("connected multi-Delve fixture must render the route-home row:\n{screen}")
+        });
+    let expected = format!(
+        "| <--- HOME PATH{:width$}|",
+        "",
+        width = usize::from(first.rect.width).saturating_sub(3 + "<--- HOME PATH".len())
+    );
+
+    assert_eq!(
+        &route_row[usize::from(first.rect.x)..usize::from(first.rect.right())],
+        expected,
+        "route-home row must own the full architecture row:\n{screen}"
+    );
+    assert!(
+        !route_row.contains("TORCHLIT PATH"),
+        "route-home row retained the underlying architecture:\n{screen}"
+    );
+    assert!(
+        !screen.contains("HOMET PATH"),
+        "route-home overlay left residual architecture text:\n{screen}"
+    );
+
+    let mut unicode_model = model.clone();
+    unicode_model.set_preferences(DisplayPreferences {
+        character_set: CharacterSet::Unicode,
+        ..DisplayPreferences::default()
+    });
+    let unicode_screen = render(&unicode_model, 160, 50);
+    assert!(
+        unicode_screen.contains("◄─── HOME PATH"),
+        "Unicode route-home row must retain the complete landmark:\n{unicode_screen}"
+    );
+    assert!(
+        !unicode_screen.contains("HOMET PATH"),
+        "Unicode route-home overlay left residual architecture text:\n{unicode_screen}"
+    );
+}
+
+#[test]
 fn compact_active_delve_keeps_the_route_home_open() {
     let model = four_campaign_ascii_model();
     let screen = render(&model, 80, 24);
     let route_y = (2..18).find(|&y| {
-        ascii_cell(&screen, 1, y) == b'<' && (2..=4).all(|x| ascii_cell(&screen, x, y) == b'-')
+        ascii_cell(&screen, 1, y) == b'|'
+            && ascii_cell(&screen, 2, y) == b' '
+            && ascii_cell(&screen, 3, y) == b'<'
+            && (4..=6).all(|x| ascii_cell(&screen, x, y) == b'-')
     });
 
     let route_y = route_y.expect("compact active Delve must retain the route home");

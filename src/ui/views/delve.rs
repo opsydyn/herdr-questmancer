@@ -236,12 +236,12 @@ fn render_route_home(
         return;
     };
     let path = match character_set {
-        CharacterSet::Ascii => "<--- HOME",
-        CharacterSet::Unicode => "◄─── HOME",
+        CharacterSet::Ascii => "<--- HOME PATH",
+        CharacterSet::Unicode => "◄─── HOME PATH",
     };
     frame.render_widget(
-        Paragraph::new(path).style(styles.accent),
-        Rect::new(area.x, y, area.width.min(9), 1),
+        Paragraph::new(architecture_row(area, path)).style(styles.accent),
+        Rect::new(area.x, y, area.width, 1),
     );
 }
 
