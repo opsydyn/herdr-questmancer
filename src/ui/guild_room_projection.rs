@@ -1,8 +1,10 @@
+use std::collections::BTreeSet;
+
 use ratatui::layout::{Constraint, Layout, Rect};
 
 use crate::{
     app::Model,
-    domain::{AgentKey, Campaign, WorkspaceId},
+    domain::{Agent, AgentKey, Campaign, GuildAttention, GuildSummons, Presence, WorkspaceId},
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -44,6 +46,7 @@ pub enum AdventurerRepresentation {
 pub struct ProjectedLandmark {
     pub landmark: GuildLandmark,
     pub area: Rect,
+    pub illuminated: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -53,6 +56,7 @@ pub struct ProjectedCampaignTable {
     pub seal: u64,
     pub area: Rect,
     pub selected: bool,
+    pub illuminated: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -66,6 +70,13 @@ pub struct GuildRoomProjection {
 #[must_use]
 pub fn project(model: &Model, area: Rect) -> GuildRoomProjection {
     let mode = mode_for(area);
+    let illuminated_campaigns = model
+        .domain()
+        .agents
+        .values()
+        .filter(|agent| agent.focused)
+        .map(|agent| &agent.workspace_id)
+        .collect::<BTreeSet<_>>();
     let [upper_room, central_room, lower_room] = Layout::vertical([
         Constraint::Ratio(1, 4),
         Constraint::Ratio(1, 2),
@@ -91,30 +102,37 @@ pub fn project(model: &Model, area: Rect) -> GuildRoomProjection {
         ProjectedLandmark {
             landmark: GuildLandmark::Door,
             area: door,
+            illuminated: false,
         },
         ProjectedLandmark {
             landmark: GuildLandmark::QuestWall,
             area: quest_wall,
+            illuminated: false,
         },
         ProjectedLandmark {
             landmark: GuildLandmark::CounselBell,
             area: counsel_bell,
+            illuminated: false,
         },
         ProjectedLandmark {
             landmark: GuildLandmark::Hearth,
             area: hearth,
+            illuminated: false,
         },
         ProjectedLandmark {
             landmark: GuildLandmark::Chronicle,
             area: chronicle,
+            illuminated: false,
         },
         ProjectedLandmark {
             landmark: GuildLandmark::Scrying,
             area: scrying,
+            illuminated: !illuminated_campaigns.is_empty(),
         },
         ProjectedLandmark {
             landmark: GuildLandmark::Spoils,
             area: spoils,
+            illuminated: false,
         },
     ];
 
@@ -131,14 +149,52 @@ pub fn project(model: &Model, area: Rect) -> GuildRoomProjection {
             seal: campaign_seal(&campaign.workspace_id),
             area: campaign_area,
             selected: selected_workspace == Some(&campaign.workspace_id),
+            illuminated: illuminated_campaigns.contains(&campaign.workspace_id),
         })
+        .collect();
+    let adventurers = model
+        .domain()
+        .agents
+        .values()
+        .filter_map(representation_for)
         .collect();
 
     GuildRoomProjection {
         mode,
         landmarks,
         campaigns,
-        adventurers: Vec::new(),
+        adventurers,
+    }
+}
+
+fn representation_for(agent: &Agent) -> Option<AdventurerRepresentation> {
+    let unseen_completion = matches!(
+        &agent.attention,
+        GuildAttention::Unread {
+            summons: GuildSummons::SpoilsReturned,
+            ..
+        }
+    );
+    match (agent.presence, unseen_completion) {
+        (Presence::Exited, _) => None,
+        (Presence::Blocked, _) => Some(AdventurerRepresentation::Projection {
+            agent: agent.key.clone(),
+            station: GuildLandmark::CounselBell,
+        }),
+        (Presence::Done, true) => Some(AdventurerRepresentation::Physical {
+            agent: agent.key.clone(),
+            station: GuildLandmark::Spoils,
+        }),
+        (Presence::Idle, _) => Some(AdventurerRepresentation::Physical {
+            agent: agent.key.clone(),
+            station: GuildLandmark::Hearth,
+        }),
+        (Presence::Working | Presence::Unknown, _) | (Presence::Done, false) => {
+            Some(AdventurerRepresentation::Token {
+                agent: agent.key.clone(),
+                table: agent.workspace_id.clone(),
+            })
+        }
     }
 }
 

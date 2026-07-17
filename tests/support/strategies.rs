@@ -14,6 +14,7 @@ use questmancer::{
     persistence::{AttentionEpisodeKey, PersistedStateV1, STATE_SCHEMA_VERSION},
     update::AppEvent,
 };
+use ratatui::layout::Rect;
 
 fn id_text() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9-]{0,11}"
@@ -68,6 +69,12 @@ fn presence() -> impl Strategy<Value = Presence> {
         Just(Presence::Exited),
         Just(Presence::Unknown),
     ]
+}
+
+pub(crate) fn safe_rect() -> impl Strategy<Value = Rect> {
+    (any::<u16>(), any::<u16>())
+        .prop_flat_map(|(x, y)| (Just(x), Just(y), 0..=u16::MAX - x, 0..=u16::MAX - y))
+        .prop_map(|(x, y, width, height)| Rect::new(x, y, width, height))
 }
 
 pub(crate) fn attention() -> impl Strategy<Value = GuildAttention> {
@@ -353,6 +360,70 @@ pub(crate) fn domain_state() -> impl Strategy<Value = DomainState> {
                 selected_agent,
                 chronicle: Chronicle::default(),
             }
+        })
+}
+
+pub(crate) fn guild_room_domain() -> impl Strategy<Value = DomainState> {
+    prop::collection::vec(workspace_id(), 0..=6)
+        .prop_flat_map(|workspace_ids| {
+            let generated_agents = if workspace_ids.is_empty() {
+                Just(Vec::<Agent>::new()).boxed()
+            } else {
+                prop::collection::vec(
+                    (agent(), prop::sample::select(workspace_ids.clone())).prop_map(
+                        |(mut agent, workspace_id)| {
+                            agent.workspace_id = workspace_id;
+                            agent
+                        },
+                    ),
+                    0..=8,
+                )
+                .boxed()
+            };
+            (Just(workspace_ids), generated_agents)
+        })
+        .prop_map(|(workspace_ids, generated_agents)| {
+            let agents = generated_agents
+                .into_iter()
+                .map(|agent| (agent.key.clone(), agent))
+                .collect::<BTreeMap<_, _>>();
+            let mut campaigns = workspace_ids
+                .into_iter()
+                .map(|workspace_id| {
+                    (
+                        workspace_id.clone(),
+                        Campaign {
+                            label: format!("site-{workspace_id}"),
+                            cwd: PathBuf::from(format!("/tmp/{workspace_id}")),
+                            workspace_id,
+                            party: Vec::new(),
+                        },
+                    )
+                })
+                .collect::<BTreeMap<_, _>>();
+            for (key, agent) in &agents {
+                campaigns
+                    .get_mut(&agent.workspace_id)
+                    .expect("generated agents choose an existing campaign")
+                    .party
+                    .push(key.clone());
+            }
+            (campaigns, agents)
+        })
+        .prop_flat_map(|(campaigns, agents)| {
+            let keys = agents.keys().cloned().collect::<Vec<_>>();
+            let selection = if keys.is_empty() {
+                Just(None).boxed()
+            } else {
+                prop_oneof![Just(None), prop::sample::select(keys).prop_map(Some)].boxed()
+            };
+            (Just(campaigns), Just(agents), selection)
+        })
+        .prop_map(|(campaigns, agents, selected_agent)| DomainState {
+            campaigns,
+            agents,
+            selected_agent,
+            chronicle: Chronicle::default(),
         })
 }
 

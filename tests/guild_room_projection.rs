@@ -2,9 +2,14 @@ use std::path::PathBuf;
 
 use questmancer::{
     app::{Model, View},
-    domain::{AgentKey, Campaign, DomainState, Timestamp, WorkspaceId},
+    domain::{
+        Agent, AgentKey, Campaign, DomainState, GuildAttention, GuildSummons, Presence, Timestamp,
+        WorkspaceId,
+    },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
-    ui::guild_room_projection::{GuildRoomMode, project},
+    ui::guild_room_projection::{
+        AdventurerRepresentation, GuildLandmark, GuildRoomMode, GuildRoomProjection, project,
+    },
 };
 use ratatui::layout::Rect;
 
@@ -27,6 +32,152 @@ fn model_with_campaigns(campaigns: impl IntoIterator<Item = Campaign>) -> Model 
     let mut model = Model::new(View::Guild);
     model.replace_domain(domain);
     model
+}
+
+fn fixture_agent() -> Agent {
+    let response: SuccessResponse<SessionSnapshotResult> =
+        serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
+    DomainState::from_snapshot(&response.result.snapshot, Timestamp::from_millis(1_000))
+        .agents
+        .into_values()
+        .next()
+        .expect("fixture contains an adventurer")
+}
+
+fn model_with_agent(mut agent: Agent) -> Model {
+    agent.workspace_id = WorkspaceId::new("campaign-alpha");
+    let agent_key = agent.key.clone();
+    let mut owning_campaign = campaign("campaign-alpha", "Alpha", "/work/alpha");
+    owning_campaign.party.push(agent_key.clone());
+    let mut domain = DomainState::default();
+    domain
+        .campaigns
+        .insert(agent.workspace_id.clone(), owning_campaign);
+    domain.selected_agent = Some(agent_key.clone());
+    domain.agents.insert(agent_key, agent);
+    let mut model = Model::new(View::Guild);
+    model.replace_domain(domain);
+    model
+}
+
+#[test]
+fn presence_and_local_attention_derive_the_exact_truthful_station() {
+    let since = Timestamp::from_millis(1_000);
+    let cases = [
+        (Presence::Exited, GuildAttention::Clear, None),
+        (
+            Presence::Blocked,
+            GuildAttention::Clear,
+            Some(AdventurerRepresentation::Projection {
+                agent: AgentKey::new("agent-alpha"),
+                station: GuildLandmark::CounselBell,
+            }),
+        ),
+        (
+            Presence::Done,
+            GuildAttention::unread(GuildSummons::SpoilsReturned, since),
+            Some(AdventurerRepresentation::Physical {
+                agent: AgentKey::new("agent-alpha"),
+                station: GuildLandmark::Spoils,
+            }),
+        ),
+        (
+            Presence::Idle,
+            GuildAttention::Clear,
+            Some(AdventurerRepresentation::Physical {
+                agent: AgentKey::new("agent-alpha"),
+                station: GuildLandmark::Hearth,
+            }),
+        ),
+        (
+            Presence::Working,
+            GuildAttention::Clear,
+            Some(AdventurerRepresentation::Token {
+                agent: AgentKey::new("agent-alpha"),
+                table: WorkspaceId::new("campaign-alpha"),
+            }),
+        ),
+        (
+            Presence::Done,
+            GuildAttention::Read {
+                summons: GuildSummons::SpoilsReturned,
+                since,
+            },
+            Some(AdventurerRepresentation::Token {
+                agent: AgentKey::new("agent-alpha"),
+                table: WorkspaceId::new("campaign-alpha"),
+            }),
+        ),
+        (
+            Presence::Done,
+            GuildAttention::unread(GuildSummons::CounselRequested, since),
+            Some(AdventurerRepresentation::Token {
+                agent: AgentKey::new("agent-alpha"),
+                table: WorkspaceId::new("campaign-alpha"),
+            }),
+        ),
+        (
+            Presence::Done,
+            GuildAttention::unread(GuildSummons::AdventurerDeparted, since),
+            Some(AdventurerRepresentation::Token {
+                agent: AgentKey::new("agent-alpha"),
+                table: WorkspaceId::new("campaign-alpha"),
+            }),
+        ),
+        (
+            Presence::Unknown,
+            GuildAttention::Clear,
+            Some(AdventurerRepresentation::Token {
+                agent: AgentKey::new("agent-alpha"),
+                table: WorkspaceId::new("campaign-alpha"),
+            }),
+        ),
+    ];
+
+    for (presence, attention, expected) in cases {
+        let mut agent = fixture_agent();
+        agent.key = AgentKey::new("agent-alpha");
+        agent.presence = presence;
+        agent.attention = attention;
+        let projection = project(&model_with_agent(agent), Rect::new(0, 0, 120, 30));
+
+        assert_eq!(
+            projection.adventurers,
+            expected.into_iter().collect::<Vec<_>>(),
+            "unexpected representation for {presence:?}"
+        );
+    }
+}
+
+#[test]
+fn focused_agent_changes_only_room_presentation_not_station_or_geometry() {
+    let mut agent = fixture_agent();
+    agent.key = AgentKey::new("agent-alpha");
+    agent.presence = Presence::Working;
+    agent.attention = GuildAttention::Clear;
+    agent.focused = false;
+    let calm = project(&model_with_agent(agent.clone()), Rect::new(0, 0, 120, 30));
+
+    agent.focused = true;
+    let focused = project(&model_with_agent(agent), Rect::new(0, 0, 120, 30));
+
+    assert_eq!(calm.adventurers, focused.adventurers);
+    assert_eq!(
+        stable_campaign_identity(&calm),
+        stable_campaign_identity(&focused)
+    );
+    assert!(!calm.campaigns[0].illuminated);
+    assert!(focused.campaigns[0].illuminated);
+    let scrying_illumination = |projection: &GuildRoomProjection| {
+        projection
+            .landmarks
+            .iter()
+            .find(|landmark| landmark.landmark == GuildLandmark::Scrying)
+            .expect("Scrying is a stable landmark")
+            .illuminated
+    };
+    assert!(!scrying_illumination(&calm));
+    assert!(scrying_illumination(&focused));
 }
 
 #[test]
@@ -235,6 +386,23 @@ fn assert_projected_areas_fit_without_overlap(
             );
         }
     }
+}
+
+fn stable_campaign_identity(
+    projection: &GuildRoomProjection,
+) -> Vec<(WorkspaceId, String, u64, Rect)> {
+    projection
+        .campaigns
+        .iter()
+        .map(|campaign| {
+            (
+                campaign.workspace_id.clone(),
+                campaign.label.clone(),
+                campaign.seal,
+                campaign.area,
+            )
+        })
+        .collect()
 }
 
 fn rectangles_overlap(left: Rect, right: Rect) -> bool {
