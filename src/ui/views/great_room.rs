@@ -53,6 +53,55 @@ pub enum GuildRoomRenderPath {
     Representation(AdventurerRepresentation),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct TokenLedgerEntry {
+    pub(crate) table_ordinal: usize,
+    pub(crate) token_count: usize,
+}
+
+#[must_use]
+pub(crate) fn unrepresentable_token_ledger_entries(
+    projection: &GuildRoomProjection,
+) -> Vec<TokenLedgerEntry> {
+    let token_counts = projection.adventurers.iter().fold(
+        HashMap::<&WorkspaceId, usize>::new(),
+        |mut counts, representation| {
+            if let AdventurerRepresentation::Token { table, .. } = representation {
+                let count = counts.entry(table).or_default();
+                *count = count.saturating_add(1);
+            }
+            counts
+        },
+    );
+
+    projection
+        .campaigns
+        .iter()
+        .enumerate()
+        .filter_map(|(index, campaign)| {
+            let total = token_counts
+                .get(&campaign.workspace_id)
+                .copied()
+                .unwrap_or(0);
+            let grid = token_grid(campaign.area, total);
+            (total > grid.full_capacity()
+                && OverflowSummary::for_owner(
+                    total,
+                    grid.columns,
+                    grid.available_rows,
+                    grid.inner.width,
+                    "TOKENS",
+                    "TOKENS",
+                )
+                .is_none())
+            .then_some(TokenLedgerEntry {
+                table_ordinal: index.saturating_add(1),
+                token_count: total,
+            })
+        })
+        .collect()
+}
+
 #[must_use]
 pub fn great_room_render_plan(projection: &GuildRoomProjection) -> Vec<GuildRoomRenderPath> {
     projection
@@ -520,22 +569,16 @@ fn render_token(
     total: usize,
     palette: Palette,
 ) {
-    let inner = representation_inner(area);
-    if inner.is_empty() {
-        return;
-    }
-    let top_rows = if area.width <= 14 { 5 } else { 4 }.min(inner.height);
-    let available_rows = inner.height.saturating_sub(top_rows).saturating_sub(2);
+    let grid = token_grid(area, total);
+    let TokenGrid {
+        inner,
+        top_rows,
+        available_rows,
+        columns,
+    } = grid;
     if available_rows == 0 {
         return;
     }
-    let max_columns = usize::from((inner.width / 6).max(1));
-    let preferred_columns = usize::from((inner.width / 14).max(1)).min(total.max(1));
-    let needed_columns = total.max(1).div_ceil(usize::from(available_rows));
-    let columns = preferred_columns
-        .max(needed_columns.min(max_columns))
-        .min(max_columns)
-        .min(total.max(1));
     let summary = OverflowSummary::for_owner(
         total,
         columns,
@@ -598,6 +641,56 @@ fn render_token(
         Paragraph::new(label).style(Style::new().fg(palette.resolve(ColorRole::Parchment))),
         Rect::new(x, y, column_width, 1),
     );
+}
+
+#[derive(Clone, Copy, Debug)]
+struct TokenGrid {
+    inner: Rect,
+    top_rows: u16,
+    available_rows: u16,
+    columns: usize,
+}
+
+impl TokenGrid {
+    fn full_capacity(self) -> usize {
+        self.columns
+            .saturating_mul(usize::from(self.available_rows))
+    }
+}
+
+fn token_grid(area: Rect, total: usize) -> TokenGrid {
+    let inner = representation_inner(area);
+    if inner.is_empty() {
+        return TokenGrid {
+            inner,
+            top_rows: 0,
+            available_rows: 0,
+            columns: 1,
+        };
+    }
+    let top_rows = if area.width <= 14 { 5 } else { 4 }.min(inner.height);
+    let available_rows = inner.height.saturating_sub(top_rows).saturating_sub(2);
+    if available_rows == 0 {
+        return TokenGrid {
+            inner,
+            top_rows,
+            available_rows,
+            columns: 1,
+        };
+    }
+    let max_columns = usize::from((inner.width / 6).max(1));
+    let preferred_columns = usize::from((inner.width / 14).max(1)).min(total.max(1));
+    let needed_columns = total.max(1).div_ceil(usize::from(available_rows));
+    let columns = preferred_columns
+        .max(needed_columns.min(max_columns))
+        .min(max_columns)
+        .min(total.max(1));
+    TokenGrid {
+        inner,
+        top_rows,
+        available_rows,
+        columns,
+    }
 }
 
 fn render_full_figure(

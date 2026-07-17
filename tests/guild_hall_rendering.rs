@@ -287,6 +287,20 @@ fn six_table_token_overflow_model(total: usize) -> Model {
     model
 }
 
+fn eleven_table_token_overflow_model(total: usize) -> Model {
+    let mut model = six_table_token_overflow_model(total);
+    let template = model.domain().campaigns.values().next().unwrap().clone();
+    for index in 6..11 {
+        let workspace_id = WorkspaceId::new(format!("campaign-{index}"));
+        let mut campaign = template.clone();
+        campaign.workspace_id = workspace_id.clone();
+        campaign.label = format!("CAMPAIGN-{index}");
+        campaign.party.clear();
+        model.domain_mut().campaigns.insert(workspace_id, campaign);
+    }
+    model
+}
+
 fn render(model: &Model, width: u16, height: u16) -> String {
     let buffer = render_buffer(model, width, height);
     (0..height)
@@ -851,6 +865,66 @@ fn sub_six_cell_campaign_table_routes_a_complete_token_aggregate() {
             .join(" ")
             .contains("240 TOKENS"),
         "{screen}"
+    );
+}
+
+#[test]
+fn eleven_campaigns_route_an_unrepresentable_token_table_to_a_complete_ledger() {
+    let model = eleven_table_token_overflow_model(240);
+
+    let screen = render(&model, 120, 40);
+
+    assert!(
+        screen.contains("TABLE #01: 240 TOKENS"),
+        "an actually unrepresentable table needs an owner-specific complete ledger:\n{screen}"
+    );
+}
+
+#[test]
+fn token_ledger_counts_projected_tokens_not_every_party_member() {
+    let mut model = eleven_table_token_overflow_model(240);
+    for index in 110..240 {
+        let agent = model
+            .domain_mut()
+            .agents
+            .get_mut(&AgentKey::new(format!("narrow-token-{index:03}")))
+            .unwrap();
+        agent.presence = if index % 2 == 0 {
+            Presence::Idle
+        } else {
+            Presence::Blocked
+        };
+    }
+
+    let screen = render(&model, 120, 40);
+
+    assert!(
+        screen.contains("TABLE #01: 110 TOKENS"),
+        "the ledger must count the projected token owner, not campaign.party:\n{screen}"
+    );
+    assert!(
+        !screen.contains("TABLE #01: 240 TOKENS"),
+        "non-token party members must not inflate the token ledger:\n{screen}"
+    );
+}
+
+#[test]
+fn token_ledger_uses_a_stable_table_ordinal_when_labels_are_long_or_duplicate() {
+    let mut model = eleven_table_token_overflow_model(240);
+    let duplicate = "A very long duplicate campaign label which must not consume the token total";
+    for campaign in model.domain_mut().campaigns.values_mut() {
+        campaign.label = duplicate.to_owned();
+    }
+
+    let screen = render(&model, 120, 40);
+
+    assert!(
+        screen.contains("TABLE #01: 240 TOKENS"),
+        "the stable table identifier and complete token total must survive long duplicate labels:\n{screen}"
+    );
+    assert!(
+        !screen.contains(duplicate),
+        "a clipped campaign label must never appear ahead of a ledger total:\n{screen}"
     );
 }
 

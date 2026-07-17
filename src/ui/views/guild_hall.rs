@@ -15,7 +15,7 @@ use crate::{
         EffectCells, GuildGoblinEvidence, GuildPresentation, RenderProjection,
         copy::{self, EMPTY_GUILD, SCRYING_CLOUDED, SCRYING_STILL},
         goblins,
-        guild_room_projection::GuildRoomMode,
+        guild_room_projection::{GuildRoomMode, project as project_guild_room},
         theme::{ACCENT, INK, MUTED},
         widgets::presentation::present,
     },
@@ -555,12 +555,11 @@ fn footer_projection(model: &Model, area: Rect) -> FooterProjection {
     let width = area.width;
     let notice = if width >= 120 {
         match model.notice() {
-            Some(Notice::ActionFeedback(message) | Notice::PersistenceDiagnostic(message)) => {
-                Some(present(message, model.preferences().character_set).into_owned())
-            }
-            Some(Notice::IntegrationDiagnostic(message)) => {
-                Some(present(message, model.preferences().character_set).into_owned())
-            }
+            Some(
+                Notice::ActionFeedback(message)
+                | Notice::PersistenceDiagnostic(message)
+                | Notice::IntegrationDiagnostic(message),
+            ) => Some(present(message, model.preferences().character_set).into_owned()),
             Some(Notice::ConnectionDiagnostic(_) | Notice::ReviewrAvailabilityDiagnostic(_))
             | None => None,
         }
@@ -595,31 +594,58 @@ fn footer_projection(model: &Model, area: Rect) -> FooterProjection {
     let notice_lines = notice
         .as_deref()
         .map_or_else(Vec::new, |message| wrap_footer_notice(message, width));
-    let ledger_lines =
-        if width >= 120 && (area.height <= 21 || model.domain().campaigns.len() >= 12) {
-            model
-                .domain()
-                .campaigns
-                .values()
-                .filter(|campaign| !campaign.party.is_empty())
-                .map(|campaign| {
-                    let label = campaign.label.trim();
-                    let label = if label.is_empty() {
-                        campaign.workspace_id.as_str()
-                    } else {
-                        label
-                    };
-                    format!("TOKEN LEDGER: {label} {} TOKENS", campaign.party.len())
-                })
-                .collect()
-        } else {
-            Vec::new()
-        };
-    FooterProjection {
+    let mut projection = FooterProjection {
         notice_lines,
-        ledger_lines,
+        ledger_lines: Vec::new(),
         actions,
+    };
+    projection.ledger_lines = stable_token_ledger_lines(model, area, projection.height());
+    projection
+}
+
+fn body_for_footer(area: Rect, footer_height: u16) -> Rect {
+    let [body, _footer] =
+        ratatui::layout::Layout::vertical([Constraint::Min(1), Constraint::Length(footer_height)])
+            .areas(area);
+    body
+}
+
+fn stable_token_ledger_lines(model: &Model, area: Rect, base_footer_height: u16) -> Vec<String> {
+    let campaign_count = model.domain().campaigns.len();
+    let mut lower = 0;
+    let mut upper = campaign_count;
+    while lower < upper {
+        let midpoint = lower + (upper - lower) / 2;
+        let footer_height =
+            base_footer_height.saturating_add(u16::try_from(midpoint).unwrap_or(u16::MAX));
+        let count = token_ledger_entries(model, body_for_footer(area, footer_height)).len();
+        if count <= midpoint {
+            upper = midpoint;
+        } else {
+            lower = midpoint.saturating_add(1);
+        }
     }
+    let footer_height = base_footer_height.saturating_add(u16::try_from(lower).unwrap_or(u16::MAX));
+    token_ledger_entries(model, body_for_footer(area, footer_height))
+        .into_iter()
+        .map(|entry| {
+            format!(
+                "TABLE #{:02}: {} TOKENS",
+                entry.table_ordinal, entry.token_count
+            )
+        })
+        .collect()
+}
+
+fn token_ledger_entries(model: &Model, body: Rect) -> Vec<great_room::TokenLedgerEntry> {
+    if body.width < 120 {
+        return Vec::new();
+    }
+    let room = project_guild_room(model, body);
+    if room.mode != GuildRoomMode::WholeRoom {
+        return Vec::new();
+    }
+    great_room::unrepresentable_token_ledger_entries(&room)
 }
 
 fn wrap_footer_notice(message: &str, width: u16) -> Vec<String> {
