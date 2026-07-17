@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use questmancer::{
-    app::{Model, View},
+    app::{GuildFocus, Model, View},
     domain::{
         Agent, AgentKey, Campaign, DomainState, GuildAttention, GuildSummons, Presence, Timestamp,
         WorkspaceId,
@@ -197,6 +197,120 @@ fn room_mode_changes_at_the_exact_camera_widths() {
             "unexpected room mode at width {width}"
         );
     }
+}
+
+#[test]
+fn cropped_room_centres_selected_campaign_and_keeps_shared_landmarks() {
+    let mut model = model_with_campaigns([
+        campaign("alpha", "Alpha", "/work/alpha"),
+        campaign("beta", "Beta", "/work/beta"),
+        campaign("gamma", "Gamma", "/work/gamma"),
+    ]);
+    let mut agent = fixture_agent();
+    agent.key = AgentKey::new("agent-beta");
+    agent.workspace_id = WorkspaceId::new("beta");
+    model.domain_mut().agents.insert(agent.key.clone(), agent);
+    model.domain_mut().selected_agent = Some(AgentKey::new("agent-beta"));
+
+    let projection = project(&model, Rect::new(0, 0, 100, 24));
+
+    assert_eq!(projection.mode, GuildRoomMode::CroppedRoom);
+    assert_eq!(projection.focused, GuildFocus::QuestWall);
+    assert_eq!(projection.campaigns.len(), 3);
+    let selected = projection
+        .campaigns
+        .iter()
+        .find(|campaign| campaign.selected)
+        .unwrap();
+    assert_eq!(selected.workspace_id, WorkspaceId::new("beta"));
+    assert!(
+        projection
+            .campaigns
+            .iter()
+            .filter(|campaign| !campaign.selected)
+            .all(|campaign| !campaign.area.is_empty())
+    );
+    for required in [
+        GuildLandmark::Door,
+        GuildLandmark::QuestWall,
+        GuildLandmark::Hearth,
+        GuildLandmark::Scrying,
+    ] {
+        assert!(
+            projection
+                .landmarks
+                .iter()
+                .any(|landmark| landmark.landmark == required && !landmark.area.is_empty()),
+            "missing {required:?}"
+        );
+    }
+    assert_eq!(projection.breadcrumb, None);
+    assert_projected_areas_fit_without_overlap(&projection, Rect::new(0, 0, 100, 24));
+}
+
+#[test]
+fn landmark_camera_projects_one_focused_landmark_and_room_breadcrumb() {
+    let mut model = model_with_campaigns([
+        campaign("alpha", "Alpha", "/work/alpha"),
+        campaign("beta", "Beta", "/work/beta"),
+    ]);
+    model.set_guild_focus(GuildFocus::Scrying);
+
+    let projection = project(&model, Rect::new(0, 0, 79, 24));
+
+    assert_eq!(projection.mode, GuildRoomMode::LandmarkCamera);
+    assert_eq!(projection.focused, GuildFocus::Scrying);
+    assert_eq!(
+        projection.breadcrumb.as_deref(),
+        Some("GREAT ROOM / SCRYING")
+    );
+    assert_eq!(
+        projection
+            .landmarks
+            .iter()
+            .filter(|landmark| !landmark.area.is_empty())
+            .map(|landmark| landmark.landmark.clone())
+            .collect::<Vec<_>>(),
+        [GuildLandmark::Scrying]
+    );
+    assert!(
+        projection
+            .campaigns
+            .iter()
+            .all(|campaign| campaign.area.is_empty())
+    );
+}
+
+#[test]
+fn campaign_table_camera_preserves_all_identities_but_shows_only_selected_table() {
+    let mut model = model_with_campaigns([
+        campaign("alpha", "Alpha", "/work/alpha"),
+        campaign("beta", "Beta", "/work/beta"),
+    ]);
+    let mut agent = fixture_agent();
+    agent.key = AgentKey::new("agent-beta");
+    agent.workspace_id = WorkspaceId::new("beta");
+    let agent_key = agent.key.clone();
+    model.domain_mut().agents.insert(agent_key.clone(), agent);
+    model.domain_mut().selected_agent = Some(agent_key);
+    model.set_guild_focus(GuildFocus::CampaignTables);
+
+    let projection = project(&model, Rect::new(0, 0, 60, 18));
+
+    assert_eq!(projection.campaigns.len(), 2);
+    assert_eq!(
+        projection
+            .campaigns
+            .iter()
+            .filter(|campaign| !campaign.area.is_empty())
+            .map(|campaign| campaign.workspace_id.as_str())
+            .collect::<Vec<_>>(),
+        ["beta"]
+    );
+    assert_eq!(
+        projection.breadcrumb.as_deref(),
+        Some("GREAT ROOM / CAMPAIGN TABLES")
+    );
 }
 
 #[test]

@@ -1,6 +1,7 @@
 use questmancer::{
     app::{
-        CharacterSet, ColorMode, DisplayPreferences, Model, Motion, Region, RuntimeSettings, View,
+        CharacterSet, ColorMode, DisplayPreferences, GuildFocus, Model, Motion, RuntimeSettings,
+        View,
     },
     domain::{
         Agent, AgentKey, Campaign, DomainState, GuildAttention, GuildSummons, Presence, Timestamp,
@@ -590,7 +591,7 @@ fn clipped_guild_roster_entries_do_not_move_the_elapsed_deadline() {
 
     let mut model = Model::new(View::Guild);
     model.replace_domain(domain);
-    model.set_region(Region::Party);
+    model.set_guild_focus(GuildFocus::CampaignTables);
     model.set_now(Timestamp::from_millis(1_250));
 
     assert_eq!(
@@ -607,12 +608,12 @@ fn horizontally_clipped_guild_elapsed_suffixes_do_not_arm_deadlines() {
     let mut model = model_with(working, 1_250, Motion::Full);
     model.switch_to(View::Guild);
 
-    for region in [Region::Party, Region::Adventurer] {
-        model.set_region(region);
+    for focus in [GuildFocus::CampaignTables, GuildFocus::Scrying] {
+        model.set_guild_focus(focus);
         assert_eq!(
             questmancer::ui::theatre::next_visible_frame_in(&model, Rect::new(0, 0, 5, 20),),
             None,
-            "region {region:?}"
+            "focus {focus:?}"
         );
     }
 }
@@ -625,28 +626,28 @@ fn shrinking_minute_label_arms_when_the_next_value_becomes_visible() {
     let mut model = model_with(working, 10_500, Motion::Full);
     model.switch_to(View::Guild);
 
-    for (region, area) in [
-        (Region::Party, Rect::new(0, 0, 16, 20)),
-        (Region::Adventurer, Rect::new(0, 0, 14, 40)),
+    for (focus, area) in [
+        (GuildFocus::CampaignTables, Rect::new(0, 0, 16, 20)),
+        (GuildFocus::Scrying, Rect::new(0, 0, 14, 40)),
     ] {
-        model.set_region(region);
+        model.set_guild_focus(focus);
         assert_eq!(
             questmancer::ui::theatre::next_visible_frame_in(&model, area),
             Some(Duration::from_millis(49_500)),
-            "region {region:?}"
+            "focus {focus:?}"
         );
     }
 
     model.set_now(Timestamp::from_millis(59_500));
-    for (region, area) in [
-        (Region::Party, Rect::new(0, 0, 16, 20)),
-        (Region::Adventurer, Rect::new(0, 0, 14, 40)),
+    for (focus, area) in [
+        (GuildFocus::CampaignTables, Rect::new(0, 0, 16, 20)),
+        (GuildFocus::Scrying, Rect::new(0, 0, 14, 40)),
     ] {
-        model.set_region(region);
+        model.set_guild_focus(focus);
         assert_eq!(
             questmancer::ui::theatre::next_visible_frame_in(&model, area),
             Some(Duration::from_millis(500)),
-            "region {region:?}"
+            "focus {focus:?}"
         );
     }
 }

@@ -29,7 +29,8 @@ fn empty_guild_hall_is_ready_for_a_commission() {
     let screen = render(View::Guild, 80, 24);
 
     assert!(screen.contains("QUESTMANCER'S GUILD HALL"));
-    assert!(screen.contains("The hearth is warm. The guild awaits its next commission."));
+    assert!(screen.contains("HEARTH"), "{screen}");
+    assert!(screen.contains("The hearth is"), "{screen}");
 }
 
 #[test]

@@ -12,7 +12,7 @@ use ratatui::{
 
 use crate::{
     app::{CharacterSet, ConnectionState, Model, Notice},
-    domain::{Agent, AgentKey, Timestamp, WorkspaceId},
+    domain::{Agent, AgentKey, GuildSummons, Timestamp, WorkspaceId},
     ui::{
         EffectCells,
         copy::{EMPTY_GUILD, SCRYING_STILL},
@@ -140,7 +140,8 @@ pub(super) fn render(
     let index = RenderIndex::new(projection);
     let measurements = RenderMeasurements::new(projection, &index, &copy);
 
-    render_architecture(frame, area, model.preferences().character_set, palette);
+    render_architecture(frame, area, model, palette);
+    render_camera_context(frame, area, model, projection, palette);
 
     for path in &plan {
         if let GuildRoomRenderPath::Landmark(landmark) = path {
@@ -314,11 +315,11 @@ impl<'a> GreatRoomCopy<'a> {
     fn for_model(model: &'a Model, projection: &GuildRoomProjection) -> Self {
         Self {
             door: door_lines(model),
-            counsel: counsel_lines(projection),
+            counsel: counsel_lines(model, projection),
             hearth: hearth_lines(model, projection),
             chronicle: chronicle_lines(model),
             scrying: scrying_lines(model),
-            spoils: spoils_lines(model),
+            spoils: spoils_lines(model, projection),
         }
     }
 }
@@ -470,17 +471,16 @@ fn render_landmark_path(
     }
 }
 
-fn render_architecture(
-    frame: &mut Frame<'_>,
-    area: Rect,
-    character_set: CharacterSet,
-    palette: Palette,
-) {
+fn render_architecture(frame: &mut Frame<'_>, area: Rect, model: &Model, palette: Palette) {
     if area.is_empty() {
         return;
     }
+    let title = format!(
+        " QUESTMANCER'S GUILD HALL / THE GREAT ROOM / {} ",
+        connection_word(model.connection())
+    );
     let mut room = Block::default()
-        .title(" QUESTMANCER'S GUILD HALL / THE GREAT ROOM ")
+        .title(title)
         .borders(Borders::ALL)
         .border_style(Style::new().fg(palette.resolve(ColorRole::Stone)))
         .style(
@@ -488,10 +488,67 @@ fn render_architecture(
                 .fg(palette.resolve(ColorRole::Parchment))
                 .bg(palette.resolve(ColorRole::DarkStone)),
         );
-    if character_set == CharacterSet::Ascii {
+    if model.preferences().character_set == CharacterSet::Ascii {
         room = room.border_set(ASCII_BORDER);
     }
     frame.render_widget(room, area);
+}
+
+fn render_camera_context(
+    frame: &mut Frame<'_>,
+    room_area: Rect,
+    model: &Model,
+    projection: &GuildRoomProjection,
+    palette: Palette,
+) {
+    if projection.mode == crate::ui::guild_room_projection::GuildRoomMode::WholeRoom {
+        return;
+    }
+    let base = projection.breadcrumb.as_deref().unwrap_or("GREAT ROOM");
+    let area = Rect::new(
+        room_area.x.saturating_add(1),
+        room_area.y.saturating_add(1),
+        room_area.width.saturating_sub(2),
+        1.min(room_area.height.saturating_sub(1)),
+    );
+    if area.is_empty() {
+        return;
+    }
+    let text = match model.notice() {
+        Some(Notice::ConnectionDiagnostic(message))
+            if !matches!(model.connection(), ConnectionState::Connected) =>
+        {
+            format!(
+                "{base} / Cause: {}",
+                present(message, model.preferences().character_set)
+            )
+        }
+        _ => model.selected_agent().map_or_else(
+            || base.to_owned(),
+            |agent| {
+                let theatre = frame_for(agent, model.now(), model.preferences());
+                format!(
+                    "{base} / {} / {}",
+                    theatre.label,
+                    present(&agent.persona.name, model.preferences().character_set)
+                )
+            },
+        ),
+    };
+    frame.render_widget(
+        Paragraph::new(text).style(Style::new().fg(palette.resolve(ColorRole::Selection))),
+        area,
+    );
+}
+
+const fn connection_word(connection: &ConnectionState) -> &'static str {
+    match connection {
+        ConnectionState::Offline => "OFFLINE",
+        ConnectionState::Connecting => "CONNECTING",
+        ConnectionState::Connected => "CONNECTED",
+        ConnectionState::Reconnecting { .. } => "RECONNECTING",
+        ConnectionState::Incompatible { .. } => "INCOMPATIBLE",
+    }
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -1032,7 +1089,7 @@ fn door_lines(model: &Model) -> Vec<Cow<'_, str>> {
         ConnectionState::Connecting => vec![Cow::Borrowed("CONNECTING / door opening")],
         ConnectionState::Connected => vec![Cow::Borrowed("CONNECTED / door open")],
         ConnectionState::Reconnecting { attempt } => vec![
-            Cow::Borrowed("RECONNECTING / door barred"),
+            Cow::Borrowed("RECONNECTING"),
             Cow::Owned(format!("attempt {attempt}")),
         ],
         ConnectionState::Incompatible { expected, actual } => vec![
@@ -1051,7 +1108,19 @@ fn door_lines(model: &Model) -> Vec<Cow<'_, str>> {
     lines
 }
 
-fn counsel_lines(projection: &GuildRoomProjection) -> Vec<Cow<'static, str>> {
+fn counsel_lines(model: &Model, projection: &GuildRoomProjection) -> Vec<Cow<'static, str>> {
+    let departed = model
+        .domain()
+        .agents
+        .values()
+        .filter(|agent| agent.attention.summons() == Some(GuildSummons::AdventurerDeparted))
+        .count();
+    if departed == 1 {
+        return vec![Cow::Borrowed("1 adventurer departed")];
+    }
+    if departed > 1 {
+        return vec![Cow::Owned(format!("{departed} adventurers departed"))];
+    }
     let count = projection
         .adventurers
         .iter()
@@ -1160,7 +1229,7 @@ fn scrying_lines(model: &Model) -> Vec<Cow<'_, str>> {
     lines
 }
 
-fn spoils_lines(model: &Model) -> Vec<Cow<'_, str>> {
+fn spoils_lines<'a>(model: &'a Model, projection: &GuildRoomProjection) -> Vec<Cow<'a, str>> {
     let mut lines = Vec::new();
     let actionable = model.selected_agent().is_some_and(|agent| {
         model.reviewr_available() && model.managed_pane_id() != Some(&agent.pane_id)
@@ -1169,11 +1238,22 @@ fn spoils_lines(model: &Model) -> Vec<Cow<'_, str>> {
         lines.push(Cow::Borrowed("REVIEWR READY"));
         lines.push(Cow::Borrowed("[v] Inspect spoils"));
     }
-    if let Some(
-        Notice::ReviewrAvailabilityDiagnostic(message) | Notice::IntegrationDiagnostic(message),
-    ) = model.notice()
-    {
-        lines.push(present(message, model.preferences().character_set));
+    if let Some(notice) = model.notice() {
+        match notice {
+            Notice::ReviewrAvailabilityDiagnostic(_message)
+                if projection.mode
+                    == crate::ui::guild_room_projection::GuildRoomMode::CroppedRoom =>
+            {
+                lines.push(Cow::Borrowed("REVIEWR UNAVAILABLE"));
+            }
+            Notice::ReviewrAvailabilityDiagnostic(message)
+            | Notice::IntegrationDiagnostic(message) => {
+                lines.push(present(message, model.preferences().character_set));
+            }
+            Notice::ConnectionDiagnostic(_)
+            | Notice::ActionFeedback(_)
+            | Notice::PersistenceDiagnostic(_) => {}
+        }
     }
     lines
 }

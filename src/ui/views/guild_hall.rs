@@ -9,7 +9,7 @@ use ratatui::{
 use std::time::Duration;
 
 use crate::{
-    app::{CharacterSet, ConnectionState, Model, Notice, Region},
+    app::{CharacterSet, ConnectionState, GuildFocus, Model, Notice},
     domain::{Agent, AgentKey, CampaignStatus, GuildSummons, Presence},
     ui::{
         EffectCells, GuildGoblinEvidence, GuildPresentation, RenderProjection,
@@ -48,11 +48,7 @@ pub(crate) fn render(
 
     let body = layout.body;
     let footer = layout.footer;
-    if let Some(room) = projection
-        .guild_room
-        .as_ref()
-        .filter(|room| room.mode == GuildRoomMode::WholeRoom)
-    {
+    if let Some(room) = projection.guild_room.as_ref() {
         let marginalia = great_room::render(frame, body, model, room);
         let sprites = goblins::render(frame, body, model);
         render_footer(frame, footer, &layout.footer_projection);
@@ -185,21 +181,21 @@ fn render_focused(frame: &mut Frame<'_>, area: Rect, model: &Model) -> EffectCel
     } else {
         [area, Rect::default()]
     };
-    let marginalia_visible = match model.region() {
-        Region::QuestBoard => {
+    let marginalia_visible = match model.guild_focus() {
+        GuildFocus::QuestWall | GuildFocus::Door => {
             render_quest_board(frame, primary, model);
             EffectCells::default()
         }
-        Region::Party => {
+        GuildFocus::CampaignTables | GuildFocus::Hearth => {
             render_party(frame, primary, model);
             EffectCells::default()
         }
-        Region::Summons => {
+        GuildFocus::CounselBell => {
             render_summons(frame, primary, model);
             EffectCells::default()
         }
-        Region::Chronicle => render_chronicle(frame, primary, model),
-        Region::Adventurer => {
+        GuildFocus::Chronicle => render_chronicle(frame, primary, model),
+        GuildFocus::Scrying | GuildFocus::Spoils => {
             let card_height = primary.height.saturating_sub(4).min(7);
             let [adventurer, scrying] = ratatui::layout::Layout::vertical([
                 Constraint::Length(card_height),
@@ -568,12 +564,7 @@ fn footer_projection(model: &Model, area: Rect) -> FooterProjection {
     };
     let mut actions = vec!["[1] Guild Hall", "[2] Delve"];
     if width < 80 {
-        actions.push(match model.region() {
-            Region::Summons => "[tab] Open Chronicle",
-            Region::QuestBoard | Region::Party | Region::Chronicle | Region::Adventurer => {
-                "[tab] Next region"
-            }
-        });
+        actions.push("[tab] Next landmark");
     }
     if !model.domain().agents.is_empty() {
         actions.extend(["[j/k] Choose", "[/] Search"]);
@@ -897,9 +888,9 @@ fn visible_elapsed_slots(model: &Model, terminal_area: Rect) -> Vec<ElapsedSlot<
     } else {
         [content, Rect::default()]
     };
-    match model.region() {
-        Region::Party => visible_party_slots(model, primary),
-        Region::Adventurer => {
+    match model.guild_focus() {
+        GuildFocus::CampaignTables => visible_party_slots(model, primary),
+        GuildFocus::Scrying | GuildFocus::Hearth | GuildFocus::Spoils => {
             let card_height = primary.height.saturating_sub(4).min(7);
             let [adventurer, _scrying] = ratatui::layout::Layout::vertical([
                 Constraint::Length(card_height),
@@ -910,7 +901,10 @@ fn visible_elapsed_slots(model: &Model, terminal_area: Rect) -> Vec<ElapsedSlot<
             push_selected_elapsed_slot(&mut visible, model, adventurer);
             visible
         }
-        Region::QuestBoard | Region::Summons | Region::Chronicle => Vec::new(),
+        GuildFocus::QuestWall
+        | GuildFocus::CounselBell
+        | GuildFocus::Chronicle
+        | GuildFocus::Door => Vec::new(),
     }
 }
 

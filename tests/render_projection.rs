@@ -67,7 +67,7 @@ fn every_projected_great_room_item_has_one_production_renderer_path() {
 mod storybook_projection {
 
     use questmancer::{
-        app::{CharacterSet, ColorMode, DisplayPreferences, Motion, Region},
+        app::{CharacterSet, ColorMode, DisplayPreferences, GuildFocus, Motion},
         domain::Presence,
         storybook::fixtures::{
             StoryContext, connected_delves_fixture, guild_populated_fixture, library_delve_fixture,
@@ -252,7 +252,7 @@ mod storybook_projection {
         );
         assert!(medium.guild_profile_agent.is_some());
 
-        model.set_region(Region::QuestBoard);
+        model.set_guild_focus(GuildFocus::QuestWall);
         let focused = render_projection_for(&model, Rect::new(0, 0, 79, 24));
         assert_eq!(focused.guild_regions, [GuildRegion::QuestBoard].into());
         assert!(focused.guild_profile_agent.is_none());

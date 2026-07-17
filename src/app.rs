@@ -107,13 +107,16 @@ impl Notice {
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum Region {
+pub enum GuildFocus {
     #[default]
-    QuestBoard,
-    Party,
-    Summons,
+    QuestWall,
+    CampaignTables,
+    CounselBell,
+    Hearth,
     Chronicle,
-    Adventurer,
+    Scrying,
+    Spoils,
+    Door,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -143,7 +146,7 @@ pub struct Model {
     view: View,
     domain: DomainState,
     connection: ConnectionState,
-    region: Region,
+    guild_focus: GuildFocus,
     modal: Modal,
     output_preview: Option<OutputPreview>,
     notice: Option<Notice>,
@@ -162,7 +165,7 @@ impl Model {
             view,
             domain: DomainState::default(),
             connection: ConnectionState::Offline,
-            region: Region::QuestBoard,
+            guild_focus: GuildFocus::QuestWall,
             modal: Modal::None,
             output_preview: None,
             notice: None,
@@ -286,21 +289,24 @@ impl Model {
         self.domain.selected_agent = Some(keys[next].clone());
     }
 
-    pub const fn region(&self) -> Region {
-        self.region
+    pub const fn guild_focus(&self) -> GuildFocus {
+        self.guild_focus
     }
 
-    pub const fn set_region(&mut self, region: Region) {
-        self.region = region;
+    pub const fn set_guild_focus(&mut self, focus: GuildFocus) {
+        self.guild_focus = focus;
     }
 
-    pub fn cycle_region(&mut self) {
-        self.region = match self.region {
-            Region::QuestBoard => Region::Party,
-            Region::Party => Region::Summons,
-            Region::Summons => Region::Chronicle,
-            Region::Chronicle => Region::Adventurer,
-            Region::Adventurer => Region::QuestBoard,
+    pub fn cycle_guild_focus(&mut self) {
+        self.guild_focus = match self.guild_focus {
+            GuildFocus::QuestWall => GuildFocus::CampaignTables,
+            GuildFocus::CampaignTables => GuildFocus::CounselBell,
+            GuildFocus::CounselBell => GuildFocus::Hearth,
+            GuildFocus::Hearth => GuildFocus::Chronicle,
+            GuildFocus::Chronicle => GuildFocus::Scrying,
+            GuildFocus::Scrying => GuildFocus::Spoils,
+            GuildFocus::Spoils => GuildFocus::Door,
+            GuildFocus::Door => GuildFocus::QuestWall,
         };
     }
 

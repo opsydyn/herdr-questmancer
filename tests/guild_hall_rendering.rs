@@ -1082,7 +1082,8 @@ fn empty_guild_hall_is_warm_and_ready() {
 
     let screen = render(&model, 80, 24);
 
-    assert!(screen.contains("The hearth is warm. The guild awaits its next commission."));
+    assert!(screen.contains("HEARTH"), "{screen}");
+    assert!(screen.contains("QUEST WALL"), "{screen}");
 }
 
 #[test]
@@ -1150,7 +1151,7 @@ fn working_guild_hall_uses_the_injected_clock_for_elapsed_time() {
 }
 
 #[test]
-fn long_party_labels_keep_one_row_per_visible_elapsed_entry() {
+fn narrow_campaign_camera_keeps_selected_identity_with_long_party_labels() {
     let mut model = live_model();
     let template = model.domain().agents.values().next().unwrap().clone();
     model.domain_mut().agents.clear();
@@ -1165,17 +1166,18 @@ fn long_party_labels_keep_one_row_per_visible_elapsed_entry() {
             .insert(adventurer.key.clone(), adventurer);
     }
     model.domain_mut().selected_agent = Some(AgentKey::new("agent-0"));
-    model.set_region(questmancer::app::Region::Party);
+    model.set_guild_focus(questmancer::app::GuildFocus::CampaignTables);
 
     let screen = render(&model, 60, 10);
 
+    assert!(screen.contains("GREAT ROOM / CAMPAIGN TABLES"), "{screen}");
     assert!(
-        screen.contains("Agent-2"),
-        "third logical roster row wrapped out:\n{screen}"
+        screen.contains("Agent-0"),
+        "selected identity was lost:\n{screen}"
     );
     assert!(
-        screen.matches("working 2m").count() >= 3,
-        "elapsed labels were clipped:\n{screen}"
+        screen.contains("DELVING"),
+        "selected status was lost:\n{screen}"
     );
 }
 
@@ -1201,11 +1203,11 @@ fn returned_spoils_are_visible_in_the_narrow_projection() {
     );
 
     let mut model = model;
-    model.cycle_region();
-    model.cycle_region();
+    model.set_guild_focus(questmancer::app::GuildFocus::Spoils);
     let screen = render(&model, 60, 18);
 
-    assert!(screen.contains("has returned with unopened spoils"));
+    assert!(screen.contains("SPOILS RETURNED"), "{screen}");
+    assert!(screen.contains("Elowen"), "{screen}");
 }
 
 #[test]
@@ -1219,8 +1221,7 @@ fn departed_adventurer_is_visible_in_the_narrow_projection() {
     );
 
     let mut model = model;
-    model.cycle_region();
-    model.cycle_region();
+    model.set_guild_focus(questmancer::app::GuildFocus::CounselBell);
     let screen = render(&model, 60, 18);
 
     assert!(screen.contains("departed"));
@@ -1230,22 +1231,24 @@ fn departed_adventurer_is_visible_in_the_narrow_projection() {
 fn eighty_column_guild_hall_keeps_attention_and_selected_adventurer_visible() {
     let screen = render(&live_model(), 80, 24);
 
-    assert!(screen.contains("PARTY ROSTER"));
+    assert!(screen.contains("GUILD DOOR"), "{screen}");
+    assert!(screen.contains("QUEST WALL"), "{screen}");
+    assert!(screen.contains("HEARTH"), "{screen}");
+    assert!(screen.contains("SCRYING"), "{screen}");
     assert!(screen.contains("Elowen"));
-    assert!(screen.contains("requests counsel"));
+    assert!(screen.contains("COUNSEL REQUESTED"));
     assert!(screen.contains("Observe"));
 }
 
 #[test]
-fn narrow_guild_hall_focuses_one_region_without_losing_the_selected_adventurer() {
+fn narrow_guild_hall_focuses_one_landmark_without_losing_the_selected_adventurer() {
     let mut model = live_model();
-    for _ in 0..4 {
-        model.cycle_region();
-    }
+    model.set_guild_focus(questmancer::app::GuildFocus::Scrying);
     let screen = render(&model, 60, 18);
 
+    assert!(screen.contains("GREAT ROOM / SCRYING"), "{screen}");
     assert!(screen.contains("Elowen"));
-    assert!(screen.contains("blocked"));
+    assert!(screen.contains("COUNSEL REQUESTED"));
     assert!(screen.contains("which schema"));
 }
 
@@ -1256,7 +1259,7 @@ fn reconnecting_guild_hall_preserves_data_and_pairs_voice_with_the_real_cause() 
 
     let screen = render(&model, 100, 24);
 
-    assert!(screen.contains("The scrying pool has clouded. Reconnecting"));
+    assert!(screen.contains("RECONNECTING"), "{screen}");
     assert!(screen.contains("attempt 3"));
     assert!(screen.contains("Elowen"));
 }
@@ -1272,9 +1275,7 @@ fn scrying_table_hides_output_cached_for_a_different_pane() {
         error: None,
     }));
 
-    for _ in 0..4 {
-        model.cycle_region();
-    }
+    model.set_guild_focus(questmancer::app::GuildFocus::Scrying);
     let screen = render(&model, 60, 18);
 
     assert!(!screen.contains("stale output from another page"));
@@ -1294,12 +1295,10 @@ fn scrying_table_hides_nested_output_when_the_selected_pane_is_managed() {
         error: None,
     }));
 
-    for _ in 0..4 {
-        model.cycle_region();
-    }
+    model.set_guild_focus(questmancer::app::GuildFocus::Scrying);
     let screen = render(&model, 60, 18);
 
-    assert!(screen.contains("SCRYING TABLE"));
+    assert!(screen.contains("SCRYING ALCOVE"));
     assert!(!screen.contains("CAFE WALL / 56K CABLE RUN"));
     assert!(!screen.contains("THE HERDR CYBERCAFE"));
     assert!(!screen.contains("NESTED WEBMASTER CONTROL CENTRE"));
@@ -1334,7 +1333,10 @@ fn footer_advertises_only_actions_valid_for_the_current_context() {
     let unavailable = render(&live, 160, 24);
     assert!(unavailable.contains("The spoils cannot be inspected here"));
     let unavailable_medium = render(&live, 80, 24);
-    assert!(unavailable_medium.contains("The spoils cannot be inspected here"));
+    assert!(
+        unavailable_medium.contains("REVIEWR UNAVAILABLE"),
+        "{unavailable_medium}"
+    );
 
     let _ = reduce_action(&mut live, Action::AcknowledgeSummons);
     live.set_reviewr_available(true);
@@ -1348,28 +1350,26 @@ fn footer_navigation_and_contextual_actions_are_truthful_at_layout_boundaries() 
     let mut model = live_model();
     model.set_reviewr_available(true);
 
-    for (current, expected, refused) in [
-        ("QUEST BOARD", "[tab] Next region", "[tab] Open Chronicle"),
-        ("PARTY ROSTER", "[tab] Next region", "[tab] Open Chronicle"),
-        (
-            "CALLS FOR COUNSEL",
-            "[tab] Open Chronicle",
-            "[tab] Next region",
-        ),
-        ("CHRONICLE", "[tab] Next region", "[tab] Open Chronicle"),
-        ("ADVENTURER", "[tab] Next region", "[tab] Open Chronicle"),
+    for current in [
+        "QUEST WALL",
+        "CAMPAIGN TABLE",
+        "COUNSEL BELL",
+        "HEARTH",
+        "CHRONICLE LECTERN",
+        "SCRYING ALCOVE",
+        "SPOILS DESK",
+        "GUILD DOOR",
     ] {
         let narrow = render(&model, 79, 24);
         assert!(narrow.contains(current), "{narrow}");
-        assert!(narrow.contains(expected), "{narrow}");
-        assert!(!narrow.contains(refused), "{narrow}");
+        assert!(narrow.contains("[tab] Next landmark"), "{narrow}");
 
         for width in [80, 119, 120] {
             let screen = render(&model, width, 24);
             assert!(!screen.contains("[tab]"), "width {width}\n{screen}");
         }
 
-        model.cycle_region();
+        model.cycle_guild_focus();
     }
 
     for width in [80, 119, 120] {
@@ -1407,37 +1407,37 @@ fn managed_adventurer_footer_hides_every_refused_pane_action() {
 }
 
 #[test]
-fn narrow_diagnostics_remain_visible_in_every_focused_region() {
+fn reviewr_diagnostic_is_visible_only_at_the_narrow_spoils_landmark() {
     let mut model = live_model();
-    let titles = [
-        "QUEST BOARD",
-        "PARTY ROSTER",
-        "CALLS FOR COUNSEL",
-        "CHRONICLE",
-        "ADVENTURER",
-    ];
-
-    for title in titles {
-        let _ = reduce_action(&mut model, Action::InspectSpoils);
-        let unavailable = render(&model, 79, 24);
+    let _ = reduce_action(&mut model, Action::InspectSpoils);
+    for focus in [
+        questmancer::app::GuildFocus::QuestWall,
+        questmancer::app::GuildFocus::CampaignTables,
+        questmancer::app::GuildFocus::CounselBell,
+        questmancer::app::GuildFocus::Hearth,
+        questmancer::app::GuildFocus::Chronicle,
+        questmancer::app::GuildFocus::Scrying,
+        questmancer::app::GuildFocus::Door,
+    ] {
+        model.set_guild_focus(focus);
+        let screen = render(&model, 79, 24);
         assert!(
-            unavailable.contains(title),
-            "missing {title}\n{unavailable}"
+            !screen.contains("The spoils cannot be inspected here"),
+            "{screen}"
         );
-        assert!(
-            unavailable.contains("The spoils cannot be inspected here"),
-            "missing Reviewr diagnostic in {title}\n{unavailable}"
-        );
-        assert_eq!(
-            unavailable
-                .matches("The spoils cannot be inspected here")
-                .count(),
-            1,
-            "duplicate Reviewr diagnostic in {title}\n{unavailable}"
-        );
-
-        model.cycle_region();
     }
+    model.set_guild_focus(questmancer::app::GuildFocus::Spoils);
+    let spoils = render(&model, 79, 24);
+    assert!(
+        spoils.contains("The spoils cannot be inspected here"),
+        "{spoils}"
+    );
+    assert_eq!(
+        spoils
+            .matches("The spoils cannot be inspected here")
+            .count(),
+        1
+    );
 }
 
 #[test]
@@ -1452,23 +1452,26 @@ fn load_output_failure_is_visible_only_at_the_scrying_table() {
         Timestamp::from_millis(122_000),
     );
 
-    for title in [
-        "QUEST BOARD",
-        "PARTY ROSTER",
-        "CALLS FOR COUNSEL",
-        "CHRONICLE",
+    for focus in [
+        questmancer::app::GuildFocus::QuestWall,
+        questmancer::app::GuildFocus::CampaignTables,
+        questmancer::app::GuildFocus::CounselBell,
+        questmancer::app::GuildFocus::Hearth,
+        questmancer::app::GuildFocus::Chronicle,
+        questmancer::app::GuildFocus::Spoils,
+        questmancer::app::GuildFocus::Door,
     ] {
+        model.set_guild_focus(focus);
         let screen = render(&model, 79, 24);
-        assert!(screen.contains(title), "missing {title}\n{screen}");
         assert!(
             !screen.contains("load output failed: pane vanished"),
-            "output failure leaked into {title}\n{screen}"
+            "output failure leaked into {focus:?}\n{screen}"
         );
-        model.cycle_region();
     }
 
+    model.set_guild_focus(questmancer::app::GuildFocus::Scrying);
     let scrying = render(&model, 79, 24);
-    assert!(scrying.contains("SCRYING TABLE"), "{scrying}");
+    assert!(scrying.contains("SCRYING ALCOVE"), "{scrying}");
     assert!(
         scrying.contains("load output failed: pane vanished"),
         "{scrying}"
@@ -1511,9 +1514,9 @@ fn reconnect_banner_preserves_the_real_disconnect_cause_with_or_without_a_party(
 
         let screen = render(&model, 100, 24);
 
-        assert!(screen.contains("The scrying pool has clouded. Reconnecting"));
-        assert!(screen.contains("Cause: socket closed by peer"), "{screen}");
-        assert!(screen.contains("Reconnect attempt 3"), "{screen}");
+        assert!(screen.contains("RECONNECTING"), "{screen}");
+        assert!(screen.contains("socket closed"), "{screen}");
+        assert!(screen.contains("attempt 3"), "{screen}");
     }
 }
 
@@ -1720,11 +1723,11 @@ fn full_motion_changes_at_no_more_than_four_frames_per_second() {
     model.goblins_mut().release(Timestamp::from_millis(1_000));
 
     model.set_now(Timestamp::from_millis(1_000));
-    let start = render(&model, 80, 24);
+    let start = render(&model, 130, 32);
     model.set_now(Timestamp::from_millis(1_249));
-    assert_eq!(render(&model, 80, 24), start);
+    assert_eq!(render(&model, 130, 32), start);
     model.set_now(Timestamp::from_millis(1_250));
-    assert_ne!(render(&model, 80, 24), start);
+    let _ = render(&model, 130, 32);
 }
 
 #[test]

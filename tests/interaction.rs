@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use questmancer::{
-    app::{Modal, Model, Region, RuntimeSettings, View},
+    app::{GuildFocus, Modal, Model, RuntimeSettings, View},
     command::AgentCommand,
     domain::{
         AdventurerPersona, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey,
@@ -100,7 +100,11 @@ fn help_opens_toggles_and_blocks_normal_model_actions() {
     ] {
         let blocked = reduce_action(&mut model, action);
         assert_eq!(model.view(), View::Guild, "help leaked {action:?}");
-        assert_eq!(model.region(), Region::QuestBoard, "help leaked {action:?}");
+        assert_eq!(
+            model.guild_focus(),
+            GuildFocus::QuestWall,
+            "help leaked {action:?}"
+        );
         assert_eq!(
             model.selected_agent_key(),
             selected.as_ref(),
@@ -167,19 +171,39 @@ fn unchanged_idle_room_emits_no_output_load_or_persistence_effects() {
 }
 
 #[test]
-fn region_cycle_is_deterministic_and_wraps() {
+fn narrow_landmark_cycle_is_deterministic_and_wraps_without_effects() {
     let mut model = Model::new(View::Guild);
 
     for expected in [
-        Region::Party,
-        Region::Summons,
-        Region::Chronicle,
-        Region::Adventurer,
-        Region::QuestBoard,
+        GuildFocus::CampaignTables,
+        GuildFocus::CounselBell,
+        GuildFocus::Hearth,
+        GuildFocus::Chronicle,
+        GuildFocus::Scrying,
+        GuildFocus::Spoils,
+        GuildFocus::Door,
+        GuildFocus::QuestWall,
     ] {
         let reduction = reduce_action(&mut model, Action::CycleRegion);
-        assert_eq!(model.region(), expected);
+        assert_eq!(model.guild_focus(), expected);
         assert_eq!(reduction.control, ControlFlow::Continue(()));
+        assert!(reduction.commands.is_empty());
+        assert!(reduction.persistence.is_empty());
+    }
+}
+
+#[test]
+fn guild_and_delve_switching_preserves_selection_and_landmark_focus() {
+    let mut model = live_model_with_two_agents();
+    let _ = reduce_action(&mut model, Action::Next);
+    model.set_guild_focus(GuildFocus::Scrying);
+    let selected = model.selected_agent_key().cloned();
+
+    for view in [View::Delve, View::Guild] {
+        let reduction = reduce_action(&mut model, Action::Switch(view));
+        assert_eq!(model.view(), view);
+        assert_eq!(model.selected_agent_key(), selected.as_ref());
+        assert_eq!(model.guild_focus(), GuildFocus::Scrying);
         assert!(reduction.commands.is_empty());
     }
 }

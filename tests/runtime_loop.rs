@@ -1,7 +1,8 @@
 use futures_util::FutureExt;
 use questmancer::{
     app::{
-        ConnectionState, DisplayPreferences, Model, Motion, Notice, Region, RuntimeSettings, View,
+        ConnectionState, DisplayPreferences, GuildFocus, Model, Motion, Notice, RuntimeSettings,
+        View,
     },
     command::{AgentCommand, CommandResult},
     domain::{
@@ -792,12 +793,16 @@ async fn static_motion_schedules_only_rendered_outbreak_terminal_boundaries() {
 #[tokio::test(start_paused = true)]
 async fn guild_outbreak_scheduling_requires_an_exact_rendered_effect() {
     let invisible = [
-        (Rect::new(0, 0, 3, 2), Motion::Full, Region::QuestBoard),
-        (Rect::new(0, 0, 100, 24), Motion::None, Region::QuestBoard),
-        (Rect::new(0, 0, 100, 3), Motion::Full, Region::QuestBoard),
-        (Rect::new(0, 0, 79, 24), Motion::None, Region::Party),
+        (Rect::new(0, 0, 3, 2), Motion::Full, GuildFocus::QuestWall),
+        (Rect::new(0, 0, 79, 24), Motion::None, GuildFocus::QuestWall),
+        (Rect::new(0, 0, 100, 3), Motion::Full, GuildFocus::QuestWall),
+        (
+            Rect::new(0, 0, 79, 24),
+            Motion::None,
+            GuildFocus::CampaignTables,
+        ),
     ];
-    for (area, motion, region) in invisible {
+    for (area, motion, focus) in invisible {
         let clock = RuntimeClock::new(Timestamp::from_millis(0));
         let mut model = connected_model_with_presence(Presence::Working);
         model.set_preferences(DisplayPreferences {
@@ -808,12 +813,12 @@ async fn guild_outbreak_scheduling_requires_an_exact_rendered_effect() {
             show_elapsed_time: false,
             ..RuntimeSettings::default()
         });
-        model.set_region(region);
+        model.set_guild_focus(focus);
         model.goblins_mut().release(Timestamp::from_millis(0));
         let projection = render_projection(&model, area);
         assert!(
             !projection.guild_goblin_effect_visible(),
-            "{area:?} {motion:?} {region:?}"
+            "{area:?} {motion:?} {focus:?}"
         );
 
         let mut scheduler = AnimationScheduler::new();
@@ -821,7 +826,7 @@ async fn guild_outbreak_scheduling_requires_an_exact_rendered_effect() {
         tokio::time::advance(std::time::Duration::from_secs(86_400)).await;
         assert!(
             scheduler.wait().now_or_never().is_none(),
-            "{area:?} {motion:?} {region:?}"
+            "{area:?} {motion:?} {focus:?}"
         );
     }
 }
@@ -870,7 +875,7 @@ async fn help_overlay_removes_hidden_goblin_effects_from_the_scheduler_projectio
     let area = Rect::new(0, 0, 40, 10);
     let clock = RuntimeClock::new(Timestamp::from_millis(0));
     let mut model = connected_model_with_presence(Presence::Working);
-    model.set_region(Region::Chronicle);
+    model.set_guild_focus(GuildFocus::Chronicle);
     model.set_preferences(DisplayPreferences {
         motion: Motion::None,
         ..DisplayPreferences::default()

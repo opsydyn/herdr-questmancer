@@ -33,7 +33,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             ControlFlow::Continue(())
         }
         Action::CycleRegion => {
-            model.cycle_region();
+            model.cycle_guild_focus();
             ControlFlow::Continue(())
         }
         Action::First => {

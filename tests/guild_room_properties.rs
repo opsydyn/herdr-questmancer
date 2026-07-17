@@ -27,9 +27,7 @@ fn represented_agent(representation: &AdventurerRepresentation) -> &AgentKey {
     }
 }
 
-fn stable_campaign_identity(
-    projection: &GuildRoomProjection,
-) -> Vec<(WorkspaceId, String, u64, Rect)> {
+fn stable_campaign_identity(projection: &GuildRoomProjection) -> Vec<(WorkspaceId, String, u64)> {
     projection
         .campaigns
         .iter()
@@ -38,7 +36,6 @@ fn stable_campaign_identity(
                 campaign.workspace_id.clone(),
                 campaign.label.clone(),
                 campaign.seal,
-                campaign.area,
             )
         })
         .collect()

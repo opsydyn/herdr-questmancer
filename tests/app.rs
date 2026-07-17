@@ -1,5 +1,5 @@
 use questmancer::{
-    app::{ConnectionState, Modal, Model, Notice, Region, View},
+    app::{ConnectionState, GuildFocus, Modal, Model, Notice, View},
     domain::{AgentKey, DomainState, PaneId, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
 };
@@ -92,14 +92,14 @@ fn selection_movement_clamps_at_the_boundaries() {
 }
 
 #[test]
-fn region_and_counsel_modal_are_explicit_app_state() {
+fn guild_focus_and_counsel_modal_are_explicit_app_state() {
     let mut model = Model::new(View::Guild);
-    model.set_region(Region::Summons);
+    model.set_guild_focus(GuildFocus::CounselBell);
     model.open_counsel();
     model.push_counsel_character('h');
     model.push_counsel_character('i');
 
-    assert_eq!(model.region(), Region::Summons);
+    assert_eq!(model.guild_focus(), GuildFocus::CounselBell);
     assert_eq!(model.modal(), &Modal::Counsel { draft: "hi".into() });
     assert_eq!(model.take_counsel(), Some("hi".into()));
     assert_eq!(model.modal(), &Modal::None);

@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use ratatui::layout::{Constraint, Layout, Rect};
 
 use crate::{
-    app::Model,
+    app::{GuildFocus, Model},
     domain::{Agent, AgentKey, Campaign, GuildAttention, GuildSummons, Presence, WorkspaceId},
 };
 
@@ -62,6 +62,8 @@ pub struct ProjectedCampaignTable {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GuildRoomProjection {
     pub mode: GuildRoomMode,
+    pub focused: GuildFocus,
+    pub breadcrumb: Option<String>,
     pub landmarks: Vec<ProjectedLandmark>,
     pub campaigns: Vec<ProjectedCampaignTable>,
     pub adventurers: Vec<AdventurerRepresentation>,
@@ -70,6 +72,7 @@ pub struct GuildRoomProjection {
 #[must_use]
 pub fn project(model: &Model, area: Rect) -> GuildRoomProjection {
     let mode = mode_for(area);
+    let focused = model.guild_focus();
     let illuminated_campaigns = model
         .domain()
         .agents
@@ -77,6 +80,83 @@ pub fn project(model: &Model, area: Rect) -> GuildRoomProjection {
         .filter(|agent| agent.focused)
         .map(|agent| &agent.workspace_id)
         .collect::<BTreeSet<_>>();
+    let selected_workspace = model.selected_agent().map(|agent| &agent.workspace_id);
+    let selected_index = model
+        .domain()
+        .campaigns
+        .keys()
+        .position(|workspace_id| Some(workspace_id) == selected_workspace)
+        .unwrap_or(0);
+    let geometry = geometry_for(
+        mode,
+        focused,
+        area,
+        model.domain().campaigns.len(),
+        selected_index,
+    );
+    let landmarks = geometry
+        .landmarks
+        .into_iter()
+        .map(|(landmark, area)| ProjectedLandmark {
+            illuminated: landmark == GuildLandmark::Scrying && !illuminated_campaigns.is_empty(),
+            landmark,
+            area,
+        })
+        .collect();
+    let campaigns = model
+        .domain()
+        .campaigns
+        .values()
+        .zip(geometry.campaigns)
+        .map(|(campaign, campaign_area)| ProjectedCampaignTable {
+            workspace_id: campaign.workspace_id.clone(),
+            label: campaign_label(campaign),
+            seal: campaign_seal(&campaign.workspace_id),
+            area: campaign_area,
+            selected: selected_workspace == Some(&campaign.workspace_id),
+            illuminated: illuminated_campaigns.contains(&campaign.workspace_id),
+        })
+        .collect();
+    let adventurers = model
+        .domain()
+        .agents
+        .values()
+        .filter_map(representation_for)
+        .collect();
+
+    GuildRoomProjection {
+        mode,
+        focused,
+        breadcrumb: geometry.breadcrumb,
+        landmarks,
+        campaigns,
+        adventurers,
+    }
+}
+
+struct RoomGeometry {
+    landmarks: Vec<(GuildLandmark, Rect)>,
+    campaigns: Vec<Rect>,
+    breadcrumb: Option<String>,
+}
+
+fn geometry_for(
+    mode: GuildRoomMode,
+    focus: GuildFocus,
+    area: Rect,
+    campaign_count: usize,
+    selected_index: usize,
+) -> RoomGeometry {
+    match mode {
+        GuildRoomMode::WholeRoom => whole_room_geometry(area, campaign_count),
+        GuildRoomMode::CroppedRoom => cropped_room_geometry(area, campaign_count, selected_index),
+        GuildRoomMode::LandmarkCamera => {
+            landmark_camera_geometry(area, campaign_count, selected_index, focus)
+        }
+    }
+}
+
+fn whole_room_geometry(area: Rect, campaign_count: usize) -> RoomGeometry {
     let [upper_room, central_room, lower_room] = Layout::vertical([
         Constraint::Ratio(1, 4),
         Constraint::Ratio(1, 2),
@@ -97,74 +177,166 @@ pub fn project(model: &Model, area: Rect) -> GuildRoomProjection {
     .areas(central_room);
     let [hearth, spoils] =
         Layout::horizontal([Constraint::Ratio(3, 4), Constraint::Ratio(1, 4)]).areas(lower_room);
+    RoomGeometry {
+        landmarks: landmark_areas([
+            (GuildLandmark::Door, door),
+            (GuildLandmark::QuestWall, quest_wall),
+            (GuildLandmark::CounselBell, counsel_bell),
+            (GuildLandmark::Hearth, hearth),
+            (GuildLandmark::Chronicle, chronicle),
+            (GuildLandmark::Scrying, scrying),
+            (GuildLandmark::Spoils, spoils),
+        ]),
+        campaigns: campaign_areas(campaign_room, campaign_count),
+        breadcrumb: None,
+    }
+}
 
-    let landmarks = vec![
-        ProjectedLandmark {
-            landmark: GuildLandmark::Door,
-            area: door,
-            illuminated: false,
-        },
-        ProjectedLandmark {
-            landmark: GuildLandmark::QuestWall,
-            area: quest_wall,
-            illuminated: false,
-        },
-        ProjectedLandmark {
-            landmark: GuildLandmark::CounselBell,
-            area: counsel_bell,
-            illuminated: false,
-        },
-        ProjectedLandmark {
-            landmark: GuildLandmark::Hearth,
-            area: hearth,
-            illuminated: false,
-        },
-        ProjectedLandmark {
-            landmark: GuildLandmark::Chronicle,
-            area: chronicle,
-            illuminated: false,
-        },
-        ProjectedLandmark {
-            landmark: GuildLandmark::Scrying,
-            area: scrying,
-            illuminated: !illuminated_campaigns.is_empty(),
-        },
-        ProjectedLandmark {
-            landmark: GuildLandmark::Spoils,
-            area: spoils,
-            illuminated: false,
-        },
-    ];
+fn cropped_room_geometry(area: Rect, campaign_count: usize, selected_index: usize) -> RoomGeometry {
+    let room = inset(area, 1);
+    let [_, room] = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(room);
+    let [upper, middle, lower] = Layout::vertical([
+        Constraint::Ratio(1, 4),
+        Constraint::Ratio(1, 2),
+        Constraint::Ratio(1, 4),
+    ])
+    .areas(room);
+    let [door, quest_wall] =
+        Layout::horizontal([Constraint::Ratio(1, 5), Constraint::Ratio(4, 5)]).areas(upper);
+    let [campaign_zone, scrying] =
+        Layout::horizontal([Constraint::Ratio(3, 4), Constraint::Ratio(1, 4)]).areas(middle);
+    let [selected_table, markers] =
+        Layout::vertical([Constraint::Ratio(3, 4), Constraint::Ratio(1, 4)]).areas(campaign_zone);
+    let [hearth, counsel, chronicle, spoils] = Layout::horizontal([
+        Constraint::Ratio(1, 4),
+        Constraint::Ratio(1, 4),
+        Constraint::Ratio(1, 4),
+        Constraint::Min(21),
+    ])
+    .areas(lower);
+    RoomGeometry {
+        landmarks: landmark_areas([
+            (GuildLandmark::Door, door),
+            (GuildLandmark::QuestWall, quest_wall),
+            (GuildLandmark::CounselBell, counsel),
+            (GuildLandmark::Hearth, hearth),
+            (GuildLandmark::Chronicle, chronicle),
+            (GuildLandmark::Scrying, scrying),
+            (GuildLandmark::Spoils, spoils),
+        ]),
+        campaigns: selected_campaign_areas(selected_table, markers, campaign_count, selected_index),
+        breadcrumb: None,
+    }
+}
 
-    let selected_workspace = model.selected_agent().map(|agent| &agent.workspace_id);
-    let campaign_areas = campaign_areas(campaign_room, model.domain().campaigns.len());
-    let campaigns = model
-        .domain()
-        .campaigns
-        .values()
-        .zip(campaign_areas)
-        .map(|(campaign, campaign_area)| ProjectedCampaignTable {
-            workspace_id: campaign.workspace_id.clone(),
-            label: campaign_label(campaign),
-            seal: campaign_seal(&campaign.workspace_id),
-            area: campaign_area,
-            selected: selected_workspace == Some(&campaign.workspace_id),
-            illuminated: illuminated_campaigns.contains(&campaign.workspace_id),
+fn landmark_camera_geometry(
+    area: Rect,
+    campaign_count: usize,
+    selected_index: usize,
+    focus: GuildFocus,
+) -> RoomGeometry {
+    let room = inset(area, 1);
+    let [_, camera] = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(room);
+    let hidden = Rect::new(camera.x, camera.y, 0, 0);
+    let focused_landmark = focus_landmark(focus);
+    let landmarks = all_landmarks()
+        .into_iter()
+        .map(|landmark| {
+            let landmark_area = if Some(&landmark) == focused_landmark.as_ref() {
+                camera
+            } else {
+                hidden
+            };
+            (landmark, landmark_area)
         })
         .collect();
-    let adventurers = model
-        .domain()
-        .agents
-        .values()
-        .filter_map(representation_for)
+    let campaigns = (0..campaign_count)
+        .map(|index| {
+            if focus == GuildFocus::CampaignTables && index == selected_index {
+                camera
+            } else {
+                hidden
+            }
+        })
         .collect();
-
-    GuildRoomProjection {
-        mode,
+    RoomGeometry {
         landmarks,
         campaigns,
-        adventurers,
+        breadcrumb: Some(format!("GREAT ROOM / {}", focus_label(focus))),
     }
+}
+
+fn landmark_areas<const N: usize>(areas: [(GuildLandmark, Rect); N]) -> Vec<(GuildLandmark, Rect)> {
+    areas.into_iter().collect()
+}
+
+fn all_landmarks() -> [GuildLandmark; 7] {
+    [
+        GuildLandmark::Door,
+        GuildLandmark::QuestWall,
+        GuildLandmark::CounselBell,
+        GuildLandmark::Hearth,
+        GuildLandmark::Chronicle,
+        GuildLandmark::Scrying,
+        GuildLandmark::Spoils,
+    ]
+}
+
+fn focus_landmark(focus: GuildFocus) -> Option<GuildLandmark> {
+    match focus {
+        GuildFocus::QuestWall => Some(GuildLandmark::QuestWall),
+        GuildFocus::CampaignTables => None,
+        GuildFocus::CounselBell => Some(GuildLandmark::CounselBell),
+        GuildFocus::Hearth => Some(GuildLandmark::Hearth),
+        GuildFocus::Chronicle => Some(GuildLandmark::Chronicle),
+        GuildFocus::Scrying => Some(GuildLandmark::Scrying),
+        GuildFocus::Spoils => Some(GuildLandmark::Spoils),
+        GuildFocus::Door => Some(GuildLandmark::Door),
+    }
+}
+
+const fn focus_label(focus: GuildFocus) -> &'static str {
+    match focus {
+        GuildFocus::QuestWall => "QUEST WALL",
+        GuildFocus::CampaignTables => "CAMPAIGN TABLES",
+        GuildFocus::CounselBell => "COUNSEL BELL",
+        GuildFocus::Hearth => "HEARTH",
+        GuildFocus::Chronicle => "CHRONICLE",
+        GuildFocus::Scrying => "SCRYING",
+        GuildFocus::Spoils => "SPOILS",
+        GuildFocus::Door => "DOOR",
+    }
+}
+
+fn inset(area: Rect, margin: u16) -> Rect {
+    Rect::new(
+        area.x.saturating_add(margin).min(area.right()),
+        area.y.saturating_add(margin).min(area.bottom()),
+        area.width.saturating_sub(margin.saturating_mul(2)),
+        area.height.saturating_sub(margin.saturating_mul(2)),
+    )
+}
+
+fn selected_campaign_areas(
+    selected_area: Rect,
+    marker_area: Rect,
+    count: usize,
+    selected_index: usize,
+) -> Vec<Rect> {
+    if count == 0 {
+        return Vec::new();
+    }
+    let marker_count = count.saturating_sub(1);
+    let mut markers = campaign_areas(marker_area, marker_count).into_iter();
+    (0..count)
+        .map(|index| {
+            if index == selected_index.min(count.saturating_sub(1)) {
+                selected_area
+            } else {
+                markers.next().unwrap_or_default()
+            }
+        })
+        .collect()
 }
 
 fn representation_for(agent: &Agent) -> Option<AdventurerRepresentation> {

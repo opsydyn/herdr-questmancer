@@ -20,7 +20,7 @@ use ratatui::{
 use std::collections::BTreeSet;
 
 use crate::{
-    app::{CharacterSet, Modal, Model, Region, View},
+    app::{CharacterSet, GuildFocus, Modal, Model, View},
     domain::{AgentKey, WorkspaceId},
 };
 
@@ -203,23 +203,31 @@ fn project_guild(model: &Model, area: Rect, room_area: Rect, projection: &mut Re
         ]);
         GuildPresentation::Medium
     } else {
-        match model.region() {
-            Region::QuestBoard => {
+        match model.guild_focus() {
+            GuildFocus::QuestWall | GuildFocus::Door => {
                 projection.guild_regions.insert(GuildRegion::QuestBoard);
             }
-            Region::Party => {
+            GuildFocus::CampaignTables => {
                 projection.guild_regions.insert(GuildRegion::Party);
             }
-            Region::Summons => {
+            GuildFocus::CounselBell => {
                 projection.guild_regions.insert(GuildRegion::Summons);
             }
-            Region::Chronicle => {
+            GuildFocus::Hearth => {
+                projection
+                    .guild_regions
+                    .insert(GuildRegion::AdventurerProfile);
+            }
+            GuildFocus::Chronicle => {
                 projection.guild_regions.insert(GuildRegion::Chronicle);
             }
-            Region::Adventurer => {
+            GuildFocus::Scrying => {
                 projection
                     .guild_regions
                     .extend([GuildRegion::AdventurerProfile, GuildRegion::Scrying]);
+            }
+            GuildFocus::Spoils => {
+                projection.guild_regions.insert(GuildRegion::Spoils);
             }
         }
         GuildPresentation::Focused
