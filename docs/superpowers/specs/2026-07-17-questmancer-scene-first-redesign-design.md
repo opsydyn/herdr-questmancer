@@ -1,6 +1,6 @@
 # Questmancer scene-first redesign
 
-**Status:** Draft for written review on 2026-07-17
+**Status:** Approved on 2026-07-17
 
 **Product direction:** Approved
 
