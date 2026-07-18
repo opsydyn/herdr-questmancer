@@ -314,7 +314,7 @@ fn focus_changes_only_emphasis_and_crop_not_station_or_identity() {
     assert_eq!(
         focused_plan.camera,
         SceneCamera::Focused {
-            anchor: CameraAnchor::DelveParty(WorkspaceId::new("workspace-working")),
+            anchor: CameraAnchor::DelveParty(AgentKey::new("working")),
         }
     );
 }

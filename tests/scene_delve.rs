@@ -17,7 +17,8 @@ use questmancer::{
         },
         pixel::{PixelRect, PixelSize, Rgb, RgbBuffer},
         render::delve::{
-            ARCHITECTURE_REGIONS, DOORWAYS, HEIGHT, WIDTH, is_walkable, station_region,
+            ARCHITECTURE_REGIONS, ArchitectureBackground, DOORWAYS, DelveArchitectureMask, HEIGHT,
+            WIDTH, WallOwner, architecture_mask, station_region,
         },
         render_scene_for_story,
         snapshot::{SceneAgent, SceneCampaign, SceneConnection, SceneSnapshot},
@@ -101,14 +102,14 @@ fn contains_colour(buffer: &RgbBuffer, rect: PixelRect, colour: Rgb) -> bool {
         .any(|y| (rect.x..rect.x + i32::from(rect.width)).any(|x| buffer.get(x, y) == Some(colour)))
 }
 
-fn reachable_floor() -> HashSet<(i32, i32)> {
+fn reachable_floor(mask: &DelveArchitectureMask) -> HashSet<(i32, i32)> {
     let start = (DOORWAYS[0].point.x, DOORWAYS[0].point.y);
-    assert!(is_walkable(start.0, start.1));
+    assert!(mask.is_walkable(start.0, start.1));
     let mut queue = VecDeque::from([start]);
     let mut visited = HashSet::from([start]);
     while let Some((x, y)) = queue.pop_front() {
         for (next_x, next_y) in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)] {
-            if is_walkable(next_x, next_y) && visited.insert((next_x, next_y)) {
+            if mask.is_walkable(next_x, next_y) && visited.insert((next_x, next_y)) {
                 queue.push_back((next_x, next_y));
             }
         }
@@ -164,10 +165,12 @@ fn delve_has_the_nineteen_original_indexed_environment_families() {
 #[test]
 fn every_authored_floor_pixel_doorway_and_named_region_is_connected() {
     assert_eq!((WIDTH, HEIGHT), (160, 90));
+    let mask = architecture_mask(&mixed_snapshot());
+    let mask_ref = &mask;
     let walkable = (0..HEIGHT)
-        .flat_map(|y| (0..WIDTH).filter_map(move |x| is_walkable(x, y).then_some((x, y))))
+        .flat_map(|y| (0..WIDTH).filter_map(move |x| mask_ref.is_walkable(x, y).then_some((x, y))))
         .collect::<HashSet<_>>();
-    let reachable = reachable_floor();
+    let reachable = reachable_floor(&mask);
     assert_eq!(
         reachable, walkable,
         "the authored dungeon floor must be one graph"
@@ -197,7 +200,28 @@ fn every_authored_floor_pixel_doorway_and_named_region_is_connected() {
             "{} has no connected floor",
             region.name
         );
+        assert!(
+            (region.bounds.y..region.bounds.y + i32::from(region.bounds.height)).all(|y| {
+                (region.bounds.x..region.bounds.x + i32::from(region.bounds.width)).all(|x| {
+                    mask.background_at(x, y) == Some(ArchitectureBackground::ConnectedDungeon)
+                })
+            }),
+            "{} acquired an independent chamber background",
+            region.name
+        );
     }
+
+    let unique_walls = mask.wall_segments().iter().copied().collect::<HashSet<_>>();
+    assert_eq!(
+        unique_walls.len(),
+        mask.wall_segments().len(),
+        "shared wall segments must have one semantic owner"
+    );
+    assert!(
+        mask.wall_segments()
+            .iter()
+            .all(|wall| wall.owner == WallOwner::SharedDungeonShell)
+    );
 }
 
 #[test]
@@ -273,8 +297,8 @@ fn unknown_dimming_preserves_transparent_sprite_pixels() {
     let without_unknown = render(&without_unknown_snapshot, WorldScene::Delve, VIEWPORT);
 
     assert_eq!(
-        with_unknown.get(24, 15),
-        without_unknown.get(24, 15),
+        with_unknown.get(11, 7),
+        without_unknown.get(11, 7),
         "transparent corners of the Unknown sprite must leave dungeon pixels intact"
     );
 }
@@ -288,7 +312,7 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "78958dc4adb346a389365d1009b6be288e46abf309ad3fd465fd1e842af1c5cf"
+        "b4aefb7794863ca432d1001458ebcbede156047f5715260f004a49beb2bce3d4"
     );
 
     let non_clear = first
@@ -327,6 +351,56 @@ fn minimum_viewport_is_a_camera_crop_of_the_same_canonical_dungeon() {
 
     assert!(is_crop_of(&crop, &full));
     assert!(crop.pixels().iter().all(|pixel| *pixel != VOID));
+}
+
+#[test]
+fn narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible() {
+    let mut unknown = agent(
+        "a-unknown",
+        "shared-vault",
+        Presence::Unknown,
+        AccentTone::Violet,
+    );
+    unknown.focused = true;
+    let blocked = agent(
+        "z-blocked",
+        "shared-vault",
+        Presence::Blocked,
+        AccentTone::Magenta,
+    );
+    let snapshot = SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns: vec![campaign("shared-vault", 0x47a1)],
+        agents: vec![unknown, blocked.clone()],
+        motion: Motion::None,
+        now: Timestamp::from_millis(10_000),
+    };
+    let full = render(&snapshot, WorldScene::Delve, VIEWPORT);
+    let crop = render(&snapshot, WorldScene::Delve, PixelSize::new(80, 48));
+    let (offset_x, offset_y) = crop_offset(&crop, &full).expect("narrow Delve is a world crop");
+    let visible_world = PixelRect::new(offset_x, offset_y, 80, 48);
+    let gate_asset = PixelRect::new(127, 28, 16, 10);
+
+    assert!(rects_intersect(visible_world, gate_asset));
+    assert!(rects_intersect(
+        visible_world,
+        station_region(
+            &TruthfulStation::DelveGate(blocked.workspace_id.clone()),
+            ScenePose::SeekingCounsel,
+        )
+    ));
+    assert!(contains_colour(
+        &crop,
+        PixelRect::new(0, 0, 80, 48),
+        adventurer_palette(
+            blocked.persona.appearance.skin_tone,
+            blocked.persona.appearance.hair_tone,
+            blocked.persona.appearance.garb,
+            blocked.persona.class,
+            AccentTone::Magenta,
+        )
+        .accent,
+    ));
 }
 
 #[test]
@@ -378,16 +452,29 @@ fn static_delve_has_no_cadence_and_active_animation_never_exceeds_eight_fps() {
 }
 
 fn is_crop_of(crop: &RgbBuffer, full: &RgbBuffer) -> bool {
+    crop_offset(crop, full).is_some()
+}
+
+fn crop_offset(crop: &RgbBuffer, full: &RgbBuffer) -> Option<(i32, i32)> {
     let max_x = i32::from(full.size().width.saturating_sub(crop.size().width));
     let max_y = i32::from(full.size().height.saturating_sub(crop.size().height));
-    (0..=max_y).any(|offset_y| {
-        (0..=max_x).any(|offset_x| {
-            (0..i32::from(crop.size().height)).all(|y| {
-                (0..i32::from(crop.size().width))
-                    .all(|x| crop.get(x, y) == full.get(x + offset_x, y + offset_y))
-            })
+    (0..=max_y).find_map(|offset_y| {
+        (0..=max_x).find_map(|offset_x| {
+            (0..i32::from(crop.size().height))
+                .all(|y| {
+                    (0..i32::from(crop.size().width))
+                        .all(|x| crop.get(x, y) == full.get(x + offset_x, y + offset_y))
+                })
+                .then_some((offset_x, offset_y))
         })
     })
+}
+
+fn rects_intersect(left: PixelRect, right: PixelRect) -> bool {
+    left.x < right.x + i32::from(right.width)
+        && right.x < left.x + i32::from(left.width)
+        && left.y < right.y + i32::from(right.height)
+        && right.y < left.y + i32::from(left.height)
 }
 
 fn rgb_hash(buffer: &RgbBuffer) -> blake3::Hash {

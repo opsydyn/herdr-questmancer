@@ -28,7 +28,7 @@ pub enum CameraAnchor {
     CounselBell,
     Hearth,
     Spoils,
-    DelveParty(WorkspaceId),
+    DelveParty(AgentKey),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -264,7 +264,7 @@ fn camera_for(
 
 fn anchor_for(agent: &SceneAgent, world: WorldScene) -> CameraAnchor {
     if world == WorldScene::Delve {
-        return CameraAnchor::DelveParty(agent.workspace_id.clone());
+        return CameraAnchor::DelveParty(agent.key.clone());
     }
     match agent.presence {
         Presence::Working | Presence::Unknown => {
