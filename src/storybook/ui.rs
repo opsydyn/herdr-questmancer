@@ -14,7 +14,8 @@ use crate::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Model, Motion},
     scene::{
         self,
-        pixel::{PixelSize, Rgb, RgbBuffer},
+        pixel::{PixelPoint, PixelSize, Rgb, RgbBuffer},
+        sprite,
     },
     ui::{
         pixel,
@@ -458,6 +459,22 @@ fn render_atlas_tile(frame: &mut Frame<'_>, area: Rect, tile: &AtlasTile) {
         } => {
             let pixels = pixel::pack(canvas, palette, *background);
             frame.render_widget(Paragraph::new(pixels), content_area);
+        }
+        AtlasContent::RgbSprite {
+            frame: sprite_frame,
+            background,
+        } => {
+            let logical_size =
+                PixelSize::new(content_area.width, content_area.height.saturating_mul(2));
+            let mut pixels =
+                RgbBuffer::filled(logical_size.width, logical_size.height, *background);
+            let sprite_size = sprite_frame.size();
+            let origin = PixelPoint::new(
+                i32::from(logical_size.width.saturating_sub(sprite_size.width) / 2),
+                i32::from(logical_size.height.saturating_sub(sprite_size.height) / 2),
+            );
+            sprite::blit(sprite_frame, origin, &mut pixels);
+            flush_rgb(frame.buffer_mut(), content_area, &pixels, *background);
         }
         AtlasContent::AdventurerCard {
             agent,

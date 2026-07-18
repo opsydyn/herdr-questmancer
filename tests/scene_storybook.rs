@@ -18,13 +18,13 @@ use questmancer::{
         pixel::{PixelSize, Rgb, RgbBuffer},
         render_scene, render_scene_for_story,
         snapshot::{SceneAgent, SceneConnection, SceneSnapshot},
-        stage::{ScenePlan, ScenePose, WorldScene},
+        stage::{ScenePlan, ScenePose, TruthfulStation, WorldScene},
     },
     storybook::{
         AssetId, SceneFirstAsset,
         app::{Action, StorybookApp, reduce},
         catalogue::catalogue,
-        fixtures::{StoryContext, StoryFixture, guild_fixture},
+        fixtures::{AtlasContent, StoryContext, StoryFixture, guild_fixture},
         ui as storybook_ui,
     },
 };
@@ -218,21 +218,28 @@ fn render_scene_reuses_the_target_and_paints_a_deterministic_continuous_room() {
 
 #[test]
 fn story_override_reprojects_truthful_stations_for_the_requested_world() {
-    let value = snapshot();
-    let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
-    let automatic = render_scene_for_story(&value, None, PixelSize::new(120, 72), &mut target);
+    let mut value = snapshot();
+    value.agents.truncate(1);
+    let viewport = PixelSize::new(120, 72);
+    let automatic_plan = ScenePlan::project(&value, viewport);
+    assert!(matches!(
+        automatic_plan.actors[0].station,
+        TruthfulStation::DelveActive(_)
+    ));
+
+    let mut automatic_pixels = RgbBuffer::filled(0, 0, Rgb::BLACK);
+    let automatic = render_scene_for_story(&value, None, viewport, &mut automatic_pixels);
+    let mut guild_pixels = RgbBuffer::filled(0, 0, Rgb::BLACK);
     let guild = render_scene_for_story(
         &value,
         Some(WorldScene::GuildHall),
-        PixelSize::new(120, 72),
-        &mut target,
+        viewport,
+        &mut guild_pixels,
     );
     assert_eq!(automatic.world, WorldScene::Delve);
     assert_eq!(guild.world, WorldScene::GuildHall);
-
-    let source = fs::read_to_string("src/scene/mod.rs").unwrap();
-    assert!(source.contains("project_for_world(snapshot, viewport, world)"));
-    assert!(!source.contains("plan.world = world"));
+    assert_ne!(automatic_pixels.pixels(), guild_pixels.pixels());
+    assert_ne!(automatic_pixels.get(37, 50), guild_pixels.get(37, 50));
 }
 
 #[test]
@@ -261,10 +268,15 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             .unwrap();
         let story = &stories[index];
         assert_eq!(story.owns, &[AssetId::SceneFirst(asset)]);
-        assert!(matches!(
-            (story.build)(&StoryContext::fixed()),
-            StoryFixture::PixelScene(_)
-        ));
+        let fixture = (story.build)(&StoryContext::fixed());
+        match asset {
+            SceneFirstAsset::CalibrationRoom => {
+                assert!(matches!(fixture, StoryFixture::PixelScene(_)));
+            }
+            SceneFirstAsset::CompactAdventurers => {
+                assert!(matches!(fixture, StoryFixture::AssetAtlas(_)));
+            }
+        }
 
         let mut app = StorybookApp::new(stories);
         app.select(index, stories);
@@ -284,6 +296,91 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
                 && matches!(cell.bg, Color::Rgb(_, _, _))
         }));
     }
+
+    for asset in SceneFirstAsset::ALL {
+        assert_eq!(
+            stories
+                .iter()
+                .filter(|story| story.owns.contains(&AssetId::SceneFirst(*asset)))
+                .count(),
+            1,
+            "{asset:?} must have exactly one Storybook owner"
+        );
+    }
+}
+
+#[test]
+fn compact_adventurer_atlas_contains_each_authored_frame_exactly_once() {
+    let story = catalogue()
+        .iter()
+        .find(|story| story.id.as_str() == "atlas.compact-scene-adventurers")
+        .unwrap();
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("compact scene adventurers must be an asset atlas");
+    };
+    let expected = [
+        ("Working", ScenePose::Working, 0),
+        ("Seeking counsel", ScenePose::SeekingCounsel, 0),
+        ("Returning with spoils", ScenePose::ReturningWithSpoils, 0),
+        ("Settled", ScenePose::Settled, 0),
+        ("Resting", ScenePose::Resting, 0),
+        ("Unknown", ScenePose::Unknown, 0),
+        ("Working alternate", ScenePose::Working, 1),
+        ("Walking alternate", ScenePose::Working, 2),
+    ];
+    assert_eq!(atlas.tiles.len(), expected.len());
+
+    let persona = AdventurerPersona::for_key(PersonaKey::new("storybook-compact-scene-atlas"));
+    let mut counts = [0_u8; 8];
+    for tile in &atlas.tiles {
+        let AtlasContent::RgbSprite { frame, .. } = &tile.content else {
+            panic!("{} must contain an RGB sprite frame", tile.label);
+        };
+        let matching = expected
+            .iter()
+            .enumerate()
+            .filter(|(_, (label, pose, animation_frame))| {
+                tile.label == *label
+                    && frame
+                        == &compact_adventurer_animation_frame(&persona, *pose, *animation_frame)
+            })
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>();
+        assert_eq!(matching.len(), 1, "unexpected atlas tile {}", tile.label);
+        counts[matching[0]] += 1;
+    }
+    assert_eq!(counts, [1; 8]);
+}
+
+#[test]
+fn compact_adventurer_atlas_is_not_the_calibration_room_fixture_or_render() {
+    let stories = catalogue();
+    let calibration_index = stories
+        .iter()
+        .position(|story| story.id.as_str() == "scenes.rgb-calibration-room")
+        .unwrap();
+    let atlas_index = stories
+        .iter()
+        .position(|story| story.id.as_str() == "atlas.compact-scene-adventurers")
+        .unwrap();
+    let context = StoryContext::fixed();
+    assert_ne!(
+        (stories[calibration_index].build)(&context),
+        (stories[atlas_index].build)(&context)
+    );
+
+    let render = |index| {
+        let mut app = StorybookApp::new(stories);
+        app.select(index, stories);
+        reduce(&mut app, Action::Inspect, stories);
+        let backend = TestBackend::new(120, 37);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal
+            .draw(|frame| storybook_ui::render(frame, &app, stories, &context))
+            .unwrap();
+        terminal.backend().buffer().clone()
+    };
+    assert_ne!(render(calibration_index), render(atlas_index));
 }
 
 #[test]

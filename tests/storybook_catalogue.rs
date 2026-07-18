@@ -811,10 +811,7 @@ fn every_story_uses_its_declared_fixture_bridge() {
             story.id.as_str(),
             "widgets.adventurer-cards" | "widgets.chambers" | "widgets.guild-regions"
         );
-        if matches!(
-            story.id.as_str(),
-            "atlas.compact-scene-adventurers" | "scenes.rgb-calibration-room"
-        ) {
+        if story.id.as_str() == "scenes.rgb-calibration-room" {
             assert!(
                 matches!(fixture, StoryFixture::PixelScene(_)),
                 "{}",

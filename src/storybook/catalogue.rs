@@ -876,7 +876,7 @@ fn widget_atlas_shows(build: StoryBuilder) -> &'static [AssetId] {
                     &render_projection_for(&model, area),
                 ));
             }
-            AtlasContent::Pixel { .. } => {}
+            AtlasContent::Pixel { .. } | AtlasContent::RgbSprite { .. } => {}
         }
     }
     canonical_shows(&[], &shows)
@@ -1098,7 +1098,7 @@ fn rgb_calibration_room(context: &StoryContext) -> StoryFixture {
 }
 
 fn compact_scene_adventurers(context: &StoryContext) -> StoryFixture {
-    StoryFixture::PixelScene(fixtures::compact_adventurers_scene_fixture(context))
+    StoryFixture::AssetAtlas(fixtures::compact_adventurers_atlas_fixture(context))
 }
 
 fn counsel(_: &StoryContext) -> StoryFixture {

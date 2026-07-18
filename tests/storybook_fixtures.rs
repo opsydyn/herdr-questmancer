@@ -9,7 +9,7 @@ use questmancer::{
     scene::{snapshot::SceneSnapshot, stage::WorldScene},
     storybook::fixtures::{
         FIXED_NOW, PixelSceneFixture, StoryContext, calibration_room_scene_fixture,
-        campaign_fixture, campaign_token_fixture, compact_adventurers_scene_fixture,
+        campaign_fixture, campaign_token_fixture, compact_adventurers_atlas_fixture,
         compatibility_fixture, counsel_projection_fixture, delve_fixture, goblin_biscuit_id,
         goblin_chest_id, goblin_hand_id, goblin_scroll_id, great_room_fixture,
         great_room_one_campaign_fixture, great_room_reviewr_unavailable_fixture,
@@ -39,16 +39,15 @@ fn fixtures_are_value_deterministic() {
 }
 
 #[test]
-fn pixel_scene_fixtures_keep_story_overrides_outside_the_snapshot() {
+fn scene_first_fixtures_keep_story_overrides_outside_the_snapshot() {
     let context = StoryContext::fixed();
     let automatic =
         PixelSceneFixture::automatic(SceneSnapshot::from_model(&guild_fixture(&context)));
     assert_eq!(automatic.world_override, None);
     let calibration = calibration_room_scene_fixture(&context);
-    let atlas = compact_adventurers_scene_fixture(&context);
+    let atlas = compact_adventurers_atlas_fixture(&context);
     assert_eq!(calibration.world_override, Some(WorldScene::GuildHall));
-    assert_eq!(atlas.world_override, Some(WorldScene::GuildHall));
-    assert_eq!(calibration.snapshot, atlas.snapshot);
+    assert_eq!(atlas.tiles.len(), 8);
     assert_eq!(calibration.snapshot.agents.len(), 2);
 }
 

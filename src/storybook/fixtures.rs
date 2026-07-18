@@ -9,7 +9,13 @@ use crate::{
         DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp,
         WorkspaceId,
     },
-    scene::{snapshot::SceneSnapshot, stage::WorldScene},
+    scene::{
+        assets::{adventurer::compact_adventurer_animation_frame, palette::VOID},
+        pixel::Rgb,
+        snapshot::SceneSnapshot,
+        sprite::SpriteFrame,
+        stage::{ScenePose, WorldScene},
+    },
     ui::{
         pixel::{Canvas, ColorRole, Palette},
         theatre::TheatreFrame,
@@ -624,6 +630,10 @@ pub enum AtlasContent {
         background: ColorRole,
         packed: ratatui::text::Text<'static>,
     },
+    RgbSprite {
+        frame: SpriteFrame,
+        background: Rgb,
+    },
     AdventurerCard {
         agent: Agent,
         theatre: TheatreFrame,
@@ -696,8 +706,32 @@ pub fn calibration_room_scene_fixture(context: &StoryContext) -> PixelSceneFixtu
     PixelSceneFixture::in_world(compact_scene_snapshot(*context), WorldScene::GuildHall)
 }
 
-pub fn compact_adventurers_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
-    PixelSceneFixture::in_world(compact_scene_snapshot(*context), WorldScene::GuildHall)
+pub fn compact_adventurers_atlas_fixture(_: &StoryContext) -> AssetAtlas {
+    let persona = AdventurerPersona::for_key(PersonaKey::new("storybook-compact-scene-atlas"));
+    let frames = [
+        ("Working", ScenePose::Working, 0),
+        ("Seeking counsel", ScenePose::SeekingCounsel, 0),
+        ("Returning with spoils", ScenePose::ReturningWithSpoils, 0),
+        ("Settled", ScenePose::Settled, 0),
+        ("Resting", ScenePose::Resting, 0),
+        ("Unknown", ScenePose::Unknown, 0),
+        ("Working alternate", ScenePose::Working, 1),
+        ("Walking alternate", ScenePose::Working, 2),
+    ];
+    AssetAtlas {
+        tiles: frames
+            .into_iter()
+            .map(|(label, pose, animation_frame)| AtlasTile {
+                label,
+                preferred_width: 20,
+                preferred_height: 10,
+                content: AtlasContent::RgbSprite {
+                    frame: compact_adventurer_animation_frame(&persona, pose, animation_frame),
+                    background: VOID,
+                },
+            })
+            .collect(),
+    }
 }
 
 fn compact_scene_snapshot(context: StoryContext) -> SceneSnapshot {
