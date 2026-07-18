@@ -10,6 +10,7 @@ pub mod interaction;
 pub mod persistence;
 pub mod runtime;
 pub mod runtime_loop;
+pub mod scene;
 #[cfg(feature = "storybook")]
 pub mod storybook;
 pub mod terminal;

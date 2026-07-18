@@ -9,6 +9,7 @@ pub mod guild_room_projection;
 pub mod input;
 pub mod persona;
 pub mod pixel;
+pub mod scene_adapter;
 pub mod theatre;
 pub mod widgets;
 
