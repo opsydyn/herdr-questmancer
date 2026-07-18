@@ -2,7 +2,7 @@ use std::{collections::HashMap, time::Duration};
 
 use crate::{
     app::Motion,
-    domain::{AgentKey, Timestamp},
+    domain::{AgentKey, Timestamp, WorkspaceId},
     scene::{
         SceneFrame,
         assets::{
@@ -18,8 +18,8 @@ use crate::{
         snapshot::{SceneConnection, SceneSnapshot},
         sprite::blit,
         stage::{
-            ActorPlacement, CameraAnchor, SceneCamera, SceneEffect, ScenePlan, ScenePose,
-            TruthfulStation,
+            ActorPlacement, COMPLETION_THEATRE_MS, CameraAnchor, SceneCamera, SceneEffect,
+            ScenePlan, ScenePose, TruthfulStation,
         },
     },
 };
@@ -37,6 +37,28 @@ const BELL: PixelRect = PixelRect::new(116, 31, 18, 31);
 const HEARTH: PixelRect = PixelRect::new(132, 9, 28, 49);
 const SPOILS: PixelRect = PixelRect::new(111, 64, 49, 26);
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+enum CampaignTable {
+    Left,
+    Right,
+}
+
+impl CampaignTable {
+    const fn focus(self) -> PixelPoint {
+        match self {
+            Self::Left => PixelPoint::new(54, 60),
+            Self::Right => PixelPoint::new(96, 60),
+        }
+    }
+
+    const fn actor_base_x(self) -> i32 {
+        match self {
+            Self::Left => 40,
+            Self::Right => 82,
+        }
+    }
+}
+
 pub fn paint(
     snapshot: &SceneSnapshot,
     plan: &ScenePlan,
@@ -44,7 +66,7 @@ pub fn paint(
     target: &mut RgbBuffer,
 ) -> SceneFrame {
     target.ensure_size(viewport.width, viewport.height, VOID);
-    let origin = room_origin(plan, viewport);
+    let origin = room_origin(snapshot, plan, viewport);
     let seed = room_seed(snapshot);
 
     paint_materials(target, origin, seed);
@@ -62,12 +84,12 @@ pub fn paint(
     }
 }
 
-fn room_origin(plan: &ScenePlan, viewport: PixelSize) -> PixelPoint {
+fn room_origin(snapshot: &SceneSnapshot, plan: &ScenePlan, viewport: PixelSize) -> PixelPoint {
     let width = i32::from(viewport.width);
     let height = i32::from(viewport.height);
     let focus = match &plan.camera {
         SceneCamera::WholeRoom => PixelPoint::new(WIDTH / 2, HEIGHT / 2),
-        SceneCamera::Focused { anchor } => focus_point(anchor),
+        SceneCamera::Focused { anchor } => focus_point(snapshot, anchor),
     };
     let x = if width >= WIDTH {
         (width - WIDTH) / 2
@@ -82,16 +104,10 @@ fn room_origin(plan: &ScenePlan, viewport: PixelSize) -> PixelPoint {
     PixelPoint::new(x, y)
 }
 
-fn focus_point(anchor: &CameraAnchor) -> PixelPoint {
+fn focus_point(snapshot: &SceneSnapshot, anchor: &CameraAnchor) -> PixelPoint {
     match anchor {
         CameraAnchor::Door => PixelPoint::new(18, 38),
-        CameraAnchor::CampaignTable(workspace) => {
-            if stable_hash(workspace.as_str().as_bytes()).is_multiple_of(2) {
-                PixelPoint::new(54, 60)
-            } else {
-                PixelPoint::new(96, 60)
-            }
-        }
+        CameraAnchor::CampaignTable(workspace) => campaign_table(snapshot, workspace).focus(),
         CameraAnchor::CounselBell => PixelPoint::new(124, 48),
         CameraAnchor::Hearth => PixelPoint::new(145, 38),
         CameraAnchor::Spoils => PixelPoint::new(135, 75),
@@ -352,26 +368,17 @@ fn actor_anchors<'a>(
     snapshot: &SceneSnapshot,
     plan: &'a ScenePlan,
 ) -> Vec<(&'a ActorPlacement, PixelPoint)> {
-    let campaign_indices = snapshot
-        .campaigns
-        .iter()
-        .enumerate()
-        .map(|(index, campaign)| (campaign.workspace_id.clone(), index))
-        .collect::<HashMap<_, _>>();
     let mut station_counts = HashMap::<String, usize>::new();
     let mut result = Vec::with_capacity(plan.actors.len());
     for placement in &plan.actors {
-        let key = station_key(&placement.station);
+        let key = station_key(snapshot, &placement.station);
         let slot = *station_counts
             .entry(key)
             .and_modify(|n| *n += 1)
             .or_insert(0);
         let anchor = match &placement.station {
             TruthfulStation::CampaignToken(workspace) => {
-                let table = campaign_indices.get(workspace).copied().unwrap_or_else(|| {
-                    usize::try_from(stable_hash(workspace.as_str().as_bytes()) % 2).unwrap_or(0)
-                });
-                let base_x = if table.is_multiple_of(2) { 40 } else { 82 };
+                let base_x = campaign_table(snapshot, workspace).actor_base_x();
                 PixelPoint::new(
                     base_x + 4 + i32::try_from(slot % 4).unwrap_or(0) * 6,
                     56 + i32::try_from(slot / 4).unwrap_or(0) * 6,
@@ -399,9 +406,26 @@ fn actor_anchors<'a>(
     result
 }
 
-fn station_key(station: &TruthfulStation) -> String {
+fn campaign_table(snapshot: &SceneSnapshot, workspace: &WorkspaceId) -> CampaignTable {
+    let index = snapshot
+        .campaigns
+        .iter()
+        .position(|campaign| campaign.workspace_id == *workspace);
+    if index.map_or_else(
+        || stable_hash(workspace.as_str().as_bytes()).is_multiple_of(2),
+        |index| index.is_multiple_of(2),
+    ) {
+        CampaignTable::Left
+    } else {
+        CampaignTable::Right
+    }
+}
+
+fn station_key(snapshot: &SceneSnapshot, station: &TruthfulStation) -> String {
     match station {
-        TruthfulStation::CampaignToken(workspace) => format!("campaign:{workspace}"),
+        TruthfulStation::CampaignToken(workspace) => {
+            format!("campaign:{:?}", campaign_table(snapshot, workspace))
+        }
         TruthfulStation::CounselBell => "bell".to_owned(),
         TruthfulStation::SpoilsBench => "spoils".to_owned(),
         TruthfulStation::Hearth => "hearth".to_owned(),
@@ -476,28 +500,19 @@ fn paint_connection_fact(snapshot: &SceneSnapshot, target: &mut RgbBuffer, origi
             }
         }
         SceneConnection::Incompatible { expected, actual } => {
-            let left = 139;
+            let left = i32::from(target.size().width).saturating_sub(21).max(0);
             let top = 2;
-            fill(target, origin, PixelRect::new(left, top, 19, 6), SHADOW);
-            fill(
-                target,
-                origin,
-                PixelRect::new(left + 1, top + 1, 17, 4),
-                PARCHMENT_DARK,
-            );
+            target.fill_rect(PixelRect::new(left, top, 19, 6), SHADOW);
+            target.fill_rect(PixelRect::new(left + 1, top + 1, 17, 4), PARCHMENT_DARK);
             for index in 0..expected.min(7) {
-                put(
-                    target,
-                    origin,
+                target.put(
                     left + 2 + i32::try_from(index * 2).unwrap_or(0),
                     top + 2,
                     PARCHMENT_LIGHT,
                 );
             }
             for index in 0..actual.min(7) {
-                put(
-                    target,
-                    origin,
+                target.put(
                     left + 2 + i32::try_from(index * 2).unwrap_or(0),
                     top + 4,
                     INK_BLUE,
@@ -527,16 +542,21 @@ fn stable_hash(bytes: &[u8]) -> u64 {
 }
 
 fn next_frame(snapshot: &SceneSnapshot, plan: &ScenePlan) -> Option<Duration> {
-    if snapshot.motion == Motion::Full
-        && plan
-            .effects
-            .iter()
-            .any(|effect| matches!(effect, SceneEffect::FreshSpoils { .. }))
-    {
-        Some(Duration::from_millis(125))
-    } else {
-        None
+    if snapshot.motion != Motion::Full {
+        return None;
     }
+
+    let effect_limit = Duration::from_millis(COMPLETION_THEATRE_MS.unsigned_abs());
+    plan.effects
+        .iter()
+        .filter_map(|effect| match effect {
+            SceneEffect::FreshSpoils { since, .. } => effect_limit
+                .checked_sub(since.elapsed_until(snapshot.now))
+                .filter(|remaining| !remaining.is_zero())
+                .map(|remaining| remaining.min(Duration::from_millis(125))),
+            SceneEffect::RecentDeparture { .. } => None,
+        })
+        .min()
 }
 
 fn blit_asset(asset: GuildHallAsset, target: &mut RgbBuffer, origin: PixelPoint, x: i32, y: i32) {

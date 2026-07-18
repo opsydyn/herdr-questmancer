@@ -2,6 +2,7 @@
 
 use proptest::prelude::*;
 use questmancer::storybook::{
+    AssetId, SceneFirstAsset,
     app::{Action, StorybookApp, reduce},
     catalogue::catalogue,
     fixtures::StoryContext,
@@ -62,12 +63,18 @@ fn every_story_renders_at_zero_height() {
 #[test]
 fn scene_first_stories_render_at_their_fixed_review_sizes() {
     let stories = catalogue();
-    for (index, story) in stories.iter().enumerate().filter(|(_, story)| {
-        matches!(
-            story.id.as_str(),
-            "atlas.compact-scene-adventurers" | "scenes.rgb-calibration-room"
-        )
-    }) {
+    let scene_first_stories = stories
+        .iter()
+        .enumerate()
+        .filter(|(_, story)| {
+            story
+                .owns
+                .iter()
+                .any(|asset| matches!(asset, AssetId::SceneFirst(_)))
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(scene_first_stories.len(), SceneFirstAsset::ALL.len());
+    for (index, story) in scene_first_stories {
         for (width, height) in [
             (story.viewport.minimum_width, story.viewport.minimum_height),
             (

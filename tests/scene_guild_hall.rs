@@ -12,7 +12,9 @@ use questmancer::{
         WorkspaceId,
     },
     scene::{
-        assets::palette::{EMBER, OAK, RUG, RUG_GOLD, SHADOW},
+        assets::palette::{
+            EMBER, INK_BLUE, OAK, PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_GOLD, SHADOW, VOID,
+        },
         pixel::{PixelRect, PixelSize, Rgb, RgbBuffer},
         render_scene_for_story,
         snapshot::{SceneAgent, SceneCampaign, SceneConnection, SceneSnapshot, SceneTransition},
@@ -125,6 +127,10 @@ fn accent_colour(accent: AccentTone) -> Rgb {
     .accent
 }
 
+fn hash_parity(workspace: &str) -> usize {
+    usize::from(blake3::hash(workspace.as_bytes()).as_bytes()[0] % 2)
+}
+
 #[test]
 fn canonical_room_contains_every_owned_landmark_signature() {
     let buffer = render(&mixed_snapshot(), VIEWPORT);
@@ -172,6 +178,101 @@ fn actors_occupy_truthful_station_bounds_with_unique_final_anchors() {
             AccentTone::Teal,
             PixelRect::new(128, 42, 31, 39),
             "hearth resting",
+        ),
+    ];
+    let mut anchors = HashSet::new();
+    for (accent, bounds, label) in expected {
+        let anchor = first_pixel(&buffer, accent_colour(accent))
+            .unwrap_or_else(|| panic!("{label} has no persona-owned accent pixel"));
+        assert!(
+            anchor.0 >= bounds.x
+                && anchor.0 < bounds.x + i32::from(bounds.width)
+                && anchor.1 >= bounds.y
+                && anchor.1 < bounds.y + i32::from(bounds.height),
+            "{label} anchor {anchor:?} is outside {bounds:?}"
+        );
+        assert!(anchors.insert(anchor), "two actors share anchor {anchor:?}");
+    }
+}
+
+#[test]
+fn focused_campaign_crop_uses_the_same_physical_table_as_its_actor() {
+    let workspace = (0..100)
+        .map(|index| format!("focus-parity-mismatch-{index}"))
+        .find(|workspace| hash_parity(workspace) != 0)
+        .expect("the deterministic search finds an odd workspace hash");
+    let mut focused = agent(
+        "focused-working",
+        &workspace,
+        Presence::Working,
+        AccentTone::Cyan,
+    );
+    focused.focused = true;
+    let snapshot = SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns: vec![campaign(&workspace, 41)],
+        agents: vec![focused],
+        motion: Motion::None,
+        now: Timestamp::from_millis(10_000),
+    };
+
+    assert_eq!(hash_parity(&workspace), 1);
+    let buffer = render(&snapshot, PixelSize::new(80, 48));
+    assert!(
+        first_pixel(&buffer, accent_colour(AccentTone::Cyan)).is_some(),
+        "the focused 80px crop must retain its working actor"
+    );
+}
+
+#[test]
+fn campaign_tokens_have_unique_anchors_per_physical_table_across_three_campaigns() {
+    let snapshot = SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns: vec![
+            campaign("left-first", 11),
+            campaign("right-only", 17),
+            campaign("left-second", 23),
+        ],
+        agents: vec![
+            agent(
+                "left-first-agent",
+                "left-first",
+                Presence::Working,
+                AccentTone::Cyan,
+            ),
+            agent(
+                "right-agent",
+                "right-only",
+                Presence::Working,
+                AccentTone::Lime,
+            ),
+            agent(
+                "left-second-agent",
+                "left-second",
+                Presence::Working,
+                AccentTone::Magenta,
+            ),
+        ],
+        motion: Motion::None,
+        now: Timestamp::from_millis(10_000),
+    };
+
+    let buffer = render(&snapshot, VIEWPORT);
+    let expected = [
+        (
+            AccentTone::Cyan,
+            PixelRect::new(35, 47, 38, 27),
+            "first left-table token",
+        ),
+        (
+            AccentTone::Lime,
+            PixelRect::new(77, 47, 38, 27),
+            "right-table token",
+        ),
+        (
+            AccentTone::Magenta,
+            PixelRect::new(35, 47, 38, 27),
+            "second left-table token",
         ),
     ];
     let mut anchors = HashSet::new();
@@ -248,6 +349,37 @@ fn connection_states_change_the_door_without_replacing_the_room() {
 }
 
 #[test]
+fn minimum_door_crop_keeps_incompatible_versions_visible_over_the_room() {
+    let snapshot = SceneSnapshot {
+        connection: SceneConnection::Incompatible {
+            expected: 16,
+            actual: 15,
+        },
+        campaigns: Vec::new(),
+        agents: Vec::new(),
+        motion: Motion::None,
+        now: Timestamp::from_millis(10_000),
+    };
+
+    let buffer = render(&snapshot, PixelSize::new(40, 36));
+    assert!(
+        buffer.pixels().contains(&PARCHMENT_LIGHT)
+            && buffer.pixels().contains(&PARCHMENT_DARK)
+            && buffer.pixels().contains(&INK_BLUE),
+        "the minimum door crop must retain both protocol-version rows"
+    );
+    let room_colours = (0..36)
+        .flat_map(|y| (0..19).map(move |x| (x, y)))
+        .filter_map(|(x, y)| buffer.get(x, y))
+        .collect::<HashSet<_>>();
+    assert!(
+        room_colours.len() >= 4,
+        "the diagnostic must remain an overlay over the authored room; found {} colours",
+        room_colours.len()
+    );
+}
+
+#[test]
 fn fresh_spoils_effect_ends_exactly_once_at_three_seconds() {
     let mut fresh = mixed_snapshot();
     fresh
@@ -275,7 +407,7 @@ fn canonical_room_meets_density_colour_and_byte_determinism_floors() {
     let snapshot = mixed_snapshot();
     let first = render(&snapshot, VIEWPORT);
     let second = render(&snapshot, VIEWPORT);
-    let clear = Rgb::BLACK;
+    let clear = VOID;
     let painted = first
         .pixels()
         .iter()
@@ -325,6 +457,15 @@ fn static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps() {
         animated_frame.next_frame_in,
         Some(Duration::from_millis(125))
     );
+
+    snapshot.now = Timestamp::from_millis(10_999);
+    let deadline_frame = render_scene_for_story(
+        &snapshot,
+        Some(WorldScene::GuildHall),
+        VIEWPORT,
+        &mut target,
+    );
+    assert_eq!(deadline_frame.next_frame_in, Some(Duration::from_millis(1)));
 
     snapshot.now = Timestamp::from_millis(11_000);
     let settled_frame = render_scene_for_story(
