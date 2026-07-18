@@ -1,8 +1,8 @@
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 
 use crate::{
     app::Motion,
-    domain::{AgentKey, Timestamp, WorkspaceId},
+    domain::{AgentKey, WorkspaceId},
     scene::{
         SceneFrame,
         assets::{
@@ -18,13 +18,16 @@ use crate::{
         snapshot::{SceneConnection, SceneSnapshot},
         sprite::blit,
         stage::{
-            ActorPlacement, COMPLETION_THEATRE_MS, CameraAnchor, SceneCamera, SceneEffect,
-            ScenePlan, ScenePose, TruthfulStation,
+            ActorPlacement, CameraAnchor, SceneCamera, SceneEffect, ScenePlan, ScenePose,
+            TruthfulStation,
         },
     },
 };
 
-use super::lighting;
+use super::{
+    actor_animation_fps, actor_animation_phase, effect_animation_phase, fps_period, is_visible,
+    lighting,
+};
 
 pub const WIDTH: i32 = 160;
 pub const HEIGHT: i32 = 90;
@@ -74,13 +77,13 @@ pub fn paint(
     paint_furnishings(snapshot, target, origin);
     apply_connection_light(snapshot, target, origin);
     restore_landmark_signatures(target, origin);
-    paint_actors(snapshot, plan, target, origin);
-    paint_effects(snapshot, plan, target, origin);
+    let actor_fps = paint_actors(snapshot, plan, target, origin);
+    let effect_fps = paint_effects(snapshot, plan, target, origin);
     paint_connection_fact(snapshot, target, origin);
 
     SceneFrame {
         world: plan.world,
-        next_frame_in: next_frame(snapshot, plan),
+        next_frame_in: actor_fps.max(effect_fps).map(fps_period),
     }
 }
 
@@ -304,7 +307,8 @@ fn paint_actors(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) {
+) -> Option<u8> {
+    let mut visible_fps = None;
     for (placement, anchor) in actor_anchors(snapshot, plan) {
         let Some(agent) = snapshot
             .agents
@@ -313,7 +317,20 @@ fn paint_actors(
         else {
             continue;
         };
+        let actor_bounds = if matches!(placement.station, TruthfulStation::CampaignToken(_)) {
+            PixelRect::new(anchor.x, anchor.y - 1, 5, 6)
+        } else {
+            PixelRect::new(anchor.x, anchor.y - 1, 8, 15)
+        };
+        if is_visible(origin, actor_bounds, target.size()) {
+            visible_fps = visible_fps.max(actor_animation_fps(snapshot.motion, placement.pose));
+        }
         if let TruthfulStation::CampaignToken(_) = placement.station {
+            let animation = actor_animation_phase(
+                snapshot.motion,
+                placement.pose,
+                agent.presence_since.elapsed_until(snapshot.now),
+            );
             paint_token(
                 target,
                 translate(origin, anchor.x, anchor.y),
@@ -326,17 +343,34 @@ fn paint_actors(
                 )
                 .accent,
                 placement.pose == ScenePose::Unknown,
+                animation,
             );
         } else {
-            let animation = actor_animation_frame(snapshot.motion, snapshot.now, agent, placement);
+            let animation = actor_animation_phase(
+                snapshot.motion,
+                placement.pose,
+                agent.presence_since.elapsed_until(snapshot.now),
+            );
             let sprite =
                 compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
-            blit(&sprite, translate(origin, anchor.x, anchor.y), target);
+            blit(
+                &sprite,
+                translate(origin, anchor.x, anchor.y - i32::from(animation == 1)),
+                target,
+            );
         }
     }
+    visible_fps
 }
 
-fn paint_token(target: &mut RgbBuffer, anchor: PixelPoint, accent: Rgb, unknown: bool) {
+fn paint_token(
+    target: &mut RgbBuffer,
+    anchor: PixelPoint,
+    accent: Rgb,
+    unknown: bool,
+    animation: u8,
+) {
+    let anchor = PixelPoint::new(anchor.x, anchor.y - i32::from(animation == 1));
     target.fill_rect(PixelRect::new(anchor.x, anchor.y + 1, 5, 3), accent);
     target.put(anchor.x + 1, anchor.y, PARCHMENT_LIGHT);
     target.put(
@@ -347,21 +381,6 @@ fn paint_token(target: &mut RgbBuffer, anchor: PixelPoint, accent: Rgb, unknown:
     target.put(anchor.x + 3, anchor.y, PARCHMENT_LIGHT);
     target.put(anchor.x + 1, anchor.y + 4, BRASS_DARK);
     target.put(anchor.x + 3, anchor.y + 4, BRASS_DARK);
-}
-
-fn actor_animation_frame(
-    motion: Motion,
-    now: Timestamp,
-    agent: &crate::scene::snapshot::SceneAgent,
-    placement: &ActorPlacement,
-) -> u8 {
-    let elapsed = agent.presence_since.elapsed_until(now).as_millis();
-    let frame = match motion {
-        Motion::Reduced if placement.pose == ScenePose::Resting => elapsed / 1_000,
-        Motion::None | Motion::Reduced => 0,
-        Motion::Full => elapsed / 125,
-    };
-    u8::try_from(frame % 3).unwrap_or(0)
 }
 
 fn actor_anchors<'a>(
@@ -441,16 +460,18 @@ fn paint_effects(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) {
+) -> Option<u8> {
+    let mut visible_fps = None;
     for effect in &plan.effects {
         match effect {
             SceneEffect::FreshSpoils { agent, since } => {
-                let elapsed = since.elapsed_until(snapshot.now).as_millis();
-                let phase = if snapshot.motion == Motion::Full {
-                    elapsed / 125
-                } else {
-                    0
-                };
+                if snapshot.motion == Motion::Full
+                    && is_visible(origin, PixelRect::new(111, 58, 49, 27), target.size())
+                {
+                    visible_fps = Some(8);
+                }
+                let phase =
+                    effect_animation_phase(snapshot.motion, since.elapsed_until(snapshot.now));
                 paint_spoils_flash(target, origin, agent, phase);
             }
             SceneEffect::RecentDeparture { workspace_id, .. } => {
@@ -460,6 +481,7 @@ fn paint_effects(
             }
         }
     }
+    visible_fps
 }
 
 fn paint_spoils_flash(target: &mut RgbBuffer, origin: PixelPoint, agent: &AgentKey, phase: u128) {
@@ -539,24 +561,6 @@ fn stable_hash(bytes: &[u8]) -> u64 {
             .try_into()
             .expect("digest has eight bytes"),
     )
-}
-
-fn next_frame(snapshot: &SceneSnapshot, plan: &ScenePlan) -> Option<Duration> {
-    if snapshot.motion != Motion::Full {
-        return None;
-    }
-
-    let effect_limit = Duration::from_millis(COMPLETION_THEATRE_MS.unsigned_abs());
-    plan.effects
-        .iter()
-        .filter_map(|effect| match effect {
-            SceneEffect::FreshSpoils { since, .. } => effect_limit
-                .checked_sub(since.elapsed_until(snapshot.now))
-                .filter(|remaining| !remaining.is_zero())
-                .map(|remaining| remaining.min(Duration::from_millis(125))),
-            SceneEffect::RecentDeparture { .. } => None,
-        })
-        .min()
 }
 
 fn blit_asset(asset: GuildHallAsset, target: &mut RgbBuffer, origin: PixelPoint, x: i32, y: i32) {

@@ -1,12 +1,11 @@
 use std::{
     collections::{HashMap, VecDeque},
     sync::OnceLock,
-    time::Duration,
 };
 
 use crate::{
     app::Motion,
-    domain::{Presence, Timestamp},
+    domain::Presence,
     scene::{
         SceneFrame,
         assets::{
@@ -21,13 +20,16 @@ use crate::{
         snapshot::{SceneAgent, SceneConnection, SceneSnapshot},
         sprite::{SpriteFrame, blit},
         stage::{
-            ActorPlacement, CameraAnchor, SceneCadence, SceneCamera, SceneEffect, ScenePlan,
-            ScenePose, TruthfulStation,
+            ActorPlacement, CameraAnchor, SceneCamera, SceneEffect, ScenePlan, ScenePose,
+            TruthfulStation,
         },
     },
 };
 
-use super::lighting;
+use super::{
+    actor_animation_fps, actor_animation_phase, effect_animation_phase, fps_period, is_visible,
+    lighting,
+};
 
 pub const WIDTH: i32 = 160;
 pub const HEIGHT: i32 = 90;
@@ -343,13 +345,13 @@ impl<'a> DelvePainter<'a> {
         .expect("unrecorded material painting cannot conflict");
         paint_background_architecture(self.target, self.origin, self.seed);
         apply_lighting(self.snapshot, self.target, self.origin);
-        paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin);
-        paint_effects(self.snapshot, self.plan, self.target, self.origin);
+        let actor_fps = paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin);
+        let effect_fps = paint_effects(self.snapshot, self.plan, self.target, self.origin);
         paint_connection_fact(self.snapshot, self.target, self.origin);
 
         SceneFrame {
             world: self.plan.world,
-            next_frame_in: next_frame(self.plan),
+            next_frame_in: actor_fps.max(effect_fps).map(fps_period),
         }
     }
 }
@@ -694,7 +696,7 @@ fn paint_depth_sorted(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) {
+) -> Option<u8> {
     let mut items = actor_anchors(plan)
         .into_iter()
         .map(|(placement, anchor)| DepthItem::Actor { placement, anchor })
@@ -710,6 +712,7 @@ fn paint_depth_sorted(
     );
     items.sort_by_key(|item| item.foot_row());
 
+    let mut visible_fps = None;
     for item in items {
         match item {
             DepthItem::Actor { placement, anchor } => {
@@ -720,14 +723,27 @@ fn paint_depth_sorted(
                 else {
                     continue;
                 };
-                let animation =
-                    actor_animation_frame(snapshot.motion, snapshot.now, agent, placement);
+                let animation = actor_animation_phase(
+                    snapshot.motion,
+                    placement.pose,
+                    agent.presence_since.elapsed_until(snapshot.now),
+                );
                 let sprite =
                     compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
+                let actor_origin =
+                    translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
+                if is_visible(
+                    origin,
+                    PixelRect::new(anchor.x, anchor.y - 1, 8, 15),
+                    target.size(),
+                ) {
+                    visible_fps =
+                        visible_fps.max(actor_animation_fps(snapshot.motion, placement.pose));
+                }
                 if placement.pose == ScenePose::Unknown {
-                    blit_dimmed(&sprite, translate(origin, anchor.x, anchor.y), target);
+                    blit_dimmed(&sprite, actor_origin, target);
                 } else {
-                    blit(&sprite, translate(origin, anchor.x, anchor.y), target);
+                    blit(&sprite, actor_origin, target);
                 }
             }
             DepthItem::Asset { asset, anchor } => {
@@ -738,6 +754,7 @@ fn paint_depth_sorted(
             }
         }
     }
+    visible_fps
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -905,21 +922,6 @@ fn paint_overflow_marker(
     }
 }
 
-fn actor_animation_frame(
-    motion: Motion,
-    now: Timestamp,
-    agent: &SceneAgent,
-    placement: &ActorPlacement,
-) -> u8 {
-    let elapsed = agent.presence_since.elapsed_until(now).as_millis();
-    let frame = match motion {
-        Motion::Reduced if placement.pose == ScenePose::Resting => elapsed / 1_000,
-        Motion::None | Motion::Reduced => 0,
-        Motion::Full => elapsed / 125,
-    };
-    u8::try_from(frame % 3).unwrap_or(0)
-}
-
 fn blit_dimmed(frame: &SpriteFrame, origin: PixelPoint, target: &mut RgbBuffer) {
     let pixels = frame
         .pixels()
@@ -935,11 +937,18 @@ fn paint_effects(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) {
+) -> Option<u8> {
+    let mut visible_fps = None;
     for effect in &plan.effects {
         match effect {
             SceneEffect::FreshSpoils { agent, since } => {
-                let phase = since.elapsed_until(snapshot.now).as_millis() / 125;
+                if snapshot.motion == Motion::Full
+                    && is_visible(origin, PixelRect::new(118, 56, 31, 27), target.size())
+                {
+                    visible_fps = Some(8);
+                }
+                let phase =
+                    effect_animation_phase(snapshot.motion, since.elapsed_until(snapshot.now));
                 let seed =
                     stable_hash(agent.as_str().as_bytes()) ^ u64::try_from(phase).unwrap_or(0);
                 for index in 0..10_u64 {
@@ -964,6 +973,7 @@ fn paint_effects(
             }
         }
     }
+    visible_fps
 }
 
 fn paint_connection_fact(snapshot: &SceneSnapshot, target: &mut RgbBuffer, origin: PixelPoint) {
@@ -1001,13 +1011,6 @@ fn paint_connection_fact(snapshot: &SceneSnapshot, target: &mut RgbBuffer, origi
             }
         }
         SceneConnection::Offline | SceneConnection::Connected => {}
-    }
-}
-
-fn next_frame(plan: &ScenePlan) -> Option<Duration> {
-    match plan.cadence {
-        SceneCadence::EventDriven => None,
-        SceneCadence::Fps(fps) => Some(Duration::from_millis(1_000 / u64::from(fps.max(1)))),
     }
 }
 
@@ -1058,7 +1061,10 @@ mod tests {
 
     use crate::{
         app::Motion,
-        domain::{AdventurerClass, AdventurerPersona, AgentKey, Ancestry, PersonaKey, WorkspaceId},
+        domain::{
+            AdventurerClass, AdventurerPersona, AgentKey, Ancestry, PersonaKey, Timestamp,
+            WorkspaceId,
+        },
         scene::{
             snapshot::{SceneConnection, SceneSnapshot},
             stage::{ActorPlacement, SceneCadence, SceneCamera, ScenePlan, WorldScene},

@@ -264,6 +264,10 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             SceneFirstAsset::DelveSealedGate,
             SceneFirstAsset::DelveReconnecting,
             SceneFirstAsset::DelveMinimumViewport,
+            SceneFirstAsset::MotionFull,
+            SceneFirstAsset::MotionReduced,
+            SceneFirstAsset::MotionNone,
+            SceneFirstAsset::MinimumViewport,
         ]
     );
     let stories = catalogue();
@@ -314,6 +318,22 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             "scenes.delve-minimum-viewport",
             SceneFirstAsset::DelveMinimumViewport,
         ),
+        (
+            "scenes.scene-first-motion-full",
+            SceneFirstAsset::MotionFull,
+        ),
+        (
+            "scenes.scene-first-motion-reduced",
+            SceneFirstAsset::MotionReduced,
+        ),
+        (
+            "scenes.scene-first-motion-none",
+            SceneFirstAsset::MotionNone,
+        ),
+        (
+            "scenes.scene-first-minimum-viewport",
+            SceneFirstAsset::MinimumViewport,
+        ),
     ] {
         let index = stories
             .iter()
@@ -334,7 +354,11 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             | SceneFirstAsset::DelveMixedStates
             | SceneFirstAsset::DelveSealedGate
             | SceneFirstAsset::DelveReconnecting
-            | SceneFirstAsset::DelveMinimumViewport => {
+            | SceneFirstAsset::DelveMinimumViewport
+            | SceneFirstAsset::MotionFull
+            | SceneFirstAsset::MotionReduced
+            | SceneFirstAsset::MotionNone
+            | SceneFirstAsset::MinimumViewport => {
                 assert!(matches!(fixture, StoryFixture::PixelScene(_)));
             }
             SceneFirstAsset::CompactAdventurers => {

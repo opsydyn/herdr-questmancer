@@ -8,7 +8,8 @@ use std::{
 use questmancer::{
     app::Motion,
     domain::{
-        AccentTone, AdventurerPersona, AgentKey, PersonaKey, Presence, Timestamp, WorkspaceId,
+        AccentTone, AdventurerPersona, AgentKey, GuildSummons, PersonaKey, Presence, Timestamp,
+        WorkspaceId,
     },
     scene::{
         assets::{
@@ -21,7 +22,7 @@ use questmancer::{
             DelveArchitectureMask, HEIGHT, WIDTH, architecture_mask, station_region,
         },
         render_scene_for_story,
-        snapshot::{SceneAgent, SceneCampaign, SceneConnection, SceneSnapshot},
+        snapshot::{SceneAgent, SceneCampaign, SceneConnection, SceneSnapshot, SceneTransition},
         stage::{ScenePose, TruthfulStation, WorldScene},
     },
 };
@@ -463,6 +464,28 @@ fn static_delve_has_no_cadence_and_active_animation_never_exceeds_eight_fps() {
         .next_frame_in
         .expect("working adventurers animate under full motion");
     assert!(interval >= Duration::from_millis(125));
+}
+
+#[test]
+fn no_motion_delve_is_byte_identical_across_fresh_completion_timestamps() {
+    let mut completed = agent("completed", "rune-road", Presence::Done, AccentTone::Amber);
+    completed.transition = Some(SceneTransition {
+        summons: GuildSummons::SpoilsReturned,
+        since: Timestamp::from_millis(10_000),
+    });
+    let mut snapshot = SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns: vec![campaign("rune-road", 0xb20f)],
+        agents: vec![completed],
+        motion: Motion::None,
+        now: Timestamp::from_millis(10_000),
+    };
+
+    let first = render(&snapshot, WorldScene::Delve, VIEWPORT);
+    snapshot.now = Timestamp::from_millis(10_125);
+    let second = render(&snapshot, WorldScene::Delve, VIEWPORT);
+
+    assert_eq!(first.pixels(), second.pixels());
 }
 
 fn is_crop_of(crop: &RgbBuffer, full: &RgbBuffer) -> bool {

@@ -143,7 +143,7 @@ fn great_room_storybook_families_are_derived_from_production_enums() {
 #[test]
 fn production_catalogue_owns_every_authored_asset_once() {
     let report = validate_catalogue().unwrap();
-    assert_eq!(asset_inventory().len(), 193);
+    assert_eq!(asset_inventory().len(), 197);
     assert_eq!(report.owned(), asset_inventory().len());
     assert!(report.missing().is_empty());
     assert!(report.duplicates().is_empty());
@@ -370,6 +370,10 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "scenes.delve-sealed-gate",
             "scenes.delve-reconnecting",
             "scenes.delve-minimum-viewport",
+            "scenes.scene-first-motion-full",
+            "scenes.scene-first-motion-reduced",
+            "scenes.scene-first-motion-none",
+            "scenes.scene-first-minimum-viewport",
             "scenes.guild-empty",
             "scenes.guild-populated",
             "scenes.guild-one-campaign",
@@ -402,7 +406,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "compat.motion-none",
         ]
     );
-    assert_eq!(ids.len(), 69);
+    assert_eq!(ids.len(), 73);
 }
 
 #[test]
@@ -413,7 +417,7 @@ fn all_four_categories_are_populated_in_the_fixed_order() {
             .filter(|story| story.category == category)
             .count()
     });
-    assert_eq!(counts, [21, 6, 36, 6]);
+    assert_eq!(counts, [21, 6, 36, 10]);
     assert!(catalogue()[..15].iter().all(|story| {
         story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
     }));
@@ -557,6 +561,22 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
             vec![AssetId::SceneFirst(SceneFirstAsset::DelveMinimumViewport)],
         ),
         (
+            "scenes.scene-first-motion-full",
+            vec![AssetId::SceneFirst(SceneFirstAsset::MotionFull)],
+        ),
+        (
+            "scenes.scene-first-motion-reduced",
+            vec![AssetId::SceneFirst(SceneFirstAsset::MotionReduced)],
+        ),
+        (
+            "scenes.scene-first-motion-none",
+            vec![AssetId::SceneFirst(SceneFirstAsset::MotionNone)],
+        ),
+        (
+            "scenes.scene-first-minimum-viewport",
+            vec![AssetId::SceneFirst(SceneFirstAsset::MinimumViewport)],
+        ),
+        (
             "scenes.guild-empty",
             vec![AssetId::Scene(SceneAsset::GuildEmpty)],
         ),
@@ -675,7 +695,7 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
         ),
     ];
 
-    assert_eq!(expected.len(), 48);
+    assert_eq!(expected.len(), 52);
     for (story_id, owns) in expected {
         let story = catalogue()
             .iter()
@@ -843,10 +863,13 @@ fn compatibility_stories_apply_the_exact_fixed_preferences() {
 
 #[test]
 fn compatibility_stories_use_clean_connected_great_room_baselines() {
-    for story in catalogue()
-        .iter()
-        .filter(|story| story.category == Category::Compatibility)
-    {
+    for story in catalogue().iter().filter(|story| {
+        story.category == Category::Compatibility
+            && story
+                .owns
+                .iter()
+                .any(|asset| matches!(asset, AssetId::Compatibility(_)))
+    }) {
         let StoryFixture::Application(model) = (story.build)(&StoryContext::fixed()) else {
             panic!("{} must use the application renderer", story.id.as_str());
         };

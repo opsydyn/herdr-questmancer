@@ -1025,6 +1025,28 @@ pub fn delve_minimum_viewport_scene_fixture(context: &StoryContext) -> PixelScen
     )
 }
 
+pub fn scene_first_motion_full_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let mut snapshot = delve_active_snapshot(*context);
+    snapshot.motion = Motion::Full;
+    PixelSceneFixture::in_world(snapshot, WorldScene::Delve)
+}
+
+pub fn scene_first_motion_reduced_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let mut snapshot = guild_hall_mixed_snapshot(*context);
+    snapshot.motion = Motion::Reduced;
+    PixelSceneFixture::in_world(snapshot, WorldScene::GuildHall)
+}
+
+pub fn scene_first_motion_none_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let mut snapshot = guild_hall_mixed_snapshot(*context);
+    snapshot.motion = Motion::None;
+    PixelSceneFixture::in_world(snapshot, WorldScene::GuildHall)
+}
+
+pub fn scene_first_minimum_viewport_fixture(context: &StoryContext) -> PixelSceneFixture {
+    delve_minimum_viewport_scene_fixture(context)
+}
+
 fn delve_active_snapshot(context: StoryContext) -> SceneSnapshot {
     let campaigns = delve_campaigns();
     SceneSnapshot {

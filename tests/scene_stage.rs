@@ -1,10 +1,13 @@
+use std::time::Duration;
+
 use questmancer::{
     app::Motion,
     domain::{
         AdventurerPersona, AgentKey, GuildSummons, PersonaKey, Presence, Timestamp, WorkspaceId,
     },
     scene::{
-        pixel::PixelSize,
+        pixel::{PixelSize, Rgb, RgbBuffer},
+        render_scene,
         snapshot::{SceneAgent, SceneConnection, SceneSnapshot, SceneTransition},
         stage::{
             ActorPlacement, COMPLETION_THEATRE_MS, CameraAnchor, SceneCadence, SceneCamera,
@@ -12,6 +15,37 @@ use questmancer::{
         },
     },
 };
+
+fn render(
+    snapshot: &SceneSnapshot,
+    viewport: PixelSize,
+) -> (questmancer::scene::SceneFrame, RgbBuffer) {
+    let mut target = RgbBuffer::filled(1, 1, Rgb::new(255, 0, 255));
+    let frame = render_scene(snapshot, viewport, &mut target);
+    (frame, target)
+}
+
+fn crop_offset(crop: &RgbBuffer, full: &RgbBuffer) -> Option<(i32, i32)> {
+    let max_x = i32::from(full.size().width.saturating_sub(crop.size().width));
+    let max_y = i32::from(full.size().height.saturating_sub(crop.size().height));
+    (0..=max_y).find_map(|offset_y| {
+        (0..=max_x).find_map(|offset_x| {
+            (0..i32::from(crop.size().height))
+                .all(|y| {
+                    (0..i32::from(crop.size().width))
+                        .all(|x| crop.get(x, y) == full.get(x + offset_x, y + offset_y))
+                })
+                .then_some((offset_x, offset_y))
+        })
+    })
+}
+
+fn render_at(snapshot: &SceneSnapshot, now: i64) -> (Vec<Rgb>, Option<Duration>) {
+    let mut snapshot = snapshot.clone();
+    snapshot.now = Timestamp::from_millis(now);
+    let (frame, target) = render(&snapshot, PixelSize::new(160, 90));
+    (target.pixels().to_vec(), frame.next_frame_in)
+}
 
 fn agent(key: &str, presence: Presence) -> SceneAgent {
     SceneAgent {
@@ -368,4 +402,163 @@ fn cadence_is_derived_only_from_motion_and_visible_needs() {
     let mut no_motion = snapshot(vec![agent("idle", Presence::Idle), fresh]);
     no_motion.motion = Motion::None;
     assert_eq!(project(&no_motion).cadence, SceneCadence::EventDriven);
+}
+
+#[test]
+fn viewport_matrix_preserves_exact_targets_and_authored_camera_crops() {
+    let guild = snapshot(Vec::new());
+    let mut delve_agent = agent("working", Presence::Working);
+    delve_agent.focused = true;
+    let delve = snapshot(vec![delve_agent]);
+
+    for viewport in [
+        PixelSize::new(0, 0),
+        PixelSize::new(1, 1),
+        PixelSize::new(80, 48),
+        PixelSize::new(120, 72),
+        PixelSize::new(160, 90),
+        PixelSize::new(240, 120),
+    ] {
+        for (expected_world, value) in
+            [(WorldScene::GuildHall, &guild), (WorldScene::Delve, &delve)]
+        {
+            let (frame, target) = render(value, viewport);
+            assert_eq!(frame.world, expected_world);
+            assert_eq!(target.size(), viewport);
+            if viewport.width > 0 && viewport.height > 0 {
+                assert!(!target.pixels().is_empty());
+                assert!(
+                    target
+                        .pixels()
+                        .iter()
+                        .all(|pixel| *pixel != Rgb::new(255, 0, 255)),
+                    "{expected_world:?} left an unpainted pixel at {viewport:?}"
+                );
+            }
+        }
+    }
+
+    let mut blocked = agent("blocked", Presence::Blocked);
+    blocked.focused = true;
+    let guild_focus = snapshot(vec![blocked]);
+    let (_, guild_full) = render(&guild_focus, PixelSize::new(160, 90));
+    let (_, guild_crop) = render(&guild_focus, PixelSize::new(80, 48));
+    assert!(crop_offset(&guild_crop, &guild_full).is_some());
+
+    let (_, delve_full) = render(&delve, PixelSize::new(160, 90));
+    let (_, delve_crop) = render(&delve, PixelSize::new(80, 48));
+    assert!(crop_offset(&delve_crop, &delve_full).is_some());
+
+    for value in [&guild, &delve] {
+        let (_, canonical) = render(value, PixelSize::new(160, 90));
+        let (_, surplus) = render(value, PixelSize::new(240, 120));
+        for y in 0..90 {
+            for x in 0..160 {
+                assert_eq!(canonical.get(x, y), surplus.get(x + 40, y + 15));
+            }
+        }
+    }
+}
+
+#[test]
+fn exact_motion_phases_match_their_visible_cadence() {
+    let working = snapshot(vec![agent("working", Presence::Working)]);
+    let (working_start, working_deadline) = render_at(&working, 1_000);
+    let (working_before, _) = render_at(&working, 1_165);
+    let (working_next, _) = render_at(&working, 1_166);
+    assert_eq!(working_deadline, Some(Duration::from_millis(166)));
+    assert_eq!(working_start, working_before);
+    assert_ne!(working_before, working_next);
+
+    let blocked = snapshot(vec![agent("blocked", Presence::Blocked)]);
+    let (blocked_start, blocked_deadline) = render_at(&blocked, 1_000);
+    let (blocked_before, _) = render_at(&blocked, 1_499);
+    let (blocked_next, _) = render_at(&blocked, 1_500);
+    assert_eq!(blocked_deadline, Some(Duration::from_millis(500)));
+    assert_eq!(blocked_start, blocked_before);
+    assert_ne!(blocked_before, blocked_next);
+
+    let mut completed = agent("completed", Presence::Done);
+    completed.transition = Some(SceneTransition {
+        summons: GuildSummons::SpoilsReturned,
+        since: Timestamp::from_millis(1_000),
+    });
+    let fresh = snapshot(vec![completed]);
+    let (fresh_start, fresh_deadline) = render_at(&fresh, 1_000);
+    let (fresh_before, _) = render_at(&fresh, 1_124);
+    let (fresh_next, _) = render_at(&fresh, 1_125);
+    assert_eq!(fresh_deadline, Some(Duration::from_millis(125)));
+    assert_eq!(fresh_start, fresh_before);
+    assert_ne!(fresh_before, fresh_next);
+
+    let idle = snapshot(vec![agent("idle", Presence::Idle)]);
+    let (idle_start, idle_deadline) = render_at(&idle, 1_000);
+    let (idle_before, _) = render_at(&idle, 1_999);
+    let (idle_next, _) = render_at(&idle, 2_000);
+    assert_eq!(idle_deadline, Some(Duration::from_millis(1_000)));
+    assert_eq!(idle_start, idle_before);
+    assert_ne!(idle_before, idle_next);
+}
+
+#[test]
+fn static_and_no_motion_frames_have_no_idle_rendering_cost() {
+    let settled = snapshot(vec![agent("settled", Presence::Done)]);
+    let (_, settled_deadline) = render_at(&settled, 1_000);
+    assert_eq!(settled_deadline, None);
+
+    let mut completed = agent("completed", Presence::Done);
+    completed.transition = Some(SceneTransition {
+        summons: GuildSummons::SpoilsReturned,
+        since: Timestamp::from_millis(1_000),
+    });
+    let mut no_motion = snapshot(vec![completed]);
+    no_motion.motion = Motion::None;
+    let (first, first_deadline) = render_at(&no_motion, 1_000);
+    let (second, second_deadline) = render_at(&no_motion, 1_125);
+    let (third, third_deadline) = render_at(&no_motion, 3_999);
+    assert_eq!(first, second);
+    assert_eq!(second, third);
+    assert_eq!([first_deadline, second_deadline, third_deadline], [None; 3]);
+}
+
+#[test]
+fn one_target_buffer_is_reused_for_one_thousand_fixed_frames() {
+    let value = snapshot(Vec::new());
+    let viewport = PixelSize::new(240, 120);
+    let mut target = RgbBuffer::filled(viewport.width, viewport.height, Rgb::BLACK);
+    let capacity = target.capacity();
+
+    for _ in 0..1_000 {
+        let frame = render_scene(&value, viewport, &mut target);
+        assert_eq!(frame.next_frame_in, None);
+        assert_eq!(target.capacity(), capacity);
+    }
+}
+
+#[test]
+fn renderer_deadlines_only_track_animation_inside_the_camera() {
+    let blocked = agent("a-blocked", Presence::Blocked);
+    let working = agent("z-working", Presence::Working);
+    let value = snapshot(vec![blocked, working]);
+    let viewport = PixelSize::new(40, 36);
+
+    let mut start = value.clone();
+    start.now = Timestamp::from_millis(1_000);
+    let (start_frame, start_pixels) = render(&start, viewport);
+    let mut before = value.clone();
+    before.now = Timestamp::from_millis(1_166);
+    let (_, before_pixels) = render(&before, viewport);
+    let mut next = value.clone();
+    next.now = Timestamp::from_millis(1_500);
+    let (_, next_pixels) = render(&next, viewport);
+
+    assert_eq!(start_frame.next_frame_in, Some(Duration::from_millis(500)));
+    assert_eq!(start_pixels.pixels(), before_pixels.pixels());
+    assert_ne!(before_pixels.pixels(), next_pixels.pixels());
+
+    let (zero_frame, _) = render(
+        &snapshot(vec![agent("working", Presence::Working)]),
+        PixelSize::new(0, 0),
+    );
+    assert_eq!(zero_frame.next_frame_in, None);
 }

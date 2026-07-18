@@ -118,6 +118,10 @@ storybook_asset_enum!(SceneFirstAsset {
     DelveSealedGate,
     DelveReconnecting,
     DelveMinimumViewport,
+    MotionFull,
+    MotionReduced,
+    MotionNone,
+    MinimumViewport,
 });
 
 impl AssetId {
@@ -368,6 +372,10 @@ impl AssetId {
                 SceneFirstAsset::DelveSealedGate => "scene first: Delve sealed gate",
                 SceneFirstAsset::DelveReconnecting => "scene first: Delve reconnecting",
                 SceneFirstAsset::DelveMinimumViewport => "scene first: Delve minimum viewport",
+                SceneFirstAsset::MotionFull => "scene first: full motion",
+                SceneFirstAsset::MotionReduced => "scene first: reduced motion",
+                SceneFirstAsset::MotionNone => "scene first: no motion",
+                SceneFirstAsset::MinimumViewport => "scene first: minimum viewport",
             },
             Self::Compatibility(value) => match value {
                 CompatibilityAsset::UnicodeXterm256 => "compatibility: unicode xterm-256",

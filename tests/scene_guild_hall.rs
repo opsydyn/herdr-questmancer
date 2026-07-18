@@ -431,6 +431,9 @@ fn canonical_room_meets_density_colour_and_byte_determinism_floors() {
 fn static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps() {
     let mut snapshot = mixed_snapshot();
     snapshot.motion = Motion::Full;
+    snapshot
+        .agents
+        .retain(|agent| agent.presence == Presence::Done);
     let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
     let static_frame = render_scene_for_story(
         &snapshot,
@@ -440,9 +443,6 @@ fn static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps() {
     );
     assert_eq!(static_frame.next_frame_in, None);
 
-    snapshot
-        .agents
-        .retain(|agent| agent.presence == Presence::Done);
     snapshot.agents[0].transition = Some(SceneTransition {
         summons: GuildSummons::SpoilsReturned,
         since: Timestamp::from_millis(8_000),
@@ -465,7 +465,10 @@ fn static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps() {
         VIEWPORT,
         &mut target,
     );
-    assert_eq!(deadline_frame.next_frame_in, Some(Duration::from_millis(1)));
+    assert_eq!(
+        deadline_frame.next_frame_in,
+        Some(Duration::from_millis(125))
+    );
 
     snapshot.now = Timestamp::from_millis(11_000);
     let settled_frame = render_scene_for_story(

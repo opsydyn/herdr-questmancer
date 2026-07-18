@@ -5,9 +5,14 @@ use std::collections::BTreeSet;
 
 use proptest::prelude::*;
 use questmancer::{
-    app::{Model, View},
+    app::{Model, Motion, View},
     domain::Presence,
-    scene::{pixel::PixelSize, snapshot::SceneSnapshot, stage::ScenePlan},
+    scene::{
+        pixel::{PixelSize, Rgb, RgbBuffer},
+        render_scene,
+        snapshot::{SceneConnection, SceneSnapshot},
+        stage::{ScenePlan, WorldScene},
+    },
 };
 
 proptest! {
@@ -99,5 +104,44 @@ proptest! {
         let _plan = ScenePlan::project(&snapshot, PixelSize::new(width, height));
 
         prop_assert_eq!(model.domain(), &before);
+    }
+
+    #[test]
+    fn both_world_renderers_accept_arbitrary_viewports_without_resizing_or_leaking_clear_pixels(
+        mut source in support::strategies::scene_snapshot(),
+        width in 0_u16..400,
+        height in 0_u16..240,
+    ) {
+        prop_assume!(!source.agents.is_empty());
+        let viewport = PixelSize::new(width, height);
+        source.motion = Motion::None;
+
+        let mut guild = source.clone();
+        guild.connection = SceneConnection::Offline;
+
+        let mut delve = source;
+        delve.connection = SceneConnection::Connected;
+        for agent in &mut delve.agents {
+            agent.presence = Presence::Exited;
+            agent.transition = None;
+            agent.focused = false;
+        }
+        delve.agents[0].presence = Presence::Working;
+        delve.agents[0].focused = true;
+
+        for (expected_world, snapshot) in [
+            (WorldScene::GuildHall, guild),
+            (WorldScene::Delve, delve),
+        ] {
+            let sentinel = Rgb::new(255, 0, 255);
+            let mut target = RgbBuffer::filled(1, 1, sentinel);
+            let frame = render_scene(&snapshot, viewport, &mut target);
+            prop_assert_eq!(frame.world, expected_world);
+            prop_assert_eq!(target.size(), viewport);
+            if width > 0 && height > 0 {
+                prop_assert!(!target.pixels().is_empty());
+                prop_assert!(target.pixels().iter().all(|pixel| *pixel != sentinel));
+            }
+        }
     }
 }

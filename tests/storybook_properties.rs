@@ -5,7 +5,7 @@ use questmancer::storybook::{
     AssetId, SceneFirstAsset,
     app::{Action, StorybookApp, reduce},
     catalogue::catalogue,
-    fixtures::StoryContext,
+    fixtures::{StoryContext, StoryFixture},
     ui,
 };
 use ratatui::{Terminal, backend::TestBackend};
@@ -90,6 +90,46 @@ fn scene_first_stories_render_at_their_fixed_review_sizes() {
                 .draw(|frame| ui::render(frame, &app, stories, &StoryContext::fixed()))
                 .unwrap();
         }
+    }
+}
+
+#[test]
+fn scene_first_compatibility_stories_cover_motion_and_the_minimum_viewport() {
+    let stories = catalogue();
+    for (id, expected_motion, expected_minimum) in [
+        (
+            "scenes.scene-first-motion-full",
+            questmancer::app::Motion::Full,
+            (80, 24),
+        ),
+        (
+            "scenes.scene-first-motion-reduced",
+            questmancer::app::Motion::Reduced,
+            (80, 24),
+        ),
+        (
+            "scenes.scene-first-motion-none",
+            questmancer::app::Motion::None,
+            (80, 24),
+        ),
+        (
+            "scenes.scene-first-minimum-viewport",
+            questmancer::app::Motion::None,
+            (40, 18),
+        ),
+    ] {
+        let story = stories
+            .iter()
+            .find(|story| story.id.as_str() == id)
+            .unwrap_or_else(|| panic!("missing {id}"));
+        assert_eq!(
+            (story.viewport.minimum_width, story.viewport.minimum_height),
+            expected_minimum
+        );
+        let StoryFixture::PixelScene(fixture) = (story.build)(&StoryContext::fixed()) else {
+            panic!("{id} must use the scene-first RGB renderer");
+        };
+        assert_eq!(fixture.snapshot.motion, expected_motion);
     }
 }
 

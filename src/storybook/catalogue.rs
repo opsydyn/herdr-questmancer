@@ -262,6 +262,7 @@ const GUILD_HALL_PIXEL_VIEWPORT: Viewport = Viewport::new(160, 45, 80, 24);
 const GUILD_HALL_MINIMUM_VIEWPORT: Viewport = Viewport::new(80, 24, 40, 18);
 const DELVE_PIXEL_VIEWPORT: Viewport = Viewport::new(160, 45, 80, 24);
 const DELVE_MINIMUM_VIEWPORT: Viewport = Viewport::new(80, 24, 40, 18);
+const SCENE_FIRST_MOTION_VIEWPORT: Viewport = Viewport::new(160, 45, 80, 24);
 
 macro_rules! atlas_story {
     ($id:literal, $title:literal, $description:literal, $builder:path, $owns:expr, $reused:expr) => {
@@ -687,6 +688,46 @@ fn build_catalogue() -> Vec<Story> {
             DELVE_MINIMUM_VIEWPORT,
             delve_minimum_viewport,
             &[AssetId::SceneFirst(SceneFirstAsset::DelveMinimumViewport)],
+            &[],
+        ),
+        complete_story(
+            "scenes.scene-first-motion-full",
+            "Scene-First Full Motion",
+            Category::Compatibility,
+            "The fixed RGB scene with deterministic full-motion cadence.",
+            SCENE_FIRST_MOTION_VIEWPORT,
+            scene_first_motion_full,
+            &[AssetId::SceneFirst(SceneFirstAsset::MotionFull)],
+            &[],
+        ),
+        complete_story(
+            "scenes.scene-first-motion-reduced",
+            "Scene-First Reduced Motion",
+            Category::Compatibility,
+            "The fixed RGB scene with only the reduced idle animation.",
+            SCENE_FIRST_MOTION_VIEWPORT,
+            scene_first_motion_reduced,
+            &[AssetId::SceneFirst(SceneFirstAsset::MotionReduced)],
+            &[],
+        ),
+        complete_story(
+            "scenes.scene-first-motion-none",
+            "Scene-First No Motion",
+            Category::Compatibility,
+            "The fixed RGB scene with event-driven static rendering.",
+            SCENE_FIRST_MOTION_VIEWPORT,
+            scene_first_motion_none,
+            &[AssetId::SceneFirst(SceneFirstAsset::MotionNone)],
+            &[],
+        ),
+        complete_story(
+            "scenes.scene-first-minimum-viewport",
+            "Scene-First Minimum Viewport",
+            Category::Compatibility,
+            "The fixed RGB renderer at its minimum review viewport without scaling.",
+            DELVE_MINIMUM_VIEWPORT,
+            scene_first_minimum_viewport,
+            &[AssetId::SceneFirst(SceneFirstAsset::MinimumViewport)],
             &[],
         ),
         scene_story(
@@ -1261,6 +1302,22 @@ fn delve_reconnecting(context: &StoryContext) -> StoryFixture {
 
 fn delve_minimum_viewport(context: &StoryContext) -> StoryFixture {
     StoryFixture::PixelScene(fixtures::delve_minimum_viewport_scene_fixture(context))
+}
+
+fn scene_first_motion_full(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::scene_first_motion_full_fixture(context))
+}
+
+fn scene_first_motion_reduced(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::scene_first_motion_reduced_fixture(context))
+}
+
+fn scene_first_motion_none(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::scene_first_motion_none_fixture(context))
+}
+
+fn scene_first_minimum_viewport(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::scene_first_minimum_viewport_fixture(context))
 }
 
 fn compact_scene_adventurers(context: &StoryContext) -> StoryFixture {
