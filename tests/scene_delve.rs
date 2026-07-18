@@ -17,8 +17,8 @@ use questmancer::{
         },
         pixel::{PixelRect, PixelSize, Rgb, RgbBuffer},
         render::delve::{
-            ARCHITECTURE_REGIONS, ArchitectureBackground, DOORWAYS, DelveArchitectureMask, HEIGHT,
-            WIDTH, WallOwner, architecture_mask, station_region,
+            ARCHITECTURE_REGIONS, ArchitectureBackground, ArchitectureForeground, DOORWAYS,
+            DelveArchitectureMask, HEIGHT, WIDTH, architecture_mask, station_region,
         },
         render_scene_for_story,
         snapshot::{SceneAgent, SceneCampaign, SceneConnection, SceneSnapshot},
@@ -211,16 +211,30 @@ fn every_authored_floor_pixel_doorway_and_named_region_is_connected() {
         );
     }
 
-    let unique_walls = mask.wall_segments().iter().copied().collect::<HashSet<_>>();
+    let background_owners = mask.background_owners().collect::<HashSet<_>>();
     assert_eq!(
-        unique_walls.len(),
-        mask.wall_segments().len(),
-        "shared wall segments must have one semantic owner"
+        background_owners,
+        HashSet::from([ArchitectureBackground::ConnectedDungeon]),
+        "the canonical scene must have one dungeon background owner and no chamber backplates"
     );
-    assert!(
-        mask.wall_segments()
-            .iter()
-            .all(|wall| wall.owner == WallOwner::SharedDungeonShell)
+    assert_eq!(
+        mask.background_owners().count(),
+        usize::try_from(WIDTH * HEIGHT).expect("Delve area fits usize"),
+        "the one dungeon background owner must come from every actual background paint"
+    );
+    assert_eq!(
+        mask.foreground_at(50, 29),
+        None,
+        "transparent west-arch pixels must not acquire foreground ownership"
+    );
+    assert_eq!(
+        mask.foreground_at(50, 31),
+        Some(ArchitectureForeground {
+            asset: DelveAsset::Arch,
+            anchor_x: 50,
+            anchor_y: 29,
+        }),
+        "opaque west-arch pixels must retain their actual paint owner"
     );
 }
 
@@ -312,7 +326,7 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "b4aefb7794863ca432d1001458ebcbede156047f5715260f004a49beb2bce3d4"
+        "231760f9377dd2aa8e486a836ab9da02344cb0608ea97d28a10f1eb9c46b9a76"
     );
 
     let non_clear = first

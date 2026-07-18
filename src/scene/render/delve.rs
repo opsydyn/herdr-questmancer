@@ -1,4 +1,8 @@
-use std::{collections::HashMap, sync::OnceLock, time::Duration};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::OnceLock,
+    time::Duration,
+};
 
 use crate::{
     app::Motion,
@@ -46,30 +50,34 @@ pub enum ArchitectureBackground {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum WallOwner {
-    SharedDungeonShell,
+pub struct ArchitectureForeground {
+    pub asset: DelveAsset,
+    pub anchor_x: i32,
+    pub anchor_y: i32,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum WallEdge {
-    North,
-    East,
-    South,
-    West,
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct WallSegment {
-    pub x: i32,
-    pub y: i32,
-    pub edge: WallEdge,
-    pub owner: WallOwner,
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CompositionError {
+    OverlappingBackground {
+        point: PixelPoint,
+        existing: ArchitectureBackground,
+        attempted: ArchitectureBackground,
+    },
+    OverlappingForeground {
+        point: PixelPoint,
+        existing: ArchitectureForeground,
+        attempted: ArchitectureForeground,
+    },
+    MissingBackground(PixelPoint),
+    DoorwayBlocked(&'static str),
+    DisconnectedFloor(PixelPoint),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DelveArchitectureMask {
+    background: Vec<Option<ArchitectureBackground>>,
+    foreground: Vec<Option<ArchitectureForeground>>,
     walkable: Vec<bool>,
-    wall_segments: Vec<WallSegment>,
 }
 
 impl DelveArchitectureMask {
@@ -79,17 +87,88 @@ impl DelveArchitectureMask {
     }
 
     #[must_use]
-    pub const fn background_at(&self, x: i32, y: i32) -> Option<ArchitectureBackground> {
-        if x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT {
-            Some(ArchitectureBackground::ConnectedDungeon)
-        } else {
-            None
-        }
+    pub fn background_at(&self, x: i32, y: i32) -> Option<ArchitectureBackground> {
+        architecture_index(x, y).and_then(|index| self.background[index])
     }
 
     #[must_use]
-    pub fn wall_segments(&self) -> &[WallSegment] {
-        &self.wall_segments
+    pub fn foreground_at(&self, x: i32, y: i32) -> Option<ArchitectureForeground> {
+        architecture_index(x, y).and_then(|index| self.foreground[index])
+    }
+
+    pub fn background_owners(&self) -> impl Iterator<Item = ArchitectureBackground> + '_ {
+        self.background.iter().filter_map(|owner| *owner)
+    }
+}
+
+struct CompositionRecorder {
+    background: Vec<Option<ArchitectureBackground>>,
+    foreground: Vec<Option<ArchitectureForeground>>,
+    walkable: Vec<bool>,
+}
+
+impl CompositionRecorder {
+    fn new() -> Self {
+        let pixel_count = usize::try_from(WIDTH * HEIGHT).expect("Delve area fits usize");
+        Self {
+            background: vec![None; pixel_count],
+            foreground: vec![None; pixel_count],
+            walkable: vec![false; pixel_count],
+        }
+    }
+
+    fn record_background(
+        &mut self,
+        point: PixelPoint,
+        owner: ArchitectureBackground,
+        walkable: bool,
+    ) -> Result<(), CompositionError> {
+        let Some(index) = architecture_index(point.x, point.y) else {
+            return Ok(());
+        };
+        if let Some(existing) = self.background[index] {
+            return Err(CompositionError::OverlappingBackground {
+                point,
+                existing,
+                attempted: owner,
+            });
+        }
+        self.background[index] = Some(owner);
+        self.walkable[index] = walkable;
+        Ok(())
+    }
+
+    fn record_foreground(
+        &mut self,
+        point: PixelPoint,
+        owner: ArchitectureForeground,
+        blocks_walkable: bool,
+    ) -> Result<(), CompositionError> {
+        let Some(index) = architecture_index(point.x, point.y) else {
+            return Ok(());
+        };
+        if let Some(existing) = self.foreground[index] {
+            return Err(CompositionError::OverlappingForeground {
+                point,
+                existing,
+                attempted: owner,
+            });
+        }
+        self.foreground[index] = Some(owner);
+        if blocks_walkable {
+            self.walkable[index] = false;
+        }
+        Ok(())
+    }
+
+    fn finish(self) -> Result<DelveArchitectureMask, CompositionError> {
+        let mask = DelveArchitectureMask {
+            background: self.background,
+            foreground: self.foreground,
+            walkable: self.walkable,
+        };
+        validate_composition(&mask)?;
+        Ok(mask)
     }
 }
 
@@ -185,13 +264,17 @@ pub const DOORWAYS: &[NamedDoorway] = &[
 pub fn is_walkable(x: i32, y: i32) -> bool {
     static DEFAULT_ARCHITECTURE: OnceLock<DelveArchitectureMask> = OnceLock::new();
     DEFAULT_ARCHITECTURE
-        .get_or_init(|| compose_architecture(0x00d3_116e_u64))
+        .get_or_init(|| {
+            compose_architecture(0x00d3_116e_u64)
+                .expect("built-in Delve composition must remain valid")
+        })
         .is_walkable(x, y)
 }
 
 #[must_use]
 pub fn architecture_mask(snapshot: &SceneSnapshot) -> DelveArchitectureMask {
     compose_architecture(dungeon_seed(snapshot))
+        .expect("built-in Delve composition must remain valid")
 }
 
 #[must_use]
@@ -215,21 +298,59 @@ pub fn paint(
     viewport: PixelSize,
     target: &mut RgbBuffer,
 ) -> SceneFrame {
-    target.ensure_size(viewport.width, viewport.height, DEEP_BLUE_BLACK);
-    let origin = dungeon_origin(snapshot, plan, viewport);
-    let seed = dungeon_seed(snapshot);
-    let architecture = architecture_mask(snapshot);
+    DelvePainter::new(snapshot, plan, viewport, target).paint()
+}
 
-    paint_materials(target, origin, seed, &architecture);
-    paint_background_architecture(target, origin, seed);
-    apply_lighting(snapshot, target, origin);
-    paint_depth_sorted(snapshot, plan, target, origin);
-    paint_effects(snapshot, plan, target, origin);
-    paint_connection_fact(snapshot, target, origin);
+struct DelvePainter<'a> {
+    snapshot: &'a SceneSnapshot,
+    plan: &'a ScenePlan,
+    target: &'a mut RgbBuffer,
+    origin: PixelPoint,
+    seed: u64,
+    architecture: DelveArchitectureMask,
+}
 
-    SceneFrame {
-        world: plan.world,
-        next_frame_in: next_frame(plan),
+impl<'a> DelvePainter<'a> {
+    fn new(
+        snapshot: &'a SceneSnapshot,
+        plan: &'a ScenePlan,
+        viewport: PixelSize,
+        target: &'a mut RgbBuffer,
+    ) -> Self {
+        target.ensure_size(viewport.width, viewport.height, DEEP_BLUE_BLACK);
+        let origin = dungeon_origin(snapshot, plan, viewport);
+        let seed = dungeon_seed(snapshot);
+        let architecture = compose_architecture(seed)
+            .expect("built-in Delve composition must remain valid before painting");
+        Self {
+            snapshot,
+            plan,
+            target,
+            origin,
+            seed,
+            architecture,
+        }
+    }
+
+    fn paint(self) -> SceneFrame {
+        paint_materials(
+            self.target,
+            self.origin,
+            self.seed,
+            Some(&self.architecture),
+            None,
+        )
+        .expect("unrecorded material painting cannot conflict");
+        paint_background_architecture(self.target, self.origin, self.seed);
+        apply_lighting(self.snapshot, self.target, self.origin);
+        paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin);
+        paint_effects(self.snapshot, self.plan, self.target, self.origin);
+        paint_connection_fact(self.snapshot, self.target, self.origin);
+
+        SceneFrame {
+            world: self.plan.world,
+            next_frame_in: next_frame(self.plan),
+        }
     }
 }
 
@@ -283,14 +404,19 @@ fn paint_materials(
     target: &mut RgbBuffer,
     origin: PixelPoint,
     seed: u64,
-    architecture: &DelveArchitectureMask,
-) {
+    architecture: Option<&DelveArchitectureMask>,
+    mut recorder: Option<&mut CompositionRecorder>,
+) -> Result<(), CompositionError> {
     for y in 0..target.size().height {
         for x in 0..target.size().width {
             let world_x = i32::from(x).saturating_sub(origin.x);
             let world_y = i32::from(y).saturating_sub(origin.y);
             let variant = material_variant(world_x, world_y, seed);
-            let colour = if architecture.is_walkable(world_x, world_y) {
+            let walkable = architecture.map_or_else(
+                || base_walkable(world_x, world_y),
+                |architecture| architecture.is_walkable(world_x, world_y),
+            );
+            let colour = if walkable {
                 if variant.is_multiple_of(61) {
                     MINERAL_VIOLET
                 } else if variant.is_multiple_of(29) {
@@ -316,8 +442,16 @@ fn paint_materials(
                 }
             };
             target.put(i32::from(x), i32::from(y), colour);
+            if let Some(recorder) = recorder.as_deref_mut() {
+                recorder.record_background(
+                    PixelPoint::new(world_x, world_y),
+                    ArchitectureBackground::ConnectedDungeon,
+                    walkable,
+                )?;
+            }
         }
     }
+    Ok(())
 }
 
 #[derive(Clone, Copy)]
@@ -373,80 +507,130 @@ const FOREGROUND_ASSETS: &[PlacedAsset] = &[
     placed(DelveAsset::Columns, 58, 42, false),
     placed(DelveAsset::Columns, 98, 42, false),
     placed(DelveAsset::Brazier, 70, 54, false),
-    placed(DelveAsset::Rubble, 65, 52, false),
+    placed(DelveAsset::Rubble, 59, 53, false),
 ];
 
 fn paint_background_architecture(target: &mut RgbBuffer, origin: PixelPoint, seed: u64) {
-    for placed in background_assets(seed) {
-        blit_asset(
-            placed.asset,
-            target,
-            origin,
-            placed.anchor.x,
-            placed.anchor.y,
-        );
-    }
+    paint_architecture_assets(target, origin, &background_assets(seed), None)
+        .expect("unrecorded architecture painting cannot conflict");
 }
 
-fn compose_architecture(seed: u64) -> DelveArchitectureMask {
-    let mut walkable = (0..HEIGHT)
-        .flat_map(|y| (0..WIDTH).map(move |x| base_walkable(x, y)))
-        .collect::<Vec<_>>();
-    for placed in background_assets(seed)
-        .into_iter()
-        .chain(FOREGROUND_ASSETS.iter().copied())
-        .filter(|placed| placed.blocks_walkable)
-    {
-        let sprite = frame(placed.asset);
-        for (index, pixel) in sprite.pixels().iter().enumerate() {
-            let local_x = i32::try_from(index % usize::from(sprite.size().width)).unwrap_or(0);
-            let local_y = i32::try_from(index / usize::from(sprite.size().width)).unwrap_or(0);
-            let blocks = if placed.asset == DelveAsset::Arch {
-                local_y < 3 || !(3..=10).contains(&local_x)
-            } else {
-                pixel.is_some()
-            };
-            if !blocks {
-                continue;
+fn paint_architecture_assets(
+    target: &mut RgbBuffer,
+    origin: PixelPoint,
+    assets: &[PlacedAsset],
+    mut recorder: Option<&mut CompositionRecorder>,
+) -> Result<(), CompositionError> {
+    for placed in assets {
+        for_each_opaque_asset_pixel(*placed, |point, colour| {
+            put(target, origin, point.x, point.y, colour);
+            if let Some(recorder) = recorder.as_deref_mut() {
+                recorder.record_foreground(
+                    point,
+                    ArchitectureForeground {
+                        asset: placed.asset,
+                        anchor_x: placed.anchor.x,
+                        anchor_y: placed.anchor.y,
+                    },
+                    placed.blocks_walkable,
+                )?;
             }
-            let x = placed.anchor.x + local_x;
-            let y = placed.anchor.y + local_y;
-            if let Some(index) = architecture_index(x, y) {
-                walkable[index] = false;
+            Ok(())
+        })?;
+    }
+    Ok(())
+}
+
+fn for_each_opaque_asset_pixel(
+    placed: PlacedAsset,
+    mut paint: impl FnMut(PixelPoint, Rgb) -> Result<(), CompositionError>,
+) -> Result<(), CompositionError> {
+    let sprite = frame(placed.asset);
+    for (index, pixel) in sprite.pixels().iter().enumerate() {
+        let Some(colour) = pixel else {
+            continue;
+        };
+        let local_x = i32::try_from(index % usize::from(sprite.size().width))
+            .expect("Delve asset x fits i32");
+        let local_y = i32::try_from(index / usize::from(sprite.size().width))
+            .expect("Delve asset y fits i32");
+        paint(
+            PixelPoint::new(placed.anchor.x + local_x, placed.anchor.y + local_y),
+            *colour,
+        )?;
+    }
+    Ok(())
+}
+
+fn compose_architecture(seed: u64) -> Result<DelveArchitectureMask, CompositionError> {
+    compose_architecture_from(seed, &background_assets(seed), FOREGROUND_ASSETS)
+}
+
+fn compose_architecture_from(
+    seed: u64,
+    background: &[PlacedAsset],
+    foreground: &[PlacedAsset],
+) -> Result<DelveArchitectureMask, CompositionError> {
+    let width = u16::try_from(WIDTH).expect("Delve width fits u16");
+    let height = u16::try_from(HEIGHT).expect("Delve height fits u16");
+    let origin = PixelPoint::new(0, 0);
+    let mut target = RgbBuffer::filled(width, height, DEEP_BLUE_BLACK);
+    let mut recorder = CompositionRecorder::new();
+    paint_materials(&mut target, origin, seed, None, Some(&mut recorder))?;
+    paint_architecture_assets(&mut target, origin, background, Some(&mut recorder))?;
+    paint_architecture_assets(&mut target, origin, foreground, Some(&mut recorder))?;
+    recorder.finish()
+}
+
+fn validate_composition(mask: &DelveArchitectureMask) -> Result<(), CompositionError> {
+    for y in 0..HEIGHT {
+        for x in 0..WIDTH {
+            if mask.background_at(x, y).is_none() {
+                return Err(CompositionError::MissingBackground(PixelPoint::new(x, y)));
             }
+        }
+    }
+    for doorway in DOORWAYS {
+        if !mask.is_walkable(doorway.point.x, doorway.point.y) {
+            return Err(CompositionError::DoorwayBlocked(doorway.name));
         }
     }
 
-    let mut wall_segments = Vec::new();
-    for y in 0..HEIGHT {
-        for x in 0..WIDTH {
-            let Some(index) = architecture_index(x, y) else {
+    let start = DOORWAYS[0].point;
+    let mut visited = vec![false; mask.walkable.len()];
+    let start_index = architecture_index(start.x, start.y)
+        .expect("the named dungeon entrance is inside the canonical scene");
+    visited[start_index] = true;
+    let mut queue = VecDeque::from([start]);
+    while let Some(point) = queue.pop_front() {
+        for next in [
+            PixelPoint::new(point.x - 1, point.y),
+            PixelPoint::new(point.x + 1, point.y),
+            PixelPoint::new(point.x, point.y - 1),
+            PixelPoint::new(point.x, point.y + 1),
+        ] {
+            let Some(index) = architecture_index(next.x, next.y) else {
                 continue;
             };
-            if !walkable[index] {
-                continue;
-            }
-            for (next_x, next_y, edge) in [
-                (x, y - 1, WallEdge::North),
-                (x + 1, y, WallEdge::East),
-                (x, y + 1, WallEdge::South),
-                (x - 1, y, WallEdge::West),
-            ] {
-                if architecture_index(next_x, next_y).is_none_or(|next| !walkable[next]) {
-                    wall_segments.push(WallSegment {
-                        x,
-                        y,
-                        edge,
-                        owner: WallOwner::SharedDungeonShell,
-                    });
-                }
+            if mask.walkable[index] && !visited[index] {
+                visited[index] = true;
+                queue.push_back(next);
             }
         }
     }
-    DelveArchitectureMask {
-        walkable,
-        wall_segments,
+    if let Some(index) = mask
+        .walkable
+        .iter()
+        .zip(&visited)
+        .position(|(walkable, visited)| *walkable && !*visited)
+    {
+        let width = usize::try_from(WIDTH).expect("Delve width fits usize");
+        return Err(CompositionError::DisconnectedFloor(PixelPoint::new(
+            i32::try_from(index % width).expect("Delve x fits i32"),
+            i32::try_from(index / width).expect("Delve y fits i32"),
+        )));
     }
+    Ok(())
 }
 
 fn architecture_index(x: i32, y: i32) -> Option<usize> {
@@ -593,7 +777,7 @@ const EXIT_SLOTS: &[PixelPoint] = &[
     PixelPoint::new(117, 56),
     PixelPoint::new(126, 56),
     PixelPoint::new(135, 56),
-    PixelPoint::new(144, 56),
+    PixelPoint::new(143, 56),
     PixelPoint::new(108, 71),
     PixelPoint::new(117, 71),
     PixelPoint::new(126, 71),
@@ -851,7 +1035,8 @@ fn stable_hash(bytes: &[u8]) -> u64 {
 }
 
 fn blit_asset(asset: DelveAsset, target: &mut RgbBuffer, origin: PixelPoint, x: i32, y: i32) {
-    blit(frame(asset), translate(origin, x, y), target);
+    paint_architecture_assets(target, origin, &[placed(asset, x, y, false)], None)
+        .expect("unrecorded architecture painting cannot conflict");
 }
 
 fn put(target: &mut RgbBuffer, origin: PixelPoint, x: i32, y: i32, colour: Rgb) {
@@ -873,7 +1058,7 @@ mod tests {
 
     use crate::{
         app::Motion,
-        domain::{AdventurerPersona, AgentKey, PersonaKey, WorkspaceId},
+        domain::{AdventurerClass, AdventurerPersona, AgentKey, Ancestry, PersonaKey, WorkspaceId},
         scene::{
             snapshot::{SceneConnection, SceneSnapshot},
             stage::{ActorPlacement, SceneCadence, SceneCamera, ScenePlan, WorldScene},
@@ -881,6 +1066,46 @@ mod tests {
     };
 
     use super::*;
+
+    fn rectangles_intersect(left: PixelRect, right: PixelRect) -> bool {
+        left.x < right.x + i32::from(right.width)
+            && right.x < left.x + i32::from(left.width)
+            && left.y < right.y + i32::from(right.height)
+            && right.y < left.y + i32::from(left.height)
+    }
+
+    #[test]
+    fn exit_slots_keep_human_and_orc_edge_details_inside_the_landing() {
+        for ancestry in [Ancestry::Human, Ancestry::Orc] {
+            let mut persona =
+                AdventurerPersona::for_key(PersonaKey::new(format!("exit-edge-{ancestry:?}")));
+            persona.ancestry = ancestry;
+            for animation_frame in 0..3 {
+                let sprite = compact_adventurer_animation_frame(
+                    &persona,
+                    ScenePose::Working,
+                    animation_frame,
+                );
+                for anchor in EXIT_SLOTS.iter().take(VISIBLE_ACTORS_PER_STATION) {
+                    for (index, pixel) in sprite.pixels().iter().enumerate() {
+                        if pixel.is_none() {
+                            continue;
+                        }
+                        let x = anchor.x
+                            + i32::try_from(index % usize::from(sprite.size().width))
+                                .expect("sprite x fits i32");
+                        let y = anchor.y
+                            + i32::try_from(index / usize::from(sprite.size().width))
+                                .expect("sprite y fits i32");
+                        assert!(
+                            contains(EXIT_LANDING, x, y),
+                            "{ancestry:?} frame {animation_frame} at {anchor:?} paints ({x}, {y}) outside {EXIT_LANDING:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
 
     #[test]
     fn maximum_station_parties_have_unique_bounded_sprite_anchors() {
@@ -929,21 +1154,51 @@ mod tests {
             anchors.len(),
             "actor anchors must not overlap"
         );
-        let persona = AdventurerPersona::for_key(PersonaKey::new("slot-test"));
+        for (index, (_, anchor)) in anchors.iter().enumerate() {
+            let bounds = PixelRect::new(anchor.x, anchor.y, 8, 14);
+            for (_, other) in anchors.iter().skip(index + 1) {
+                let other_bounds = PixelRect::new(other.x, other.y, 8, 14);
+                assert!(
+                    !rectangles_intersect(bounds, other_bounds),
+                    "actor sprite rectangles collide: {bounds:?} and {other_bounds:?}"
+                );
+            }
+        }
+
+        let base_persona = AdventurerPersona::for_key(PersonaKey::new("slot-test"));
         for (placement, anchor) in anchors {
             let region = station_region(&placement.station, placement.pose);
-            let sprite = compact_adventurer_animation_frame(&persona, placement.pose, 0);
-            for (index, pixel) in sprite.pixels().iter().enumerate() {
-                if pixel.is_none() {
-                    continue;
+            assert!(contains(region, anchor.x, anchor.y));
+            assert!(contains(region, anchor.x + 7, anchor.y + 13));
+            for ancestry in Ancestry::ALL {
+                for class in AdventurerClass::ALL {
+                    let mut persona = base_persona.clone();
+                    persona.ancestry = *ancestry;
+                    persona.class = *class;
+                    for animation_frame in 0..3 {
+                        let sprite = compact_adventurer_animation_frame(
+                            &persona,
+                            placement.pose,
+                            animation_frame,
+                        );
+                        for (index, pixel) in sprite.pixels().iter().enumerate() {
+                            if pixel.is_none() {
+                                continue;
+                            }
+                            let x = anchor.x
+                                + i32::try_from(index % usize::from(sprite.size().width))
+                                    .expect("sprite x fits i32");
+                            let y = anchor.y
+                                + i32::try_from(index / usize::from(sprite.size().width))
+                                    .expect("sprite y fits i32");
+                            assert!(
+                                contains(region, x, y),
+                                "{} {ancestry:?} {class:?} frame {animation_frame} at ({x}, {y}) escapes {region:?}",
+                                placement.agent
+                            );
+                        }
+                    }
                 }
-                let x = anchor.x + i32::try_from(index % 8).expect("sprite x fits i32");
-                let y = anchor.y + i32::try_from(index / 8).expect("sprite y fits i32");
-                assert!(
-                    contains(region, x, y),
-                    "{} at ({x}, {y}) escapes {region:?}",
-                    placement.agent
-                );
             }
         }
     }
@@ -991,7 +1246,14 @@ mod tests {
         let width = u16::try_from(WIDTH).expect("Delve width fits u16");
         let height = u16::try_from(HEIGHT).expect("Delve height fits u16");
         let mut ambient = RgbBuffer::filled(width, height, DEEP_BLUE_BLACK);
-        paint_materials(&mut ambient, origin, dungeon_seed(&snapshot), &architecture);
+        paint_materials(
+            &mut ambient,
+            origin,
+            dungeon_seed(&snapshot),
+            Some(&architecture),
+            None,
+        )
+        .expect("unrecorded material painting cannot conflict");
         paint_background_architecture(&mut ambient, origin, dungeon_seed(&snapshot));
         lighting::apply_cool_ambient(&mut ambient, 20);
         let mut composed = RgbBuffer::filled(width, height, DEEP_BLUE_BLACK);
@@ -999,8 +1261,10 @@ mod tests {
             &mut composed,
             origin,
             dungeon_seed(&snapshot),
-            &architecture,
-        );
+            Some(&architecture),
+            None,
+        )
+        .expect("unrecorded material painting cannot conflict");
         paint_background_architecture(&mut composed, origin, dungeon_seed(&snapshot));
         apply_lighting(&snapshot, &mut composed, origin);
 
@@ -1042,7 +1306,8 @@ mod tests {
         let width = u16::try_from(WIDTH).expect("Delve width fits u16");
         let height = u16::try_from(HEIGHT).expect("Delve height fits u16");
         let mut floor = RgbBuffer::filled(width, height, DEEP_BLUE_BLACK);
-        paint_materials(&mut floor, origin, seed, &architecture);
+        paint_materials(&mut floor, origin, seed, Some(&architecture), None)
+            .expect("unrecorded material painting cannot conflict");
         let mut composed = floor.clone();
         paint_background_architecture(&mut composed, origin, seed);
         let empty_plan = ScenePlan {
@@ -1066,5 +1331,72 @@ mod tests {
             !is_walkable(50, 31),
             "the final walkability evidence must include the opaque west arch wall"
         );
+    }
+
+    #[test]
+    fn transparent_arch_pixels_do_not_block_the_floor_beneath_them() {
+        let snapshot = SceneSnapshot {
+            connection: SceneConnection::Connected,
+            campaigns: Vec::new(),
+            agents: Vec::new(),
+            motion: Motion::None,
+            now: Timestamp::from_millis(0),
+        };
+        let architecture = architecture_mask(&snapshot);
+
+        assert!(base_walkable(50, 29), "the arch corner sits over floor");
+        assert!(
+            frame(DelveAsset::Arch).pixels()[0].is_none(),
+            "the authored arch corner is transparent"
+        );
+        assert!(
+            architecture.is_walkable(50, 29),
+            "transparent arch paint must leave the floor traversable"
+        );
+    }
+
+    #[test]
+    fn duplicate_opaque_foreground_owner_writes_are_rejected() {
+        let duplicate = placed(DelveAsset::Arch, 50, 29, true);
+        let error = compose_architecture_from(0x00d3_116e_u64, &[], &[duplicate, duplicate])
+            .expect_err("the second opaque owner write must be rejected");
+
+        assert!(matches!(
+            error,
+            CompositionError::OverlappingForeground { .. }
+        ));
+    }
+
+    #[test]
+    fn duplicate_background_owner_writes_are_rejected() {
+        let point = PixelPoint::new(12, 12);
+        let mut recorder = CompositionRecorder::new();
+        recorder
+            .record_background(point, ArchitectureBackground::ConnectedDungeon, true)
+            .expect("first owner write is valid");
+        let error = recorder
+            .record_background(point, ArchitectureBackground::ConnectedDungeon, true)
+            .expect_err("the second background owner write must be rejected");
+
+        assert!(matches!(
+            error,
+            CompositionError::OverlappingBackground { .. }
+        ));
+    }
+
+    #[test]
+    fn both_deterministic_rubble_variants_have_valid_final_compositions() {
+        compose_architecture(0).expect("even-seed composition is valid");
+        compose_architecture(1).expect("odd-seed composition is valid");
+    }
+
+    #[test]
+    fn actual_opaque_foreground_paint_blocking_a_doorway_fails_validation() {
+        let doorway = DOORWAYS[0];
+        let blocking_door = placed(DelveAsset::Door, doorway.point.x, doorway.point.y, true);
+        let error = compose_architecture_from(0x00d3_116e_u64, &[], &[blocking_door])
+            .expect_err("an opaque foreground pixel must not close a named doorway");
+
+        assert_eq!(error, CompositionError::DoorwayBlocked(doorway.name));
     }
 }
