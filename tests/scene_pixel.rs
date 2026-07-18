@@ -71,3 +71,27 @@ fn mirrored_blit_reverses_source_columns_without_writing_transparent_pixels() {
     assert_eq!(target.get(0, 0), Some(blue));
     assert_eq!(target.get(1, 0), Some(red));
 }
+
+#[test]
+fn blit_skips_unrepresentable_extreme_destination_coordinates() {
+    let black = Rgb::BLACK;
+    let frame = SpriteFrame::from_pixels(2, 2, vec![Some(Rgb::new(255, 0, 0)); 4]);
+    let mut target = RgbBuffer::filled(2, 2, black);
+
+    blit(&frame, PixelPoint::new(i32::MAX, i32::MAX), &mut target);
+    blit(&frame, PixelPoint::new(i32::MIN, i32::MIN), &mut target);
+
+    assert!(target.pixels().iter().all(|pixel| *pixel == black));
+}
+
+#[test]
+fn mirrored_blit_skips_unrepresentable_extreme_destination_coordinates() {
+    let black = Rgb::BLACK;
+    let frame = SpriteFrame::from_pixels(2, 2, vec![Some(Rgb::new(255, 0, 0)); 4]);
+    let mut target = RgbBuffer::filled(2, 2, black);
+
+    blit_mirrored(&frame, PixelPoint::new(i32::MAX, i32::MAX), &mut target);
+    blit_mirrored(&frame, PixelPoint::new(i32::MIN, i32::MIN), &mut target);
+
+    assert!(target.pixels().iter().all(|pixel| *pixel == black));
+}

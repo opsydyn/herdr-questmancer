@@ -52,7 +52,13 @@ fn blit_with_source_x(
             let pixel = frame.pixels
                 [usize::from(y) * usize::from(frame.size.width) + usize::from(source_x(x))];
             if let Some(colour) = pixel {
-                target.put(origin.x + i32::from(x), origin.y + i32::from(y), colour);
+                let Some(destination_x) = origin.x.checked_add(i32::from(x)) else {
+                    continue;
+                };
+                let Some(destination_y) = origin.y.checked_add(i32::from(y)) else {
+                    continue;
+                };
+                target.put(destination_x, destination_y, colour);
             }
         }
     }
