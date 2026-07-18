@@ -143,7 +143,7 @@ fn great_room_storybook_families_are_derived_from_production_enums() {
 #[test]
 fn production_catalogue_owns_every_authored_asset_once() {
     let report = validate_catalogue().unwrap();
-    assert_eq!(asset_inventory().len(), 188);
+    assert_eq!(asset_inventory().len(), 193);
     assert_eq!(report.owned(), asset_inventory().len());
     assert!(report.missing().is_empty());
     assert!(report.duplicates().is_empty());
@@ -214,6 +214,23 @@ fn catalogue_has_the_six_fixed_scene_first_guild_hall_stories() {
         "scenes.guild-hall-spoils-returned",
         "scenes.guild-hall-reconnecting",
         "scenes.guild-hall-minimum-viewport",
+    ] {
+        assert!(ids.contains(expected), "missing fixed story {expected}");
+    }
+}
+
+#[test]
+fn catalogue_has_the_five_fixed_scene_first_delve_stories() {
+    let ids = catalogue()
+        .iter()
+        .map(|story| story.id.as_str())
+        .collect::<HashSet<_>>();
+    for expected in [
+        "scenes.delve-active-party",
+        "scenes.delve-mixed-states",
+        "scenes.delve-sealed-gate",
+        "scenes.delve-reconnecting",
+        "scenes.delve-minimum-viewport",
     ] {
         assert!(ids.contains(expected), "missing fixed story {expected}");
     }
@@ -348,6 +365,11 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "scenes.guild-hall-spoils-returned",
             "scenes.guild-hall-reconnecting",
             "scenes.guild-hall-minimum-viewport",
+            "scenes.delve-active-party",
+            "scenes.delve-mixed-states",
+            "scenes.delve-sealed-gate",
+            "scenes.delve-reconnecting",
+            "scenes.delve-minimum-viewport",
             "scenes.guild-empty",
             "scenes.guild-populated",
             "scenes.guild-one-campaign",
@@ -380,7 +402,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "compat.motion-none",
         ]
     );
-    assert_eq!(ids.len(), 64);
+    assert_eq!(ids.len(), 69);
 }
 
 #[test]
@@ -391,7 +413,7 @@ fn all_four_categories_are_populated_in_the_fixed_order() {
             .filter(|story| story.category == category)
             .count()
     });
-    assert_eq!(counts, [21, 6, 31, 6]);
+    assert_eq!(counts, [21, 6, 36, 6]);
     assert!(catalogue()[..15].iter().all(|story| {
         story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
     }));
@@ -515,6 +537,26 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
             )],
         ),
         (
+            "scenes.delve-active-party",
+            vec![AssetId::SceneFirst(SceneFirstAsset::DelveActiveParty)],
+        ),
+        (
+            "scenes.delve-mixed-states",
+            vec![AssetId::SceneFirst(SceneFirstAsset::DelveMixedStates)],
+        ),
+        (
+            "scenes.delve-sealed-gate",
+            vec![AssetId::SceneFirst(SceneFirstAsset::DelveSealedGate)],
+        ),
+        (
+            "scenes.delve-reconnecting",
+            vec![AssetId::SceneFirst(SceneFirstAsset::DelveReconnecting)],
+        ),
+        (
+            "scenes.delve-minimum-viewport",
+            vec![AssetId::SceneFirst(SceneFirstAsset::DelveMinimumViewport)],
+        ),
+        (
             "scenes.guild-empty",
             vec![AssetId::Scene(SceneAsset::GuildEmpty)],
         ),
@@ -633,7 +675,7 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
         ),
     ];
 
-    assert_eq!(expected.len(), 43);
+    assert_eq!(expected.len(), 48);
     for (story_id, owns) in expected {
         let story = catalogue()
             .iter()

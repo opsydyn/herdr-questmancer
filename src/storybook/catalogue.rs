@@ -260,6 +260,8 @@ const COMPATIBILITY_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
 const PIXEL_SCENE_VIEWPORT: Viewport = Viewport::new(120, 36, 40, 18);
 const GUILD_HALL_PIXEL_VIEWPORT: Viewport = Viewport::new(160, 45, 80, 24);
 const GUILD_HALL_MINIMUM_VIEWPORT: Viewport = Viewport::new(80, 24, 40, 18);
+const DELVE_PIXEL_VIEWPORT: Viewport = Viewport::new(160, 45, 80, 24);
+const DELVE_MINIMUM_VIEWPORT: Viewport = Viewport::new(80, 24, 40, 18);
 
 macro_rules! atlas_story {
     ($id:literal, $title:literal, $description:literal, $builder:path, $owns:expr, $reused:expr) => {
@@ -635,6 +637,56 @@ fn build_catalogue() -> Vec<Story> {
             &[AssetId::SceneFirst(
                 SceneFirstAsset::GuildHallMinimumViewport,
             )],
+            &[],
+        ),
+        complete_story(
+            "scenes.delve-active-party",
+            "Delve Active Party",
+            Category::FullScenes,
+            "A working party occupying the connected active passage.",
+            DELVE_PIXEL_VIEWPORT,
+            delve_active_party,
+            &[AssetId::SceneFirst(SceneFirstAsset::DelveActiveParty)],
+            &[],
+        ),
+        complete_story(
+            "scenes.delve-mixed-states",
+            "Delve Mixed States",
+            Category::FullScenes,
+            "Every truthful Delve station inside one connected dungeon.",
+            DELVE_PIXEL_VIEWPORT,
+            delve_mixed_states,
+            &[AssetId::SceneFirst(SceneFirstAsset::DelveMixedStates)],
+            &[],
+        ),
+        complete_story(
+            "scenes.delve-sealed-gate",
+            "Delve Sealed Gate",
+            Category::FullScenes,
+            "A blocked adventurer waiting truthfully before the sealed gate.",
+            DELVE_PIXEL_VIEWPORT,
+            delve_sealed_gate,
+            &[AssetId::SceneFirst(SceneFirstAsset::DelveSealedGate)],
+            &[],
+        ),
+        complete_story(
+            "scenes.delve-reconnecting",
+            "Delve Reconnecting",
+            Category::FullScenes,
+            "The same dungeon under lowered light with connection truth at the entrance.",
+            DELVE_PIXEL_VIEWPORT,
+            delve_reconnecting,
+            &[AssetId::SceneFirst(SceneFirstAsset::DelveReconnecting)],
+            &[],
+        ),
+        complete_story(
+            "scenes.delve-minimum-viewport",
+            "Delve Minimum Viewport",
+            Category::FullScenes,
+            "A focused crop of the canonical dungeon without scaling or chamber cards.",
+            DELVE_MINIMUM_VIEWPORT,
+            delve_minimum_viewport,
+            &[AssetId::SceneFirst(SceneFirstAsset::DelveMinimumViewport)],
             &[],
         ),
         scene_story(
@@ -1189,6 +1241,26 @@ fn guild_hall_reconnecting(context: &StoryContext) -> StoryFixture {
 
 fn guild_hall_minimum_viewport(context: &StoryContext) -> StoryFixture {
     StoryFixture::PixelScene(fixtures::guild_hall_minimum_viewport_scene_fixture(context))
+}
+
+fn delve_active_party(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::delve_active_party_scene_fixture(context))
+}
+
+fn delve_mixed_states(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::delve_mixed_states_scene_fixture(context))
+}
+
+fn delve_sealed_gate(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::delve_sealed_gate_scene_fixture(context))
+}
+
+fn delve_reconnecting(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::delve_reconnecting_scene_fixture(context))
+}
+
+fn delve_minimum_viewport(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::delve_minimum_viewport_scene_fixture(context))
 }
 
 fn compact_scene_adventurers(context: &StoryContext) -> StoryFixture {

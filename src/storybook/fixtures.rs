@@ -910,3 +910,187 @@ fn guild_hall_agent(
         persona,
     }
 }
+
+pub fn delve_active_party_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    PixelSceneFixture::in_world(delve_active_snapshot(*context), WorldScene::Delve)
+}
+
+pub fn delve_mixed_states_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let campaigns = delve_campaigns();
+    PixelSceneFixture::in_world(
+        SceneSnapshot {
+            connection: SceneConnection::Connected,
+            agents: vec![
+                delve_agent(
+                    "Tala-Pathfinder",
+                    &campaigns[0].workspace_id,
+                    Presence::Working,
+                    AccentTone::Cyan,
+                    context.now,
+                ),
+                delve_agent(
+                    "Mara-Sealkeeper",
+                    &campaigns[0].workspace_id,
+                    Presence::Blocked,
+                    AccentTone::Magenta,
+                    context.now,
+                ),
+                delve_agent(
+                    "Ivo-Runeporter",
+                    &campaigns[1].workspace_id,
+                    Presence::Done,
+                    AccentTone::Amber,
+                    context.now,
+                ),
+                delve_agent(
+                    "Sable-Campward",
+                    &campaigns[1].workspace_id,
+                    Presence::Idle,
+                    AccentTone::Lime,
+                    context.now,
+                ),
+                delve_agent(
+                    "Orin-Unlit",
+                    &campaigns[0].workspace_id,
+                    Presence::Unknown,
+                    AccentTone::Violet,
+                    context.now,
+                ),
+                delve_agent(
+                    "Bram-Departed",
+                    &campaigns[1].workspace_id,
+                    Presence::Exited,
+                    AccentTone::Red,
+                    context.now,
+                ),
+            ],
+            campaigns,
+            motion: Motion::None,
+            now: context.now,
+        },
+        WorldScene::Delve,
+    )
+}
+
+pub fn delve_sealed_gate_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let campaigns = delve_campaigns();
+    let mut blocked = delve_agent(
+        "Mara-Sealkeeper",
+        &campaigns[0].workspace_id,
+        Presence::Blocked,
+        AccentTone::Magenta,
+        context.now,
+    );
+    blocked.transition = Some(SceneTransition {
+        summons: GuildSummons::CounselRequested,
+        since: Timestamp::from_millis(context.now.as_millis().saturating_sub(6_000)),
+    });
+    PixelSceneFixture::in_world(
+        SceneSnapshot {
+            connection: SceneConnection::Connected,
+            campaigns,
+            agents: vec![blocked],
+            motion: Motion::None,
+            now: context.now,
+        },
+        WorldScene::Delve,
+    )
+}
+
+pub fn delve_reconnecting_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let mut snapshot = delve_active_snapshot(*context);
+    snapshot.connection = SceneConnection::Reconnecting { attempt: 3 };
+    PixelSceneFixture::in_world(snapshot, WorldScene::Delve)
+}
+
+pub fn delve_minimum_viewport_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let campaigns = delve_campaigns();
+    let mut focused = delve_agent(
+        "Nia-Deepwalker",
+        &campaigns[0].workspace_id,
+        Presence::Working,
+        AccentTone::Teal,
+        context.now,
+    );
+    focused.focused = true;
+    PixelSceneFixture::in_world(
+        SceneSnapshot {
+            connection: SceneConnection::Connected,
+            campaigns,
+            agents: vec![focused],
+            motion: Motion::None,
+            now: context.now,
+        },
+        WorldScene::Delve,
+    )
+}
+
+fn delve_active_snapshot(context: StoryContext) -> SceneSnapshot {
+    let campaigns = delve_campaigns();
+    SceneSnapshot {
+        connection: SceneConnection::Connected,
+        agents: vec![
+            delve_agent(
+                "Tala-Pathfinder",
+                &campaigns[0].workspace_id,
+                Presence::Working,
+                AccentTone::Cyan,
+                context.now,
+            ),
+            delve_agent(
+                "Elowen-Runesight",
+                &campaigns[0].workspace_id,
+                Presence::Working,
+                AccentTone::Lime,
+                context.now,
+            ),
+            delve_agent(
+                "Ivo-Deepward",
+                &campaigns[1].workspace_id,
+                Presence::Working,
+                AccentTone::Amber,
+                context.now,
+            ),
+        ],
+        campaigns,
+        motion: Motion::None,
+        now: context.now,
+    }
+}
+
+fn delve_campaigns() -> Vec<SceneCampaign> {
+    vec![
+        SceneCampaign {
+            workspace_id: WorkspaceId::new("scene-delve-moss-vault"),
+            label: "Moss Vault".to_owned(),
+            variant_seed: 0x47a1_0ee5,
+        },
+        SceneCampaign {
+            workspace_id: WorkspaceId::new("scene-delve-rune-road"),
+            label: "Rune Road".to_owned(),
+            variant_seed: 0xb20f_91c3,
+        },
+    ]
+}
+
+fn delve_agent(
+    key: &str,
+    workspace_id: &WorkspaceId,
+    presence: Presence,
+    accent: AccentTone,
+    now: Timestamp,
+) -> SceneAgent {
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new(format!("scene-delve-{key}")));
+    persona.appearance.accent = accent;
+    SceneAgent {
+        key: AgentKey::new(key),
+        workspace_id: workspace_id.clone(),
+        name: key.replace('-', " "),
+        custom_status: None,
+        presence,
+        presence_since: Timestamp::from_millis(now.as_millis().saturating_sub(20_000)),
+        transition: None,
+        focused: false,
+        persona,
+    }
+}

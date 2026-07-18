@@ -113,6 +113,11 @@ storybook_asset_enum!(SceneFirstAsset {
     GuildHallSpoilsReturned,
     GuildHallReconnecting,
     GuildHallMinimumViewport,
+    DelveActiveParty,
+    DelveMixedStates,
+    DelveSealedGate,
+    DelveReconnecting,
+    DelveMinimumViewport,
 });
 
 impl AssetId {
@@ -358,6 +363,11 @@ impl AssetId {
                 SceneFirstAsset::GuildHallMinimumViewport => {
                     "scene first: Guild Hall minimum viewport"
                 }
+                SceneFirstAsset::DelveActiveParty => "scene first: Delve active party",
+                SceneFirstAsset::DelveMixedStates => "scene first: Delve mixed states",
+                SceneFirstAsset::DelveSealedGate => "scene first: Delve sealed gate",
+                SceneFirstAsset::DelveReconnecting => "scene first: Delve reconnecting",
+                SceneFirstAsset::DelveMinimumViewport => "scene first: Delve minimum viewport",
             },
             Self::Compatibility(value) => match value {
                 CompatibilityAsset::UnicodeXterm256 => "compatibility: unicode xterm-256",

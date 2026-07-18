@@ -243,6 +243,10 @@ fn story_override_reprojects_truthful_stations_for_the_requested_world() {
 }
 
 #[test]
+#[allow(
+    clippy::too_many_lines,
+    reason = "the exhaustive SceneFirstAsset ownership table is intentionally visible"
+)]
 fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
     assert_eq!(
         SceneFirstAsset::ALL,
@@ -255,6 +259,11 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             SceneFirstAsset::GuildHallSpoilsReturned,
             SceneFirstAsset::GuildHallReconnecting,
             SceneFirstAsset::GuildHallMinimumViewport,
+            SceneFirstAsset::DelveActiveParty,
+            SceneFirstAsset::DelveMixedStates,
+            SceneFirstAsset::DelveSealedGate,
+            SceneFirstAsset::DelveReconnecting,
+            SceneFirstAsset::DelveMinimumViewport,
         ]
     );
     let stories = catalogue();
@@ -288,6 +297,23 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             "scenes.guild-hall-minimum-viewport",
             SceneFirstAsset::GuildHallMinimumViewport,
         ),
+        (
+            "scenes.delve-active-party",
+            SceneFirstAsset::DelveActiveParty,
+        ),
+        (
+            "scenes.delve-mixed-states",
+            SceneFirstAsset::DelveMixedStates,
+        ),
+        ("scenes.delve-sealed-gate", SceneFirstAsset::DelveSealedGate),
+        (
+            "scenes.delve-reconnecting",
+            SceneFirstAsset::DelveReconnecting,
+        ),
+        (
+            "scenes.delve-minimum-viewport",
+            SceneFirstAsset::DelveMinimumViewport,
+        ),
     ] {
         let index = stories
             .iter()
@@ -303,7 +329,12 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             | SceneFirstAsset::GuildHallCounselRequested
             | SceneFirstAsset::GuildHallSpoilsReturned
             | SceneFirstAsset::GuildHallReconnecting
-            | SceneFirstAsset::GuildHallMinimumViewport => {
+            | SceneFirstAsset::GuildHallMinimumViewport
+            | SceneFirstAsset::DelveActiveParty
+            | SceneFirstAsset::DelveMixedStates
+            | SceneFirstAsset::DelveSealedGate
+            | SceneFirstAsset::DelveReconnecting
+            | SceneFirstAsset::DelveMinimumViewport => {
                 assert!(matches!(fixture, StoryFixture::PixelScene(_)));
             }
             SceneFirstAsset::CompactAdventurers => {
@@ -378,6 +409,49 @@ fn six_fixed_guild_hall_stories_use_direct_snapshots_and_unique_scene_first_owne
         assert_eq!(fixture.world_override, Some(WorldScene::GuildHall));
     }
     assert_eq!(owners.len(), expected.len());
+}
+
+#[test]
+fn five_fixed_delve_stories_use_direct_snapshots_and_unique_scene_first_ownership() {
+    let stories = catalogue();
+    let expected = [
+        ("scenes.delve-active-party", "Delve Active Party"),
+        ("scenes.delve-mixed-states", "Delve Mixed States"),
+        ("scenes.delve-sealed-gate", "Delve Sealed Gate"),
+        ("scenes.delve-reconnecting", "Delve Reconnecting"),
+        ("scenes.delve-minimum-viewport", "Delve Minimum Viewport"),
+    ];
+    let mut owners = HashSet::new();
+    for (id, title) in expected {
+        let story = stories
+            .iter()
+            .find(|story| story.id.as_str() == id)
+            .unwrap_or_else(|| panic!("missing {id}"));
+        assert_eq!(story.title, title);
+        assert_eq!(story.owns.len(), 1);
+        assert!(matches!(story.owns[0], AssetId::SceneFirst(_)));
+        assert!(owners.insert(story.owns[0]), "duplicate owner for {id}");
+        let StoryFixture::PixelScene(fixture) = (story.build)(&StoryContext::fixed()) else {
+            panic!("{id} must derive directly from a SceneSnapshot fixture");
+        };
+        assert_eq!(fixture.world_override, Some(WorldScene::Delve));
+    }
+    assert_eq!(owners.len(), expected.len());
+
+    let sealed = stories
+        .iter()
+        .find(|story| story.id.as_str() == "scenes.delve-sealed-gate")
+        .expect("sealed gate story exists");
+    let StoryFixture::PixelScene(sealed) = (sealed.build)(&StoryContext::fixed()) else {
+        unreachable!();
+    };
+    assert!(
+        sealed
+            .snapshot
+            .agents
+            .iter()
+            .any(|agent| agent.presence == Presence::Blocked)
+    );
 }
 
 #[test]

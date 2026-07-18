@@ -23,6 +23,17 @@ pub fn apply_candle_light(target: &mut RgbBuffer, candle: PixelPoint) {
     }
 }
 
+pub fn apply_cool_ambient(target: &mut RgbBuffer, strength: u8) {
+    let amount = u16::from(strength.min(100));
+    for colour in target.pixels_mut() {
+        *colour = blend(*colour, Rgb::new(18, 88, 105), amount);
+    }
+}
+
+pub fn apply_cool_pool(target: &mut RgbBuffer, centre: PixelPoint, radius: u16, strength: u8) {
+    apply_pool(target, centre, radius, strength, Rgb::new(34, 184, 177));
+}
+
 pub fn dim(target: &mut RgbBuffer, amount: u8) {
     for colour in target.pixels_mut() {
         *colour = blend(*colour, Rgb::BLACK, u16::from(amount.min(100)));
@@ -30,6 +41,10 @@ pub fn dim(target: &mut RgbBuffer, amount: u8) {
 }
 
 pub fn apply_warm_pool(target: &mut RgbBuffer, centre: PixelPoint, radius: u16, strength: u8) {
+    apply_pool(target, centre, radius, strength, Rgb::new(255, 175, 67));
+}
+
+fn apply_pool(target: &mut RgbBuffer, centre: PixelPoint, radius: u16, strength: u8, tint: Rgb) {
     let radius = u32::from(radius.max(1));
     for y in 0..target.size().height {
         for x in 0..target.size().width {
@@ -46,7 +61,7 @@ pub fn apply_warm_pool(target: &mut RgbBuffer, centre: PixelPoint, radius: u16, 
                 target.put(
                     i32::from(x),
                     i32::from(y),
-                    blend(colour, Rgb::new(255, 175, 67), amount.min(100)),
+                    blend(colour, tint, amount.min(100)),
                 );
             }
         }
