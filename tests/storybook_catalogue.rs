@@ -11,7 +11,7 @@ use questmancer::{
         Legwear, PersonaKey, Presence, SkinTone,
     },
     storybook::{
-        AssetId, CompatibilityAsset, SceneAsset, WidgetAsset, asset_inventory,
+        AssetId, CompatibilityAsset, SceneAsset, SceneFirstAsset, WidgetAsset, asset_inventory,
         assets::{LandmarkAsset, RoomCameraAsset, TruthfulStationAsset},
         catalogue::{
             Category, Story, StoryId, Viewport, catalogue, validate_catalogue, validate_coverage,
@@ -104,6 +104,7 @@ fn production_and_storybook_asset_families_expose_exhaustive_collections() {
         + GoblinSighting::ALL.len();
     let storybook_count = WidgetAsset::ALL.len()
         + SceneAsset::ALL.len()
+        + SceneFirstAsset::ALL.len()
         + CompatibilityAsset::ALL.len()
         + LandmarkAsset::ALL.len()
         + TruthfulStationAsset::ALL.len()
@@ -142,7 +143,7 @@ fn great_room_storybook_families_are_derived_from_production_enums() {
 #[test]
 fn production_catalogue_owns_every_authored_asset_once() {
     let report = validate_catalogue().unwrap();
-    assert_eq!(asset_inventory().len(), 180);
+    assert_eq!(asset_inventory().len(), 182);
     assert_eq!(report.owned(), asset_inventory().len());
     assert!(report.missing().is_empty());
     assert!(report.duplicates().is_empty());
@@ -240,6 +241,7 @@ fn atlas_catalogue_owns_every_atlas_asset_exactly_once() {
                     | AssetId::Landmark(_)
                     | AssetId::TruthfulStation(_)
                     | AssetId::RoomCamera(_)
+                    | AssetId::SceneFirst(SceneFirstAsset::CompactAdventurers)
             )
         })
         .collect::<Vec<_>>();
@@ -262,6 +264,7 @@ fn atlas_stories_enumerate_their_reused_visible_persona_assets() {
             && !story.id.as_str().starts_with("atlas.great-room")
             && !story.id.as_str().starts_with("atlas.truthful-stations")
             && !story.id.as_str().starts_with("atlas.camera-")
+            && story.id.as_str() != "atlas.compact-scene-adventurers"
     }) {
         let mut expected = if story.id.as_str() == "atlas.palette-roles" {
             HashSet::new()
@@ -313,12 +316,14 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "atlas.camera-whole-room",
             "atlas.camera-cropped-room",
             "atlas.camera-landmark",
+            "atlas.compact-scene-adventurers",
             "widgets.adventurer-cards",
             "widgets.chambers",
             "widgets.guild-regions",
             "widgets.counsel",
             "widgets.search",
             "widgets.help",
+            "scenes.rgb-calibration-room",
             "scenes.guild-empty",
             "scenes.guild-populated",
             "scenes.guild-one-campaign",
@@ -351,7 +356,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "compat.motion-none",
         ]
     );
-    assert_eq!(ids.len(), 56);
+    assert_eq!(ids.len(), 58);
 }
 
 #[test]
@@ -362,7 +367,7 @@ fn all_four_categories_are_populated_in_the_fixed_order() {
             .filter(|story| story.category == category)
             .count()
     });
-    assert_eq!(counts, [20, 6, 24, 6]);
+    assert_eq!(counts, [21, 6, 25, 6]);
     assert!(catalogue()[..15].iter().all(|story| {
         story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
     }));
@@ -451,6 +456,10 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
         ),
         ("widgets.search", vec![AssetId::Widget(WidgetAsset::Search)]),
         ("widgets.help", vec![AssetId::Widget(WidgetAsset::Help)]),
+        (
+            "scenes.rgb-calibration-room",
+            vec![AssetId::SceneFirst(SceneFirstAsset::CalibrationRoom)],
+        ),
         (
             "scenes.guild-empty",
             vec![AssetId::Scene(SceneAsset::GuildEmpty)],
@@ -570,7 +579,7 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
         ),
     ];
 
-    assert_eq!(expected.len(), 36);
+    assert_eq!(expected.len(), 37);
     for (story_id, owns) in expected {
         let story = catalogue()
             .iter()
@@ -795,14 +804,23 @@ fn compatibility_stories_use_clean_connected_great_room_baselines() {
 }
 
 #[test]
-fn every_non_atlas_application_story_uses_the_production_fixture_bridge() {
+fn every_story_uses_its_declared_fixture_bridge() {
     for story in catalogue() {
         let fixture = (story.build)(&StoryContext::fixed());
         let is_widget_atlas = matches!(
             story.id.as_str(),
             "widgets.adventurer-cards" | "widgets.chambers" | "widgets.guild-regions"
         );
-        if story.category == Category::AssetAtlas || is_widget_atlas {
+        if matches!(
+            story.id.as_str(),
+            "atlas.compact-scene-adventurers" | "scenes.rgb-calibration-room"
+        ) {
+            assert!(
+                matches!(fixture, StoryFixture::PixelScene(_)),
+                "{}",
+                story.id.as_str()
+            );
+        } else if story.category == Category::AssetAtlas || is_widget_atlas {
             assert!(
                 matches!(fixture, StoryFixture::AssetAtlas(_)),
                 "{}",

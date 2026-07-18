@@ -23,7 +23,7 @@ use crate::{
 use ratatui::layout::Rect;
 
 use super::{
-    AssetId, CompatibilityAsset, SceneAsset, WidgetAsset,
+    AssetId, CompatibilityAsset, SceneAsset, SceneFirstAsset, WidgetAsset,
     assets::{
         ACCENT_TONES, ANCESTRIES, BODY_PROPORTIONS, CLASSES, COLOR_ROLES, FACE_DETAILS, FOOTWEAR,
         GARBS, GEAR, HAIR_SHAPES, HAIR_TONES, HEAD_SHAPES, KEEPSAKES, LANDMARKS, LEGWEAR, POSES,
@@ -257,6 +257,7 @@ const NARROW_VIEWPORT: Viewport = Viewport::new(64, 24, 48, 18);
 const CROPPED_ROOM_VIEWPORT: Viewport = Viewport::new(100, 32, 80, 18);
 const LANDMARK_CAMERA_VIEWPORT: Viewport = Viewport::new(78, 26, 48, 18);
 const COMPATIBILITY_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
+const PIXEL_SCENE_VIEWPORT: Viewport = Viewport::new(120, 36, 40, 18);
 
 macro_rules! atlas_story {
     ($id:literal, $title:literal, $description:literal, $builder:path, $owns:expr, $reused:expr) => {
@@ -485,6 +486,16 @@ fn build_catalogue() -> Vec<Story> {
             LANDMARK_CAMERA,
             widget_atlas_shows(atlas::great_room_landmark_camera),
         ),
+        complete_story(
+            "atlas.compact-scene-adventurers",
+            "Compact Scene Adventurers",
+            Category::AssetAtlas,
+            "The original compact scene adventurer vocabulary in the RGB calibration room.",
+            PIXEL_SCENE_VIEWPORT,
+            compact_scene_adventurers,
+            &[AssetId::SceneFirst(SceneFirstAsset::CompactAdventurers)],
+            &[],
+        ),
     ];
 
     stories.extend([
@@ -547,6 +558,16 @@ fn build_catalogue() -> Vec<Story> {
             help,
             HELP,
             help_reuses,
+        ),
+        complete_story(
+            "scenes.rgb-calibration-room",
+            "RGB Calibration Room",
+            Category::FullScenes,
+            "An original continuous room proving the terminal-independent RGB renderer.",
+            PIXEL_SCENE_VIEWPORT,
+            rgb_calibration_room,
+            &[AssetId::SceneFirst(SceneFirstAsset::CalibrationRoom)],
+            &[],
         ),
         scene_story(
             "scenes.guild-empty",
@@ -1070,6 +1091,14 @@ fn compatibility_story(
 
 fn application(model: crate::app::Model) -> StoryFixture {
     StoryFixture::Application(model)
+}
+
+fn rgb_calibration_room(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::calibration_room_scene_fixture(context))
+}
+
+fn compact_scene_adventurers(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::compact_adventurers_scene_fixture(context))
 }
 
 fn counsel(_: &StoryContext) -> StoryFixture {

@@ -44,6 +44,7 @@ pub enum AssetId {
     RoomCamera(RoomCameraAsset),
     Widget(WidgetAsset),
     Scene(SceneAsset),
+    SceneFirst(SceneFirstAsset),
     Compatibility(CompatibilityAsset),
 }
 
@@ -101,6 +102,11 @@ storybook_asset_enum!(CompatibilityAsset {
     MotionFull,
     MotionReduced,
     MotionNone,
+});
+
+storybook_asset_enum!(SceneFirstAsset {
+    CalibrationRoom,
+    CompactAdventurers,
 });
 
 impl AssetId {
@@ -331,6 +337,10 @@ impl AssetId {
                 SceneAsset::NarrowGuild => "scene: narrow guild",
                 SceneAsset::NarrowDelve => "scene: narrow delve",
             },
+            Self::SceneFirst(value) => match value {
+                SceneFirstAsset::CalibrationRoom => "scene first: RGB calibration room",
+                SceneFirstAsset::CompactAdventurers => "scene first: compact adventurers",
+            },
             Self::Compatibility(value) => match value {
                 CompatibilityAsset::UnicodeXterm256 => "compatibility: unicode xterm-256",
                 CompatibilityAsset::UnicodeAnsi16 => "compatibility: unicode ANSI 16",
@@ -409,6 +419,7 @@ asset_family!(
     RoomCamera
 );
 asset_family!(SCENES, scene_assets, SceneAsset, Scene);
+asset_family!(SCENE_FIRST, scene_first_assets, SceneFirstAsset, SceneFirst);
 asset_family!(
     COMPATIBILITY,
     compatibility_assets,
@@ -443,6 +454,7 @@ pub fn asset_inventory() -> Vec<AssetId> {
         ROOM_CAMERAS,
         WIDGETS,
         SCENES,
+        SCENE_FIRST,
         COMPATIBILITY,
     ]
     .into_iter()

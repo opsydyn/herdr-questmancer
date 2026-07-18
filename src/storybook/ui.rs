@@ -1,3 +1,5 @@
+use std::sync::{Mutex, OnceLock};
+
 use ratatui::{
     Frame, Terminal,
     backend::TestBackend,
@@ -10,8 +12,13 @@ use ratatui::{
 
 use crate::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Model, Motion},
+    scene::{
+        self,
+        pixel::{PixelSize, Rgb, RgbBuffer},
+    },
     ui::{
         pixel,
+        scene_adapter::flush_rgb,
         widgets::{render_adventurer_card, render_chamber},
     },
 };
@@ -342,6 +349,20 @@ fn render_fixture(frame: &mut Frame<'_>, area: Rect, fixture: &StoryFixture) {
             blit(&source, frame.buffer_mut(), area);
         }
         StoryFixture::AssetAtlas(atlas) => render_atlas(frame, area, &atlas.tiles),
+        StoryFixture::PixelScene(fixture) => {
+            static BUFFER: OnceLock<Mutex<RgbBuffer>> = OnceLock::new();
+            let mut buffer = BUFFER
+                .get_or_init(|| Mutex::new(RgbBuffer::filled(0, 0, Rgb::BLACK)))
+                .lock()
+                .expect("scene Storybook buffer lock is not poisoned");
+            scene::render_scene_for_story(
+                &fixture.snapshot,
+                fixture.world_override,
+                PixelSize::new(area.width, area.height.saturating_mul(2)),
+                &mut buffer,
+            );
+            flush_rgb(frame.buffer_mut(), area, &buffer, Rgb::BLACK);
+        }
     }
 }
 
@@ -509,7 +530,7 @@ fn centered_rect(area: Rect, width: u16, height: u16) -> Rect {
 fn fixture_preferences(fixture: &StoryFixture) -> DisplayPreferences {
     match fixture {
         StoryFixture::Application(model) => *model.preferences(),
-        StoryFixture::AssetAtlas(_) => DisplayPreferences::default(),
+        StoryFixture::AssetAtlas(_) | StoryFixture::PixelScene(_) => DisplayPreferences::default(),
     }
 }
 

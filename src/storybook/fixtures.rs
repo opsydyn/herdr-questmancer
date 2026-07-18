@@ -9,6 +9,7 @@ use crate::{
         DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp,
         WorkspaceId,
     },
+    scene::{snapshot::SceneSnapshot, stage::WorldScene},
     ui::{
         pixel::{Canvas, ColorRole, Palette},
         theatre::TheatreFrame,
@@ -657,6 +658,30 @@ pub struct AssetAtlas {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PixelSceneFixture {
+    pub snapshot: SceneSnapshot,
+    pub world_override: Option<WorldScene>,
+}
+
+impl PixelSceneFixture {
+    #[must_use]
+    pub const fn automatic(snapshot: SceneSnapshot) -> Self {
+        Self {
+            snapshot,
+            world_override: None,
+        }
+    }
+
+    #[must_use]
+    pub const fn in_world(snapshot: SceneSnapshot, world: WorldScene) -> Self {
+        Self {
+            snapshot,
+            world_override: Some(world),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(
     clippy::large_enum_variant,
     reason = "the fixture boundary intentionally stores the exact Model payload"
@@ -664,4 +689,19 @@ pub struct AssetAtlas {
 pub enum StoryFixture {
     Application(Model),
     AssetAtlas(AssetAtlas),
+    PixelScene(PixelSceneFixture),
+}
+
+pub fn calibration_room_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    PixelSceneFixture::in_world(compact_scene_snapshot(*context), WorldScene::GuildHall)
+}
+
+pub fn compact_adventurers_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    PixelSceneFixture::in_world(compact_scene_snapshot(*context), WorldScene::GuildHall)
+}
+
+fn compact_scene_snapshot(context: StoryContext) -> SceneSnapshot {
+    let mut snapshot = SceneSnapshot::from_model(&guild_fixture(&context));
+    snapshot.agents.truncate(2);
+    snapshot
 }

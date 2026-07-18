@@ -59,6 +59,33 @@ fn every_story_renders_at_zero_height() {
     render_every_story_at(80, 0);
 }
 
+#[test]
+fn scene_first_stories_render_at_their_fixed_review_sizes() {
+    let stories = catalogue();
+    for (index, story) in stories.iter().enumerate().filter(|(_, story)| {
+        matches!(
+            story.id.as_str(),
+            "atlas.compact-scene-adventurers" | "scenes.rgb-calibration-room"
+        )
+    }) {
+        for (width, height) in [
+            (story.viewport.minimum_width, story.viewport.minimum_height),
+            (
+                story.viewport.reference_width,
+                story.viewport.reference_height,
+            ),
+        ] {
+            let mut app = StorybookApp::new(stories);
+            app.select(index, stories);
+            let backend = TestBackend::new(width, height);
+            let mut terminal = Terminal::new(backend).unwrap();
+            terminal
+                .draw(|frame| ui::render(frame, &app, stories, &StoryContext::fixed()))
+                .unwrap();
+        }
+    }
+}
+
 fn render_every_story_at(width: u16, height: u16) {
     let stories = catalogue();
     let context = StoryContext::fixed();

@@ -346,7 +346,7 @@ fn narrow_shell_uses_a_one_line_story_selector() {
     let stories = catalogue();
     let app = StorybookApp::new(stories);
     let screen = render_storybook(&app, stories, 79, 24);
-    assert!(screen.contains("1/56 Classes and Gear"));
+    assert!(screen.contains("1/58 Classes and Gear"));
     assert!(screen.contains("PRODUCTION CANVAS"));
     assert!(!screen.contains("STORIES"));
     assert!(!screen.contains("COVERAGE"));
@@ -679,10 +679,10 @@ fn pose_atlas_uses_all_seven_production_theatre_poses() {
 
 #[test]
 fn pixel_atlases_are_packed_through_the_production_packer() {
-    for story in catalogue()
-        .iter()
-        .filter(|story| story.category == Category::AssetAtlas)
-    {
+    for story in catalogue().iter().filter(|story| {
+        story.category == Category::AssetAtlas
+            && story.id.as_str() != "atlas.compact-scene-adventurers"
+    }) {
         let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
             panic!("atlas catalogue entries must build asset atlases");
         };
@@ -703,10 +703,10 @@ fn pixel_atlases_are_packed_through_the_production_packer() {
 #[test]
 fn every_atlas_builder_matches_its_canonical_asset_family() {
     let inventory = asset_inventory();
-    for story in catalogue()
-        .iter()
-        .filter(|story| story.category == Category::AssetAtlas)
-    {
+    for story in catalogue().iter().filter(|story| {
+        story.category == Category::AssetAtlas
+            && story.id.as_str() != "atlas.compact-scene-adventurers"
+    }) {
         let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
             panic!("atlas catalogue entries must build asset atlases");
         };
@@ -750,6 +750,7 @@ fn every_completed_story_renders_at_reference_and_minimum_viewports() {
                     View::Delve => "QUESTMANCER DELVES".to_owned(),
                 },
             },
+            StoryFixture::PixelScene(_) => "▀".to_owned(),
         };
         for (label, width, height) in [
             (

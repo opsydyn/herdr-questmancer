@@ -7,5 +7,7 @@ pub mod input;
 mod runtime;
 pub mod ui;
 
-pub use assets::{AssetId, CompatibilityAsset, SceneAsset, WidgetAsset, asset_inventory};
+pub use assets::{
+    AssetId, CompatibilityAsset, SceneAsset, SceneFirstAsset, WidgetAsset, asset_inventory,
+};
 pub use runtime::run;

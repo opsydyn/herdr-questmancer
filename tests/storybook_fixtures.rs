@@ -6,14 +6,16 @@ use questmancer::{
         GuildFocus, Modal, Motion, View,
     },
     domain::{AgentKey, GuildSummons, Presence, WorkspaceId},
+    scene::{snapshot::SceneSnapshot, stage::WorldScene},
     storybook::fixtures::{
-        FIXED_NOW, StoryContext, campaign_fixture, campaign_token_fixture, compatibility_fixture,
-        counsel_projection_fixture, delve_fixture, goblin_biscuit_id, goblin_chest_id,
-        goblin_hand_id, goblin_scroll_id, great_room_fixture, great_room_one_campaign_fixture,
-        great_room_reviewr_unavailable_fixture, great_room_scrying_failed_fixture,
-        guild_connecting_fixture, guild_fixture, guild_incompatible_fixture,
-        hearth_adventurer_fixture, library_id, modal_fixture, spoils_adventurer_fixture,
-        undercroft_id, watchtower_id,
+        FIXED_NOW, PixelSceneFixture, StoryContext, calibration_room_scene_fixture,
+        campaign_fixture, campaign_token_fixture, compact_adventurers_scene_fixture,
+        compatibility_fixture, counsel_projection_fixture, delve_fixture, goblin_biscuit_id,
+        goblin_chest_id, goblin_hand_id, goblin_scroll_id, great_room_fixture,
+        great_room_one_campaign_fixture, great_room_reviewr_unavailable_fixture,
+        great_room_scrying_failed_fixture, guild_connecting_fixture, guild_fixture,
+        guild_incompatible_fixture, hearth_adventurer_fixture, library_id, modal_fixture,
+        spoils_adventurer_fixture, undercroft_id, watchtower_id,
     },
     ui::{
         delve_scene::{DelveVariant, variant_for_campaign},
@@ -34,6 +36,20 @@ fn fixtures_are_value_deterministic() {
     assert_eq!(guild_fixture(&context).view(), View::Guild);
     assert_eq!(delve_fixture(&context).view(), View::Delve);
     assert_eq!(guild_fixture(&context).modal(), &Modal::None);
+}
+
+#[test]
+fn pixel_scene_fixtures_keep_story_overrides_outside_the_snapshot() {
+    let context = StoryContext::fixed();
+    let automatic =
+        PixelSceneFixture::automatic(SceneSnapshot::from_model(&guild_fixture(&context)));
+    assert_eq!(automatic.world_override, None);
+    let calibration = calibration_room_scene_fixture(&context);
+    let atlas = compact_adventurers_scene_fixture(&context);
+    assert_eq!(calibration.world_override, Some(WorldScene::GuildHall));
+    assert_eq!(atlas.world_override, Some(WorldScene::GuildHall));
+    assert_eq!(calibration.snapshot, atlas.snapshot);
+    assert_eq!(calibration.snapshot.agents.len(), 2);
 }
 
 #[test]
