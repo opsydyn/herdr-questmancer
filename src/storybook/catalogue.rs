@@ -258,6 +258,8 @@ const CROPPED_ROOM_VIEWPORT: Viewport = Viewport::new(100, 32, 80, 18);
 const LANDMARK_CAMERA_VIEWPORT: Viewport = Viewport::new(78, 26, 48, 18);
 const COMPATIBILITY_VIEWPORT: Viewport = Viewport::new(130, 36, 60, 18);
 const PIXEL_SCENE_VIEWPORT: Viewport = Viewport::new(120, 36, 40, 18);
+const GUILD_HALL_PIXEL_VIEWPORT: Viewport = Viewport::new(160, 45, 80, 24);
+const GUILD_HALL_MINIMUM_VIEWPORT: Viewport = Viewport::new(80, 24, 40, 18);
 
 macro_rules! atlas_story {
     ($id:literal, $title:literal, $description:literal, $builder:path, $owns:expr, $reused:expr) => {
@@ -490,7 +492,7 @@ fn build_catalogue() -> Vec<Story> {
             "atlas.compact-scene-adventurers",
             "Compact Scene Adventurers",
             Category::AssetAtlas,
-            "The original compact scene adventurer vocabulary in the RGB calibration room.",
+            "The original compact scene adventurer vocabulary as a separate atlas.",
             PIXEL_SCENE_VIEWPORT,
             compact_scene_adventurers,
             &[AssetId::SceneFirst(SceneFirstAsset::CompactAdventurers)],
@@ -567,6 +569,72 @@ fn build_catalogue() -> Vec<Story> {
             PIXEL_SCENE_VIEWPORT,
             rgb_calibration_room,
             &[AssetId::SceneFirst(SceneFirstAsset::CalibrationRoom)],
+            &[],
+        ),
+        complete_story(
+            "scenes.guild-hall-empty",
+            "Guild Hall Empty",
+            Category::FullScenes,
+            "The authored Guild Hall ready for a party, with no invented activity.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            guild_hall_empty,
+            &[AssetId::SceneFirst(SceneFirstAsset::GuildHallEmpty)],
+            &[],
+        ),
+        complete_story(
+            "scenes.guild-hall-mixed-party",
+            "Guild Hall Mixed Party",
+            Category::FullScenes,
+            "Working tokens, a resting adventurer and settled spoils in one truthful room.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            guild_hall_mixed_party,
+            &[AssetId::SceneFirst(SceneFirstAsset::GuildHallMixedParty)],
+            &[],
+        ),
+        complete_story(
+            "scenes.guild-hall-counsel-requested",
+            "Guild Hall Counsel Requested",
+            Category::FullScenes,
+            "A blocked adventurer projected at the Counsel Bell.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            guild_hall_counsel_requested,
+            &[AssetId::SceneFirst(
+                SceneFirstAsset::GuildHallCounselRequested,
+            )],
+            &[],
+        ),
+        complete_story(
+            "scenes.guild-hall-spoils-returned",
+            "Guild Hall Spoils Returned",
+            Category::FullScenes,
+            "A fixed frame inside the bounded one-shot return celebration.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            guild_hall_spoils_returned,
+            &[AssetId::SceneFirst(
+                SceneFirstAsset::GuildHallSpoilsReturned,
+            )],
+            &[],
+        ),
+        complete_story(
+            "scenes.guild-hall-reconnecting",
+            "Guild Hall Reconnecting",
+            Category::FullScenes,
+            "The room remains visible under lowered light while the door carries connection truth.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            guild_hall_reconnecting,
+            &[AssetId::SceneFirst(SceneFirstAsset::GuildHallReconnecting)],
+            &[],
+        ),
+        complete_story(
+            "scenes.guild-hall-minimum-viewport",
+            "Guild Hall Minimum Viewport",
+            Category::FullScenes,
+            "A focused crop of the same authored room without scaling or dashboard chrome.",
+            GUILD_HALL_MINIMUM_VIEWPORT,
+            guild_hall_minimum_viewport,
+            &[AssetId::SceneFirst(
+                SceneFirstAsset::GuildHallMinimumViewport,
+            )],
             &[],
         ),
         scene_story(
@@ -1095,6 +1163,32 @@ fn application(model: crate::app::Model) -> StoryFixture {
 
 fn rgb_calibration_room(context: &StoryContext) -> StoryFixture {
     StoryFixture::PixelScene(fixtures::calibration_room_scene_fixture(context))
+}
+
+fn guild_hall_empty(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::guild_hall_empty_scene_fixture(context))
+}
+
+fn guild_hall_mixed_party(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::guild_hall_mixed_party_scene_fixture(context))
+}
+
+fn guild_hall_counsel_requested(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::guild_hall_counsel_requested_scene_fixture(
+        context,
+    ))
+}
+
+fn guild_hall_spoils_returned(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::guild_hall_spoils_returned_scene_fixture(context))
+}
+
+fn guild_hall_reconnecting(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::guild_hall_reconnecting_scene_fixture(context))
+}
+
+fn guild_hall_minimum_viewport(context: &StoryContext) -> StoryFixture {
+    StoryFixture::PixelScene(fixtures::guild_hall_minimum_viewport_scene_fixture(context))
 }
 
 fn compact_scene_adventurers(context: &StoryContext) -> StoryFixture {

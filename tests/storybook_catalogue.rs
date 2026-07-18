@@ -143,7 +143,7 @@ fn great_room_storybook_families_are_derived_from_production_enums() {
 #[test]
 fn production_catalogue_owns_every_authored_asset_once() {
     let report = validate_catalogue().unwrap();
-    assert_eq!(asset_inventory().len(), 182);
+    assert_eq!(asset_inventory().len(), 188);
     assert_eq!(report.owned(), asset_inventory().len());
     assert!(report.missing().is_empty());
     assert!(report.duplicates().is_empty());
@@ -196,6 +196,24 @@ fn catalogue_has_fixed_great_room_review_stories() {
         "scenes.guild-scrying-failed",
         "scenes.guild-cropped-room",
         "scenes.guild-landmark-camera",
+    ] {
+        assert!(ids.contains(expected), "missing fixed story {expected}");
+    }
+}
+
+#[test]
+fn catalogue_has_the_six_fixed_scene_first_guild_hall_stories() {
+    let ids = catalogue()
+        .iter()
+        .map(|story| story.id.as_str())
+        .collect::<HashSet<_>>();
+    for expected in [
+        "scenes.guild-hall-empty",
+        "scenes.guild-hall-mixed-party",
+        "scenes.guild-hall-counsel-requested",
+        "scenes.guild-hall-spoils-returned",
+        "scenes.guild-hall-reconnecting",
+        "scenes.guild-hall-minimum-viewport",
     ] {
         assert!(ids.contains(expected), "missing fixed story {expected}");
     }
@@ -324,6 +342,12 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "widgets.search",
             "widgets.help",
             "scenes.rgb-calibration-room",
+            "scenes.guild-hall-empty",
+            "scenes.guild-hall-mixed-party",
+            "scenes.guild-hall-counsel-requested",
+            "scenes.guild-hall-spoils-returned",
+            "scenes.guild-hall-reconnecting",
+            "scenes.guild-hall-minimum-viewport",
             "scenes.guild-empty",
             "scenes.guild-populated",
             "scenes.guild-one-campaign",
@@ -356,7 +380,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "compat.motion-none",
         ]
     );
-    assert_eq!(ids.len(), 58);
+    assert_eq!(ids.len(), 64);
 }
 
 #[test]
@@ -367,7 +391,7 @@ fn all_four_categories_are_populated_in_the_fixed_order() {
             .filter(|story| story.category == category)
             .count()
     });
-    assert_eq!(counts, [21, 6, 25, 6]);
+    assert_eq!(counts, [21, 6, 31, 6]);
     assert!(catalogue()[..15].iter().all(|story| {
         story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
     }));
@@ -459,6 +483,36 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
         (
             "scenes.rgb-calibration-room",
             vec![AssetId::SceneFirst(SceneFirstAsset::CalibrationRoom)],
+        ),
+        (
+            "scenes.guild-hall-empty",
+            vec![AssetId::SceneFirst(SceneFirstAsset::GuildHallEmpty)],
+        ),
+        (
+            "scenes.guild-hall-mixed-party",
+            vec![AssetId::SceneFirst(SceneFirstAsset::GuildHallMixedParty)],
+        ),
+        (
+            "scenes.guild-hall-counsel-requested",
+            vec![AssetId::SceneFirst(
+                SceneFirstAsset::GuildHallCounselRequested,
+            )],
+        ),
+        (
+            "scenes.guild-hall-spoils-returned",
+            vec![AssetId::SceneFirst(
+                SceneFirstAsset::GuildHallSpoilsReturned,
+            )],
+        ),
+        (
+            "scenes.guild-hall-reconnecting",
+            vec![AssetId::SceneFirst(SceneFirstAsset::GuildHallReconnecting)],
+        ),
+        (
+            "scenes.guild-hall-minimum-viewport",
+            vec![AssetId::SceneFirst(
+                SceneFirstAsset::GuildHallMinimumViewport,
+            )],
         ),
         (
             "scenes.guild-empty",
@@ -579,7 +633,7 @@ fn every_non_atlas_story_has_its_exact_canonical_ownership() {
         ),
     ];
 
-    assert_eq!(expected.len(), 37);
+    assert_eq!(expected.len(), 43);
     for (story_id, owns) in expected {
         let story = catalogue()
             .iter()
@@ -811,7 +865,12 @@ fn every_story_uses_its_declared_fixture_bridge() {
             story.id.as_str(),
             "widgets.adventurer-cards" | "widgets.chambers" | "widgets.guild-regions"
         );
-        if story.id.as_str() == "scenes.rgb-calibration-room" {
+        if story
+            .owns
+            .iter()
+            .any(|asset| matches!(asset, AssetId::SceneFirst(_)))
+            && story.id.as_str() != "atlas.compact-scene-adventurers"
+        {
             assert!(
                 matches!(fixture, StoryFixture::PixelScene(_)),
                 "{}",

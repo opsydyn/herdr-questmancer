@@ -1,0 +1,337 @@
+#![cfg(feature = "storybook")]
+
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
+
+use questmancer::{
+    app::Motion,
+    domain::{
+        AccentTone, AdventurerPersona, AgentKey, GuildSummons, PersonaKey, Presence, Timestamp,
+        WorkspaceId,
+    },
+    scene::{
+        assets::palette::{EMBER, OAK, RUG, RUG_GOLD, SHADOW},
+        pixel::{PixelRect, PixelSize, Rgb, RgbBuffer},
+        render_scene_for_story,
+        snapshot::{SceneAgent, SceneCampaign, SceneConnection, SceneSnapshot, SceneTransition},
+        stage::WorldScene,
+    },
+};
+
+const VIEWPORT: PixelSize = PixelSize::new(160, 90);
+const PARCHMENT: Rgb = Rgb::new(230, 207, 154);
+
+fn campaign(id: &str, seed: u64) -> SceneCampaign {
+    SceneCampaign {
+        workspace_id: WorkspaceId::new(id),
+        label: id.replace('-', " "),
+        variant_seed: seed,
+    }
+}
+
+fn agent(key: &str, workspace: &str, presence: Presence, accent: AccentTone) -> SceneAgent {
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new(format!("guild-hall-{key}")));
+    persona.appearance.accent = accent;
+    SceneAgent {
+        key: AgentKey::new(key),
+        workspace_id: WorkspaceId::new(workspace),
+        name: key.replace('-', " "),
+        custom_status: None,
+        presence,
+        presence_since: Timestamp::from_millis(1_000),
+        transition: None,
+        focused: false,
+        persona,
+    }
+}
+
+fn mixed_snapshot() -> SceneSnapshot {
+    SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns: vec![campaign("amber-library", 7), campaign("moss-vault", 29)],
+        agents: vec![
+            agent(
+                "first-working",
+                "amber-library",
+                Presence::Working,
+                AccentTone::Cyan,
+            ),
+            agent(
+                "second-working",
+                "amber-library",
+                Presence::Working,
+                AccentTone::Lime,
+            ),
+            agent(
+                "counsel-seeker",
+                "moss-vault",
+                Presence::Blocked,
+                AccentTone::Magenta,
+            ),
+            agent(
+                "spoils-returnee",
+                "moss-vault",
+                Presence::Done,
+                AccentTone::Blue,
+            ),
+            agent(
+                "hearth-resting",
+                "amber-library",
+                Presence::Idle,
+                AccentTone::Teal,
+            ),
+        ],
+        motion: Motion::None,
+        now: Timestamp::from_millis(10_000),
+    }
+}
+
+fn render(snapshot: &SceneSnapshot, viewport: PixelSize) -> RgbBuffer {
+    let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
+    let frame =
+        render_scene_for_story(snapshot, Some(WorldScene::GuildHall), viewport, &mut target);
+    assert_eq!(frame.world, WorldScene::GuildHall);
+    target
+}
+
+fn rect_contains(buffer: &RgbBuffer, rect: PixelRect, colour: Rgb) -> bool {
+    (rect.y..rect.y + i32::from(rect.height))
+        .any(|y| (rect.x..rect.x + i32::from(rect.width)).any(|x| buffer.get(x, y) == Some(colour)))
+}
+
+fn first_pixel(buffer: &RgbBuffer, colour: Rgb) -> Option<(i32, i32)> {
+    for y in 0..i32::from(buffer.size().height) {
+        for x in 0..i32::from(buffer.size().width) {
+            if buffer.get(x, y) == Some(colour) {
+                return Some((x, y));
+            }
+        }
+    }
+    None
+}
+
+fn accent_colour(accent: AccentTone) -> Rgb {
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new("accent-colour"));
+    persona.appearance.accent = accent;
+    questmancer::scene::assets::palette::adventurer_palette(
+        persona.appearance.skin_tone,
+        persona.appearance.hair_tone,
+        persona.appearance.garb,
+        persona.class,
+        persona.appearance.accent,
+    )
+    .accent
+}
+
+#[test]
+fn canonical_room_contains_every_owned_landmark_signature() {
+    let buffer = render(&mixed_snapshot(), VIEWPORT);
+    for (name, rect, colour) in [
+        ("guild door", PixelRect::new(5, 14, 25, 46), OAK),
+        ("quest wall", PixelRect::new(34, 11, 43, 27), PARCHMENT),
+        ("left campaign table", PixelRect::new(35, 47, 38, 26), OAK),
+        ("right campaign table", PixelRect::new(77, 47, 38, 26), OAK),
+        ("counsel bell", PixelRect::new(116, 31, 18, 31), RUG_GOLD),
+        ("hearth", PixelRect::new(132, 9, 27, 48), EMBER),
+        ("spoils bench", PixelRect::new(112, 64, 47, 25), RUG),
+    ] {
+        assert!(
+            rect_contains(&buffer, rect, colour),
+            "{name} lacks its authored colour signature"
+        );
+    }
+}
+
+#[test]
+fn actors_occupy_truthful_station_bounds_with_unique_final_anchors() {
+    let buffer = render(&mixed_snapshot(), VIEWPORT);
+    let expected = [
+        (
+            AccentTone::Cyan,
+            PixelRect::new(35, 47, 80, 27),
+            "first campaign token",
+        ),
+        (
+            AccentTone::Lime,
+            PixelRect::new(35, 47, 80, 27),
+            "second campaign token",
+        ),
+        (
+            AccentTone::Magenta,
+            PixelRect::new(112, 31, 24, 38),
+            "counsel seeker",
+        ),
+        (
+            AccentTone::Blue,
+            PixelRect::new(108, 61, 51, 29),
+            "spoils returnee",
+        ),
+        (
+            AccentTone::Teal,
+            PixelRect::new(128, 42, 31, 39),
+            "hearth resting",
+        ),
+    ];
+    let mut anchors = HashSet::new();
+    for (accent, bounds, label) in expected {
+        let anchor = first_pixel(&buffer, accent_colour(accent))
+            .unwrap_or_else(|| panic!("{label} has no persona-owned accent pixel"));
+        assert!(
+            anchor.0 >= bounds.x
+                && anchor.0 < bounds.x + i32::from(bounds.width)
+                && anchor.1 >= bounds.y
+                && anchor.1 < bounds.y + i32::from(bounds.height),
+            "{label} anchor {anchor:?} is outside {bounds:?}"
+        );
+        assert!(anchors.insert(anchor), "two actors share anchor {anchor:?}");
+    }
+}
+
+#[test]
+fn exited_agents_have_no_actor_pixels() {
+    let mut without = mixed_snapshot();
+    without.agents.clear();
+    let mut with_exited = without.clone();
+    with_exited.agents.push(agent(
+        "departed",
+        "amber-library",
+        Presence::Exited,
+        AccentTone::Red,
+    ));
+    assert_eq!(
+        render(&without, VIEWPORT).pixels(),
+        render(&with_exited, VIEWPORT).pixels()
+    );
+}
+
+#[test]
+fn connection_states_change_the_door_without_replacing_the_room() {
+    let mut snapshot = mixed_snapshot();
+    let mut buffers = HashMap::new();
+    for (name, connection) in [
+        ("connected", SceneConnection::Connected),
+        ("connecting", SceneConnection::Connecting),
+        ("reconnecting", SceneConnection::Reconnecting { attempt: 3 }),
+        ("offline", SceneConnection::Offline),
+        (
+            "incompatible",
+            SceneConnection::Incompatible {
+                expected: 16,
+                actual: 15,
+            },
+        ),
+    ] {
+        snapshot.connection = connection;
+        let buffer = render(&snapshot, VIEWPORT);
+        assert!(rect_contains(
+            &buffer,
+            PixelRect::new(34, 11, 43, 27),
+            PARCHMENT
+        ));
+        buffers.insert(name, buffer);
+    }
+    let connected = &buffers["connected"];
+    for state in ["connecting", "reconnecting", "offline", "incompatible"] {
+        assert_ne!(
+            connected.pixels(),
+            buffers[state].pixels(),
+            "{state} must be visible through the room"
+        );
+    }
+    assert_ne!(
+        buffers["connecting"].pixels(),
+        buffers["offline"].pixels(),
+        "lit opening and closed dark door must remain distinct"
+    );
+}
+
+#[test]
+fn fresh_spoils_effect_ends_exactly_once_at_three_seconds() {
+    let mut fresh = mixed_snapshot();
+    fresh
+        .agents
+        .retain(|agent| agent.presence == Presence::Done);
+    fresh.agents[0].transition = Some(SceneTransition {
+        summons: GuildSummons::SpoilsReturned,
+        since: Timestamp::from_millis(8_000),
+    });
+    let fresh_pixels = render(&fresh, VIEWPORT);
+
+    let mut settled = fresh.clone();
+    settled.now = Timestamp::from_millis(11_000);
+    let settled_pixels = render(&settled, VIEWPORT);
+    let mut no_transition = settled.clone();
+    no_transition.agents[0].transition = None;
+    let no_transition_pixels = render(&no_transition, VIEWPORT);
+
+    assert_ne!(fresh_pixels.pixels(), settled_pixels.pixels());
+    assert_eq!(settled_pixels.pixels(), no_transition_pixels.pixels());
+}
+
+#[test]
+fn canonical_room_meets_density_colour_and_byte_determinism_floors() {
+    let snapshot = mixed_snapshot();
+    let first = render(&snapshot, VIEWPORT);
+    let second = render(&snapshot, VIEWPORT);
+    let clear = Rgb::BLACK;
+    let painted = first
+        .pixels()
+        .iter()
+        .filter(|pixel| **pixel != clear)
+        .count();
+    assert!(painted * 100 >= first.pixels().len() * 85);
+    assert!(first.pixels().iter().copied().collect::<HashSet<_>>().len() >= 24);
+
+    let bytes = |buffer: &RgbBuffer| {
+        buffer
+            .pixels()
+            .iter()
+            .flat_map(|pixel| [pixel.r, pixel.g, pixel.b])
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(blake3::hash(&bytes(&first)), blake3::hash(&bytes(&second)));
+    assert!(first.pixels().contains(&SHADOW));
+}
+
+#[test]
+fn static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps() {
+    let mut snapshot = mixed_snapshot();
+    snapshot.motion = Motion::Full;
+    let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
+    let static_frame = render_scene_for_story(
+        &snapshot,
+        Some(WorldScene::GuildHall),
+        VIEWPORT,
+        &mut target,
+    );
+    assert_eq!(static_frame.next_frame_in, None);
+
+    snapshot
+        .agents
+        .retain(|agent| agent.presence == Presence::Done);
+    snapshot.agents[0].transition = Some(SceneTransition {
+        summons: GuildSummons::SpoilsReturned,
+        since: Timestamp::from_millis(8_000),
+    });
+    let animated_frame = render_scene_for_story(
+        &snapshot,
+        Some(WorldScene::GuildHall),
+        VIEWPORT,
+        &mut target,
+    );
+    assert_eq!(
+        animated_frame.next_frame_in,
+        Some(Duration::from_millis(125))
+    );
+
+    snapshot.now = Timestamp::from_millis(11_000);
+    let settled_frame = render_scene_for_story(
+        &snapshot,
+        Some(WorldScene::GuildHall),
+        VIEWPORT,
+        &mut target,
+    );
+    assert_eq!(settled_frame.next_frame_in, None);
+}

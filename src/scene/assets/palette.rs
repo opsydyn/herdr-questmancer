@@ -17,6 +17,19 @@ pub const FLAME: Rgb = Rgb::new(255, 188, 70);
 pub const EMBER: Rgb = Rgb::new(225, 82, 33);
 pub const STEEL: Rgb = Rgb::new(151, 164, 171);
 pub const EYE: Rgb = Rgb::new(22, 19, 24);
+pub const PARCHMENT_DARK: Rgb = Rgb::new(174, 151, 105);
+pub const PARCHMENT: Rgb = Rgb::new(230, 207, 154);
+pub const PARCHMENT_LIGHT: Rgb = Rgb::new(248, 232, 184);
+pub const AMBER_LIGHT: Rgb = Rgb::new(248, 196, 92);
+pub const BRASS_DARK: Rgb = Rgb::new(112, 75, 34);
+pub const BRASS: Rgb = Rgb::new(181, 128, 49);
+pub const BRASS_LIGHT: Rgb = Rgb::new(236, 184, 76);
+pub const WINE_DARK: Rgb = Rgb::new(67, 22, 31);
+pub const WINE: Rgb = Rgb::new(126, 42, 48);
+pub const WINE_LIGHT: Rgb = Rgb::new(177, 64, 63);
+pub const INK_BLUE: Rgb = Rgb::new(48, 69, 91);
+pub const MOSS: Rgb = Rgb::new(60, 83, 55);
+pub const ASH_HIGHLIGHT: Rgb = Rgb::new(132, 120, 111);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AdventurerPalette {

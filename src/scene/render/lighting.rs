@@ -23,6 +23,36 @@ pub fn apply_candle_light(target: &mut RgbBuffer, candle: PixelPoint) {
     }
 }
 
+pub fn dim(target: &mut RgbBuffer, amount: u8) {
+    for colour in target.pixels_mut() {
+        *colour = blend(*colour, Rgb::BLACK, u16::from(amount.min(100)));
+    }
+}
+
+pub fn apply_warm_pool(target: &mut RgbBuffer, centre: PixelPoint, radius: u16, strength: u8) {
+    let radius = u32::from(radius.max(1));
+    for y in 0..target.size().height {
+        for x in 0..target.size().width {
+            let dx = i32::from(x).saturating_sub(centre.x).unsigned_abs();
+            let dy = i32::from(y).saturating_sub(centre.y).unsigned_abs();
+            let distance = dx.saturating_add(dy);
+            if distance >= radius {
+                continue;
+            }
+            let amount = u16::from(strength)
+                .saturating_mul(u16::try_from(radius - distance).unwrap_or(u16::MAX))
+                / u16::try_from(radius).unwrap_or(u16::MAX);
+            if let Some(colour) = target.get(i32::from(x), i32::from(y)) {
+                target.put(
+                    i32::from(x),
+                    i32::from(y),
+                    blend(colour, Rgb::new(255, 175, 67), amount.min(100)),
+                );
+            }
+        }
+    }
+}
+
 fn blend(base: Rgb, tint: Rgb, amount: u16) -> Rgb {
     let keep = 100 - amount;
     Rgb::new(

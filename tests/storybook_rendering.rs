@@ -346,7 +346,7 @@ fn narrow_shell_uses_a_one_line_story_selector() {
     let stories = catalogue();
     let app = StorybookApp::new(stories);
     let screen = render_storybook(&app, stories, 79, 24);
-    assert!(screen.contains("1/58 Classes and Gear"));
+    assert!(screen.contains("1/64 Classes and Gear"));
     assert!(screen.contains("PRODUCTION CANVAS"));
     assert!(!screen.contains("STORIES"));
     assert!(!screen.contains("COVERAGE"));

@@ -249,6 +249,12 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
         &[
             SceneFirstAsset::CalibrationRoom,
             SceneFirstAsset::CompactAdventurers,
+            SceneFirstAsset::GuildHallEmpty,
+            SceneFirstAsset::GuildHallMixedParty,
+            SceneFirstAsset::GuildHallCounselRequested,
+            SceneFirstAsset::GuildHallSpoilsReturned,
+            SceneFirstAsset::GuildHallReconnecting,
+            SceneFirstAsset::GuildHallMinimumViewport,
         ]
     );
     let stories = catalogue();
@@ -261,6 +267,27 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             "atlas.compact-scene-adventurers",
             SceneFirstAsset::CompactAdventurers,
         ),
+        ("scenes.guild-hall-empty", SceneFirstAsset::GuildHallEmpty),
+        (
+            "scenes.guild-hall-mixed-party",
+            SceneFirstAsset::GuildHallMixedParty,
+        ),
+        (
+            "scenes.guild-hall-counsel-requested",
+            SceneFirstAsset::GuildHallCounselRequested,
+        ),
+        (
+            "scenes.guild-hall-spoils-returned",
+            SceneFirstAsset::GuildHallSpoilsReturned,
+        ),
+        (
+            "scenes.guild-hall-reconnecting",
+            SceneFirstAsset::GuildHallReconnecting,
+        ),
+        (
+            "scenes.guild-hall-minimum-viewport",
+            SceneFirstAsset::GuildHallMinimumViewport,
+        ),
     ] {
         let index = stories
             .iter()
@@ -270,7 +297,13 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
         assert_eq!(story.owns, &[AssetId::SceneFirst(asset)]);
         let fixture = (story.build)(&StoryContext::fixed());
         match asset {
-            SceneFirstAsset::CalibrationRoom => {
+            SceneFirstAsset::CalibrationRoom
+            | SceneFirstAsset::GuildHallEmpty
+            | SceneFirstAsset::GuildHallMixedParty
+            | SceneFirstAsset::GuildHallCounselRequested
+            | SceneFirstAsset::GuildHallSpoilsReturned
+            | SceneFirstAsset::GuildHallReconnecting
+            | SceneFirstAsset::GuildHallMinimumViewport => {
                 assert!(matches!(fixture, StoryFixture::PixelScene(_)));
             }
             SceneFirstAsset::CompactAdventurers => {
@@ -307,6 +340,44 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             "{asset:?} must have exactly one Storybook owner"
         );
     }
+}
+
+#[test]
+fn six_fixed_guild_hall_stories_use_direct_snapshots_and_unique_scene_first_ownership() {
+    let stories = catalogue();
+    let expected = [
+        ("scenes.guild-hall-empty", "Guild Hall Empty"),
+        ("scenes.guild-hall-mixed-party", "Guild Hall Mixed Party"),
+        (
+            "scenes.guild-hall-counsel-requested",
+            "Guild Hall Counsel Requested",
+        ),
+        (
+            "scenes.guild-hall-spoils-returned",
+            "Guild Hall Spoils Returned",
+        ),
+        ("scenes.guild-hall-reconnecting", "Guild Hall Reconnecting"),
+        (
+            "scenes.guild-hall-minimum-viewport",
+            "Guild Hall Minimum Viewport",
+        ),
+    ];
+    let mut owners = HashSet::new();
+    for (id, title) in expected {
+        let story = stories
+            .iter()
+            .find(|story| story.id.as_str() == id)
+            .unwrap_or_else(|| panic!("missing {id}"));
+        assert_eq!(story.title, title);
+        assert_eq!(story.owns.len(), 1);
+        assert!(matches!(story.owns[0], AssetId::SceneFirst(_)));
+        assert!(owners.insert(story.owns[0]), "duplicate owner for {id}");
+        let StoryFixture::PixelScene(fixture) = (story.build)(&StoryContext::fixed()) else {
+            panic!("{id} must derive directly from a SceneSnapshot fixture");
+        };
+        assert_eq!(fixture.world_override, Some(WorldScene::GuildHall));
+    }
+    assert_eq!(owners.len(), expected.len());
 }
 
 #[test]

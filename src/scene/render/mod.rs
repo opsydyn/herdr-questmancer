@@ -1,3 +1,4 @@
+pub mod guild_hall;
 pub mod lighting;
 
 use crate::scene::{
@@ -19,6 +20,18 @@ const ROOM_WIDTH: i32 = 120;
 const ROOM_HEIGHT: i32 = 72;
 
 pub fn paint(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    viewport: PixelSize,
+    target: &mut RgbBuffer,
+) -> SceneFrame {
+    if plan.world == crate::scene::stage::WorldScene::GuildHall {
+        return guild_hall::paint(snapshot, plan, viewport, target);
+    }
+    paint_calibration(snapshot, plan, viewport, target)
+}
+
+fn paint_calibration(
     snapshot: &SceneSnapshot,
     plan: &ScenePlan,
     viewport: PixelSize,

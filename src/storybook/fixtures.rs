@@ -5,14 +5,14 @@ use crate::{
         ConnectionState, DisplayPreferences, GuildFocus, Modal, Model, Motion, OutputPreview, View,
     },
     domain::{
-        AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, ChronicleEntry, ChronicleEvent,
-        DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp,
-        WorkspaceId,
+        AccentTone, AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, ChronicleEntry,
+        ChronicleEvent, DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey, Presence,
+        TabId, Timestamp, WorkspaceId,
     },
     scene::{
         assets::{adventurer::compact_adventurer_animation_frame, palette::VOID},
         pixel::Rgb,
-        snapshot::SceneSnapshot,
+        snapshot::{SceneAgent, SceneCampaign, SceneConnection, SceneSnapshot, SceneTransition},
         sprite::SpriteFrame,
         stage::{ScenePose, WorldScene},
     },
@@ -738,4 +738,175 @@ fn compact_scene_snapshot(context: StoryContext) -> SceneSnapshot {
     let mut snapshot = SceneSnapshot::from_model(&guild_fixture(&context));
     snapshot.agents.truncate(2);
     snapshot
+}
+
+pub fn guild_hall_empty_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    PixelSceneFixture::in_world(
+        SceneSnapshot {
+            connection: SceneConnection::Connected,
+            campaigns: Vec::new(),
+            agents: Vec::new(),
+            motion: Motion::None,
+            now: context.now,
+        },
+        WorldScene::GuildHall,
+    )
+}
+
+pub fn guild_hall_mixed_party_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    PixelSceneFixture::in_world(guild_hall_mixed_snapshot(*context), WorldScene::GuildHall)
+}
+
+pub fn guild_hall_counsel_requested_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let campaigns = guild_hall_campaigns();
+    let mut blocked = guild_hall_agent(
+        "Mara-Sealkeeper",
+        &campaigns[0].workspace_id,
+        Presence::Blocked,
+        AccentTone::Magenta,
+        context.now,
+    );
+    blocked.transition = Some(SceneTransition {
+        summons: GuildSummons::CounselRequested,
+        since: Timestamp::from_millis(context.now.as_millis().saturating_sub(8_000)),
+    });
+    PixelSceneFixture::in_world(
+        SceneSnapshot {
+            connection: SceneConnection::Connected,
+            campaigns,
+            agents: vec![blocked],
+            motion: Motion::None,
+            now: context.now,
+        },
+        WorldScene::GuildHall,
+    )
+}
+
+pub fn guild_hall_spoils_returned_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let campaigns = guild_hall_campaigns();
+    let mut returned = guild_hall_agent(
+        "Ivo-Runeporter",
+        &campaigns[1].workspace_id,
+        Presence::Done,
+        AccentTone::Amber,
+        context.now,
+    );
+    returned.transition = Some(SceneTransition {
+        summons: GuildSummons::SpoilsReturned,
+        since: Timestamp::from_millis(context.now.as_millis().saturating_sub(2_000)),
+    });
+    PixelSceneFixture::in_world(
+        SceneSnapshot {
+            connection: SceneConnection::Connected,
+            campaigns,
+            agents: vec![returned],
+            motion: Motion::Full,
+            now: context.now,
+        },
+        WorldScene::GuildHall,
+    )
+}
+
+pub fn guild_hall_reconnecting_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let mut snapshot = guild_hall_mixed_snapshot(*context);
+    snapshot.connection = SceneConnection::Reconnecting { attempt: 3 };
+    PixelSceneFixture::in_world(snapshot, WorldScene::GuildHall)
+}
+
+pub fn guild_hall_minimum_viewport_scene_fixture(context: &StoryContext) -> PixelSceneFixture {
+    let campaigns = guild_hall_campaigns();
+    PixelSceneFixture::in_world(
+        SceneSnapshot {
+            connection: SceneConnection::Connected,
+            agents: vec![guild_hall_agent(
+                "Nia-Bellward",
+                &campaigns[0].workspace_id,
+                Presence::Blocked,
+                AccentTone::Cyan,
+                context.now,
+            )],
+            campaigns,
+            motion: Motion::None,
+            now: context.now,
+        },
+        WorldScene::GuildHall,
+    )
+}
+
+fn guild_hall_mixed_snapshot(context: StoryContext) -> SceneSnapshot {
+    let campaigns = guild_hall_campaigns();
+    let agents = vec![
+        guild_hall_agent(
+            "Elowen-Typeweaver",
+            &campaigns[0].workspace_id,
+            Presence::Working,
+            AccentTone::Cyan,
+            context.now,
+        ),
+        guild_hall_agent(
+            "Bram-Pathfinder",
+            &campaigns[0].workspace_id,
+            Presence::Unknown,
+            AccentTone::Lime,
+            context.now,
+        ),
+        guild_hall_agent(
+            "Sable-Watch",
+            &campaigns[1].workspace_id,
+            Presence::Idle,
+            AccentTone::Teal,
+            context.now,
+        ),
+        guild_hall_agent(
+            "Orin-Caskwright",
+            &campaigns[1].workspace_id,
+            Presence::Done,
+            AccentTone::Blue,
+            context.now,
+        ),
+    ];
+    SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns,
+        agents,
+        motion: Motion::None,
+        now: context.now,
+    }
+}
+
+fn guild_hall_campaigns() -> Vec<SceneCampaign> {
+    vec![
+        SceneCampaign {
+            workspace_id: WorkspaceId::new("scene-guild-library"),
+            label: "Amber Library".to_owned(),
+            variant_seed: 0x45a7_011d,
+        },
+        SceneCampaign {
+            workspace_id: WorkspaceId::new("scene-guild-undercroft"),
+            label: "Mossy Undercroft".to_owned(),
+            variant_seed: 0x9b02_c471,
+        },
+    ]
+}
+
+fn guild_hall_agent(
+    key: &str,
+    workspace_id: &WorkspaceId,
+    presence: Presence,
+    accent: AccentTone,
+    now: Timestamp,
+) -> SceneAgent {
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new(format!("scene-guild-{key}")));
+    persona.appearance.accent = accent;
+    SceneAgent {
+        key: AgentKey::new(key),
+        workspace_id: workspace_id.clone(),
+        name: key.replace('-', " "),
+        custom_status: None,
+        presence,
+        presence_since: Timestamp::from_millis(now.as_millis().saturating_sub(20_000)),
+        transition: None,
+        focused: false,
+        persona,
+    }
 }

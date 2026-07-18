@@ -1,4 +1,5 @@
 pub mod adventurer;
+pub mod guild_hall;
 pub mod palette;
 
 use std::collections::HashMap;

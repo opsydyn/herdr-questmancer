@@ -107,6 +107,12 @@ storybook_asset_enum!(CompatibilityAsset {
 storybook_asset_enum!(SceneFirstAsset {
     CalibrationRoom,
     CompactAdventurers,
+    GuildHallEmpty,
+    GuildHallMixedParty,
+    GuildHallCounselRequested,
+    GuildHallSpoilsReturned,
+    GuildHallReconnecting,
+    GuildHallMinimumViewport,
 });
 
 impl AssetId {
@@ -340,6 +346,18 @@ impl AssetId {
             Self::SceneFirst(value) => match value {
                 SceneFirstAsset::CalibrationRoom => "scene first: RGB calibration room",
                 SceneFirstAsset::CompactAdventurers => "scene first: compact adventurers",
+                SceneFirstAsset::GuildHallEmpty => "scene first: Guild Hall empty",
+                SceneFirstAsset::GuildHallMixedParty => "scene first: Guild Hall mixed party",
+                SceneFirstAsset::GuildHallCounselRequested => {
+                    "scene first: Guild Hall counsel requested"
+                }
+                SceneFirstAsset::GuildHallSpoilsReturned => {
+                    "scene first: Guild Hall spoils returned"
+                }
+                SceneFirstAsset::GuildHallReconnecting => "scene first: Guild Hall reconnecting",
+                SceneFirstAsset::GuildHallMinimumViewport => {
+                    "scene first: Guild Hall minimum viewport"
+                }
             },
             Self::Compatibility(value) => match value {
                 CompatibilityAsset::UnicodeXterm256 => "compatibility: unicode xterm-256",
