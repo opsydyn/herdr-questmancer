@@ -12,6 +12,7 @@ use questmancer::{
     },
     herdr::protocol::{AgentInfo, AgentSessionInfo, AgentStatus, SessionSnapshot, WorkspaceInfo},
     persistence::{AttentionEpisodeKey, PersistedStateV1, STATE_SCHEMA_VERSION},
+    scene::snapshot::{SceneAgent, SceneCampaign, SceneConnection, SceneSnapshot, SceneTransition},
     update::AppEvent,
 };
 use ratatui::layout::Rect;
@@ -69,6 +70,107 @@ fn presence() -> impl Strategy<Value = Presence> {
         Just(Presence::Exited),
         Just(Presence::Unknown),
     ]
+}
+
+fn motion() -> impl Strategy<Value = Motion> {
+    prop_oneof![
+        Just(Motion::None),
+        Just(Motion::Reduced),
+        Just(Motion::Full),
+    ]
+}
+
+fn scene_connection() -> impl Strategy<Value = SceneConnection> {
+    prop_oneof![
+        Just(SceneConnection::Offline),
+        Just(SceneConnection::Connecting),
+        Just(SceneConnection::Connected),
+        any::<u32>().prop_map(|attempt| SceneConnection::Reconnecting { attempt }),
+        (any::<u32>(), any::<u32>())
+            .prop_map(|(expected, actual)| SceneConnection::Incompatible { expected, actual }),
+    ]
+}
+
+fn scene_transition() -> impl Strategy<Value = SceneTransition> {
+    (guild_summons(), timestamp()).prop_map(|(summons, since)| SceneTransition { summons, since })
+}
+
+fn scene_agents() -> impl Strategy<Value = Vec<SceneAgent>> {
+    prop::collection::btree_map(
+        agent_key(),
+        (
+            (
+                workspace_id(),
+                display_text(),
+                prop::option::of(display_text()),
+            ),
+            (
+                presence(),
+                timestamp(),
+                prop::option::of(scene_transition()),
+                any::<bool>(),
+            ),
+        ),
+        0..=8,
+    )
+    .prop_map(|agents| {
+        agents
+            .into_iter()
+            .map(
+                |(
+                    key,
+                    (
+                        (workspace_id, name, custom_status),
+                        (presence, presence_since, transition, focused),
+                    ),
+                )| SceneAgent {
+                    persona: AdventurerPersona::for_key(PersonaKey::new(format!("persona-{key}"))),
+                    key,
+                    workspace_id,
+                    name,
+                    custom_status,
+                    presence,
+                    presence_since,
+                    transition,
+                    focused,
+                },
+            )
+            .collect()
+    })
+}
+
+fn scene_campaigns() -> impl Strategy<Value = Vec<SceneCampaign>> {
+    prop::collection::btree_map(workspace_id(), (display_text(), any::<u64>()), 0..=6).prop_map(
+        |campaigns| {
+            campaigns
+                .into_iter()
+                .map(|(workspace_id, (label, variant_seed))| SceneCampaign {
+                    workspace_id,
+                    label,
+                    variant_seed,
+                })
+                .collect()
+        },
+    )
+}
+
+pub(crate) fn scene_snapshot() -> impl Strategy<Value = SceneSnapshot> {
+    (
+        scene_connection(),
+        scene_campaigns(),
+        scene_agents(),
+        motion(),
+        timestamp(),
+    )
+        .prop_map(
+            |(connection, campaigns, agents, motion, now)| SceneSnapshot {
+                connection,
+                campaigns,
+                agents,
+                motion,
+                now,
+            },
+        )
 }
 
 pub(crate) fn safe_rect() -> impl Strategy<Value = Rect> {
