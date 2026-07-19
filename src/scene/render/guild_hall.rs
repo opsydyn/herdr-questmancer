@@ -24,6 +24,7 @@ use crate::{
     },
 };
 
+use super::interaction::paint_selection_marker;
 use super::{
     actor_animation_phase, actor_next_frame_delay, earliest_deadline, effect_animation_phase,
     is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
@@ -341,6 +342,9 @@ fn paint_actors(
                 placement.pose == ScenePose::Unknown,
                 animation,
             );
+            if placement.selected {
+                paint_selection_marker(target, token_origin, PixelSize::new(5, 5));
+            }
         } else {
             let sprite =
                 compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
@@ -352,6 +356,9 @@ fn paint_actors(
                 next_frame_in = Some(earliest_deadline(next_frame_in, delay));
             }
             blit(&sprite, actor_origin, target);
+            if placement.selected {
+                paint_selection_marker(target, actor_origin, sprite.size());
+            }
         }
     }
     next_frame_in

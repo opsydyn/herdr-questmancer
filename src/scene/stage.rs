@@ -59,6 +59,7 @@ pub struct ActorPlacement {
     pub station: TruthfulStation,
     pub pose: ScenePose,
     pub focused: bool,
+    pub selected: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -211,6 +212,7 @@ fn placement_for(agent: &SceneAgent, now: Timestamp, world: WorldScene) -> Optio
         station,
         pose,
         focused: agent.focused,
+        selected: false,
     })
 }
 
@@ -364,6 +366,7 @@ mod tests {
                 station: TruthfulStation::DelveGate(WorkspaceId::new("workspace")),
                 pose: ScenePose::SeekingCounsel,
                 focused: false,
+                selected: false,
             }]
         );
     }

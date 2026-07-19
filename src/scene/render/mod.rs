@@ -1,5 +1,6 @@
 pub mod delve;
 pub mod guild_hall;
+pub(crate) mod interaction;
 pub mod lighting;
 
 use std::time::Duration;

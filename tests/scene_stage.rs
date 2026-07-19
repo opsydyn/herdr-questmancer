@@ -212,36 +212,42 @@ fn guild_hall_places_each_truthful_actor_once_and_keeps_departures_as_effects() 
                 station: TruthfulStation::CampaignToken(WorkspaceId::new("workspace-a-working")),
                 pose: ScenePose::Working,
                 focused: false,
+                selected: false,
             },
             ActorPlacement {
                 agent: AgentKey::new("b-unknown"),
                 station: TruthfulStation::CampaignToken(WorkspaceId::new("workspace-b-unknown")),
                 pose: ScenePose::Unknown,
                 focused: false,
+                selected: false,
             },
             ActorPlacement {
                 agent: AgentKey::new("c-blocked"),
                 station: TruthfulStation::CounselBell,
                 pose: ScenePose::SeekingCounsel,
                 focused: false,
+                selected: false,
             },
             ActorPlacement {
                 agent: AgentKey::new("d-fresh"),
                 station: TruthfulStation::SpoilsBench,
                 pose: ScenePose::ReturningWithSpoils,
                 focused: false,
+                selected: false,
             },
             ActorPlacement {
                 agent: AgentKey::new("e-settled"),
                 station: TruthfulStation::SpoilsBench,
                 pose: ScenePose::Settled,
                 focused: false,
+                selected: false,
             },
             ActorPlacement {
                 agent: AgentKey::new("f-idle"),
                 station: TruthfulStation::Hearth,
                 pose: ScenePose::Resting,
                 focused: false,
+                selected: false,
             },
         ]
     );
@@ -281,24 +287,28 @@ fn automatic_delve_places_supported_states_at_truthful_stations() {
                 station: TruthfulStation::DelveActive(WorkspaceId::new("workspace-a-working")),
                 pose: ScenePose::Working,
                 focused: false,
+                selected: false,
             },
             ActorPlacement {
                 agent: AgentKey::new("b-done"),
                 station: TruthfulStation::DelveExit(WorkspaceId::new("workspace-b-done")),
                 pose: ScenePose::Settled,
                 focused: false,
+                selected: false,
             },
             ActorPlacement {
                 agent: AgentKey::new("c-idle"),
                 station: TruthfulStation::DelveCamp(WorkspaceId::new("workspace-c-idle")),
                 pose: ScenePose::Resting,
                 focused: false,
+                selected: false,
             },
             ActorPlacement {
                 agent: AgentKey::new("d-unknown"),
                 station: TruthfulStation::DelveActive(WorkspaceId::new("workspace-d-unknown")),
                 pose: ScenePose::Unknown,
                 focused: false,
+                selected: false,
             },
         ]
     );

@@ -27,6 +27,7 @@ use crate::{
     },
 };
 
+use super::interaction::paint_selection_marker;
 use super::{
     actor_animation_phase, actor_next_frame_delay, earliest_deadline, effect_animation_phase,
     is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
@@ -741,6 +742,9 @@ fn paint_depth_sorted(
                 } else {
                     blit(&sprite, actor_origin, target);
                 }
+                if placement.selected {
+                    paint_selection_marker(target, actor_origin, sprite.size());
+                }
             }
             DepthItem::Asset { asset, anchor } => {
                 blit_asset(asset, target, origin, anchor.x, anchor.y);
@@ -1138,6 +1142,7 @@ mod tests {
                         _ => unreachable!(),
                     },
                     pose,
+                    selected: false,
                     focused: false,
                 })
             })
@@ -1217,6 +1222,7 @@ mod tests {
                 agent: AgentKey::new(format!("active-{index}")),
                 station: TruthfulStation::DelveActive(WorkspaceId::new("shared")),
                 pose: ScenePose::Working,
+                selected: false,
                 focused: false,
             })
             .collect();

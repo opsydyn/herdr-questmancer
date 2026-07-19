@@ -30,6 +30,7 @@ pub const WINE_LIGHT: Rgb = Rgb::new(177, 64, 63);
 pub const INK_BLUE: Rgb = Rgb::new(48, 69, 91);
 pub const MOSS: Rgb = Rgb::new(60, 83, 55);
 pub const ASH_HIGHLIGHT: Rgb = Rgb::new(132, 120, 111);
+pub const SELECTION_RUNE: Rgb = Rgb::new(69, 229, 255);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AdventurerPalette {
