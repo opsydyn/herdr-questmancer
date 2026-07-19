@@ -529,6 +529,20 @@ fn build_catalogue() -> Vec<Story> {
             ],
             &[],
         ),
+        complete_story(
+            "atlas.sprite-material-inspection",
+            "Sprite Material Inspection 2x",
+            Category::AssetAtlas,
+            "Nearest-neighbour inspection of the material pass; press enter to view all three at 2x.",
+            Viewport::new(120, 30, 114, 28),
+            sprite_material_inspection,
+            &[],
+            &[
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialGoblin),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialWizard),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBarbarian),
+            ],
+        ),
     ];
 
     stories.extend([
@@ -1065,7 +1079,9 @@ fn widget_atlas_shows(build: StoryBuilder) -> &'static [AssetId] {
                     &render_projection_for(&model, area),
                 ));
             }
-            AtlasContent::Pixel { .. } | AtlasContent::RgbSprite { .. } => {}
+            AtlasContent::Pixel { .. }
+            | AtlasContent::RgbSprite { .. }
+            | AtlasContent::RgbSpriteScaled { .. } => {}
         }
     }
     canonical_shows(&[], &shows)
@@ -1292,6 +1308,10 @@ fn sprite_silhouette_lab(context: &StoryContext) -> StoryFixture {
 
 fn sprite_material_and_face_lab(context: &StoryContext) -> StoryFixture {
     StoryFixture::AssetAtlas(fixtures::sprite_material_and_face_lab_fixture(context))
+}
+
+fn sprite_material_inspection(context: &StoryContext) -> StoryFixture {
+    StoryFixture::AssetAtlas(fixtures::sprite_material_inspection_fixture(context))
 }
 
 fn guild_hall_empty(context: &StoryContext) -> StoryFixture {

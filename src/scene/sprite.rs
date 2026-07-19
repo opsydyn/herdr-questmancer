@@ -41,6 +41,47 @@ pub fn blit_mirrored(frame: &SpriteFrame, origin: PixelPoint, target: &mut RgbBu
     blit_with_source_x(frame, origin, target, |x| width - 1 - x);
 }
 
+pub fn blit_scaled(frame: &SpriteFrame, origin: PixelPoint, scale: u16, target: &mut RgbBuffer) {
+    if scale == 0 {
+        return;
+    }
+
+    for y in 0..frame.size.height {
+        for x in 0..frame.size.width {
+            let pixel =
+                frame.pixels[usize::from(y) * usize::from(frame.size.width) + usize::from(x)];
+            let Some(colour) = pixel else {
+                continue;
+            };
+            let Some(base_x) = i32::from(x).checked_mul(i32::from(scale)) else {
+                continue;
+            };
+            let Some(base_y) = i32::from(y).checked_mul(i32::from(scale)) else {
+                continue;
+            };
+            for offset_y in 0..scale {
+                for offset_x in 0..scale {
+                    let Some(destination_x) = origin
+                        .x
+                        .checked_add(base_x)
+                        .and_then(|value| value.checked_add(i32::from(offset_x)))
+                    else {
+                        continue;
+                    };
+                    let Some(destination_y) = origin
+                        .y
+                        .checked_add(base_y)
+                        .and_then(|value| value.checked_add(i32::from(offset_y)))
+                    else {
+                        continue;
+                    };
+                    target.put(destination_x, destination_y, colour);
+                }
+            }
+        }
+    }
+}
+
 fn blit_with_source_x(
     frame: &SpriteFrame,
     origin: PixelPoint,

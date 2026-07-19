@@ -486,6 +486,38 @@ fn sprite_material_and_face_lab_owns_three_rich_review_fixtures() {
 }
 
 #[test]
+fn sprite_material_inspection_reuses_the_material_assets_at_two_times_scale() {
+    let stories = catalogue();
+    let story = stories
+        .iter()
+        .find(|story| story.id.as_str() == "atlas.sprite-material-inspection")
+        .expect("sprite material inspection must be available for detailed art review");
+
+    assert!(story.owns.is_empty());
+    assert_eq!(
+        story.shows,
+        &[
+            AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBarbarian),
+            AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialGoblin),
+            AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialWizard),
+        ]
+    );
+
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("sprite material inspection must use the RGB sprite atlas path");
+    };
+    assert_eq!(atlas.tiles.len(), 3);
+    for tile in atlas.tiles {
+        let AtlasContent::RgbSpriteScaled { frame, scale, .. } = tile.content else {
+            panic!("sprite material inspection must use the nearest-neighbour scale path");
+        };
+        assert_eq!(frame.size(), PixelSize::new(16, 24));
+        assert_eq!(scale, 2);
+        assert_eq!((tile.preferred_width, tile.preferred_height), (38, 28));
+    }
+}
+
+#[test]
 fn six_fixed_guild_hall_stories_use_direct_snapshots_and_unique_scene_first_ownership() {
     let stories = catalogue();
     let expected = [

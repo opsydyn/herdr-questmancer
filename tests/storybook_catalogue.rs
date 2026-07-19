@@ -308,6 +308,7 @@ fn atlas_stories_enumerate_their_reused_visible_persona_assets() {
             && story.id.as_str() != "atlas.compact-scene-adventurers"
             && story.id.as_str() != "atlas.sprite-silhouette-lab"
             && story.id.as_str() != "atlas.sprite-material-face-lab"
+            && story.id.as_str() != "atlas.sprite-material-inspection"
     }) {
         let mut expected = if story.id.as_str() == "atlas.palette-roles" {
             HashSet::new()
@@ -362,6 +363,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "atlas.compact-scene-adventurers",
             "atlas.sprite-silhouette-lab",
             "atlas.sprite-material-face-lab",
+            "atlas.sprite-material-inspection",
             "widgets.adventurer-cards",
             "widgets.chambers",
             "widgets.guild-regions",
@@ -416,7 +418,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "compat.motion-none",
         ]
     );
-    assert_eq!(ids.len(), 75);
+    assert_eq!(ids.len(), 76);
 }
 
 #[test]
@@ -427,7 +429,7 @@ fn all_four_categories_are_populated_in_the_fixed_order() {
             .filter(|story| story.category == category)
             .count()
     });
-    assert_eq!(counts, [23, 6, 36, 10]);
+    assert_eq!(counts, [24, 6, 36, 10]);
     assert!(catalogue()[..15].iter().all(|story| {
         story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
     }));

@@ -637,6 +637,11 @@ pub enum AtlasContent {
         frame: SpriteFrame,
         background: Rgb,
     },
+    RgbSpriteScaled {
+        frame: SpriteFrame,
+        background: Rgb,
+        scale: u16,
+    },
     AdventurerCard {
         agent: Agent,
         theatre: TheatreFrame,
@@ -1087,15 +1092,19 @@ const BARBARIAN_MATERIAL: &[&str] = &[
     "...omodDddddDdo.",
     "....modDddddDdo.",
     "....modDddddDdo.",
-    "....m.oddddddo..",
-    "....m.oddddddo..",
-    "....m.oo....oo..",
-    "....m.oo......oo",
-    "....m.oo..aa..oo",
-    "....m...........",
+    "......oddddddo..",
+    "......oddddddo..",
+    "......oo....oo..",
+    ".....oo......oo.",
+    ".....oo..aa..oo.",
+    "................",
     "....e...........",
     "................",
 ];
+
+const REVIEW_DELVE: Rgb = Rgb::new(12, 17, 31);
+const REVIEW_NEUTRAL: Rgb = Rgb::new(28, 27, 35);
+const REVIEW_TORCH: Rgb = Rgb::new(63, 42, 33);
 
 fn material_frame(rows: &[&str], palette: &[IndexedPaletteEntry]) -> SpriteFrame {
     indexed_sprite(rows, palette)
@@ -1103,36 +1112,57 @@ fn material_frame(rows: &[&str], palette: &[IndexedPaletteEntry]) -> SpriteFrame
 }
 
 pub fn sprite_material_and_face_lab_fixture(_: &StoryContext) -> AssetAtlas {
-    let tiles = [
+    AssetAtlas {
+        tiles: material_review_tiles(1),
+    }
+}
+
+pub fn sprite_material_inspection_fixture(_: &StoryContext) -> AssetAtlas {
+    AssetAtlas {
+        tiles: material_review_tiles(2),
+    }
+}
+
+fn material_review_tiles(scale: u16) -> Vec<AtlasTile> {
+    [
         (
             "Goblin material pass",
             GOBLIN_MATERIAL,
             GOBLIN_MATERIAL_PALETTE,
+            REVIEW_DELVE,
         ),
         (
             "Wizard material pass",
             WIZARD_MATERIAL,
             WIZARD_MATERIAL_PALETTE,
+            REVIEW_NEUTRAL,
         ),
         (
             "Barbarian material pass",
             BARBARIAN_MATERIAL,
             BARBARIAN_MATERIAL_PALETTE,
+            REVIEW_TORCH,
         ),
     ]
     .into_iter()
-    .map(|(label, rows, palette)| AtlasTile {
+    .map(|(label, rows, palette, background)| AtlasTile {
         label,
-        preferred_width: 30,
-        preferred_height: 16,
-        content: AtlasContent::RgbSprite {
-            frame: material_frame(rows, palette),
-            background: VOID,
+        preferred_width: if scale == 1 { 30 } else { 38 },
+        preferred_height: if scale == 1 { 16 } else { 28 },
+        content: if scale == 1 {
+            AtlasContent::RgbSprite {
+                frame: material_frame(rows, palette),
+                background,
+            }
+        } else {
+            AtlasContent::RgbSpriteScaled {
+                frame: material_frame(rows, palette),
+                background,
+                scale,
+            }
         },
     })
-    .collect();
-
-    AssetAtlas { tiles }
+    .collect()
 }
 
 fn compact_scene_snapshot(context: StoryContext) -> SceneSnapshot {

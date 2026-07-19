@@ -135,6 +135,15 @@ tool. The lab should show, for each fixture:
 The lab is for review only. It has no agent prompt, Herdr command, persistence
 mutation or sprite-editor ambition.
 
+The current Storybook sequence is intentionally split into three stable views:
+
+- **Sprite Silhouette Lab** preserves the outline-and-flat-fill baseline.
+- **Sprite Material & Face Lab** presents the three material passes at native
+  scale against Delve-dark, neutral and torch-warm backgrounds.
+- **Sprite Material Inspection 2x** reuses those exact assets through a
+  nearest-neighbour scene blit. Use `enter` in Storybook to give all three
+  inspection cards their full-width review surface.
+
 ## Three review passes
 
 1. **Silhouette:** outline plus one flat light fill. Goblin, Wizard and

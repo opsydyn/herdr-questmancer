@@ -1,6 +1,6 @@
 use questmancer::scene::{
     pixel::{PixelPoint, PixelRect, Rgb, RgbBuffer},
-    sprite::{SpriteFrame, blit, blit_mirrored},
+    sprite::{SpriteFrame, blit, blit_mirrored, blit_scaled},
 };
 
 #[test]
@@ -70,6 +70,24 @@ fn mirrored_blit_reverses_source_columns_without_writing_transparent_pixels() {
 
     assert_eq!(target.get(0, 0), Some(blue));
     assert_eq!(target.get(1, 0), Some(red));
+}
+
+#[test]
+fn scaled_blit_uses_nearest_neighbour_blocks_and_preserves_transparency() {
+    let black = Rgb::BLACK;
+    let red = Rgb::new(255, 0, 0);
+    let frame = SpriteFrame::from_pixels(2, 1, vec![Some(red), None]);
+    let mut target = RgbBuffer::filled(5, 3, black);
+
+    blit_scaled(&frame, PixelPoint::new(1, 1), 2, &mut target);
+
+    for y in 1..3 {
+        assert_eq!(target.get(1, y), Some(red));
+        assert_eq!(target.get(2, y), Some(red));
+        assert_eq!(target.get(3, y), Some(black));
+        assert_eq!(target.get(4, y), Some(black));
+    }
+    assert_eq!(target.get(0, 0), Some(black));
 }
 
 #[test]
