@@ -9,6 +9,7 @@ use crate::{
         ChronicleEvent, DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey, Presence,
         TabId, Timestamp, WorkspaceId,
     },
+    interaction::reduce_action,
     scene::{
         assets::{
             IndexedPaletteEntry, adventurer::compact_adventurer_animation_frame, indexed_sprite,
@@ -20,6 +21,7 @@ use crate::{
         stage::{ScenePose, WorldScene},
     },
     ui::{
+        input::Action,
         pixel::{Canvas, ColorRole, Palette},
         theatre::TheatreFrame,
     },
@@ -714,6 +716,42 @@ pub enum StoryFixture {
     Application(Model),
     AssetAtlas(AssetAtlas),
     PixelScene(PixelSceneFixture),
+    SceneApplication(Model),
+}
+
+pub fn selected_adventurer_interaction_fixture(context: &StoryContext) -> Model {
+    let mut model = guild_fixture(context);
+    let _ = reduce_action(&mut model, Action::Next);
+    model
+}
+
+pub fn counsel_interaction_fixture(context: &StoryContext) -> Model {
+    interaction_fixture(context, Action::Counsel, "Hold at the sealed gate.")
+}
+
+pub fn search_interaction_fixture(context: &StoryContext) -> Model {
+    interaction_fixture(context, Action::Search, "Merrin")
+}
+
+pub fn scrying_interaction_fixture(context: &StoryContext) -> Model {
+    interaction_fixture(context, Action::Refresh, "")
+}
+
+pub fn help_interaction_fixture(context: &StoryContext) -> Model {
+    interaction_fixture(context, Action::ShowHelp, "")
+}
+
+pub fn narrow_interaction_fixture(context: &StoryContext) -> Model {
+    interaction_fixture(context, Action::Counsel, "Wait for the torch signal.")
+}
+
+fn interaction_fixture(context: &StoryContext, action: Action, text: &str) -> Model {
+    let mut model = guild_fixture(context);
+    let _ = reduce_action(&mut model, action);
+    for character in text.chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    model
 }
 
 pub fn calibration_room_scene_fixture(context: &StoryContext) -> PixelSceneFixture {

@@ -15,6 +15,8 @@ use crate::{
     scene::{
         self,
         pixel::{PixelPoint, PixelSize, Rgb, RgbBuffer},
+        presentation::ScenePresentation,
+        snapshot::SceneSnapshot,
         sprite,
     },
     ui::{
@@ -364,6 +366,23 @@ fn render_fixture(frame: &mut Frame<'_>, area: Rect, fixture: &StoryFixture) {
             );
             flush_rgb(frame.buffer_mut(), area, &buffer, Rgb::BLACK);
         }
+        StoryFixture::SceneApplication(model) => {
+            static BUFFER: OnceLock<Mutex<RgbBuffer>> = OnceLock::new();
+            let mut buffer = BUFFER
+                .get_or_init(|| Mutex::new(RgbBuffer::filled(0, 0, Rgb::BLACK)))
+                .lock()
+                .expect("interaction Storybook buffer lock is not poisoned");
+            let snapshot = SceneSnapshot::from_model(model);
+            let presentation = ScenePresentation::from_model(model);
+            scene::render_scene_for_world(
+                &snapshot,
+                &presentation,
+                PixelSize::new(area.width, area.height.saturating_mul(2)),
+                &mut buffer,
+            );
+            flush_rgb(frame.buffer_mut(), area, &buffer, Rgb::BLACK);
+            crate::ui::scene_overlays::render_scene_overlays(frame, model, &presentation);
+        }
     }
 }
 
@@ -581,7 +600,9 @@ fn centered_rect(area: Rect, width: u16, height: u16) -> Rect {
 
 fn fixture_preferences(fixture: &StoryFixture) -> DisplayPreferences {
     match fixture {
-        StoryFixture::Application(model) => *model.preferences(),
+        StoryFixture::Application(model) | StoryFixture::SceneApplication(model) => {
+            *model.preferences()
+        }
         StoryFixture::AssetAtlas(_) | StoryFixture::PixelScene(_) => DisplayPreferences::default(),
     }
 }

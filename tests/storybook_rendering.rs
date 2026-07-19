@@ -752,6 +752,13 @@ fn every_completed_story_renders_at_reference_and_minimum_viewports() {
                 },
             },
             StoryFixture::PixelScene(_) => "▀".to_owned(),
+            StoryFixture::SceneApplication(model) => match model.modal() {
+                Modal::Counsel { .. } => "ISSUE COUNSEL".to_owned(),
+                Modal::Search { .. } => "SEARCH THE GUILD".to_owned(),
+                Modal::Help => "QUESTMANCER'S FIELD GUIDE".to_owned(),
+                Modal::Scrying => "SCRYING".to_owned(),
+                Modal::None => "▀".to_owned(),
+            },
         };
         for (label, width, height) in [
             (

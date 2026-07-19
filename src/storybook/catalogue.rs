@@ -676,6 +676,48 @@ fn build_catalogue() -> Vec<Story> {
             HELP,
             help_reuses,
         ),
+        interaction_story(
+            "interaction.selected-adventurer",
+            "Interaction / Selected Adventurer",
+            "The production selection rune around the selected adventurer.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            selected_adventurer_interaction,
+        ),
+        interaction_story(
+            "interaction.counsel",
+            "Interaction / Counsel Parchment",
+            "The production counsel parchment over the Guild Hall.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            counsel_interaction,
+        ),
+        interaction_story(
+            "interaction.search",
+            "Interaction / Search Parchment",
+            "The production search parchment over the Guild Hall.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            search_interaction,
+        ),
+        interaction_story(
+            "interaction.scrying",
+            "Interaction / Scrying Parchment",
+            "The production scrying parchment over the Guild Hall.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            scrying_interaction,
+        ),
+        interaction_story(
+            "interaction.help",
+            "Interaction / Help Parchment",
+            "The production field guide over the Guild Hall.",
+            GUILD_HALL_PIXEL_VIEWPORT,
+            help_interaction,
+        ),
+        interaction_story(
+            "interaction.narrow",
+            "Interaction / Narrow Parchment",
+            "The production counsel parchment at the narrow review boundary.",
+            NARROW_VIEWPORT,
+            narrow_interaction,
+        ),
         complete_story(
             "scenes.rgb-calibration-room",
             "RGB Calibration Room",
@@ -1367,6 +1409,49 @@ fn compatibility_story(
 
 fn application(model: crate::app::Model) -> StoryFixture {
     StoryFixture::Application(model)
+}
+
+fn interaction_story(
+    id: &'static str,
+    title: &'static str,
+    description: &'static str,
+    viewport: Viewport,
+    build: StoryBuilder,
+) -> Story {
+    complete_story(
+        id,
+        title,
+        Category::Widgets,
+        description,
+        viewport,
+        build,
+        &[],
+        &[],
+    )
+}
+
+fn selected_adventurer_interaction(context: &StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(fixtures::selected_adventurer_interaction_fixture(context))
+}
+
+fn counsel_interaction(context: &StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(fixtures::counsel_interaction_fixture(context))
+}
+
+fn search_interaction(context: &StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(fixtures::search_interaction_fixture(context))
+}
+
+fn scrying_interaction(context: &StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(fixtures::scrying_interaction_fixture(context))
+}
+
+fn help_interaction(context: &StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(fixtures::help_interaction_fixture(context))
+}
+
+fn narrow_interaction(context: &StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(fixtures::narrow_interaction_fixture(context))
 }
 
 fn rgb_calibration_room(context: &StoryContext) -> StoryFixture {
