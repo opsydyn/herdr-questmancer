@@ -96,6 +96,7 @@ const fn metal_colour(value: AdventurerClass) -> Rgb {
     match value {
         AdventurerClass::Cleric | AdventurerClass::Paladin => Rgb::new(189, 183, 145),
         AdventurerClass::Wizard | AdventurerClass::Runewright => Rgb::new(111, 139, 179),
+        AdventurerClass::Druid => MOSS,
         AdventurerClass::Rogue | AdventurerClass::Ranger | AdventurerClass::Pathseeker => {
             Rgb::new(117, 108, 87)
         }

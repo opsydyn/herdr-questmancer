@@ -143,6 +143,7 @@ fn every_class_has_a_distinct_profile_and_chamber_gear_silhouette() {
         AdventurerClass::Barbarian,
         AdventurerClass::Bard,
         AdventurerClass::Cleric,
+        AdventurerClass::Druid,
         AdventurerClass::Paladin,
         AdventurerClass::Ranger,
         AdventurerClass::Rogue,
@@ -184,11 +185,18 @@ fn wizard_and_ranger_gear_use_distinct_logical_pixels() {
     wizard.class = AdventurerClass::Wizard;
     let mut ranger = wizard.clone();
     ranger.class = AdventurerClass::Ranger;
+    let mut druid = ranger.clone();
+    druid.class = AdventurerClass::Druid;
 
     assert_ne!(
         silhouette(&compose_profile_adventurer(&wizard)),
         silhouette(&compose_profile_adventurer(&ranger)),
         "wizard spellbook/staff and ranger bow/quiver must use distinct logical pixels"
+    );
+    assert_ne!(
+        silhouette(&compose_profile_adventurer(&wizard)),
+        silhouette(&compose_profile_adventurer(&druid)),
+        "druid living staff must not collapse into the wizard spellbook/staff silhouette"
     );
 }
 
@@ -358,6 +366,7 @@ fn every_class_keeps_every_keepsake_as_owned_profile_and_chamber_geometry() {
         AdventurerClass::Barbarian,
         AdventurerClass::Bard,
         AdventurerClass::Cleric,
+        AdventurerClass::Druid,
         AdventurerClass::Paladin,
         AdventurerClass::Ranger,
         AdventurerClass::Rogue,
@@ -645,6 +654,7 @@ fn composed_class_ancestry_and_state_layers_never_collapse_adjacent_roles() {
         AdventurerClass::Barbarian,
         AdventurerClass::Bard,
         AdventurerClass::Cleric,
+        AdventurerClass::Druid,
         AdventurerClass::Paladin,
         AdventurerClass::Ranger,
         AdventurerClass::Rogue,
@@ -736,6 +746,7 @@ fn composed_appearance_axes_never_collapse_adjacent_roles() {
         AdventurerClass::Barbarian,
         AdventurerClass::Bard,
         AdventurerClass::Cleric,
+        AdventurerClass::Druid,
         AdventurerClass::Paladin,
         AdventurerClass::Ranger,
         AdventurerClass::Rogue,

@@ -10,6 +10,8 @@ pub struct AdventurerPersona {
     pub name: String,
     pub ancestry: Ancestry,
     pub class: AdventurerClass,
+    #[serde(default)]
+    pub generation: PersonaGeneration,
     pub epithet: Epithet,
     pub appearance: PersonaAppearance,
 }
@@ -24,19 +26,6 @@ impl AdventurerPersona {
             Ancestry::Halfling,
             Ancestry::Orc,
             Ancestry::Gnome,
-        ];
-        const CLASSES: [AdventurerClass; 11] = [
-            AdventurerClass::Barbarian,
-            AdventurerClass::Bard,
-            AdventurerClass::Cleric,
-            AdventurerClass::Paladin,
-            AdventurerClass::Ranger,
-            AdventurerClass::Rogue,
-            AdventurerClass::Wizard,
-            AdventurerClass::Artificer,
-            AdventurerClass::Runewright,
-            AdventurerClass::Testmender,
-            AdventurerClass::Pathseeker,
         ];
         const FIRST_NAMES: [&str; 12] = [
             "Elowen", "Merrin", "Arnoldus", "Pius", "Rowan", "Tamsin", "Brindle", "Nessa", "Orin",
@@ -81,7 +70,8 @@ impl AdventurerPersona {
                 BYNAMES[usize::from(digest[2]) % BYNAMES.len()],
             ),
             ancestry,
-            class: CLASSES[usize::from(digest[3]) % CLASSES.len()],
+            class: class_for_key(&key, PersonaGeneration::V2),
+            generation: PersonaGeneration::V2,
             epithet: Epithet(EPITHETS[usize::from(digest[4]) % EPITHETS.len()].to_owned()),
             appearance: Self::appearance_for_key(&key),
             key,
@@ -108,6 +98,47 @@ impl AdventurerPersona {
             footwear: pick(Footwear::ALL, digest[8]),
             keepsake: pick(Keepsake::ALL, digest[9]),
             accent: pick(AccentTone::ALL, digest[10]),
+        }
+    }
+}
+
+fn class_for_key(key: &PersonaKey, generation: PersonaGeneration) -> AdventurerClass {
+    const V1_CLASSES: [AdventurerClass; 11] = [
+        AdventurerClass::Barbarian,
+        AdventurerClass::Bard,
+        AdventurerClass::Cleric,
+        AdventurerClass::Paladin,
+        AdventurerClass::Ranger,
+        AdventurerClass::Rogue,
+        AdventurerClass::Wizard,
+        AdventurerClass::Artificer,
+        AdventurerClass::Runewright,
+        AdventurerClass::Testmender,
+        AdventurerClass::Pathseeker,
+    ];
+    const V2_CLASSES: [AdventurerClass; 12] = [
+        AdventurerClass::Barbarian,
+        AdventurerClass::Bard,
+        AdventurerClass::Cleric,
+        AdventurerClass::Druid,
+        AdventurerClass::Paladin,
+        AdventurerClass::Ranger,
+        AdventurerClass::Rogue,
+        AdventurerClass::Wizard,
+        AdventurerClass::Artificer,
+        AdventurerClass::Runewright,
+        AdventurerClass::Testmender,
+        AdventurerClass::Pathseeker,
+    ];
+
+    match generation {
+        PersonaGeneration::V1 => {
+            let digest = labelled_hash(key.as_str(), "adventurer");
+            V1_CLASSES[usize::from(digest[3]) % V1_CLASSES.len()]
+        }
+        PersonaGeneration::V2 => {
+            let digest = labelled_hash(key.as_str(), "adventurer-class-v2");
+            V2_CLASSES[usize::from(digest[0]) % V2_CLASSES.len()]
         }
     }
 }
@@ -186,8 +217,23 @@ exhaustive_enum! {
     #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     #[serde(rename_all = "snake_case")]
     pub enum AdventurerClass {
-        Barbarian, Bard, Cleric, Paladin, Ranger, Rogue, Wizard, Artificer, Runewright,
+        Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Wizard, Artificer, Runewright,
         Testmender, Pathseeker
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PersonaGeneration {
+    /// The original eleven-class assignment, retained for saved personas.
+    V1,
+    /// The twelve-class assignment that includes Druid.
+    V2,
+}
+
+impl Default for PersonaGeneration {
+    fn default() -> Self {
+        Self::V1
     }
 }
 
@@ -198,6 +244,7 @@ impl AdventurerClass {
             Self::Barbarian => AdventuringGear::Axe,
             Self::Bard => AdventuringGear::Lute,
             Self::Cleric => AdventuringGear::HolySymbol,
+            Self::Druid => AdventuringGear::LivingStaff,
             Self::Paladin => AdventuringGear::Shield,
             Self::Ranger => AdventuringGear::BowAndQuiver,
             Self::Rogue => AdventuringGear::ThievesTools,
@@ -313,6 +360,7 @@ trait_enum!(AdventuringGear {
     Axe,
     BowAndQuiver,
     HolySymbol,
+    LivingStaff,
     Lute,
     MapAndCompass,
     RuneChisel,

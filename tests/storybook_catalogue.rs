@@ -143,7 +143,7 @@ fn great_room_storybook_families_are_derived_from_production_enums() {
 #[test]
 fn production_catalogue_owns_every_authored_asset_once() {
     let report = validate_catalogue().unwrap();
-    assert_eq!(asset_inventory().len(), 212);
+    assert_eq!(asset_inventory().len(), 214);
     assert_eq!(report.owned(), asset_inventory().len());
     assert!(report.missing().is_empty());
     assert!(report.duplicates().is_empty());

@@ -524,6 +524,12 @@ fn overlay_class_gear(canvas: &mut Canvas, class: AdventurerClass, gear: Adventu
             canvas.fill_rect(13, 9, 1, 8, ColorRole::Counsel);
             canvas.fill_rect(11, 12, 4, 1, ColorRole::Counsel);
         }
+        AdventuringGear::LivingStaff => {
+            canvas.fill_rect(15, 4, 1, 26, ColorRole::Leather);
+            canvas.fill_rect(13, 3, 5, 2, ColorRole::Moss);
+            canvas.fill_rect(14, 1, 3, 2, ColorRole::Goblin);
+            canvas.set(16, 6, ColorRole::RuneGlow);
+        }
         AdventuringGear::Lute => {
             canvas.fill_rect(0, 13, 2, 7, ColorRole::Timber);
             canvas.fill_rect(2, 13, 1, 7, ColorRole::Leather);

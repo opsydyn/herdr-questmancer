@@ -1,7 +1,10 @@
 use std::collections::{BTreeSet, HashSet};
 
 use questmancer::{
-    domain::{AdventurerClass, AdventurerPersona, Ancestry, PersonaKey},
+    domain::{
+        AdventurerClass, AdventurerPersona, AdventuringGear, Ancestry, PersonaGeneration,
+        PersonaKey,
+    },
     herdr::protocol::{AgentInfo, SessionSnapshotResult, SuccessResponse},
 };
 
@@ -104,8 +107,36 @@ fn classic_and_questmancer_classes_are_reachable() {
     assert!(classes.contains(&AdventurerClass::Wizard));
     assert!(classes.contains(&AdventurerClass::Rogue));
     assert!(classes.contains(&AdventurerClass::Cleric));
+    assert!(classes.contains(&AdventurerClass::Druid));
     assert!(classes.contains(&AdventurerClass::Runewright));
     assert!(classes.contains(&AdventurerClass::Testmender));
+    assert_eq!(classes.len(), AdventurerClass::ALL.len());
+}
+
+#[test]
+fn legacy_persona_records_default_to_the_original_generation_without_reclassing() {
+    let generated = AdventurerPersona::for_key(PersonaKey::new("legacy-persona"));
+    let expected_class = generated.class;
+    let mut json = serde_json::to_value(generated).unwrap();
+    json.as_object_mut().unwrap().remove("generation");
+
+    let legacy: AdventurerPersona = serde_json::from_value(json).unwrap();
+
+    assert_eq!(legacy.generation, PersonaGeneration::V1);
+    assert_eq!(legacy.class, expected_class);
+}
+
+#[test]
+fn druid_and_living_staff_have_stable_wire_names() {
+    assert_eq!(AdventurerClass::Druid.gear(), AdventuringGear::LivingStaff);
+    assert_eq!(
+        serde_json::to_value(AdventurerClass::Druid).unwrap(),
+        "druid"
+    );
+    assert_eq!(
+        serde_json::to_value(AdventuringGear::LivingStaff).unwrap(),
+        "living_staff"
+    );
 }
 
 #[test]

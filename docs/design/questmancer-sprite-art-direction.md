@@ -102,13 +102,14 @@ They establish reusable rules:
 - **appearance** changes palette, hair, face detail and clothing without
   erasing class recognition.
 
-The existing seven ancestries and eleven classes remain authoritative. Goblin,
+The existing seven ancestries and twelve classes remain authoritative. Goblin,
 Wizard and Barbarian are the first useful extremes because they expose the
 silhouette system most clearly. Bard, Ranger and Rogue are the second approved
 review batch: their readable primary gear is, respectively, lute, bow and
 quiver, and thieves' tools with paired daggers as a secondary silhouette. They
-do not add or alter a domain class. Druid remains intentionally unrepresented
-until it is an explicit product decision.
+do not add or alter a domain class. Druid is now a persisted domain class with
+a Living Staff; its dedicated world/portrait master artwork remains a separate
+review slice.
 
 ## Pose and animation contract
 

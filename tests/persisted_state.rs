@@ -4,7 +4,7 @@ mod support;
 use proptest::prelude::*;
 use questmancer::{
     app::{Model, View},
-    domain::{AgentKey, GuildAttention, GuildSummons, PersonaKey, Timestamp},
+    domain::{AgentKey, GuildAttention, GuildSummons, PersonaGeneration, PersonaKey, Timestamp},
     persistence::{AttentionEpisodeKey, DurableIntent, PersistedStateV1},
 };
 
@@ -33,6 +33,37 @@ fn capture_contains_only_durable_intent() {
         persona: expected_persona,
         summons: expected_summons,
     }));
+}
+
+#[test]
+fn v1_state_without_persona_generation_loads_and_keeps_its_recorded_classes() {
+    let state = captured_state();
+    let expected_classes = state
+        .personas
+        .iter()
+        .map(|(key, persona)| (key.clone(), persona.class))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut json = serde_json::to_value(state).unwrap();
+    for persona in json["personas"].as_object_mut().unwrap().values_mut() {
+        persona.as_object_mut().unwrap().remove("generation");
+    }
+
+    let decoded: PersistedStateV1 = serde_json::from_value(json).unwrap();
+    decoded.validate().unwrap();
+    assert!(
+        decoded
+            .personas
+            .values()
+            .all(|persona| persona.generation == PersonaGeneration::V1)
+    );
+    assert_eq!(
+        decoded
+            .personas
+            .iter()
+            .map(|(key, persona)| (key.clone(), persona.class))
+            .collect::<std::collections::BTreeMap<_, _>>(),
+        expected_classes
+    );
 }
 
 #[test]

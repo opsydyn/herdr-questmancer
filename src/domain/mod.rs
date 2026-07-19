@@ -14,6 +14,6 @@ pub use ids::{AgentKey, EventId, PaneId, PersonaKey, TabId, Timestamp, Workspace
 pub use persona::{
     AccentTone, AdventurerClass, AdventurerPersona, AdventuringGear, Ancestry, BodyProportions,
     Epithet, FaceDetail, Footwear, Garb, HairShape, HairTone, HeadShape, Keepsake, Legwear,
-    PersonaAppearance, SkinTone,
+    PersonaAppearance, PersonaGeneration, SkinTone,
 };
 pub use state::DomainState;
