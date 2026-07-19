@@ -1,77 +1,122 @@
-# Questmancer scene-first preview: guarded manual test
+# Questmancer production pixel world: guarded manual acceptance
 
-The scene-first renderer is an experimental developer preview. It is not registered as a Herdr plugin pane, is not packaged for release, and does not replace Questmancer's production UI.
+This guide tests the production Guild Hall and Delve without damaging an
+existing Herdr session. The historical filename is retained so existing links
+continue to work; there is no separate scene-preview binary.
 
-The preview reads the same Herdr session model as Questmancer, but has no interactive agent controls. Codex CLI and Herdr remain authoritative for reporting state and sending work to agents.
+## Safety boundary
 
-## Preconditions
+- Record the current focused pane, open tabs and plugin registration first.
+- Do not stop a Herdr server that this test did not start.
+- Do not unlink a plugin link that this test did not create.
+- Do not send counsel to a real or unknown agent.
+- Use a newly created plain pane for synthetic status reports.
+- Track every test-created pane and close only those panes during cleanup.
 
-- Work from the Questmancer checkout you intend to test.
-- Herdr `0.7.4` is already running. Do not stop it.
-- An existing Questmancer plugin link may remain linked. Do not unlink it.
-- Start from an existing Herdr shell or pane where `HERDR_SOCKET_PATH` is exported.
-- Do not create, close, focus, reply to, or report against another agent just to make the preview interesting. Use only a previously approved disposable test source if state synthesis is required.
+## Build and automated checks
 
-## Offline Storybook review
-
-Storybook is the asset and composition review surface. It needs neither Herdr nor running agents, and its controls are development-only.
+From the linked checkout:
 
 ```bash
-cd /Users/alancurrie/Projects/herdr-web-master
-just storybook-test
+cargo build --release
+bash tests/scripts.sh
+cargo test --test cli
+```
+
+If `herdr plugin list` already shows `opsydyn.questmancer` as a local link to
+this checkout, rebuilding the release binary is sufficient. Close and reopen
+the Questmancer pane; do not relink it.
+
+For terminal-free visual review:
+
+```bash
 just storybook
 ```
 
-Inspect every scene-first entry below at its reference viewport and at the listed minimum viewport. The north-star criterion is a dense, continuous 16-bit pixel world where compact adventurers are embedded in the environment rather than sitting inside dashboard panels.
+Review all eight fixed stories. Storybook does not connect to Herdr, invoke
+plugin actions, write state or send text.
 
-| Story | Reference | Minimum | Truth to inspect |
-|---|---:|---:|---|
-| RGB Calibration Room | 120x36 | 40x18 | RGB-to-half-block rendering is opaque and continuous. |
-| Guild Hall Empty | 160x45 | 80x24 | A prepared hall contains no invented activity. |
-| Guild Hall Mixed Party | 160x45 | 80x24 | Working, resting and settled adventurers occupy truthful stations once. |
-| Guild Hall Counsel Requested | 160x45 | 80x24 | A blocked adventurer is at the Counsel Bell. |
-| Guild Hall Spoils Returned | 160x45 | 80x24 | Fresh completion is a bounded, one-shot effect. |
-| Guild Hall Reconnecting | 160x45 | 80x24 | Connection truth appears without erasing the room. |
-| Guild Hall Minimum Viewport | 80x24 | 40x18 | Focused crop stays authored; it is never scaled. |
-| Delve Active Party | 160x45 | 80x24 | Working party occupies the connected active passage. |
-| Delve Mixed States | 160x45 | 80x24 | Every station remains part of one dungeon. |
-| Delve Sealed Gate | 160x45 | 80x24 | Blocked adventurer waits at the sealed gate. |
-| Delve Reconnecting | 160x45 | 80x24 | Connection truth is visible at the entrance. |
-| Delve Minimum Viewport | 80x24 | 40x18 | Focused dungeon crop retains material and scale. |
-| Scene-First Full Motion | 160x45 | 80x24 | Visible motion has purposeful, deterministic cadence. |
-| Scene-First Reduced Motion | 160x45 | 80x24 | Only reduced idle movement remains. |
-| Scene-First No Motion | 160x45 | 80x24 | Static scene has no animation wake-up. |
-| Scene-First Minimum Viewport | 80x24 | 40x18 | RGB scene remains legible at the review minimum. |
-
-Use `j`/`k` to select a Storybook entry, `Enter` to inspect, `Esc` to return, `?` for help and `q` to quit. These keys belong to Storybook only.
-
-## Guarded live preview
-
-Verify the socket is inherited, then build and launch only the feature-gated binary. This does not link, open, close, or modify the production plugin.
+## Registration and singleton
 
 ```bash
-test -n "$HERDR_SOCKET_PATH"
-cargo build --features scene-preview --bin questmancer-scene-preview
-cargo run --features scene-preview --bin questmancer-scene-preview
+herdr plugin list --json
+herdr plugin action invoke opsydyn.questmancer.open
+herdr plugin action invoke opsydyn.questmancer.open
 ```
 
-Observe the following state truth. Mark unavailable synthetic transitions as `BLOCKED`, never as passed by inference.
+Confirm version `0.1.0`, local source, all five actions, and exactly one
+Questmancer pane after the repeated `open`.
 
-| Check | Expected preview result |
+## Production interaction pass
+
+| Check | Expected evidence |
 |---|---|
-| Working | Delve, with the adventurer at an active passage. |
-| Blocked | Guild Hall, with the adventurer at the Counsel Bell. |
-| Done | Fresh Spoils theatre, then the settled return after its bounded window. |
-| Idle | Guild Hall Hearth. |
-| Exited | No adventurer body remains in either scene. |
-| Reconnecting | Current room/dungeon remains visible with connection truth. |
-| Narrow terminal | Automatic camera crop, no scaling or replacement dashboard. |
-| Full/reduced/no motion | Cadence follows the selected display preference. |
+| Guild Hall | `1` shows the full RGB guild scene. |
+| Delve | `2` shows the full RGB dungeon scene. |
+| Selection | `j`/`k`, arrows and `g`/`G` move one in-world selection rune. |
+| Observe | `Enter` focuses the selected real Herdr pane. |
+| Search | `/` opens parchment, filters the party, and `Esc` cancels. |
+| Scrying | `o` opens recent output for the selected adventurer. |
+| Counsel | `r` opens parchment; submit only to the disposable synthetic agent. |
+| Acknowledge | `Space` marks the current blocked episode seen locally. |
+| Help | `?` opens the contextual help parchment. |
+| Narrow viewport | The world camera crops without switching to a text dashboard. |
+| View continuity | Selection remains coherent when switching with `1` and `2`. |
 
-The preview accepts only plain `q`, `Ctrl-C`, input-stream closure, and process signals as exits. `1`, `2`, arrows, Enter, `r`, `/`, Space, mouse events and paste are intentionally ignored: the preview must not focus panes, send counsel, read output, mark summons read, persist preference changes, or mutate agent state.
+Do not infer unobserved states. In particular, Herdr `0.7.4` cannot synthesize
+`done`; fixture tests are not a substitute for live visual acceptance.
 
-Exit with plain `q`, then confirm the normal terminal returns. Do not stop Herdr or unlink the existing plugin as part of this test.
+## Optional disposable agent
 
-## Record, do not decide by implication
+Create a plain pane, capture its ID, then use one unique source:
 
-Copy observations into [`docs/superpowers/reviews/2026-07-17-scene-first-cutover.md`](../superpowers/reviews/2026-07-17-scene-first-cutover.md). The preview provides evidence only. Production cutover remains a separate, explicit decision.
+```bash
+PANE_ID=$(herdr pane current | jq -r '.result.pane.pane_id')
+SOURCE_ID="questmancer-smoke-$(date +%s)-$$-$RANDOM"
+
+herdr pane report-agent "$PANE_ID" \
+  --source "$SOURCE_ID" \
+  --agent smoke-adventurer \
+  --state working \
+  --message "mapping the dungeon" \
+  --seq 1
+
+herdr pane report-agent "$PANE_ID" \
+  --source "$SOURCE_ID" \
+  --agent smoke-adventurer \
+  --state blocked \
+  --message "needs counsel" \
+  --seq 2
+```
+
+Confirm the blocked pose, summons marker, search result, selected-output read and
+counsel parchment. Then release the same identity:
+
+```bash
+herdr pane report-agent "$PANE_ID" \
+  --source "$SOURCE_ID" \
+  --agent smoke-adventurer \
+  --state working \
+  --message "manual test complete" \
+  --seq 3
+
+herdr pane release-agent "$PANE_ID" \
+  --source "$SOURCE_ID" \
+  --agent smoke-adventurer \
+  --seq 4
+```
+
+## Cleanup and report
+
+1. Release the synthetic report before closing its disposable pane.
+2. Close only Questmancer panes created by this test.
+3. Restore the original focused pane when it still exists.
+4. Leave the pre-existing Herdr server and plugin link running.
+5. Run `git status --short --branch` and confirm the test changed no tracked files.
+6. Report every item as `PASS`, `FAIL`, `BLOCKED` or `NOT REVIEWED`.
+
+Inspect plugin logs before declaring the environment restored:
+
+```bash
+herdr plugin log list --plugin opsydyn.questmancer --limit 50
+```

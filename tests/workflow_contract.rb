@@ -198,22 +198,19 @@ manual = File.read("docs/manual-test/questmancer-0.1.0.md")
 plan = File.read("docs/superpowers/plans/2026-07-17-questmancer-great-room.md")
 
 [
-  "cargo build\nherdr plugin link .\nherdr plugin action invoke opsydyn.questmancer.open",
+  "cargo build --release\nherdr plugin link .\nherdr plugin action invoke opsydyn.questmancer.open",
   "opsydyn.questmancer.guild",
   "opsydyn.questmancer.delve",
   "just storybook",
-  "developer-only Cargo feature",
-  "Guild Door",
-  "Quest Wall",
-  "Campaign Tables",
-  "Counsel Bell",
-  "Hearth",
-  "Chronicle Lectern",
-  "Scrying Alcove",
-  "Spoils Desk",
-  "Truthful Stations",
-  "one hall",
-  "landmark camera"
+  "feature-gated Storybook",
+  "Guild Hall",
+  "Delve",
+  "selection rune",
+  "contextual parchment overlays",
+  "counsel",
+  "search",
+  "scrying",
+  "eight fixed production stories"
 ].each { |expected| require_text(readme, "README", expected) }
 
 [

@@ -16,6 +16,14 @@ assert_contains() {
   grep -F -- "$expected" "$file" >/dev/null || fail "$file did not contain: $expected"
 }
 
+assert_not_contains() {
+  local file=$1
+  local unexpected=$2
+  if grep -F -- "$unexpected" "$file" >/dev/null; then
+    fail "$file unexpectedly contained: $unexpected"
+  fi
+}
+
 make_binary() {
   local path=$1
   mkdir -p "$(dirname "$path")"
@@ -270,6 +278,10 @@ test_release_packaging_contract() {
   [[ -f $workflow ]] || fail "$workflow does not exist"
   assert_contains "$ROOT/herdr/install.sh" "QUESTMANCER_REPOSITORY"
   assert_contains "$ROOT/herdr/install.sh" "bin/questmancer"
+  assert_contains "$ROOT/herdr/run.sh" 'exec "$binary" "$@"'
+  assert_not_contains "$ROOT/herdr/run.sh" "scene-preview"
+  assert_not_contains "$ROOT/herdr-plugin.toml" "scene-preview"
+  assert_not_contains "$ROOT/README.md" "production pane still uses its existing UI renderer"
 
   local target archive expected
   while IFS='|' read -r target expected; do
@@ -293,7 +305,8 @@ TARGETS
 
   assert_contains "$ROOT/justfile" "guild-test:"
   assert_contains "$ROOT/justfile" "delve-test:"
-  assert_contains "$ROOT/justfile" "--test theatre"
+  assert_contains "$ROOT/justfile" "--test scene_guild_hall"
+  assert_contains "$ROOT/justfile" "--test scene_delve"
   assert_contains "$ROOT/justfile" 'run view="guild":'
   assert_contains "$ROOT/justfile" "target/release/questmancer"
   if rg -n 'guestbook|desk-test|cafe-test|view="desk"' "$ROOT/justfile" >"$TMP/stale-recipes"; then

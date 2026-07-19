@@ -102,6 +102,14 @@ copying Herdr topology, agent output, or live state.
 - CI gates for formatting, Clippy warnings, all-target/all-feature tests, shell
   behavior and syntax, release build, and diff hygiene
 
+### 9. Scene-first production cutover — complete
+
+- One RGB scene renderer now owns the Guild Hall and Delve in production
+- Contextual parchment overlays preserve selection, observation, counsel,
+  search, scrying, acknowledgement and Reviewr actions
+- The legacy text renderer and standalone scene-preview binary were removed
+- Storybook now reviews eight fixed stories through the production scene path
+
 ## Release acceptance
 
 The v0.1 release candidate is ready only when all of the following are true:
@@ -115,6 +123,36 @@ The v0.1 release candidate is ready only when all of the following are true:
 7. The release workflow names exactly four supported target archives and builds
    `SHA256SUMS` after downloading them.
 8. The README does not claim Herdr `0.7.4` can synthesize `done`.
+
+## Backlog and release closure
+
+The v0.1 product scope above is feature-complete. The following work is either
+release closure or an explicitly post-v0.1 enhancement; it does not reopen the
+core Guild Hall, Delve, persistence, or Storybook milestones.
+
+### Release closure
+
+- Repeat the guarded Herdr `0.7.4` smoke from current `main` after the RGB
+  production cutover; visual approval is recorded, while live interaction and
+  transition acceptance remain separate evidence.
+- Publish the intended `opsydyn/herdr-questmancer` repository, tag `v0.1.0`, and
+  verify all four archives, `SHA256SUMS`, and `herdr/install.sh` against the
+  published release. Until then, source linking remains the supported path.
+- Capture a current Guild Hall and Delve screenshot or terminal recording for
+  the first release page.
+
+### Post-v0.1 product backlog
+
+- Make Storybook `j` / `k` and Up / Down traverse its visibly flat story list
+  across category boundaries. Keep `h` / `l` and Left / Right as category jumps,
+  and keep navigation clamped at the first and last story.
+- Add the opt-in Herdr `0.7.4` workspace and agent sidebar rows described in
+  `docs/superpowers/plans/2026-07-15-herdr-074-sidebar-integration.md`.
+- Repeat the optional Reviewr integration smoke when
+  `persiyanov.reviewr.open` is installed, without making Reviewr a dependency.
+- Capture a real-agent resting and returned-spoils transition when available;
+  Herdr `0.7.4` cannot synthesize an explicit `done` report, so fixture coverage
+  remains the honest v0.1 proof for those projections.
 
 ## Engineering rules
 

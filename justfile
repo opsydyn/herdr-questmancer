@@ -23,10 +23,10 @@ domain-test:
     cargo test --test domain_types --test persona --test normalization --test chronicle --test reducer
 
 guild-test:
-    cargo test --test app --test actions --test command --test runtime_loop --test guild_hall_rendering --test input --test interaction --test reply
+    cargo test --test app --test actions --test command --test runtime_loop --test input --test interaction --test scene_guild_hall --test scene_interaction --test scene_overlays
 
 delve-test:
-    cargo test --test pixel --test persona_art --test delve_widgets --test delve_scene --test theatre --test delve_rendering --test runtime_loop --test interaction
+    cargo test --test scene_pixel --test scene_delve --test scene_stage --test scene_runtime --test scene_adapter --test runtime_loop --test interaction
 
 persistence-test:
     cargo test --test config --test persisted_state --test atomic_state --test chronicle_persistence --test persistence_worker --test startup
