@@ -122,6 +122,8 @@ storybook_asset_enum!(SceneFirstAsset {
     SpritePortraitBard,
     SpritePortraitRanger,
     SpritePortraitRogue,
+    SpriteMaterialDruid,
+    SpritePortraitDruid,
     GuildHallEmpty,
     GuildHallMixedParty,
     GuildHallCounselRequested,
@@ -387,6 +389,8 @@ impl AssetId {
                 SceneFirstAsset::SpritePortraitBard => "Bard portrait master",
                 SceneFirstAsset::SpritePortraitRanger => "Ranger portrait master",
                 SceneFirstAsset::SpritePortraitRogue => "Rogue portrait master",
+                SceneFirstAsset::SpriteMaterialDruid => "Druid world sprite",
+                SceneFirstAsset::SpritePortraitDruid => "Druid portrait master",
                 SceneFirstAsset::GuildHallEmpty => "scene first: Guild Hall empty",
                 SceneFirstAsset::GuildHallMixedParty => "scene first: Guild Hall mixed party",
                 SceneFirstAsset::GuildHallCounselRequested => {

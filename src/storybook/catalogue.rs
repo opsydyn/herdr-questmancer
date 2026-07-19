@@ -593,6 +593,26 @@ fn build_catalogue() -> Vec<Story> {
             ],
             &[],
         ),
+        complete_story(
+            "atlas.sprite-grovekeeper-world",
+            "Sprite Grovekeeper World",
+            Category::AssetAtlas,
+            "Native 16x24 Druid world sprite, with a leafy living staff and antlered hood.",
+            PIXEL_SCENE_VIEWPORT,
+            sprite_grovekeeper_world,
+            &[AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialDruid)],
+            &[],
+        ),
+        complete_story(
+            "atlas.sprite-grovekeeper-masters",
+            "Sprite Grovekeeper Masters",
+            Category::AssetAtlas,
+            "Independent Druid 16x24 world sprite beside its 24x32 portrait master.",
+            Viewport::new(120, 40, 80, 22),
+            sprite_grovekeeper_masters,
+            &[AssetId::SceneFirst(SceneFirstAsset::SpritePortraitDruid)],
+            &[AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialDruid)],
+        ),
     ];
 
     stories.extend([
@@ -1375,6 +1395,14 @@ fn sprite_scout_and_shadow_masters(context: &StoryContext) -> StoryFixture {
 
 fn sprite_scout_and_shadow_world(context: &StoryContext) -> StoryFixture {
     StoryFixture::AssetAtlas(fixtures::sprite_scout_and_shadow_world_fixture(context))
+}
+
+fn sprite_grovekeeper_world(context: &StoryContext) -> StoryFixture {
+    StoryFixture::AssetAtlas(fixtures::sprite_grovekeeper_world_fixture(context))
+}
+
+fn sprite_grovekeeper_masters(context: &StoryContext) -> StoryFixture {
+    StoryFixture::AssetAtlas(fixtures::sprite_grovekeeper_masters_fixture(context))
 }
 
 fn guild_hall_empty(context: &StoryContext) -> StoryFixture {

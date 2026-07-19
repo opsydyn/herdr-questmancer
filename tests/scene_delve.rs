@@ -327,7 +327,7 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "231760f9377dd2aa8e486a836ab9da02344cb0608ea97d28a10f1eb9c46b9a76"
+        "6a944c0e7fc903a4f5375d01c10fd168f9f6e65b365e94e318784717aa92c4f9"
     );
 
     let non_clear = first

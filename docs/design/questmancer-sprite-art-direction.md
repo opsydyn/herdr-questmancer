@@ -108,8 +108,7 @@ silhouette system most clearly. Bard, Ranger and Rogue are the second approved
 review batch: their readable primary gear is, respectively, lute, bow and
 quiver, and thieves' tools with paired daggers as a secondary silhouette. They
 do not add or alter a domain class. Druid is now a persisted domain class with
-a Living Staff; its dedicated world/portrait master artwork remains a separate
-review slice.
+a Living Staff, and has a dedicated world/portrait master review slice.
 
 ## Pose and animation contract
 
@@ -142,7 +141,7 @@ tool. The lab should show, for each fixture:
 The lab is for review only. It has no agent prompt, Herdr command, persistence
 mutation or sprite-editor ambition.
 
-The current Storybook sequence is intentionally split into six stable views:
+The current Storybook sequence is intentionally split into eight stable views:
 
 - **Sprite Silhouette Lab** preserves the outline-and-flat-fill baseline.
 - **Sprite Material & Face Lab** presents the three material passes at native
@@ -158,6 +157,10 @@ The current Storybook sequence is intentionally split into six stable views:
 - **Sprite Scout & Shadow Masters** compares that batch's 16x24 world frames
   with their independent 24x32 portrait masters. It is the review gate before
   any old sprite is deprecated or any production card is changed.
+- **Sprite Grovekeeper World** is the native-size Druid review surface.
+- **Sprite Grovekeeper Masters** compares its leafy Living Staff, antlered hood
+  and beard materials at 16x24 and 24x32 before any production portrait
+  cutover.
 
 ## Four review passes
 

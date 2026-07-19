@@ -268,6 +268,8 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             SceneFirstAsset::SpritePortraitBard,
             SceneFirstAsset::SpritePortraitRanger,
             SceneFirstAsset::SpritePortraitRogue,
+            SceneFirstAsset::SpriteMaterialDruid,
+            SceneFirstAsset::SpritePortraitDruid,
             SceneFirstAsset::GuildHallEmpty,
             SceneFirstAsset::GuildHallMixedParty,
             SceneFirstAsset::GuildHallCounselRequested,
@@ -334,6 +336,14 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
                 SceneFirstAsset::SpritePortraitRanger,
                 SceneFirstAsset::SpritePortraitRogue,
             ][..],
+        ),
+        (
+            "atlas.sprite-grovekeeper-world",
+            &[SceneFirstAsset::SpriteMaterialDruid][..],
+        ),
+        (
+            "atlas.sprite-grovekeeper-masters",
+            &[SceneFirstAsset::SpritePortraitDruid][..],
         ),
         (
             "scenes.guild-hall-empty",
@@ -655,6 +665,49 @@ fn scout_and_shadow_masters_keep_class_gear_legible_at_both_authored_sizes() {
             tile.label
         );
     }
+}
+
+#[test]
+fn grovekeeper_master_keeps_druid_world_and_portrait_frames_independent() {
+    let story = catalogue()
+        .iter()
+        .find(|story| story.id.as_str() == "atlas.sprite-grovekeeper-masters")
+        .expect("Druid portrait review must be available");
+
+    assert_eq!(story.title, "Sprite Grovekeeper Masters");
+    assert_eq!(
+        story.owns,
+        &[AssetId::SceneFirst(SceneFirstAsset::SpritePortraitDruid)]
+    );
+    assert_eq!(
+        story.shows,
+        &[AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialDruid)]
+    );
+
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("Druid portrait review must use the RGB sprite atlas path");
+    };
+    let [tile] = atlas.tiles.as_slice() else {
+        panic!("Druid portrait review must have one focused comparison tile");
+    };
+    let AtlasContent::RgbSpritePair {
+        world, portrait, ..
+    } = &tile.content
+    else {
+        panic!("Druid master tile must compare two independently authored sprites");
+    };
+    assert_eq!(world.size(), PixelSize::new(16, 24));
+    assert_eq!(portrait.size(), PixelSize::new(24, 32));
+    assert!(
+        portrait
+            .pixels()
+            .iter()
+            .flatten()
+            .collect::<HashSet<_>>()
+            .len()
+            >= 12,
+        "Druid portrait needs enough colours for antler, foliage, beard and staff materials"
+    );
 }
 
 #[test]

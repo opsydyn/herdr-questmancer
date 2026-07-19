@@ -346,7 +346,7 @@ fn narrow_shell_uses_a_one_line_story_selector() {
     let stories = catalogue();
     let app = StorybookApp::new(stories);
     let screen = render_storybook(&app, stories, 79, 24);
-    assert!(screen.contains("1/79 Classes and Gear"));
+    assert!(screen.contains("1/81 Classes and Gear"));
     assert!(screen.contains("PRODUCTION CANVAS"));
     assert!(!screen.contains("STORIES"));
     assert!(!screen.contains("COVERAGE"));
@@ -655,7 +655,7 @@ fn class_atlas_uses_production_profile_canvases() {
     let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
         panic!("class atlas must be an asset atlas");
     };
-    assert_eq!(atlas.tiles.len(), 11);
+    assert_eq!(atlas.tiles.len(), 12);
     for tile in &atlas.tiles {
         let AtlasContent::Pixel { canvas, .. } = &tile.content else {
             panic!("class tiles must contain production pixel canvases");
@@ -929,6 +929,18 @@ fn asset_belongs_to_story(asset: AssetId, story_id: &str) -> bool {
                     questmancer::storybook::assets::SceneFirstAsset::SpritePortraitRanger
                         |
                     questmancer::storybook::assets::SceneFirstAsset::SpritePortraitRogue
+                )
+            )
+            | (
+                "atlas.sprite-grovekeeper-world",
+                AssetId::SceneFirst(
+                    questmancer::storybook::assets::SceneFirstAsset::SpriteMaterialDruid
+                )
+            )
+            | (
+                "atlas.sprite-grovekeeper-masters",
+                AssetId::SceneFirst(
+                    questmancer::storybook::assets::SceneFirstAsset::SpritePortraitDruid
                 )
             )
     )

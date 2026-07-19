@@ -1796,6 +1796,135 @@ const ROGUE_PORTRAIT: &[&str] = &[
     "........................",
 ];
 
+const DRUID_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(22, 20, 26)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(35, 68, 38)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(65, 116, 55)),
+    },
+    IndexedPaletteEntry {
+        key: 'v',
+        colour: Some(Rgb::new(117, 162, 69)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(134, 77, 51)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(225, 153, 99)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 218, 151)),
+    },
+    IndexedPaletteEntry {
+        key: 'w',
+        colour: Some(Rgb::new(125, 118, 99)),
+    },
+    IndexedPaletteEntry {
+        key: 'W',
+        colour: Some(Rgb::new(219, 211, 183)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(84, 51, 32)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(158, 100, 53)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(110, 86, 52)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(191, 163, 104)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(217, 179, 78)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(105, 232, 150)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(85, 174, 206)),
+    },
+];
+
+const DRUID_WORLD: &[&str] = &[
+    "................",
+    "....m......m....",
+    ".....m....m.....",
+    "......ocCCo.....",
+    ".....ocCCCco....",
+    "....ocCvvvCco...",
+    "....ocCKhKCCo...",
+    "....ocCKoKCCo.d.",
+    "....ocCKKKCCo.d.",
+    "...owWWWWWWwo.d.",
+    "...owWwWWwWwo.d.",
+    "...ocCCCCCCco.d.",
+    "...ocCCaCCCco.d.",
+    "...ocCCllCCCco..",
+    "...ocCCCCCCco...",
+    "...oddddddddo...",
+    "...odDddddDdo...",
+    "...odDddddDdo...",
+    "...oddddddddo...",
+    "...oddo..oddo...",
+    "...ooo....ooo...",
+    "................",
+    "................",
+    "................",
+];
+
+const DRUID_PORTRAIT: &[&str] = &[
+    "........................",
+    "....m..............m....",
+    ".....m............m.....",
+    "......M..........M......",
+    ".......occccccco........",
+    "......ocCCCCCCCCco......",
+    ".....ocCCvvvvvvCCco.....",
+    ".....ocCCCKhhKCCCco.....",
+    ".....ocCCCKooKCCCco..d..",
+    ".....ocCCCKKKKCCCco.dD..",
+    ".....ocCCCCCCCCCCco.dD..",
+    ".....oowWWWWWWWWwoo.dD..",
+    ".....owWwwWWWWwwWwo.dD..",
+    ".....owWWWWWWWWWWwo.dD..",
+    ".....ocCCCccccCCCco.dD..",
+    "....ocCCCCCCaCCCCCco.d..",
+    "....ocCCCCClllCCCCCco...",
+    "....ocCCCCCCCCCCCCCco...",
+    "....ocCCCCC.CCCCCCCco...",
+    "....ocCCCCC..CCCCCco....",
+    "....ocCCCCC...CCCCco....",
+    "....oddddddddddddddo....",
+    "....odDdddddddddddDo....",
+    "....odDddddeedddddDo....",
+    "....odDdddddddddddDo....",
+    "....oddddddddddddddo....",
+    ".....oddddo..oddddo.....",
+    ".....odddo....odddo.....",
+    "....ooooo......ooooo....",
+    "........................",
+    "........................",
+    "........................",
+];
+
 const REVIEW_DELVE: Rgb = Rgb::new(12, 17, 31);
 const REVIEW_NEUTRAL: Rgb = Rgb::new(28, 27, 35);
 const REVIEW_TORCH: Rgb = Rgb::new(38, 24, 24);
@@ -1940,6 +2069,35 @@ pub fn sprite_scout_and_shadow_world_fixture(_: &StoryContext) -> AssetAtlas {
     .collect();
 
     AssetAtlas { tiles }
+}
+
+pub fn sprite_grovekeeper_world_fixture(_: &StoryContext) -> AssetAtlas {
+    AssetAtlas {
+        tiles: vec![AtlasTile {
+            label: "Druid world sprite",
+            preferred_width: 30,
+            preferred_height: 16,
+            content: AtlasContent::RgbSprite {
+                frame: material_frame(DRUID_WORLD, DRUID_PALETTE),
+                background: REVIEW_DELVE,
+            },
+        }],
+    }
+}
+
+pub fn sprite_grovekeeper_masters_fixture(_: &StoryContext) -> AssetAtlas {
+    AssetAtlas {
+        tiles: vec![AtlasTile {
+            label: "Druid portrait master",
+            preferred_width: 50,
+            preferred_height: 18,
+            content: AtlasContent::RgbSpritePair {
+                world: material_frame(DRUID_WORLD, DRUID_PALETTE),
+                portrait: material_frame(DRUID_PORTRAIT, DRUID_PALETTE),
+                background: REVIEW_DELVE,
+            },
+        }],
+    }
 }
 
 fn material_review_tiles(scale: u16) -> Vec<AtlasTile> {
