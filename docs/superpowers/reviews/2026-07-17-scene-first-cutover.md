@@ -11,8 +11,16 @@ that has not yet been observed. Approval does not manufacture acceptance data.
 | Delve visual direction | APPROVED | 2026-07-19 production RGB Delve capture. |
 | RGB renderer as sole production renderer | APPROVED | User approved the renderer and hard cutover. |
 | Legacy renderer removal | APPROVED | Removed from production, Storybook and build surfaces. |
-| Selection, search, counsel and scrying controls | RETAINED | Contextual overlays over the world; live retest still required. |
-| `1` / `2` Guild Hall and Delve switching | RETAINED | Production input contract; live retest still required. |
+| Production linked-pane RGB render | PASS | 2026-07-19: fresh `target/release/questmancer` produced RGB half-block output in `w2:p16`. |
+| Guild Hall and Delve switching | PASS | Distinct live frame hashes after `1` and `2`: `14d8d59a...` and `f1940a3e...`. |
+| Search parchment | PASS | Opened with `/` and cancelled with `Escape`; no text submitted. |
+| Counsel parchment | PASS | Opened with `r` and cancelled with `Escape`; no counsel submitted. |
+| Scrying parchment | PASS | Opened with `o` for the selected Codex pane and cancelled. |
+| Field guide | PASS | Opened with `?` and cancelled. |
+| Observe selected adventurer | PASS | `Enter` focused the original Codex pane `w2:pM`. |
+| Multi-adventurer selection | NOT REVIEWED | The live herd contained only one real agent; reducer and scene tests pass. |
+| Singleton lifecycle | PASS | Concurrent `open` calls created one pane; test-created pane and tab were removed. |
+| Source-link runner freshness | PASS | Release build now precedes stale `bin/questmancer`; shell regression suite covers both paths. |
 | Minimum viewport | NOT REVIEWED | 80x24 acceptance remains open. |
 | Full motion | NOT REVIEWED | |
 | Reduced motion | NOT REVIEWED | |
