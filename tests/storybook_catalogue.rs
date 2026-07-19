@@ -143,7 +143,7 @@ fn great_room_storybook_families_are_derived_from_production_enums() {
 #[test]
 fn production_catalogue_owns_every_authored_asset_once() {
     let report = validate_catalogue().unwrap();
-    assert_eq!(asset_inventory().len(), 197);
+    assert_eq!(asset_inventory().len(), 200);
     assert_eq!(report.owned(), asset_inventory().len());
     assert!(report.missing().is_empty());
     assert!(report.duplicates().is_empty());
@@ -277,6 +277,9 @@ fn atlas_catalogue_owns_every_atlas_asset_exactly_once() {
                     | AssetId::TruthfulStation(_)
                     | AssetId::RoomCamera(_)
                     | AssetId::SceneFirst(SceneFirstAsset::CompactAdventurers)
+                    | AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteGoblin)
+                    | AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteWizard)
+                    | AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteBarbarian)
             )
         })
         .collect::<Vec<_>>();
@@ -300,6 +303,7 @@ fn atlas_stories_enumerate_their_reused_visible_persona_assets() {
             && !story.id.as_str().starts_with("atlas.truthful-stations")
             && !story.id.as_str().starts_with("atlas.camera-")
             && story.id.as_str() != "atlas.compact-scene-adventurers"
+            && story.id.as_str() != "atlas.sprite-silhouette-lab"
     }) {
         let mut expected = if story.id.as_str() == "atlas.palette-roles" {
             HashSet::new()
@@ -352,6 +356,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "atlas.camera-cropped-room",
             "atlas.camera-landmark",
             "atlas.compact-scene-adventurers",
+            "atlas.sprite-silhouette-lab",
             "widgets.adventurer-cards",
             "widgets.chambers",
             "widgets.guild-regions",
@@ -406,7 +411,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "compat.motion-none",
         ]
     );
-    assert_eq!(ids.len(), 73);
+    assert_eq!(ids.len(), 74);
 }
 
 #[test]
@@ -417,7 +422,7 @@ fn all_four_categories_are_populated_in_the_fixed_order() {
             .filter(|story| story.category == category)
             .count()
     });
-    assert_eq!(counts, [21, 6, 36, 10]);
+    assert_eq!(counts, [22, 6, 36, 10]);
     assert!(catalogue()[..15].iter().all(|story| {
         story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
     }));
@@ -934,7 +939,10 @@ fn every_story_uses_its_declared_fixture_bridge() {
             .owns
             .iter()
             .any(|asset| matches!(asset, AssetId::SceneFirst(_)))
-            && story.id.as_str() != "atlas.compact-scene-adventurers"
+            && !matches!(
+                story.id.as_str(),
+                "atlas.compact-scene-adventurers" | "atlas.sprite-silhouette-lab"
+            )
         {
             assert!(
                 matches!(fixture, StoryFixture::PixelScene(_)),

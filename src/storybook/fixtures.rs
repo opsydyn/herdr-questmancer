@@ -10,7 +10,10 @@ use crate::{
         TabId, Timestamp, WorkspaceId,
     },
     scene::{
-        assets::{adventurer::compact_adventurer_animation_frame, palette::VOID},
+        assets::{
+            IndexedPaletteEntry, adventurer::compact_adventurer_animation_frame, indexed_sprite,
+            palette::VOID,
+        },
         pixel::Rgb,
         snapshot::{SceneAgent, SceneCampaign, SceneConnection, SceneSnapshot, SceneTransition},
         sprite::SpriteFrame,
@@ -732,6 +735,144 @@ pub fn compact_adventurers_atlas_fixture(_: &StoryContext) -> AssetAtlas {
             })
             .collect(),
     }
+}
+
+const SPRITE_SILHOUETTE_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(22, 20, 27)),
+    },
+    IndexedPaletteEntry {
+        key: 'g',
+        colour: Some(Rgb::new(152, 191, 94)),
+    },
+    IndexedPaletteEntry {
+        key: 'w',
+        colour: Some(Rgb::new(145, 128, 216)),
+    },
+    IndexedPaletteEntry {
+        key: 'b',
+        colour: Some(Rgb::new(223, 149, 89)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(111, 63, 42)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(215, 221, 218)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(255, 224, 107)),
+    },
+];
+
+const GOBLIN_SILHOUETTE: &[&str] = &[
+    "................",
+    "................",
+    "...o........o...",
+    "..oggo....oggo..",
+    ".oggggooooggggo.",
+    ".oggggggggggggo.",
+    "..oggggggggggo..",
+    "...oggeeggego...",
+    "...oggggggggo...",
+    "....oggggggo....",
+    "....oddddddo....",
+    "...oddddddddo..m",
+    "...oddoeegddo.mm",
+    "....oddddddo..m.",
+    "....oo....oo....",
+    "...oo......oo...",
+    "...oo..mm..oo...",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+];
+
+const WIZARD_SILHOUETTE: &[&str] = &[
+    "......oo........",
+    ".....owwo.......",
+    "....oowwwo......",
+    "...owwwwwwwo....",
+    "....owwwwwwo....",
+    ".....owwwwo.....",
+    ".....oweeewo....",
+    "..m..owwwwwo....",
+    "..m...owwwo.....",
+    "..m...owwwo.....",
+    "..m...owwwo.....",
+    "..m..owwwwwwo...",
+    "..m.owwwwwwwwo..",
+    "..m.owwwwwwwwo..",
+    "..m..owwwwwwo...",
+    "..m...owwwo.....",
+    "..m...owwwo.....",
+    "..m....oo.oo....",
+    "..m.............",
+    "..e.............",
+    "................",
+    "................",
+    "................",
+    "................",
+];
+
+const BARBARIAN_SILHOUETTE: &[&str] = &[
+    "...oo....oo.....",
+    "..obboooobbo....",
+    "..obbbbbbbbo....",
+    "...obbbbbbo.....",
+    "...obeeeebbo....",
+    "m..obbbbbbo.....",
+    ".m.oobbbbbboo...",
+    "mooobbbbbbbboo..",
+    "oooobbbbbbbbbo..",
+    ".ooobbbebbbboo..",
+    "..oobbbbbbo.....",
+    "...oobbbboo.....",
+    "....obbbbbo.....",
+    "....odddddo.....",
+    "....odddddo.....",
+    "....oo...oo.....",
+    "...oo.....oo....",
+    "...oo..mm.oo....",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+];
+
+fn silhouette_frame(rows: &[&str]) -> SpriteFrame {
+    indexed_sprite(rows, SPRITE_SILHOUETTE_PALETTE)
+        .expect("storybook sprite silhouette rows are authored as a valid indexed sprite")
+}
+
+pub fn sprite_silhouette_lab_fixture(_: &StoryContext) -> AssetAtlas {
+    let tiles = [
+        ("Goblin silhouette", GOBLIN_SILHOUETTE),
+        ("Wizard silhouette", WIZARD_SILHOUETTE),
+        ("Barbarian silhouette", BARBARIAN_SILHOUETTE),
+    ]
+    .into_iter()
+    .map(|(label, rows)| AtlasTile {
+        label,
+        preferred_width: 30,
+        preferred_height: 16,
+        content: AtlasContent::RgbSprite {
+            frame: silhouette_frame(rows),
+            background: VOID,
+        },
+    })
+    .collect();
+
+    AssetAtlas { tiles }
 }
 
 fn compact_scene_snapshot(context: StoryContext) -> SceneSnapshot {

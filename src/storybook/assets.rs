@@ -107,6 +107,9 @@ storybook_asset_enum!(CompatibilityAsset {
 storybook_asset_enum!(SceneFirstAsset {
     CalibrationRoom,
     CompactAdventurers,
+    SpriteSilhouetteGoblin,
+    SpriteSilhouetteWizard,
+    SpriteSilhouetteBarbarian,
     GuildHallEmpty,
     GuildHallMixedParty,
     GuildHallCounselRequested,
@@ -355,6 +358,9 @@ impl AssetId {
             Self::SceneFirst(value) => match value {
                 SceneFirstAsset::CalibrationRoom => "scene first: RGB calibration room",
                 SceneFirstAsset::CompactAdventurers => "scene first: compact adventurers",
+                SceneFirstAsset::SpriteSilhouetteGoblin => "Goblin silhouette",
+                SceneFirstAsset::SpriteSilhouetteWizard => "Wizard silhouette",
+                SceneFirstAsset::SpriteSilhouetteBarbarian => "Barbarian silhouette",
                 SceneFirstAsset::GuildHallEmpty => "scene first: Guild Hall empty",
                 SceneFirstAsset::GuildHallMixedParty => "scene first: Guild Hall mixed party",
                 SceneFirstAsset::GuildHallCounselRequested => {

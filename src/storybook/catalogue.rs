@@ -501,6 +501,20 @@ fn build_catalogue() -> Vec<Story> {
             &[AssetId::SceneFirst(SceneFirstAsset::CompactAdventurers)],
             &[],
         ),
+        complete_story(
+            "atlas.sprite-silhouette-lab",
+            "Sprite Silhouette Lab",
+            Category::AssetAtlas,
+            "Three 16x24 outline-and-flat-fill fixtures for the first sprite art review.",
+            PIXEL_SCENE_VIEWPORT,
+            sprite_silhouette_lab,
+            &[
+                AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteGoblin),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteWizard),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteBarbarian),
+            ],
+            &[],
+        ),
     ];
 
     stories.extend([
@@ -1256,6 +1270,10 @@ fn application(model: crate::app::Model) -> StoryFixture {
 
 fn rgb_calibration_room(context: &StoryContext) -> StoryFixture {
     StoryFixture::PixelScene(fixtures::calibration_room_scene_fixture(context))
+}
+
+fn sprite_silhouette_lab(context: &StoryContext) -> StoryFixture {
+    StoryFixture::AssetAtlas(fixtures::sprite_silhouette_lab_fixture(context))
 }
 
 fn guild_hall_empty(context: &StoryContext) -> StoryFixture {

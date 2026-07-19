@@ -253,6 +253,9 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
         &[
             SceneFirstAsset::CalibrationRoom,
             SceneFirstAsset::CompactAdventurers,
+            SceneFirstAsset::SpriteSilhouetteGoblin,
+            SceneFirstAsset::SpriteSilhouetteWizard,
+            SceneFirstAsset::SpriteSilhouetteBarbarian,
             SceneFirstAsset::GuildHallEmpty,
             SceneFirstAsset::GuildHallMixedParty,
             SceneFirstAsset::GuildHallCounselRequested,
@@ -271,68 +274,82 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
         ]
     );
     let stories = catalogue();
-    for (id, asset) in [
+    for (id, assets) in [
         (
             "scenes.rgb-calibration-room",
-            SceneFirstAsset::CalibrationRoom,
+            &[SceneFirstAsset::CalibrationRoom][..],
         ),
         (
             "atlas.compact-scene-adventurers",
-            SceneFirstAsset::CompactAdventurers,
+            &[SceneFirstAsset::CompactAdventurers][..],
         ),
-        ("scenes.guild-hall-empty", SceneFirstAsset::GuildHallEmpty),
+        (
+            "atlas.sprite-silhouette-lab",
+            &[
+                SceneFirstAsset::SpriteSilhouetteGoblin,
+                SceneFirstAsset::SpriteSilhouetteWizard,
+                SceneFirstAsset::SpriteSilhouetteBarbarian,
+            ][..],
+        ),
+        (
+            "scenes.guild-hall-empty",
+            &[SceneFirstAsset::GuildHallEmpty][..],
+        ),
         (
             "scenes.guild-hall-mixed-party",
-            SceneFirstAsset::GuildHallMixedParty,
+            &[SceneFirstAsset::GuildHallMixedParty][..],
         ),
         (
             "scenes.guild-hall-counsel-requested",
-            SceneFirstAsset::GuildHallCounselRequested,
+            &[SceneFirstAsset::GuildHallCounselRequested][..],
         ),
         (
             "scenes.guild-hall-spoils-returned",
-            SceneFirstAsset::GuildHallSpoilsReturned,
+            &[SceneFirstAsset::GuildHallSpoilsReturned][..],
         ),
         (
             "scenes.guild-hall-reconnecting",
-            SceneFirstAsset::GuildHallReconnecting,
+            &[SceneFirstAsset::GuildHallReconnecting][..],
         ),
         (
             "scenes.guild-hall-minimum-viewport",
-            SceneFirstAsset::GuildHallMinimumViewport,
+            &[SceneFirstAsset::GuildHallMinimumViewport][..],
         ),
         (
             "scenes.delve-active-party",
-            SceneFirstAsset::DelveActiveParty,
+            &[SceneFirstAsset::DelveActiveParty][..],
         ),
         (
             "scenes.delve-mixed-states",
-            SceneFirstAsset::DelveMixedStates,
+            &[SceneFirstAsset::DelveMixedStates][..],
         ),
-        ("scenes.delve-sealed-gate", SceneFirstAsset::DelveSealedGate),
+        (
+            "scenes.delve-sealed-gate",
+            &[SceneFirstAsset::DelveSealedGate][..],
+        ),
         (
             "scenes.delve-reconnecting",
-            SceneFirstAsset::DelveReconnecting,
+            &[SceneFirstAsset::DelveReconnecting][..],
         ),
         (
             "scenes.delve-minimum-viewport",
-            SceneFirstAsset::DelveMinimumViewport,
+            &[SceneFirstAsset::DelveMinimumViewport][..],
         ),
         (
             "scenes.scene-first-motion-full",
-            SceneFirstAsset::MotionFull,
+            &[SceneFirstAsset::MotionFull][..],
         ),
         (
             "scenes.scene-first-motion-reduced",
-            SceneFirstAsset::MotionReduced,
+            &[SceneFirstAsset::MotionReduced][..],
         ),
         (
             "scenes.scene-first-motion-none",
-            SceneFirstAsset::MotionNone,
+            &[SceneFirstAsset::MotionNone][..],
         ),
         (
             "scenes.scene-first-minimum-viewport",
-            SceneFirstAsset::MinimumViewport,
+            &[SceneFirstAsset::MinimumViewport][..],
         ),
     ] {
         let index = stories
@@ -340,30 +357,17 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             .position(|story| story.id.as_str() == id)
             .unwrap();
         let story = &stories[index];
-        assert_eq!(story.owns, &[AssetId::SceneFirst(asset)]);
+        let expected_ownership = assets
+            .iter()
+            .copied()
+            .map(AssetId::SceneFirst)
+            .collect::<Vec<_>>();
+        assert_eq!(story.owns, expected_ownership);
         let fixture = (story.build)(&StoryContext::fixed());
-        match asset {
-            SceneFirstAsset::CalibrationRoom
-            | SceneFirstAsset::GuildHallEmpty
-            | SceneFirstAsset::GuildHallMixedParty
-            | SceneFirstAsset::GuildHallCounselRequested
-            | SceneFirstAsset::GuildHallSpoilsReturned
-            | SceneFirstAsset::GuildHallReconnecting
-            | SceneFirstAsset::GuildHallMinimumViewport
-            | SceneFirstAsset::DelveActiveParty
-            | SceneFirstAsset::DelveMixedStates
-            | SceneFirstAsset::DelveSealedGate
-            | SceneFirstAsset::DelveReconnecting
-            | SceneFirstAsset::DelveMinimumViewport
-            | SceneFirstAsset::MotionFull
-            | SceneFirstAsset::MotionReduced
-            | SceneFirstAsset::MotionNone
-            | SceneFirstAsset::MinimumViewport => {
-                assert!(matches!(fixture, StoryFixture::PixelScene(_)));
-            }
-            SceneFirstAsset::CompactAdventurers => {
-                assert!(matches!(fixture, StoryFixture::AssetAtlas(_)));
-            }
+        if id.starts_with("atlas.") {
+            assert!(matches!(fixture, StoryFixture::AssetAtlas(_)));
+        } else {
+            assert!(matches!(fixture, StoryFixture::PixelScene(_)));
         }
 
         let mut app = StorybookApp::new(stories);
@@ -394,6 +398,37 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             1,
             "{asset:?} must have exactly one Storybook owner"
         );
+    }
+}
+
+#[test]
+fn sprite_silhouette_lab_owns_three_stocky_review_fixtures() {
+    let stories = catalogue();
+    let story = stories
+        .iter()
+        .find(|story| story.id.as_str() == "atlas.sprite-silhouette-lab")
+        .expect("sprite silhouette lab must be available for the first art review");
+
+    assert_eq!(story.title, "Sprite Silhouette Lab");
+    assert_eq!(
+        story.owns,
+        &[
+            AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteGoblin),
+            AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteWizard),
+            AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteBarbarian),
+        ]
+    );
+
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("silhouette lab must use the RGB sprite atlas path");
+    };
+    assert_eq!(atlas.tiles.len(), 3);
+    for tile in atlas.tiles {
+        let AtlasContent::RgbSprite { frame, .. } = tile.content else {
+            panic!("silhouette lab tile must be an RGB sprite");
+        };
+        assert_eq!(frame.size(), PixelSize::new(16, 24));
+        assert!(frame.pixels().iter().any(Option::is_some));
     }
 }
 

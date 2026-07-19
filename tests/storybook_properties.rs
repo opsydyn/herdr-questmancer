@@ -73,7 +73,12 @@ fn scene_first_stories_render_at_their_fixed_review_sizes() {
                 .any(|asset| matches!(asset, AssetId::SceneFirst(_)))
         })
         .collect::<Vec<_>>();
-    assert_eq!(scene_first_stories.len(), SceneFirstAsset::ALL.len());
+    let owned_scene_first_assets = scene_first_stories
+        .iter()
+        .flat_map(|(_, story)| story.owns.iter())
+        .filter(|asset| matches!(asset, AssetId::SceneFirst(_)))
+        .count();
+    assert_eq!(owned_scene_first_assets, SceneFirstAsset::ALL.len());
     for (index, story) in scene_first_stories {
         for (width, height) in [
             (story.viewport.minimum_width, story.viewport.minimum_height),
