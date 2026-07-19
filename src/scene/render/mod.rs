@@ -61,6 +61,49 @@ pub(crate) fn actor_animation_phase(motion: Motion, pose: ScenePose, elapsed: Du
     u8::try_from(steps % 3).unwrap_or(0)
 }
 
+pub(crate) fn actor_next_frame_delay(
+    motion: Motion,
+    pose: ScenePose,
+    elapsed: Duration,
+) -> Option<Duration> {
+    let fps = u128::from(actor_animation_fps(motion, pose)?);
+    let elapsed_millis = elapsed.as_millis();
+    let completed_steps = elapsed_millis.saturating_mul(fps) / 1_000;
+    let current_phase = u8::try_from(completed_steps % 3).unwrap_or(0);
+    let current_visual_phase = actor_visual_phase(pose, current_phase);
+
+    for steps_ahead in 1..=3_u128 {
+        let next_phase = u8::try_from((completed_steps + steps_ahead) % 3).unwrap_or(0);
+        if actor_visual_phase(pose, next_phase) != current_visual_phase {
+            let boundary = (completed_steps + steps_ahead)
+                .saturating_mul(1_000)
+                .div_ceil(fps);
+            let delay = boundary.saturating_sub(elapsed_millis).max(1);
+            return Some(Duration::from_millis(
+                u64::try_from(delay).unwrap_or(u64::MAX),
+            ));
+        }
+    }
+
+    None
+}
+
+const fn actor_visual_phase(pose: ScenePose, animation_phase: u8) -> u8 {
+    match pose {
+        // Each working frame has authored sprite pixels of its own.
+        ScenePose::Working => animation_phase,
+        // These poses share their base sprite. Only the middle frame rises by one pixel.
+        ScenePose::SeekingCounsel | ScenePose::ReturningWithSpoils | ScenePose::Resting => {
+            if animation_phase == 1 {
+                1
+            } else {
+                0
+            }
+        }
+        ScenePose::Settled | ScenePose::Unknown => 0,
+    }
+}
+
 pub(crate) fn effect_animation_phase(motion: Motion, elapsed: Duration) -> u128 {
     if motion == Motion::Full {
         elapsed.as_millis() / 125

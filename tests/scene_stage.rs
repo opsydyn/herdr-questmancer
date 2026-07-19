@@ -67,11 +67,11 @@ fn assert_authored_camera_crop(
 ) {
     let viewport = PixelSize::new(80, 48);
     let (_, crop) = render(snapshot, viewport);
-    let (_, reference) = render(snapshot, PixelSize::new(240, 120));
-    let reference_origin = (40 + expected_world_origin.0, 15 + expected_world_origin.1);
+    let (_, reference) = render(snapshot, PixelSize::new(160, 90));
+    let reference_origin = expected_world_origin;
 
     assert!(reference_origin.0 >= 0 && reference_origin.1 >= 0);
-    assert!(reference_origin.0 + 80 <= 240 && reference_origin.1 + 48 <= 120);
+    assert!(reference_origin.0 + 80 <= 160 && reference_origin.1 + 48 <= 90);
     for y in 0..48 {
         for x in 0..80 {
             assert_eq!(
@@ -489,7 +489,7 @@ fn viewport_matrix_preserves_exact_targets_and_authored_camera_crops() {
     let mut blocked = agent("blocked", Presence::Blocked);
     blocked.focused = true;
     let guild_focus = snapshot(vec![blocked]);
-    assert_authored_camera_crop(WorldScene::GuildHall, &guild_focus, (84, 24));
+    assert_authored_camera_crop(WorldScene::GuildHall, &guild_focus, (80, 24));
     assert_authored_camera_crop(WorldScene::Delve, &delve, (41, 23));
 
     for value in [&guild, &delve] {
@@ -521,6 +521,16 @@ fn exact_motion_phases_match_their_visible_cadence() {
     assert_eq!(blocked_deadline, Some(Duration::from_millis(500)));
     assert_eq!(blocked_start, blocked_before);
     assert_ne!(blocked_before, blocked_next);
+
+    let (blocked_phase_two, blocked_phase_two_deadline) = render_at(&blocked, 2_000);
+    let (blocked_unchanged_boundary, _) = render_at(&blocked, 2_500);
+    let (blocked_visible_change, _) = render_at(&blocked, 3_000);
+    assert_eq!(
+        blocked_phase_two_deadline,
+        Some(Duration::from_millis(1_000))
+    );
+    assert_eq!(blocked_phase_two, blocked_unchanged_boundary);
+    assert_ne!(blocked_unchanged_boundary, blocked_visible_change);
 
     let mut completed = agent("completed", Presence::Done);
     completed.transition = Some(SceneTransition {
@@ -637,6 +647,6 @@ fn actor_deadline_requires_a_visible_painted_pixel() {
     let (visible_actor, _) = render(&blocked, PixelSize::new(20, 20));
     assert_eq!(
         visible_actor.next_frame_in,
-        Some(Duration::from_millis(500))
+        Some(Duration::from_millis(1_000))
     );
 }

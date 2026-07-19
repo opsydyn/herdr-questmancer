@@ -18,7 +18,10 @@ use questmancer::{
 fn focused_crop_origin(focus: (i32, i32), viewport: PixelSize) -> (i32, i32) {
     let width = i32::from(viewport.width);
     let height = i32::from(viewport.height);
-    ((focus.0 - width / 2).max(0), (focus.1 - height / 2).max(0))
+    (
+        (focus.0 - width / 2).clamp(0, 160 - width),
+        (focus.1 - height / 2).clamp(0, 90 - height),
+    )
 }
 
 fn known_environment_palette(world: WorldScene, canonical: &RgbBuffer) -> HashSet<Rgb> {
@@ -221,23 +224,19 @@ proptest! {
             (WorldScene::Delve, (81, 47), delve),
         ] {
             let mut reference = RgbBuffer::filled(0, 0, Rgb::BLACK);
-            let reference_frame = render_scene(
-                &snapshot,
-                PixelSize::new(240, 120),
-                &mut reference,
-            );
+            let reference_frame = render_scene(&snapshot, PixelSize::new(160, 90), &mut reference);
             prop_assert_eq!(reference_frame.world, expected_world);
 
             let mut crop = RgbBuffer::filled(0, 0, Rgb::BLACK);
             let crop_frame = render_scene(&snapshot, viewport, &mut crop);
             prop_assert_eq!(crop_frame.world, expected_world);
             let (origin_x, origin_y) = focused_crop_origin(focus, viewport);
-            let reference_x = 40 + origin_x;
-            let reference_y = 15 + origin_y;
+            let reference_x = origin_x;
+            let reference_y = origin_y;
             prop_assert!(reference_x >= 0);
             prop_assert!(reference_y >= 0);
-            prop_assert!(reference_x + i32::from(width) <= 240);
-            prop_assert!(reference_y + i32::from(height) <= 120);
+            prop_assert!(reference_x + i32::from(width) <= 160);
+            prop_assert!(reference_y + i32::from(height) <= 90);
             for y in 0..i32::from(height) {
                 for x in 0..i32::from(width) {
                     prop_assert_eq!(crop.get(x, y), reference.get(x + reference_x, y + reference_y));

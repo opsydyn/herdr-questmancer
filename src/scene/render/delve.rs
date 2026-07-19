@@ -28,7 +28,7 @@ use crate::{
 };
 
 use super::{
-    actor_animation_fps, actor_animation_phase, earliest_deadline, effect_animation_phase,
+    actor_animation_phase, actor_next_frame_delay, earliest_deadline, effect_animation_phase,
     is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
 };
 
@@ -731,12 +731,10 @@ fn paint_depth_sorted(
                 let actor_origin =
                     translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
                 if painted_sprite_is_visible(&sprite, actor_origin, target.size())
-                    && let Some(fps) = actor_animation_fps(snapshot.motion, placement.pose)
+                    && let Some(delay) =
+                        actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
                 {
-                    next_frame_in = Some(earliest_deadline(
-                        next_frame_in,
-                        next_frame_delay(elapsed, fps),
-                    ));
+                    next_frame_in = Some(earliest_deadline(next_frame_in, delay));
                 }
                 if placement.pose == ScenePose::Unknown {
                     blit_dimmed(&sprite, actor_origin, target);

@@ -25,7 +25,7 @@ use crate::{
 };
 
 use super::{
-    actor_animation_fps, actor_animation_phase, earliest_deadline, effect_animation_phase,
+    actor_animation_phase, actor_next_frame_delay, earliest_deadline, effect_animation_phase,
     is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
 };
 
@@ -97,7 +97,7 @@ fn room_origin(snapshot: &SceneSnapshot, plan: &ScenePlan, viewport: PixelSize) 
     let x = if width >= WIDTH {
         (width - WIDTH) / 2
     } else {
-        -(focus.x - width / 2).max(0)
+        -(focus.x - width / 2).clamp(0, WIDTH - width)
     };
     let y = if height >= HEIGHT {
         (height - HEIGHT) / 2
@@ -322,12 +322,10 @@ fn paint_actors(
         if let TruthfulStation::CampaignToken(_) = placement.station {
             let token_origin = translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
             if token_is_visible(token_origin, target.size())
-                && let Some(fps) = actor_animation_fps(snapshot.motion, placement.pose)
+                && let Some(delay) =
+                    actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
             {
-                next_frame_in = Some(earliest_deadline(
-                    next_frame_in,
-                    next_frame_delay(elapsed, fps),
-                ));
+                next_frame_in = Some(earliest_deadline(next_frame_in, delay));
             }
             paint_token(
                 target,
@@ -348,12 +346,10 @@ fn paint_actors(
                 compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
             let actor_origin = translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
             if painted_sprite_is_visible(&sprite, actor_origin, target.size())
-                && let Some(fps) = actor_animation_fps(snapshot.motion, placement.pose)
+                && let Some(delay) =
+                    actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
             {
-                next_frame_in = Some(earliest_deadline(
-                    next_frame_in,
-                    next_frame_delay(elapsed, fps),
-                ));
+                next_frame_in = Some(earliest_deadline(next_frame_in, delay));
             }
             blit(&sprite, actor_origin, target);
         }
