@@ -52,7 +52,7 @@ impl Viewport {
     }
 }
 
-pub type StoryBuilder = fn(&StoryContext) -> StoryFixture;
+pub type StoryBuilder = fn(StoryContext) -> StoryFixture;
 
 #[derive(Clone, Debug)]
 pub struct Story {
@@ -252,34 +252,34 @@ fn scene(model: crate::app::Model) -> StoryFixture {
     StoryFixture::SceneApplication(model)
 }
 
-fn guild_world(context: &StoryContext) -> StoryFixture {
+fn guild_world(context: StoryContext) -> StoryFixture {
     scene(fixtures::guild_world_fixture(context))
 }
 
-fn delve_world(context: &StoryContext) -> StoryFixture {
+fn delve_world(context: StoryContext) -> StoryFixture {
     scene(fixtures::delve_world_fixture(context))
 }
 
-fn selected(context: &StoryContext) -> StoryFixture {
+fn selected(context: StoryContext) -> StoryFixture {
     scene(fixtures::selected_adventurer_interaction_fixture(context))
 }
 
-fn counsel(context: &StoryContext) -> StoryFixture {
+fn counsel(context: StoryContext) -> StoryFixture {
     scene(fixtures::counsel_interaction_fixture(context))
 }
 
-fn search(context: &StoryContext) -> StoryFixture {
+fn search(context: StoryContext) -> StoryFixture {
     scene(fixtures::search_interaction_fixture(context))
 }
 
-fn scrying(context: &StoryContext) -> StoryFixture {
+fn scrying(context: StoryContext) -> StoryFixture {
     scene(fixtures::scrying_interaction_fixture(context))
 }
 
-fn help(context: &StoryContext) -> StoryFixture {
+fn help(context: StoryContext) -> StoryFixture {
     scene(fixtures::help_interaction_fixture(context))
 }
 
-fn narrow(context: &StoryContext) -> StoryFixture {
+fn narrow(context: StoryContext) -> StoryFixture {
     scene(fixtures::narrow_interaction_fixture(context))
 }

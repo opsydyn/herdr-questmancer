@@ -24,6 +24,8 @@ use super::{
     fixtures::{StoryContext, StoryFixture},
 };
 
+static BUFFER: OnceLock<Mutex<RgbBuffer>> = OnceLock::new();
+
 pub fn render(
     frame: &mut Frame<'_>,
     app: &StorybookApp,
@@ -31,7 +33,7 @@ pub fn render(
     context: &StoryContext,
 ) {
     let story = app.selected_story(stories);
-    let fixture = (story.build)(context);
+    let fixture = (story.build)(*context);
     if app.mode() == Mode::Inspect {
         render_fixture(frame, frame.area(), story, &fixture);
     } else {
@@ -138,7 +140,6 @@ fn render_fixture(frame: &mut Frame<'_>, area: Rect, story: &Story, fixture: &St
         return;
     }
     let StoryFixture::SceneApplication(model) = fixture;
-    static BUFFER: OnceLock<Mutex<RgbBuffer>> = OnceLock::new();
     let mut buffer = BUFFER
         .get_or_init(|| Mutex::new(RgbBuffer::filled(0, 0, Rgb::BLACK)))
         .lock()

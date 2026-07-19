@@ -28,41 +28,41 @@ pub enum StoryFixture {
     SceneApplication(Model),
 }
 
-pub fn guild_world_fixture(context: &StoryContext) -> Model {
+pub fn guild_world_fixture(context: StoryContext) -> Model {
     fixture_model(context, View::Guild)
 }
 
-pub fn delve_world_fixture(context: &StoryContext) -> Model {
+pub fn delve_world_fixture(context: StoryContext) -> Model {
     fixture_model(context, View::Delve)
 }
 
-pub fn selected_adventurer_interaction_fixture(context: &StoryContext) -> Model {
+pub fn selected_adventurer_interaction_fixture(context: StoryContext) -> Model {
     let mut model = guild_world_fixture(context);
     let _ = reduce_action(&mut model, Action::Next);
     model
 }
 
-pub fn counsel_interaction_fixture(context: &StoryContext) -> Model {
+pub fn counsel_interaction_fixture(context: StoryContext) -> Model {
     interaction_fixture(context, Action::Counsel, "Hold at the sealed gate.")
 }
 
-pub fn search_interaction_fixture(context: &StoryContext) -> Model {
+pub fn search_interaction_fixture(context: StoryContext) -> Model {
     interaction_fixture(context, Action::Search, "Merrin")
 }
 
-pub fn scrying_interaction_fixture(context: &StoryContext) -> Model {
+pub fn scrying_interaction_fixture(context: StoryContext) -> Model {
     interaction_fixture(context, Action::Refresh, "")
 }
 
-pub fn help_interaction_fixture(context: &StoryContext) -> Model {
+pub fn help_interaction_fixture(context: StoryContext) -> Model {
     interaction_fixture(context, Action::ShowHelp, "")
 }
 
-pub fn narrow_interaction_fixture(context: &StoryContext) -> Model {
+pub fn narrow_interaction_fixture(context: StoryContext) -> Model {
     interaction_fixture(context, Action::Counsel, "Wait for the torch signal.")
 }
 
-fn interaction_fixture(context: &StoryContext, action: Action, text: &str) -> Model {
+fn interaction_fixture(context: StoryContext, action: Action, text: &str) -> Model {
     let mut model = guild_world_fixture(context);
     let _ = reduce_action(&mut model, action);
     for character in text.chars() {
@@ -71,7 +71,7 @@ fn interaction_fixture(context: &StoryContext, action: Action, text: &str) -> Mo
     model
 }
 
-fn fixture_model(context: &StoryContext, view: View) -> Model {
+fn fixture_model(context: StoryContext, view: View) -> Model {
     let library = WorkspaceId::new("storybook-library");
     let undercroft = WorkspaceId::new("storybook-undercroft");
     let agents = [
