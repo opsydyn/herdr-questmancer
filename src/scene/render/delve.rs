@@ -10,7 +10,7 @@ use crate::{
     scene::{
         SceneFrame,
         assets::{
-            adventurer::compact_adventurer_animation_frame,
+            adventurer::adventurer_animation_frame,
             delve::{
                 CHEST_GOLD, DEEP_BLUE_BLACK, DelveAsset, FLOOR_DARK, FLOOR_MID, MINERAL_VIOLET,
                 MOSS_DARK, MOSS_LIGHT, STONE_DARK, STONE_LIGHT, STONE_MID, TEAL_GLOW, TEAL_LIGHT,
@@ -29,8 +29,8 @@ use crate::{
 
 use super::interaction::paint_selection_marker;
 use super::{
-    actor_animation_phase, actor_next_frame_delay, earliest_deadline, effect_animation_phase,
-    is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
+    actor_animation_phase, actor_next_frame_delay, actor_origin, earliest_deadline,
+    effect_animation_phase, is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
 };
 
 pub const WIDTH: i32 = 160;
@@ -727,10 +727,8 @@ fn paint_depth_sorted(
                 };
                 let elapsed = agent.presence_since.elapsed_until(snapshot.now);
                 let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
-                let sprite =
-                    compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
-                let actor_origin =
-                    translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
+                let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
+                let actor_origin = actor_origin(origin, anchor, &sprite, animation);
                 if painted_sprite_is_visible(&sprite, actor_origin, target.size())
                     && let Some(delay) =
                         actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
@@ -1071,6 +1069,7 @@ mod tests {
             WorkspaceId,
         },
         scene::{
+            assets::adventurer::compact_adventurer_animation_frame,
             snapshot::{SceneConnection, SceneSnapshot},
             stage::{ActorPlacement, SceneCadence, SceneCamera, ScenePlan, WorldScene},
         },
@@ -1142,8 +1141,8 @@ mod tests {
                         _ => unreachable!(),
                     },
                     pose,
-                    selected: false,
                     focused: false,
+                    selected: false,
                 })
             })
             .collect::<Vec<_>>();
@@ -1222,8 +1221,8 @@ mod tests {
                 agent: AgentKey::new(format!("active-{index}")),
                 station: TruthfulStation::DelveActive(WorkspaceId::new("shared")),
                 pose: ScenePose::Working,
-                selected: false,
                 focused: false,
+                selected: false,
             })
             .collect();
         let plan = ScenePlan {

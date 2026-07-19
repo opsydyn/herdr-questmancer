@@ -3,7 +3,8 @@ use std::time::Duration;
 use questmancer::{
     app::Motion,
     domain::{
-        AdventurerPersona, AgentKey, GuildSummons, PersonaKey, Presence, Timestamp, WorkspaceId,
+        AdventurerClass, AdventurerPersona, AgentKey, GuildSummons, PersonaKey, Presence,
+        Timestamp, WorkspaceId,
     },
     scene::{
         pixel::{PixelSize, Rgb, RgbBuffer},
@@ -649,7 +650,9 @@ fn fresh_spoils_deadline_requires_a_visible_animated_pixel() {
 
 #[test]
 fn actor_deadline_requires_a_visible_painted_pixel() {
-    let blocked = snapshot(vec![agent("blocked", Presence::Blocked)]);
+    let mut actor = agent("blocked", Presence::Blocked);
+    actor.persona.class = AdventurerClass::Wizard;
+    let blocked = snapshot(vec![actor]);
 
     let (transparent_actor_edge, _) = render(&blocked, PixelSize::new(9, 1));
     assert_eq!(transparent_actor_edge.next_frame_in, None);

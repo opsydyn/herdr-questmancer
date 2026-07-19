@@ -6,7 +6,7 @@ use crate::{
     scene::{
         SceneFrame,
         assets::{
-            adventurer::compact_adventurer_animation_frame,
+            adventurer::adventurer_animation_frame,
             guild_hall::{GuildHallAsset, frame},
             palette::{
                 AMBER_LIGHT, BRASS_DARK, EMBER, FLAME, INK_BLUE, OAK, OAK_DARK, OAK_LIGHT,
@@ -26,8 +26,8 @@ use crate::{
 
 use super::interaction::paint_selection_marker;
 use super::{
-    actor_animation_phase, actor_next_frame_delay, earliest_deadline, effect_animation_phase,
-    is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
+    actor_animation_phase, actor_next_frame_delay, actor_origin, earliest_deadline,
+    effect_animation_phase, is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
 };
 
 pub const WIDTH: i32 = 160;
@@ -346,9 +346,8 @@ fn paint_actors(
                 paint_selection_marker(target, token_origin, PixelSize::new(5, 5));
             }
         } else {
-            let sprite =
-                compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
-            let actor_origin = translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
+            let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
+            let actor_origin = actor_origin(origin, anchor, &sprite, animation);
             if painted_sprite_is_visible(&sprite, actor_origin, target.size())
                 && let Some(delay) =
                     actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
