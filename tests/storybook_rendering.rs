@@ -885,53 +885,19 @@ fn asset_belongs_to_story(asset: AssetId, story_id: &str) -> bool {
                 "atlas.sprite-silhouette-lab",
                 AssetId::SceneFirst(
                     questmancer::storybook::assets::SceneFirstAsset::SpriteSilhouetteGoblin
-                )
-            )
-            | (
-                "atlas.sprite-silhouette-lab",
-                AssetId::SceneFirst(
+                        |
                     questmancer::storybook::assets::SceneFirstAsset::SpriteSilhouetteWizard
-                )
-            )
-            | (
-                "atlas.sprite-silhouette-lab",
-                AssetId::SceneFirst(
+                        |
                     questmancer::storybook::assets::SceneFirstAsset::SpriteSilhouetteBarbarian
                 )
             )
             | (
-                "atlas.sprite-material-face-lab",
+                "atlas.sprite-material-face-lab" | "atlas.sprite-material-inspection",
                 AssetId::SceneFirst(
                     questmancer::storybook::assets::SceneFirstAsset::SpriteMaterialGoblin
-                )
-            )
-            | (
-                "atlas.sprite-material-face-lab",
-                AssetId::SceneFirst(
+                        |
                     questmancer::storybook::assets::SceneFirstAsset::SpriteMaterialWizard
-                )
-            )
-            | (
-                "atlas.sprite-material-face-lab",
-                AssetId::SceneFirst(
-                    questmancer::storybook::assets::SceneFirstAsset::SpriteMaterialBarbarian
-                )
-            )
-            | (
-                "atlas.sprite-material-inspection",
-                AssetId::SceneFirst(
-                    questmancer::storybook::assets::SceneFirstAsset::SpriteMaterialGoblin
-                )
-            )
-            | (
-                "atlas.sprite-material-inspection",
-                AssetId::SceneFirst(
-                    questmancer::storybook::assets::SceneFirstAsset::SpriteMaterialWizard
-                )
-            )
-            | (
-                "atlas.sprite-material-inspection",
-                AssetId::SceneFirst(
+                        |
                     questmancer::storybook::assets::SceneFirstAsset::SpriteMaterialBarbarian
                 )
             )

@@ -276,13 +276,15 @@ fn atlas_catalogue_owns_every_atlas_asset_exactly_once() {
                     | AssetId::Landmark(_)
                     | AssetId::TruthfulStation(_)
                     | AssetId::RoomCamera(_)
-                    | AssetId::SceneFirst(SceneFirstAsset::CompactAdventurers)
-                    | AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteGoblin)
-                    | AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteWizard)
-                    | AssetId::SceneFirst(SceneFirstAsset::SpriteSilhouetteBarbarian)
-                    | AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialGoblin)
-                    | AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialWizard)
-                    | AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBarbarian)
+                    | AssetId::SceneFirst(
+                        SceneFirstAsset::CompactAdventurers
+                            | SceneFirstAsset::SpriteSilhouetteGoblin
+                            | SceneFirstAsset::SpriteSilhouetteWizard
+                            | SceneFirstAsset::SpriteSilhouetteBarbarian
+                            | SceneFirstAsset::SpriteMaterialGoblin
+                            | SceneFirstAsset::SpriteMaterialWizard
+                            | SceneFirstAsset::SpriteMaterialBarbarian,
+                    )
             )
         })
         .collect::<Vec<_>>();
