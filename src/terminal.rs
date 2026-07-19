@@ -32,18 +32,17 @@ use crate::{
         apply_connection_update, bootstrap_model, dispatch_action_effects,
         dispatch_persistence_effects,
     },
-    ui::{self, RenderProjection, theatre::next_projected_frame_in},
+    scene::{
+        pixel::{PixelSize, Rgb, RgbBuffer},
+        presentation::ScenePresentation,
+        render_scene_for_world,
+        snapshot::SceneSnapshot,
+    },
+    ui::{self, RenderProjection, scene_adapter::flush_rgb, theatre::next_projected_frame_in},
 };
 
 #[cfg(feature = "scene-preview")]
-use crate::{
-    scene::{
-        pixel::{PixelSize, Rgb, RgbBuffer},
-        render_scene,
-        snapshot::SceneSnapshot,
-    },
-    ui::scene_adapter::flush_rgb,
-};
+use crate::scene::render_scene;
 
 #[cfg(feature = "scene-preview")]
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
@@ -159,7 +158,7 @@ impl AnimationScheduler {
 
     #[allow(
         clippy::needless_pass_by_value,
-        reason = "the scheduler API accepts the render result directly at production and test call sites"
+        reason = "retained until the legacy scheduler contract tests are removed during the hard cleanup"
     )]
     pub fn reset_for(
         &mut self,
@@ -328,13 +327,13 @@ pub fn install_panic_hook() {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum RenderExperience {
-    Legacy,
+    Interactive,
     #[cfg(feature = "scene-preview")]
     SceneFirstPreview,
 }
 
 pub async fn run(initial_view: Option<View>) -> Result<()> {
-    run_with_experience(initial_view, RenderExperience::Legacy).await
+    run_with_experience(initial_view, RenderExperience::Interactive).await
 }
 
 #[cfg(feature = "scene-preview")]
@@ -354,7 +353,11 @@ async fn run_with_experience(
     let effective_view = startup.model.view();
     let _runtime = RuntimeRegistration::from_env(effective_view)?;
     let mut shutdown = Shutdown::install()?;
-    let environment = HerdrEnvironment::from_env().ok();
+    let environment = match experience {
+        RenderExperience::Interactive => HerdrEnvironment::from_env().ok(),
+        #[cfg(feature = "scene-preview")]
+        RenderExperience::SceneFirstPreview => HerdrEnvironment::from_preview_env().ok(),
+    };
     let (mut lifecycle, mut persistence_diagnostics) =
         RuntimeLifecycle::start(environment.as_ref(), startup.paths);
     let mut collected_diagnostics = startup.diagnostics;
@@ -385,7 +388,7 @@ async fn run_with_experience(
             .live_parts_mut()
             .expect("live lifecycle starts a runtime connection");
         match experience {
-            RenderExperience::Legacy => {
+            RenderExperience::Interactive => {
                 run_live_loop(
                     &mut terminal,
                     &mut model,
@@ -415,7 +418,7 @@ async fn run_with_experience(
         }
     } else {
         match experience {
-            RenderExperience::Legacy => {
+            RenderExperience::Interactive => {
                 run_offline_loop(
                     &mut terminal,
                     &mut model,
@@ -490,6 +493,29 @@ fn draw_scene_preview(
         rendered = Some(scene_frame);
     })?;
     rendered.context("scene preview draw did not produce a frame")
+}
+
+fn draw_scene_application(
+    terminal: &mut Tui,
+    model: &Model,
+    buffer: &mut RgbBuffer,
+) -> Result<crate::scene::SceneFrame> {
+    let presentation = ScenePresentation::from_model(model);
+    let snapshot = SceneSnapshot::from_model(model);
+    let mut rendered = None;
+    terminal.draw(|frame| {
+        let area = frame.area();
+        let scene_frame = render_scene_for_world(
+            &snapshot,
+            &presentation,
+            PixelSize::new(area.width, area.height.saturating_mul(2)),
+            buffer,
+        );
+        flush_rgb(frame.buffer_mut(), area, buffer, Rgb::BLACK);
+        ui::scene_overlays::render_scene_overlays(frame, model, &presentation);
+        rendered = Some(scene_frame);
+    })?;
+    rendered.context("scene application draw did not produce a frame")
 }
 
 #[cfg(feature = "scene-preview")]
@@ -602,13 +628,11 @@ async fn run_live_loop(
 ) -> Result<RuntimeExit> {
     let mut input = EventStream::new();
     let mut render_invalidation = AnimationScheduler::new();
+    let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
 
     loop {
-        let mut projection = RenderProjection::default();
-        let render_area = terminal
-            .draw(|frame| projection = ui::render_with_projection(frame, model))?
-            .area;
-        render_invalidation.reset_for(model, render_area, projection, clock);
+        let scene_frame = draw_scene_application(terminal, model, &mut buffer)?;
+        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, clock);
 
         tokio::select! {
             event = input.next() => {
@@ -681,13 +705,11 @@ async fn run_offline_loop(
 ) -> Result<RuntimeExit> {
     let mut input = EventStream::new();
     let mut render_invalidation = AnimationScheduler::new();
+    let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
 
     loop {
-        let mut projection = RenderProjection::default();
-        let render_area = terminal
-            .draw(|frame| projection = ui::render_with_projection(frame, model))?
-            .area;
-        render_invalidation.reset_for(model, render_area, projection, clock);
+        let scene_frame = draw_scene_application(terminal, model, &mut buffer)?;
+        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, clock);
 
         tokio::select! {
             event = input.next() => {
