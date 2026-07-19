@@ -313,6 +313,28 @@ Run its focused automated checks with `just storybook-test`.
 just storybook-test
 ```
 
+## Experimental scene-first preview
+
+The production Questmancer pane still uses the existing UI renderer. The
+scene-first renderer is an opt-in developer preview used to review the RGB
+pixel world against the approved [north-star reference art](reference-art/README.md).
+It is not declared in `herdr-plugin.toml`, is not packaged into releases, and
+does not replace the plugin pane.
+
+From an existing Herdr shell with `HERDR_SOCKET_PATH` exported:
+
+```bash
+just scene-preview-test
+just scene-preview
+```
+
+The preview renders live Herdr state but deliberately ignores normal
+Questmancer controls. It cannot reply to agents, focus panes, inspect output,
+mark summons read, or change persisted state. Use Codex CLI and Herdr for
+those actions. The [guarded manual guide](docs/manual-test/questmancer-scene-preview.md)
+and [cutover evidence ledger](docs/superpowers/reviews/2026-07-17-scene-first-cutover.md)
+define the review process; production cutover is **not yet decided**.
+
 ## Contributor checks
 
 ```bash

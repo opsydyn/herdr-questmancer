@@ -37,3 +37,10 @@ called for a cozy top-down adventurers' guild beside a connected old-school
 dungeon, tiny adventurers embedded in both environments, crisp 16-bit-style
 pixel art, full-canvas scenery, curated warm/cool lighting and no dashboard
 panels, large characters, text, logos or copied assets.
+
+## Review use
+
+Compare scene-first Storybook and the feature-gated live preview against this
+direction through the [manual review guide](../docs/manual-test/questmancer-scene-preview.md).
+The reference is a quality bar for composition, density and world readability;
+it does not itself approve production cutover.
