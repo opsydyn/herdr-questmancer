@@ -465,10 +465,7 @@ fn static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps() {
         VIEWPORT,
         &mut target,
     );
-    assert_eq!(
-        deadline_frame.next_frame_in,
-        Some(Duration::from_millis(125))
-    );
+    assert_eq!(deadline_frame.next_frame_in, Some(Duration::from_millis(1)));
 
     snapshot.now = Timestamp::from_millis(11_000);
     let settled_frame = render_scene_for_story(

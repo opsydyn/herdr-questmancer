@@ -25,21 +25,6 @@ fn render(
     (frame, target)
 }
 
-fn crop_offset(crop: &RgbBuffer, full: &RgbBuffer) -> Option<(i32, i32)> {
-    let max_x = i32::from(full.size().width.saturating_sub(crop.size().width));
-    let max_y = i32::from(full.size().height.saturating_sub(crop.size().height));
-    (0..=max_y).find_map(|offset_y| {
-        (0..=max_x).find_map(|offset_x| {
-            (0..i32::from(crop.size().height))
-                .all(|y| {
-                    (0..i32::from(crop.size().width))
-                        .all(|x| crop.get(x, y) == full.get(x + offset_x, y + offset_y))
-                })
-                .then_some((offset_x, offset_y))
-        })
-    })
-}
-
 fn contains_environment_palette_pixel(world: WorldScene, target: &RgbBuffer) -> bool {
     let palette: &[Rgb] = match world {
         WorldScene::GuildHall => &[
@@ -73,6 +58,30 @@ fn contains_environment_palette_pixel(world: WorldScene, target: &RgbBuffer) -> 
         ],
     };
     target.pixels().iter().any(|pixel| palette.contains(pixel))
+}
+
+fn assert_authored_camera_crop(
+    world: WorldScene,
+    snapshot: &SceneSnapshot,
+    expected_world_origin: (i32, i32),
+) {
+    let viewport = PixelSize::new(80, 48);
+    let (_, crop) = render(snapshot, viewport);
+    let (_, reference) = render(snapshot, PixelSize::new(240, 120));
+    let reference_origin = (40 + expected_world_origin.0, 15 + expected_world_origin.1);
+
+    assert!(reference_origin.0 >= 0 && reference_origin.1 >= 0);
+    assert!(reference_origin.0 + 80 <= 240 && reference_origin.1 + 48 <= 120);
+    for y in 0..48 {
+        for x in 0..80 {
+            assert_eq!(
+                crop.get(x, y),
+                reference.get(x + reference_origin.0, y + reference_origin.1),
+                "{world:?} camera differed at crop pixel ({x}, {y})"
+            );
+        }
+    }
+    assert!(contains_environment_palette_pixel(world, &crop));
 }
 
 fn render_at(snapshot: &SceneSnapshot, now: i64) -> (Vec<Rgb>, Option<Duration>) {
@@ -480,13 +489,8 @@ fn viewport_matrix_preserves_exact_targets_and_authored_camera_crops() {
     let mut blocked = agent("blocked", Presence::Blocked);
     blocked.focused = true;
     let guild_focus = snapshot(vec![blocked]);
-    let (_, guild_full) = render(&guild_focus, PixelSize::new(160, 90));
-    let (_, guild_crop) = render(&guild_focus, PixelSize::new(80, 48));
-    assert!(crop_offset(&guild_crop, &guild_full).is_some());
-
-    let (_, delve_full) = render(&delve, PixelSize::new(160, 90));
-    let (_, delve_crop) = render(&delve, PixelSize::new(80, 48));
-    assert!(crop_offset(&delve_crop, &delve_full).is_some());
+    assert_authored_camera_crop(WorldScene::GuildHall, &guild_focus, (84, 24));
+    assert_authored_camera_crop(WorldScene::Delve, &delve, (41, 23));
 
     for value in [&guild, &delve] {
         let (_, canonical) = render(value, PixelSize::new(160, 90));
@@ -503,9 +507,10 @@ fn viewport_matrix_preserves_exact_targets_and_authored_camera_crops() {
 fn exact_motion_phases_match_their_visible_cadence() {
     let working = snapshot(vec![agent("working", Presence::Working)]);
     let (working_start, working_deadline) = render_at(&working, 1_000);
-    let (working_after_five_steps, _) = render_at(&working, 1_996);
+    let (working_after_five_steps, working_late_deadline) = render_at(&working, 1_996);
     let (working_after_six_steps, _) = render_at(&working, 2_000);
-    assert_eq!(working_deadline, Some(Duration::from_millis(166)));
+    assert_eq!(working_deadline, Some(Duration::from_millis(167)));
+    assert_eq!(working_late_deadline, Some(Duration::from_millis(4)));
     assert_ne!(working_start, working_after_five_steps);
     assert_eq!(working_start, working_after_six_steps);
 

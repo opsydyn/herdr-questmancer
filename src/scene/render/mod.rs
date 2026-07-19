@@ -27,8 +27,20 @@ pub fn paint(
     }
 }
 
-pub(crate) fn fps_period(fps: u8) -> Duration {
-    Duration::from_millis((1_000 / u64::from(fps.max(1))).max(125))
+pub(crate) fn next_frame_delay(elapsed: Duration, fps: u8) -> Duration {
+    let fps = u128::from(fps.max(1));
+    let elapsed_millis = elapsed.as_millis();
+    let completed_steps = elapsed_millis.saturating_mul(fps) / 1_000;
+    let next_boundary = completed_steps
+        .saturating_add(1)
+        .saturating_mul(1_000)
+        .div_ceil(fps);
+    let delay = next_boundary.saturating_sub(elapsed_millis).max(1);
+    Duration::from_millis(u64::try_from(delay).unwrap_or(u64::MAX))
+}
+
+pub(crate) fn earliest_deadline(current: Option<Duration>, candidate: Duration) -> Duration {
+    current.map_or(candidate, |current| current.min(candidate))
 }
 
 pub(crate) const fn actor_animation_fps(motion: Motion, pose: ScenePose) -> Option<u8> {

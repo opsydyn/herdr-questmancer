@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use crate::{
     app::Motion,
@@ -25,8 +25,8 @@ use crate::{
 };
 
 use super::{
-    actor_animation_fps, actor_animation_phase, effect_animation_phase, fps_period, is_visible,
-    lighting, painted_sprite_is_visible,
+    actor_animation_fps, actor_animation_phase, earliest_deadline, effect_animation_phase,
+    is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
 };
 
 pub const WIDTH: i32 = 160;
@@ -77,13 +77,13 @@ pub fn paint(
     paint_furnishings(snapshot, target, origin);
     apply_connection_light(snapshot, target, origin);
     restore_landmark_signatures(target, origin);
-    let actor_fps = paint_actors(snapshot, plan, target, origin);
-    let effect_fps = paint_effects(snapshot, plan, target, origin);
+    let actor_deadline = paint_actors(snapshot, plan, target, origin);
+    let effect_deadline = paint_effects(snapshot, plan, target, origin);
     paint_connection_fact(snapshot, target, origin);
 
     SceneFrame {
         world: plan.world,
-        next_frame_in: actor_fps.max(effect_fps).map(fps_period),
+        next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
     }
 }
 
@@ -97,12 +97,12 @@ fn room_origin(snapshot: &SceneSnapshot, plan: &ScenePlan, viewport: PixelSize) 
     let x = if width >= WIDTH {
         (width - WIDTH) / 2
     } else {
-        -(focus.x - width / 2).clamp(0, WIDTH - width)
+        -(focus.x - width / 2).max(0)
     };
     let y = if height >= HEIGHT {
         (height - HEIGHT) / 2
     } else {
-        -(focus.y - height / 2).clamp(0, HEIGHT - height)
+        -(focus.y - height / 2).max(0)
     };
     PixelPoint::new(x, y)
 }
@@ -307,8 +307,8 @@ fn paint_actors(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) -> Option<u8> {
-    let mut visible_fps = None;
+) -> Option<Duration> {
+    let mut next_frame_in = None;
     for (placement, anchor) in actor_anchors(snapshot, plan) {
         let Some(agent) = snapshot
             .agents
@@ -317,15 +317,17 @@ fn paint_actors(
         else {
             continue;
         };
-        let animation = actor_animation_phase(
-            snapshot.motion,
-            placement.pose,
-            agent.presence_since.elapsed_until(snapshot.now),
-        );
+        let elapsed = agent.presence_since.elapsed_until(snapshot.now);
+        let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
         if let TruthfulStation::CampaignToken(_) = placement.station {
             let token_origin = translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
-            if token_is_visible(token_origin, target.size()) {
-                visible_fps = visible_fps.max(actor_animation_fps(snapshot.motion, placement.pose));
+            if token_is_visible(token_origin, target.size())
+                && let Some(fps) = actor_animation_fps(snapshot.motion, placement.pose)
+            {
+                next_frame_in = Some(earliest_deadline(
+                    next_frame_in,
+                    next_frame_delay(elapsed, fps),
+                ));
             }
             paint_token(
                 target,
@@ -345,13 +347,18 @@ fn paint_actors(
             let sprite =
                 compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
             let actor_origin = translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
-            if painted_sprite_is_visible(&sprite, actor_origin, target.size()) {
-                visible_fps = visible_fps.max(actor_animation_fps(snapshot.motion, placement.pose));
+            if painted_sprite_is_visible(&sprite, actor_origin, target.size())
+                && let Some(fps) = actor_animation_fps(snapshot.motion, placement.pose)
+            {
+                next_frame_in = Some(earliest_deadline(
+                    next_frame_in,
+                    next_frame_delay(elapsed, fps),
+                ));
             }
             blit(&sprite, actor_origin, target);
         }
     }
-    visible_fps
+    next_frame_in
 }
 
 fn token_is_visible(origin: PixelPoint, viewport: PixelSize) -> bool {
@@ -467,16 +474,19 @@ fn paint_effects(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) -> Option<u8> {
-    let mut visible_fps = None;
+) -> Option<Duration> {
+    let mut next_frame_in = None;
     for effect in &plan.effects {
         match effect {
             SceneEffect::FreshSpoils { agent, since } => {
-                let phase =
-                    effect_animation_phase(snapshot.motion, since.elapsed_until(snapshot.now));
+                let elapsed = since.elapsed_until(snapshot.now);
+                let phase = effect_animation_phase(snapshot.motion, elapsed);
                 let visible = paint_spoils_flash(target, origin, agent, phase);
                 if snapshot.motion == Motion::Full && visible {
-                    visible_fps = Some(8);
+                    next_frame_in = Some(earliest_deadline(
+                        next_frame_in,
+                        next_frame_delay(elapsed, 8),
+                    ));
                 }
             }
             SceneEffect::RecentDeparture { workspace_id, .. } => {
@@ -486,7 +496,7 @@ fn paint_effects(
             }
         }
     }
-    visible_fps
+    next_frame_in
 }
 
 fn paint_spoils_flash(

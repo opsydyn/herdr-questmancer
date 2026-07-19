@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, VecDeque},
     sync::OnceLock,
+    time::Duration,
 };
 
 use crate::{
@@ -27,8 +28,8 @@ use crate::{
 };
 
 use super::{
-    actor_animation_fps, actor_animation_phase, effect_animation_phase, fps_period, is_visible,
-    lighting, painted_sprite_is_visible,
+    actor_animation_fps, actor_animation_phase, earliest_deadline, effect_animation_phase,
+    is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
 };
 
 pub const WIDTH: i32 = 160;
@@ -345,13 +346,13 @@ impl<'a> DelvePainter<'a> {
         .expect("unrecorded material painting cannot conflict");
         paint_background_architecture(self.target, self.origin, self.seed);
         apply_lighting(self.snapshot, self.target, self.origin);
-        let actor_fps = paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin);
-        let effect_fps = paint_effects(self.snapshot, self.plan, self.target, self.origin);
+        let actor_deadline = paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin);
+        let effect_deadline = paint_effects(self.snapshot, self.plan, self.target, self.origin);
         paint_connection_fact(self.snapshot, self.target, self.origin);
 
         SceneFrame {
             world: self.plan.world,
-            next_frame_in: actor_fps.max(effect_fps).map(fps_period),
+            next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
         }
     }
 }
@@ -696,7 +697,7 @@ fn paint_depth_sorted(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) -> Option<u8> {
+) -> Option<Duration> {
     let mut items = actor_anchors(plan)
         .into_iter()
         .map(|(placement, anchor)| DepthItem::Actor { placement, anchor })
@@ -712,7 +713,7 @@ fn paint_depth_sorted(
     );
     items.sort_by_key(|item| item.foot_row());
 
-    let mut visible_fps = None;
+    let mut next_frame_in = None;
     for item in items {
         match item {
             DepthItem::Actor { placement, anchor } => {
@@ -723,18 +724,19 @@ fn paint_depth_sorted(
                 else {
                     continue;
                 };
-                let animation = actor_animation_phase(
-                    snapshot.motion,
-                    placement.pose,
-                    agent.presence_since.elapsed_until(snapshot.now),
-                );
+                let elapsed = agent.presence_since.elapsed_until(snapshot.now);
+                let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
                 let sprite =
                     compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
                 let actor_origin =
                     translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
-                if painted_sprite_is_visible(&sprite, actor_origin, target.size()) {
-                    visible_fps =
-                        visible_fps.max(actor_animation_fps(snapshot.motion, placement.pose));
+                if painted_sprite_is_visible(&sprite, actor_origin, target.size())
+                    && let Some(fps) = actor_animation_fps(snapshot.motion, placement.pose)
+                {
+                    next_frame_in = Some(earliest_deadline(
+                        next_frame_in,
+                        next_frame_delay(elapsed, fps),
+                    ));
                 }
                 if placement.pose == ScenePose::Unknown {
                     blit_dimmed(&sprite, actor_origin, target);
@@ -750,7 +752,7 @@ fn paint_depth_sorted(
             }
         }
     }
-    visible_fps
+    next_frame_in
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -933,13 +935,13 @@ fn paint_effects(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) -> Option<u8> {
-    let mut visible_fps = None;
+) -> Option<Duration> {
+    let mut next_frame_in = None;
     for effect in &plan.effects {
         match effect {
             SceneEffect::FreshSpoils { agent, since } => {
-                let phase =
-                    effect_animation_phase(snapshot.motion, since.elapsed_until(snapshot.now));
+                let elapsed = since.elapsed_until(snapshot.now);
+                let phase = effect_animation_phase(snapshot.motion, elapsed);
                 let seed =
                     stable_hash(agent.as_str().as_bytes()) ^ u64::try_from(phase).unwrap_or(0);
                 let mut effect_visible = false;
@@ -961,7 +963,10 @@ fn paint_effects(
                     );
                 }
                 if snapshot.motion == Motion::Full && effect_visible {
-                    visible_fps = Some(8);
+                    next_frame_in = Some(earliest_deadline(
+                        next_frame_in,
+                        next_frame_delay(elapsed, 8),
+                    ));
                 }
             }
             SceneEffect::RecentDeparture { workspace_id, .. } => {
@@ -971,7 +976,7 @@ fn paint_effects(
             }
         }
     }
-    visible_fps
+    next_frame_in
 }
 
 fn paint_connection_fact(snapshot: &SceneSnapshot, target: &mut RgbBuffer, origin: PixelPoint) {
