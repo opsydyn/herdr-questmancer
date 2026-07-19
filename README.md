@@ -35,8 +35,8 @@ herdr plugin link .
 herdr plugin action invoke opsydyn.questmancer.open
 ```
 
-The linked plugin runner resolves `bin/questmancer`, then
-`target/release/questmancer`, then `target/debug/questmancer`. After a new
+The linked plugin runner resolves `target/release/questmancer`, then
+`bin/questmancer`, then `target/debug/questmancer`. After a new
 `cargo build --release`, reopen the Questmancer pane; relinking is unnecessary
 while Herdr is still linked to this checkout.
 

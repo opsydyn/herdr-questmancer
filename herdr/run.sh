@@ -5,8 +5,8 @@ ROOT=${HERDR_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
 INITIAL_VIEW_ENV=QUESTMANCER_INITIAL_VIEW
 
 for binary in \
-  "$ROOT/bin/questmancer" \
   "$ROOT/target/release/questmancer" \
+  "$ROOT/bin/questmancer" \
   "$ROOT/target/debug/questmancer"
 do
   if [[ -x $binary ]]; then

@@ -43,6 +43,20 @@ test_run_prefers_installed_binary() {
   [[ $output == "ui --view delve" ]] || fail "installed runner received: $output"
 }
 
+test_run_prefers_a_local_release_build_over_an_installed_binary() {
+  local plugin_root="$TMP/run-local-release"
+  make_binary "$plugin_root/bin/questmancer"
+  make_binary "$plugin_root/target/release/questmancer"
+  sed -i.bak 's/printf '\''%s\\n'\'' "$\*"/printf '\''installed %s\\n'\'' "$*"/' "$plugin_root/bin/questmancer"
+  rm -f "$plugin_root/bin/questmancer.bak"
+  sed -i.bak 's/printf '\''%s\\n'\'' "$\*"/printf '\''release %s\\n'\'' "$*"/' "$plugin_root/target/release/questmancer"
+  rm -f "$plugin_root/target/release/questmancer.bak"
+
+  local output
+  output=$(HERDR_PLUGIN_ROOT="$plugin_root" "$ROOT/herdr/run.sh" ui --view guild)
+  [[ $output == "release ui --view guild" ]] || fail "local runner received: $output"
+}
+
 test_run_falls_back_to_release_binary() {
   local plugin_root="$TMP/run-release"
   make_binary "$plugin_root/target/release/questmancer"
@@ -478,6 +492,7 @@ mkdir -p "$TMP/bin"
 make_date "$TMP/bin/date"
 make_ln "$TMP/bin/ln"
 test_run_prefers_installed_binary
+test_run_prefers_a_local_release_build_over_an_installed_binary
 test_run_falls_back_to_release_binary
 test_run_falls_back_to_debug_binary
 test_run_maps_only_exact_initial_views
@@ -502,4 +517,4 @@ if grep -R -E -q 'questmancer-storybook|storybook' herdr-plugin.toml herdr; then
   exit 1
 fi
 
-echo "scripts: 21 passed"
+echo "scripts: 22 passed"
