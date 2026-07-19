@@ -256,6 +256,9 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             SceneFirstAsset::SpriteSilhouetteGoblin,
             SceneFirstAsset::SpriteSilhouetteWizard,
             SceneFirstAsset::SpriteSilhouetteBarbarian,
+            SceneFirstAsset::SpriteMaterialGoblin,
+            SceneFirstAsset::SpriteMaterialWizard,
+            SceneFirstAsset::SpriteMaterialBarbarian,
             SceneFirstAsset::GuildHallEmpty,
             SceneFirstAsset::GuildHallMixedParty,
             SceneFirstAsset::GuildHallCounselRequested,
@@ -289,6 +292,14 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
                 SceneFirstAsset::SpriteSilhouetteGoblin,
                 SceneFirstAsset::SpriteSilhouetteWizard,
                 SceneFirstAsset::SpriteSilhouetteBarbarian,
+            ][..],
+        ),
+        (
+            "atlas.sprite-material-face-lab",
+            &[
+                SceneFirstAsset::SpriteMaterialGoblin,
+                SceneFirstAsset::SpriteMaterialWizard,
+                SceneFirstAsset::SpriteMaterialBarbarian,
             ][..],
         ),
         (
@@ -429,6 +440,48 @@ fn sprite_silhouette_lab_owns_three_stocky_review_fixtures() {
         };
         assert_eq!(frame.size(), PixelSize::new(16, 24));
         assert!(frame.pixels().iter().any(Option::is_some));
+    }
+}
+
+#[test]
+fn sprite_material_and_face_lab_owns_three_rich_review_fixtures() {
+    let stories = catalogue();
+    let story = stories
+        .iter()
+        .find(|story| story.id.as_str() == "atlas.sprite-material-face-lab")
+        .expect("sprite material and face lab must be available for the second art review");
+
+    assert_eq!(story.title, "Sprite Material & Face Lab");
+    assert_eq!(
+        story.owns,
+        &[
+            AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialGoblin),
+            AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialWizard),
+            AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBarbarian),
+        ]
+    );
+
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("material and face lab must use the RGB sprite atlas path");
+    };
+    assert_eq!(atlas.tiles.len(), 3);
+    for tile in atlas.tiles {
+        let AtlasContent::RgbSprite { frame, .. } = tile.content else {
+            panic!("material and face lab tile must be an RGB sprite");
+        };
+        assert_eq!(frame.size(), PixelSize::new(16, 24));
+        assert!(frame.pixels().iter().any(Option::is_some));
+        assert!(
+            frame
+                .pixels()
+                .iter()
+                .flatten()
+                .collect::<HashSet<_>>()
+                .len()
+                >= 8,
+            "{} needs enough material and face contrast for the second review pass",
+            tile.label
+        );
     }
 }
 

@@ -875,6 +875,266 @@ pub fn sprite_silhouette_lab_fixture(_: &StoryContext) -> AssetAtlas {
     AssetAtlas { tiles }
 }
 
+const GOBLIN_MATERIAL_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(24, 19, 28)),
+    },
+    IndexedPaletteEntry {
+        key: 's',
+        colour: Some(Rgb::new(54, 104, 58)),
+    },
+    IndexedPaletteEntry {
+        key: 'g',
+        colour: Some(Rgb::new(107, 183, 82)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(180, 220, 104)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(94, 49, 37)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(170, 92, 56)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(102, 65, 143)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(191, 199, 205)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(255, 224, 102)),
+    },
+];
+
+const WIZARD_MATERIAL_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(24, 19, 28)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(156, 91, 59)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(239, 173, 117)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 214, 157)),
+    },
+    IndexedPaletteEntry {
+        key: 'r',
+        colour: Some(Rgb::new(112, 96, 132)),
+    },
+    IndexedPaletteEntry {
+        key: 'R',
+        colour: Some(Rgb::new(221, 215, 207)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(60, 49, 126)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(105, 81, 180)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(237, 181, 77)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(91, 63, 40)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(143, 103, 60)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(112, 220, 255)),
+    },
+];
+
+const BARBARIAN_MATERIAL_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(24, 19, 28)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(143, 74, 48)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(222, 137, 84)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 198, 132)),
+    },
+    IndexedPaletteEntry {
+        key: 'r',
+        colour: Some(Rgb::new(83, 43, 31)),
+    },
+    IndexedPaletteEntry {
+        key: 'R',
+        colour: Some(Rgb::new(149, 75, 42)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(93, 48, 34)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(159, 83, 45)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(128, 140, 145)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(224, 230, 224)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(190, 52, 48)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(255, 226, 126)),
+    },
+];
+
+const GOBLIN_MATERIAL: &[&str] = &[
+    "................",
+    "................",
+    "....oo....oo....",
+    "...oss....sso...",
+    "..osggsoosggso..",
+    ".osggggggggggso.",
+    ".osgghggggghgso.",
+    "..osggeegeeggso.",
+    ".osggggggggggso.",
+    "..osgddddddgso..",
+    "...odDDDDDDdo...",
+    "...odDaaaaDdo...",
+    "..odDaaeeaaDdo..",
+    "..odDaaaaaaDdo..",
+    "...odDDDDDDdo...",
+    "....odDddDdo....",
+    "....odDddDdo....",
+    "....odD..Ddo....",
+    "....oo....oo....",
+    "...oo......oo...",
+    "...oo..mm..oo...",
+    "................",
+    "................",
+    "................",
+];
+
+const WIZARD_MATERIAL: &[&str] = &[
+    "......oo........",
+    ".....ocCo.......",
+    "....ocCCco......",
+    "...ocCCCCco.....",
+    "..ocCCCCCcco....",
+    "...ocCCCCcco....",
+    "....ocCCco......",
+    ".....orRRro.....",
+    "....okKKKKko....",
+    "....okheehko....",
+    "...orRKKKKRRro..",
+    "..omorRRRRrom...",
+    "..omocCCCCCcom..",
+    "..omocClClCcom..",
+    "..omocCCCCCCom..",
+    "...ocCCCCCCco...",
+    "...ocCCllCCco...",
+    "...ocCCC..CCco..",
+    "...ocCC....CCo..",
+    "....oo......oo..",
+    "..m.............",
+    "..M.............",
+    "..e.............",
+    "................",
+];
+
+const BARBARIAN_MATERIAL: &[&str] = &[
+    "...mm...........",
+    "..mMMm..........",
+    ".mMMMMm.........",
+    "..mMMm..........",
+    "....m...oo......",
+    "....m..orRRro...",
+    "....m.orRRRRro..",
+    "....m.okKKKKko..",
+    "....m.okheehko..",
+    "...omorRKKKKRRro",
+    "...omodRRRddRRdo",
+    "...omodDddddDdo.",
+    "...omodDdaadDdo.",
+    "...omodDddddDdo.",
+    "....modDddddDdo.",
+    "....modDddddDdo.",
+    "....m.oddddddo..",
+    "....m.oddddddo..",
+    "....m.oo....oo..",
+    "....m.oo......oo",
+    "....m.oo..aa..oo",
+    "....m...........",
+    "....e...........",
+    "................",
+];
+
+fn material_frame(rows: &[&str], palette: &[IndexedPaletteEntry]) -> SpriteFrame {
+    indexed_sprite(rows, palette)
+        .expect("storybook material sprite rows are authored as a valid indexed sprite")
+}
+
+pub fn sprite_material_and_face_lab_fixture(_: &StoryContext) -> AssetAtlas {
+    let tiles = [
+        (
+            "Goblin material pass",
+            GOBLIN_MATERIAL,
+            GOBLIN_MATERIAL_PALETTE,
+        ),
+        (
+            "Wizard material pass",
+            WIZARD_MATERIAL,
+            WIZARD_MATERIAL_PALETTE,
+        ),
+        (
+            "Barbarian material pass",
+            BARBARIAN_MATERIAL,
+            BARBARIAN_MATERIAL_PALETTE,
+        ),
+    ]
+    .into_iter()
+    .map(|(label, rows, palette)| AtlasTile {
+        label,
+        preferred_width: 30,
+        preferred_height: 16,
+        content: AtlasContent::RgbSprite {
+            frame: material_frame(rows, palette),
+            background: VOID,
+        },
+    })
+    .collect();
+
+    AssetAtlas { tiles }
+}
+
 fn compact_scene_snapshot(context: StoryContext) -> SceneSnapshot {
     let mut snapshot = SceneSnapshot::from_model(&guild_fixture(&context));
     snapshot.agents.truncate(2);

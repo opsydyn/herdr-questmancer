@@ -1,6 +1,7 @@
 # Questmancer sprite art direction
 
-Status: approved direction; implementation has not begun.
+Status: approved direction; Storybook passes one and two are available for visual
+review. Production sprite integration has not begun.
 
 ## Decision
 

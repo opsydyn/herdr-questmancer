@@ -515,6 +515,20 @@ fn build_catalogue() -> Vec<Story> {
             ],
             &[],
         ),
+        complete_story(
+            "atlas.sprite-material-face-lab",
+            "Sprite Material & Face Lab",
+            Category::AssetAtlas,
+            "Three rich 16x24 fixtures for material clusters, faces and focal accents.",
+            PIXEL_SCENE_VIEWPORT,
+            sprite_material_and_face_lab,
+            &[
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialGoblin),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialWizard),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBarbarian),
+            ],
+            &[],
+        ),
     ];
 
     stories.extend([
@@ -1274,6 +1288,10 @@ fn rgb_calibration_room(context: &StoryContext) -> StoryFixture {
 
 fn sprite_silhouette_lab(context: &StoryContext) -> StoryFixture {
     StoryFixture::AssetAtlas(fixtures::sprite_silhouette_lab_fixture(context))
+}
+
+fn sprite_material_and_face_lab(context: &StoryContext) -> StoryFixture {
+    StoryFixture::AssetAtlas(fixtures::sprite_material_and_face_lab_fixture(context))
 }
 
 fn guild_hall_empty(context: &StoryContext) -> StoryFixture {
