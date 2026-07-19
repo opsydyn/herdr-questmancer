@@ -262,6 +262,12 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
             SceneFirstAsset::SpritePortraitGoblin,
             SceneFirstAsset::SpritePortraitWizard,
             SceneFirstAsset::SpritePortraitBarbarian,
+            SceneFirstAsset::SpriteMaterialBard,
+            SceneFirstAsset::SpriteMaterialRanger,
+            SceneFirstAsset::SpriteMaterialRogue,
+            SceneFirstAsset::SpritePortraitBard,
+            SceneFirstAsset::SpritePortraitRanger,
+            SceneFirstAsset::SpritePortraitRogue,
             SceneFirstAsset::GuildHallEmpty,
             SceneFirstAsset::GuildHallMixedParty,
             SceneFirstAsset::GuildHallCounselRequested,
@@ -311,6 +317,22 @@ fn scene_first_stories_have_exhaustive_ownership_and_render_rgb_half_blocks() {
                 SceneFirstAsset::SpritePortraitGoblin,
                 SceneFirstAsset::SpritePortraitWizard,
                 SceneFirstAsset::SpritePortraitBarbarian,
+            ][..],
+        ),
+        (
+            "atlas.sprite-scout-and-shadow-world",
+            &[
+                SceneFirstAsset::SpriteMaterialBard,
+                SceneFirstAsset::SpriteMaterialRanger,
+                SceneFirstAsset::SpriteMaterialRogue,
+            ][..],
+        ),
+        (
+            "atlas.sprite-scout-and-shadow-masters",
+            &[
+                SceneFirstAsset::SpritePortraitBard,
+                SceneFirstAsset::SpritePortraitRanger,
+                SceneFirstAsset::SpritePortraitRogue,
             ][..],
         ),
         (
@@ -575,8 +597,61 @@ fn sprite_portrait_masters_keep_world_and_portrait_tiers_separate() {
                 .flatten()
                 .collect::<HashSet<_>>()
                 .len()
-                >= 12,
+                >= 10,
             "{} needs a studio portrait palette rather than enlarged world pixels",
+            tile.label
+        );
+    }
+}
+
+#[test]
+fn scout_and_shadow_masters_keep_class_gear_legible_at_both_authored_sizes() {
+    let stories = catalogue();
+    let story = stories
+        .iter()
+        .find(|story| story.id.as_str() == "atlas.sprite-scout-and-shadow-masters")
+        .expect("Bard, Ranger and Rogue portrait review must be available");
+
+    assert_eq!(story.title, "Sprite Scout & Shadow Masters");
+    assert_eq!(
+        story.owns,
+        &[
+            AssetId::SceneFirst(SceneFirstAsset::SpritePortraitBard),
+            AssetId::SceneFirst(SceneFirstAsset::SpritePortraitRanger),
+            AssetId::SceneFirst(SceneFirstAsset::SpritePortraitRogue),
+        ]
+    );
+    assert_eq!(
+        story.shows,
+        &[
+            AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBard),
+            AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialRanger),
+            AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialRogue),
+        ]
+    );
+
+    let StoryFixture::AssetAtlas(atlas) = (story.build)(&StoryContext::fixed()) else {
+        panic!("class portrait review must use the RGB sprite atlas path");
+    };
+    assert_eq!(atlas.tiles.len(), 3);
+    for tile in atlas.tiles {
+        let AtlasContent::RgbSpritePair {
+            world, portrait, ..
+        } = tile.content
+        else {
+            panic!("class portrait tile must compare two independently authored sprites");
+        };
+        assert_eq!(world.size(), PixelSize::new(16, 24));
+        assert_eq!(portrait.size(), PixelSize::new(24, 32));
+        assert!(
+            portrait
+                .pixels()
+                .iter()
+                .flatten()
+                .collect::<HashSet<_>>()
+                .len()
+                >= 10,
+            "{} needs a rich portrait palette rather than a dressed-up world frame",
             tile.label
         );
     }

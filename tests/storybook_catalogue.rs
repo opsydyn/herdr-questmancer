@@ -143,7 +143,7 @@ fn great_room_storybook_families_are_derived_from_production_enums() {
 #[test]
 fn production_catalogue_owns_every_authored_asset_once() {
     let report = validate_catalogue().unwrap();
-    assert_eq!(asset_inventory().len(), 206);
+    assert_eq!(asset_inventory().len(), 212);
     assert_eq!(report.owned(), asset_inventory().len());
     assert!(report.missing().is_empty());
     assert!(report.duplicates().is_empty());
@@ -286,7 +286,13 @@ fn atlas_catalogue_owns_every_atlas_asset_exactly_once() {
                             | SceneFirstAsset::SpriteMaterialBarbarian
                             | SceneFirstAsset::SpritePortraitGoblin
                             | SceneFirstAsset::SpritePortraitWizard
-                            | SceneFirstAsset::SpritePortraitBarbarian,
+                            | SceneFirstAsset::SpritePortraitBarbarian
+                            | SceneFirstAsset::SpriteMaterialBard
+                            | SceneFirstAsset::SpriteMaterialRanger
+                            | SceneFirstAsset::SpriteMaterialRogue
+                            | SceneFirstAsset::SpritePortraitBard
+                            | SceneFirstAsset::SpritePortraitRanger
+                            | SceneFirstAsset::SpritePortraitRogue,
                     )
             )
         })
@@ -315,6 +321,8 @@ fn atlas_stories_enumerate_their_reused_visible_persona_assets() {
             && story.id.as_str() != "atlas.sprite-material-face-lab"
             && story.id.as_str() != "atlas.sprite-material-inspection"
             && story.id.as_str() != "atlas.sprite-portrait-masters"
+            && story.id.as_str() != "atlas.sprite-scout-and-shadow-world"
+            && story.id.as_str() != "atlas.sprite-scout-and-shadow-masters"
     }) {
         let mut expected = if story.id.as_str() == "atlas.palette-roles" {
             HashSet::new()
@@ -371,6 +379,8 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "atlas.sprite-material-face-lab",
             "atlas.sprite-material-inspection",
             "atlas.sprite-portrait-masters",
+            "atlas.sprite-scout-and-shadow-masters",
+            "atlas.sprite-scout-and-shadow-world",
             "widgets.adventurer-cards",
             "widgets.chambers",
             "widgets.guild-regions",
@@ -425,7 +435,7 @@ fn catalogue_uses_every_canonical_id_in_exact_order() {
             "compat.motion-none",
         ]
     );
-    assert_eq!(ids.len(), 77);
+    assert_eq!(ids.len(), 79);
 }
 
 #[test]
@@ -436,7 +446,7 @@ fn all_four_categories_are_populated_in_the_fixed_order() {
             .filter(|story| story.category == category)
             .count()
     });
-    assert_eq!(counts, [25, 6, 36, 10]);
+    assert_eq!(counts, [27, 6, 36, 10]);
     assert!(catalogue()[..15].iter().all(|story| {
         story.category == Category::AssetAtlas && story.viewport == Viewport::new(120, 36, 60, 18)
     }));
@@ -959,6 +969,8 @@ fn every_story_uses_its_declared_fixture_bridge() {
                     | "atlas.sprite-silhouette-lab"
                     | "atlas.sprite-material-face-lab"
                     | "atlas.sprite-portrait-masters"
+                    | "atlas.sprite-scout-and-shadow-world"
+                    | "atlas.sprite-scout-and-shadow-masters"
             )
         {
             assert!(

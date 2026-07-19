@@ -561,6 +561,38 @@ fn build_catalogue() -> Vec<Story> {
                 AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBarbarian),
             ],
         ),
+        complete_story(
+            "atlas.sprite-scout-and-shadow-masters",
+            "Sprite Scout & Shadow Masters",
+            Category::AssetAtlas,
+            "Independent Bard, Ranger and Rogue 16x24 world sprites beside their 24x32 portrait masters.",
+            Viewport::new(120, 40, 80, 22),
+            sprite_scout_and_shadow_masters,
+            &[
+                AssetId::SceneFirst(SceneFirstAsset::SpritePortraitBard),
+                AssetId::SceneFirst(SceneFirstAsset::SpritePortraitRanger),
+                AssetId::SceneFirst(SceneFirstAsset::SpritePortraitRogue),
+            ],
+            &[
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBard),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialRanger),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialRogue),
+            ],
+        ),
+        complete_story(
+            "atlas.sprite-scout-and-shadow-world",
+            "Sprite Scout & Shadow World",
+            Category::AssetAtlas,
+            "Native 16x24 Bard, Ranger and Rogue world sprites before their portrait review.",
+            PIXEL_SCENE_VIEWPORT,
+            sprite_scout_and_shadow_world,
+            &[
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBard),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialRanger),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialRogue),
+            ],
+            &[],
+        ),
     ];
 
     stories.extend([
@@ -1335,6 +1367,14 @@ fn sprite_material_inspection(context: &StoryContext) -> StoryFixture {
 
 fn sprite_portrait_masters(context: &StoryContext) -> StoryFixture {
     StoryFixture::AssetAtlas(fixtures::sprite_portrait_masters_fixture(context))
+}
+
+fn sprite_scout_and_shadow_masters(context: &StoryContext) -> StoryFixture {
+    StoryFixture::AssetAtlas(fixtures::sprite_scout_and_shadow_masters_fixture(context))
+}
+
+fn sprite_scout_and_shadow_world(context: &StoryContext) -> StoryFixture {
+    StoryFixture::AssetAtlas(fixtures::sprite_scout_and_shadow_world_fixture(context))
 }
 
 fn guild_hall_empty(context: &StoryContext) -> StoryFixture {

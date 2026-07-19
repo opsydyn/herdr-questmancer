@@ -307,6 +307,12 @@ connects to no socket and writes no plugin state.
 Use j/k to move between stories, h/l to change categories, Enter to inspect the
 production canvas, Esc to return, ? for help and q to quit.
 
+For the current class-art review, inspect **Sprite Scout & Shadow World** and
+then **Sprite Scout & Shadow Masters**. They show Bard, Ranger and Rogue at
+their authored 16x24 world size and beside their separate 24x32 portrait
+masters. This is a review-only asset lane: it does not prompt agents, call
+Herdr, write state, or replace the existing production sprites.
+
 Run its focused automated checks with `just storybook-test`.
 
 ```bash

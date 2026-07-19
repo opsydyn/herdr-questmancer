@@ -104,7 +104,11 @@ They establish reusable rules:
 
 The existing seven ancestries and eleven classes remain authoritative. Goblin,
 Wizard and Barbarian are the first useful extremes because they expose the
-silhouette system most clearly.
+silhouette system most clearly. Bard, Ranger and Rogue are the second approved
+review batch: their readable primary gear is, respectively, lute, bow and
+quiver, and thieves' tools with paired daggers as a secondary silhouette. They
+do not add or alter a domain class. Druid remains intentionally unrepresented
+until it is an explicit product decision.
 
 ## Pose and animation contract
 
@@ -137,7 +141,7 @@ tool. The lab should show, for each fixture:
 The lab is for review only. It has no agent prompt, Herdr command, persistence
 mutation or sprite-editor ambition.
 
-The current Storybook sequence is intentionally split into four stable views:
+The current Storybook sequence is intentionally split into six stable views:
 
 - **Sprite Silhouette Lab** preserves the outline-and-flat-fill baseline.
 - **Sprite Material & Face Lab** presents the three material passes at native
@@ -148,6 +152,11 @@ The current Storybook sequence is intentionally split into four stable views:
 - **Sprite World & Portrait Masters** places each 16x24 world sprite beside its
   independently authored 24x32 portrait. Neither tier is scaled to manufacture
   the other.
+- **Sprite Scout & Shadow World** is the native-size Bard, Ranger and Rogue
+  review surface.
+- **Sprite Scout & Shadow Masters** compares that batch's 16x24 world frames
+  with their independent 24x32 portrait masters. It is the review gate before
+  any old sprite is deprecated or any production card is changed.
 
 ## Four review passes
 

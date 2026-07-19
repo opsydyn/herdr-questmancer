@@ -1413,6 +1413,389 @@ const BARBARIAN_PORTRAIT: &[&str] = &[
     "........................",
 ];
 
+// The second class batch keeps the same two-tier contract as the first three
+// fixtures. These are authored frames, rather than palette swaps or resizes:
+// gear must remain legible in the 16x24 world and gain material detail in the
+// 24x32 portrait.
+const BARD_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(29, 20, 31)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(133, 73, 48)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(235, 157, 101)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 218, 155)),
+    },
+    IndexedPaletteEntry {
+        key: 'r',
+        colour: Some(Rgb::new(71, 38, 36)),
+    },
+    IndexedPaletteEntry {
+        key: 'R',
+        colour: Some(Rgb::new(119, 59, 46)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(80, 39, 77)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(147, 66, 126)),
+    },
+    IndexedPaletteEntry {
+        key: 'v',
+        colour: Some(Rgb::new(211, 96, 164)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(94, 56, 34)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(171, 111, 55)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(237, 181, 77)),
+    },
+    IndexedPaletteEntry {
+        key: 'L',
+        colour: Some(Rgb::new(255, 221, 117)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(117, 221, 233)),
+    },
+];
+
+const RANGER_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(21, 25, 26)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(120, 72, 46)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(225, 154, 97)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 220, 151)),
+    },
+    IndexedPaletteEntry {
+        key: 'r',
+        colour: Some(Rgb::new(54, 43, 25)),
+    },
+    IndexedPaletteEntry {
+        key: 'R',
+        colour: Some(Rgb::new(99, 79, 37)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(42, 76, 39)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(79, 125, 57)),
+    },
+    IndexedPaletteEntry {
+        key: 'v',
+        colour: Some(Rgb::new(137, 169, 74)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(92, 57, 34)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(169, 111, 55)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(216, 181, 83)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(94, 143, 69)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(130, 143, 125)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(198, 211, 184)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(238, 199, 95)),
+    },
+];
+
+const ROGUE_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(21, 18, 29)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(125, 72, 47)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(225, 151, 97)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 218, 151)),
+    },
+    IndexedPaletteEntry {
+        key: 'r',
+        colour: Some(Rgb::new(49, 30, 63)),
+    },
+    IndexedPaletteEntry {
+        key: 'R',
+        colour: Some(Rgb::new(82, 51, 110)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(52, 38, 78)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(98, 65, 137)),
+    },
+    IndexedPaletteEntry {
+        key: 'v',
+        colour: Some(Rgb::new(157, 111, 204)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(86, 54, 35)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(155, 100, 55)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(219, 184, 87)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(70, 190, 181)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(130, 146, 151)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(223, 232, 224)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(91, 228, 223)),
+    },
+];
+
+const BARD_WORLD: &[&str] = &[
+    "................",
+    "................",
+    ".....oooo.......",
+    "....orRRro......",
+    "....orKKhro.....",
+    "....orKohro.....",
+    "....orKKKro.....",
+    ".o..ocCCco..d...",
+    ".oo.ocCvcodDd...",
+    ".oo.ocCCco.dDd..",
+    "....ocClcco..d..",
+    "....ocCCCco.....",
+    "....ocCcco......",
+    "....odddddo.....",
+    "....odDddDo.....",
+    "....odDllDo.....",
+    "....odddddo.....",
+    "....oddo.oddo...",
+    "....odo...odo...",
+    "...ooo.....ooo..",
+    "................",
+    "................",
+    "................",
+    "................",
+];
+
+const RANGER_WORLD: &[&str] = &[
+    "................",
+    ".......oo.......",
+    ".....ocCCo......",
+    "....ocCCCco.....",
+    "....ocKKhco..d..",
+    "....ocKohco.dDd.",
+    "....ocKKKco.dDd.",
+    ".m..ocCCCco..d..",
+    ".M..ocCvcoddd...",
+    ".m..ocCCCco.....",
+    "....ocClcco.....",
+    "....ocCCCco.....",
+    "....ocCcco......",
+    "....odddddo.....",
+    "....odDddDo.....",
+    "....odDaaDo.....",
+    "....odddddo.....",
+    "....oddo.oddo...",
+    "....odo...odo...",
+    "...ooo.....ooo..",
+    "................",
+    "................",
+    "................",
+    "................",
+];
+
+const ROGUE_WORLD: &[&str] = &[
+    "................",
+    "......oooo......",
+    ".....ocCCco.....",
+    "....ocCCCCco....",
+    "....ocKKhCco....",
+    "....ocKooCco....",
+    "....ocKKKCco....",
+    ".m..ocCCCCco..m.",
+    ".M..ocCvCCco..M.",
+    ".m..ocCCCCco..m.",
+    "....ocCllCco....",
+    "....ocCCCCco....",
+    "....ocCccCco....",
+    "....odddddo.....",
+    "....odDaaDo.....",
+    "....odDddDo.....",
+    "....odddddo.....",
+    "....oddo.oddo...",
+    "....odo...odo...",
+    "...ooo.....ooo..",
+    "................",
+    "................",
+    "................",
+    "................",
+];
+
+const BARD_PORTRAIT: &[&str] = &[
+    "........................",
+    ".........oooo...........",
+    ".......oorRRroo.........",
+    "......orRRRRRRro........",
+    "......orRKKhhRro........",
+    "......orRKooKRRro.......",
+    "......orRKKKKRRro.......",
+    "......ooRRRRRRoo........",
+    ".....occccccccco....d...",
+    "....ocCCvvvCCcco...dDd..",
+    "....ocCCvvvCCcco..dDDd..",
+    "....ocCCcllCCcco...dDd..",
+    "....ocCCCCCccccoo...d...",
+    "....ocCCcllCCCCco.......",
+    "....ocCCCCCCCCCco.......",
+    "....ocCCCllllCCco.......",
+    "....ocCCCCCCCCCco.......",
+    "....ocCCCCC.CCCco.......",
+    "....ocCCCC...CCCco......",
+    "....odddddddddddo.......",
+    "....odDdddddddDdo.......",
+    "....odDddllllDdo........",
+    "....odDdddddddDdo.......",
+    "....oddddddddddo........",
+    ".....odddo.odddo........",
+    ".....oddo...oddo........",
+    "....oooo.....oooo.......",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
+const RANGER_PORTRAIT: &[&str] = &[
+    "........................",
+    "..........oooo..........",
+    "........occcccco........",
+    ".......ocCCCCCCco.......",
+    "......ocCCvvvvCCco......",
+    "......ocCCKhhKCCco......",
+    "......ocCCKooKCCco......",
+    "......ocCCKKKKCCco......",
+    "......ocCCCCCCCCco......",
+    ".m....ocCCCllCCCco...m..",
+    ".M....ocCCCCCCCCco...M..",
+    ".m...ocCCccccCCCco...m..",
+    ".....ocCCcddddcCCco.....",
+    ".....ocCCcDddDcCCco.....",
+    ".....ocCCcddddcCCco.....",
+    ".....ocCCCCCllCCCco.....",
+    ".....ocCCCCCCCCCCco.....",
+    ".....ocCCC.CCCC.Cco.....",
+    ".....ocCCC..CCC..co.....",
+    ".....odddddddddddo......",
+    ".....odDdddddddDdo......",
+    ".....odDdddeeddDdo......",
+    ".....odDdddddddDdo......",
+    ".....oddddddddddo.......",
+    "......odddo.odddo.......",
+    "......oddo...oddo.......",
+    ".....oooo.....oooo......",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
+const ROGUE_PORTRAIT: &[&str] = &[
+    "........................",
+    "........ooooooo.........",
+    "......oocCCCCCcoo.......",
+    ".....ocCCCCCCCCCco......",
+    ".....ocCCvvvvvCCco......",
+    ".....ocCCKhhKCCCco......",
+    ".....ocCCKooKCCCco......",
+    ".....ocCCKKKKCCCco......",
+    ".....ocCCCCCCCCCco......",
+    ".m...ocCCccccCCCco...m..",
+    ".M...ocCCcddddCCCco...M.",
+    ".m...ocCCcDddDCCCco...m.",
+    ".....ocCCCccccCCCco.....",
+    ".....ocCCCllCCCCCco.....",
+    ".....ocCCCCCCCCCCco.....",
+    ".....ocCCCCCCCCCcco.....",
+    ".....ocCCC.CCCC.Ccco....",
+    ".....ocCCC..CCC..cco....",
+    ".....ocCC...CCC...co....",
+    ".....oddddddddddddo.....",
+    ".....odDdddddddddDo.....",
+    ".....odDdddeeddddDo.....",
+    ".....odDdddddddddDo.....",
+    ".....oddddddddddddo.....",
+    "......odddo..odddo......",
+    "......oddo....oddo......",
+    ".....oooo......oooo.....",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
 const REVIEW_DELVE: Rgb = Rgb::new(12, 17, 31);
 const REVIEW_NEUTRAL: Rgb = Rgb::new(28, 27, 35);
 const REVIEW_TORCH: Rgb = Rgb::new(38, 24, 24);
@@ -1476,6 +1859,84 @@ pub fn sprite_portrait_masters_fixture(_: &StoryContext) -> AssetAtlas {
             }
         },
     )
+    .collect();
+
+    AssetAtlas { tiles }
+}
+
+pub fn sprite_scout_and_shadow_masters_fixture(_: &StoryContext) -> AssetAtlas {
+    let tiles = [
+        (
+            "Bard portrait master",
+            BARD_WORLD,
+            BARD_PALETTE,
+            BARD_PORTRAIT,
+            BARD_PALETTE,
+            REVIEW_TORCH,
+        ),
+        (
+            "Ranger portrait master",
+            RANGER_WORLD,
+            RANGER_PALETTE,
+            RANGER_PORTRAIT,
+            RANGER_PALETTE,
+            REVIEW_DELVE,
+        ),
+        (
+            "Rogue portrait master",
+            ROGUE_WORLD,
+            ROGUE_PALETTE,
+            ROGUE_PORTRAIT,
+            ROGUE_PALETTE,
+            REVIEW_NEUTRAL,
+        ),
+    ]
+    .into_iter()
+    .map(
+        |(label, world_rows, world_palette, portrait_rows, portrait_palette, background)| {
+            AtlasTile {
+                label,
+                preferred_width: 50,
+                preferred_height: 18,
+                content: AtlasContent::RgbSpritePair {
+                    world: material_frame(world_rows, world_palette),
+                    portrait: material_frame(portrait_rows, portrait_palette),
+                    background,
+                },
+            }
+        },
+    )
+    .collect();
+
+    AssetAtlas { tiles }
+}
+
+pub fn sprite_scout_and_shadow_world_fixture(_: &StoryContext) -> AssetAtlas {
+    let tiles = [
+        ("Bard world sprite", BARD_WORLD, BARD_PALETTE, REVIEW_TORCH),
+        (
+            "Ranger world sprite",
+            RANGER_WORLD,
+            RANGER_PALETTE,
+            REVIEW_DELVE,
+        ),
+        (
+            "Rogue world sprite",
+            ROGUE_WORLD,
+            ROGUE_PALETTE,
+            REVIEW_NEUTRAL,
+        ),
+    ]
+    .into_iter()
+    .map(|(label, rows, palette, background)| AtlasTile {
+        label,
+        preferred_width: 30,
+        preferred_height: 16,
+        content: AtlasContent::RgbSprite {
+            frame: material_frame(rows, palette),
+            background,
+        },
+    })
     .collect();
 
     AssetAtlas { tiles }
