@@ -38,14 +38,8 @@ use crate::{
         render_scene_for_world,
         snapshot::SceneSnapshot,
     },
-    ui::{self, RenderProjection, scene_adapter::flush_rgb, theatre::next_projected_frame_in},
+    ui::{self, scene_adapter::flush_rgb},
 };
-
-#[cfg(feature = "scene-preview")]
-use crate::scene::render_scene;
-
-#[cfg(feature = "scene-preview")]
-use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 
 pub(crate) type Tui = Terminal<CrosstermBackend<Stdout>>;
 
@@ -154,24 +148,6 @@ pub struct AnimationScheduler {
 impl AnimationScheduler {
     pub const fn new() -> Self {
         Self { sleep: None }
-    }
-
-    #[allow(
-        clippy::needless_pass_by_value,
-        reason = "retained until the legacy scheduler contract tests are removed during the hard cleanup"
-    )]
-    pub fn reset_for(
-        &mut self,
-        model: &Model,
-        render_area: ratatui::layout::Rect,
-        projection: RenderProjection,
-        clock: &RuntimeClock,
-    ) {
-        self.reset_after(
-            model.now(),
-            next_projected_frame_in(model, render_area, &projection),
-            clock,
-        );
     }
 
     pub fn reset_after(
@@ -325,39 +301,20 @@ pub fn install_panic_hook() {
     }));
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum RenderExperience {
-    Interactive,
-    #[cfg(feature = "scene-preview")]
-    SceneFirstPreview,
-}
-
 pub async fn run(initial_view: Option<View>) -> Result<()> {
-    run_with_experience(initial_view, RenderExperience::Interactive).await
-}
-
-#[cfg(feature = "scene-preview")]
-pub async fn run_scene_preview() -> Result<()> {
-    run_with_experience(None, RenderExperience::SceneFirstPreview).await
+    run_application(initial_view).await
 }
 
 #[allow(
     clippy::too_many_lines,
-    reason = "the preview deliberately shares one explicit terminal lifecycle with production"
+    reason = "the application lifecycle keeps startup, runtime, persistence and terminal cleanup together"
 )]
-async fn run_with_experience(
-    initial_view: Option<View>,
-    experience: RenderExperience,
-) -> Result<()> {
+async fn run_application(initial_view: Option<View>) -> Result<()> {
     let startup = load_startup(PersistencePaths::from_env(), initial_view).await;
     let effective_view = startup.model.view();
     let _runtime = RuntimeRegistration::from_env(effective_view)?;
     let mut shutdown = Shutdown::install()?;
-    let environment = match experience {
-        RenderExperience::Interactive => HerdrEnvironment::from_env().ok(),
-        #[cfg(feature = "scene-preview")]
-        RenderExperience::SceneFirstPreview => HerdrEnvironment::from_preview_env().ok(),
-    };
+    let environment = HerdrEnvironment::from_env().ok();
     let (mut lifecycle, mut persistence_diagnostics) =
         RuntimeLifecycle::start(environment.as_ref(), startup.paths);
     let mut collected_diagnostics = startup.diagnostics;
@@ -387,63 +344,28 @@ async fn run_with_experience(
         let (connection, persistence) = lifecycle
             .live_parts_mut()
             .expect("live lifecycle starts a runtime connection");
-        match experience {
-            RenderExperience::Interactive => {
-                run_live_loop(
-                    &mut terminal,
-                    &mut model,
-                    connection,
-                    persistence,
-                    &mut persistence_diagnostics,
-                    &mut collected_diagnostics,
-                    &mut shutdown,
-                    &clock,
-                )
-                .await
-            }
-            #[cfg(feature = "scene-preview")]
-            RenderExperience::SceneFirstPreview => {
-                run_live_scene_preview_loop(
-                    &mut terminal,
-                    &mut model,
-                    connection,
-                    persistence,
-                    &mut persistence_diagnostics,
-                    &mut collected_diagnostics,
-                    &mut shutdown,
-                    &clock,
-                )
-                .await
-            }
-        }
+        run_live_loop(
+            &mut terminal,
+            &mut model,
+            connection,
+            persistence,
+            &mut persistence_diagnostics,
+            &mut collected_diagnostics,
+            &mut shutdown,
+            &clock,
+        )
+        .await
     } else {
-        match experience {
-            RenderExperience::Interactive => {
-                run_offline_loop(
-                    &mut terminal,
-                    &mut model,
-                    lifecycle.persistence_mut(),
-                    &mut persistence_diagnostics,
-                    &mut collected_diagnostics,
-                    &mut shutdown,
-                    &clock,
-                )
-                .await
-            }
-            #[cfg(feature = "scene-preview")]
-            RenderExperience::SceneFirstPreview => {
-                run_offline_scene_preview_loop(
-                    &mut terminal,
-                    &mut model,
-                    lifecycle.persistence_mut(),
-                    &mut persistence_diagnostics,
-                    &mut collected_diagnostics,
-                    &mut shutdown,
-                    &clock,
-                )
-                .await
-            }
-        }
+        run_offline_loop(
+            &mut terminal,
+            &mut model,
+            lifecycle.persistence_mut(),
+            &mut persistence_diagnostics,
+            &mut collected_diagnostics,
+            &mut shutdown,
+            &clock,
+        )
+        .await
     };
 
     let lifecycle_result = lifecycle
@@ -455,44 +377,6 @@ async fn run_with_experience(
     emit_diagnostics(&collected_diagnostics);
 
     loop_result.map(drop).and(lifecycle_result)
-}
-
-#[cfg(feature = "scene-preview")]
-pub fn preview_exit_for_event(event: Option<io::Result<Event>>) -> Result<Option<RuntimeExit>> {
-    let Some(event) = event else {
-        return Ok(Some(RuntimeExit::InputClosed));
-    };
-    let event = event.context("read terminal input")?;
-    let Event::Key(key) = event else {
-        return Ok(None);
-    };
-    if !matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
-        return Ok(None);
-    }
-    let plain_quit = key.code == KeyCode::Char('q') && key.modifiers.is_empty();
-    let interrupt = key.code == KeyCode::Char('c') && key.modifiers == KeyModifiers::CONTROL;
-    Ok((plain_quit || interrupt).then_some(RuntimeExit::Quit))
-}
-
-#[cfg(feature = "scene-preview")]
-fn draw_scene_preview(
-    terminal: &mut Tui,
-    model: &Model,
-    buffer: &mut RgbBuffer,
-) -> Result<crate::scene::SceneFrame> {
-    let mut rendered = None;
-    terminal.draw(|frame| {
-        let area = frame.area();
-        let snapshot = SceneSnapshot::from_model(model);
-        let scene_frame = render_scene(
-            &snapshot,
-            PixelSize::new(area.width, area.height.saturating_mul(2)),
-            buffer,
-        );
-        flush_rgb(frame.buffer_mut(), area, buffer, Rgb::BLACK);
-        rendered = Some(scene_frame);
-    })?;
-    rendered.context("scene preview draw did not produce a frame")
 }
 
 fn draw_scene_application(
@@ -516,104 +400,6 @@ fn draw_scene_application(
         rendered = Some(scene_frame);
     })?;
     rendered.context("scene application draw did not produce a frame")
-}
-
-#[cfg(feature = "scene-preview")]
-async fn run_live_scene_preview_loop(
-    terminal: &mut Tui,
-    model: &mut Model,
-    connection: &mut RuntimeConnection,
-    persistence: &mut PersistenceClient,
-    persistence_diagnostics: &mut DiagnosticReceiver,
-    collected_diagnostics: &mut Vec<PersistenceDiagnostic>,
-    shutdown: &mut Shutdown,
-    clock: &RuntimeClock,
-) -> Result<RuntimeExit> {
-    let mut input = EventStream::new();
-    let mut render_invalidation = AnimationScheduler::new();
-    let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
-
-    loop {
-        let scene_frame = draw_scene_preview(terminal, model, &mut buffer)?;
-        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, clock);
-
-        tokio::select! {
-            event = input.next() => {
-                if let Some(exit) = preview_exit_for_event(event)? {
-                    return Ok(exit);
-                }
-            }
-            runtime_event = connection.next_event() => {
-                let observed_at = clock.now();
-                model.set_now(observed_at);
-                match runtime_event {
-                    RuntimeEvent::Connection(update) => {
-                        let effects = apply_connection_update(model, update, observed_at);
-                        connection.schedule(effects.agent_commands);
-                        record_dispatch_errors(
-                            model,
-                            collected_diagnostics,
-                            dispatch_persistence_effects(persistence, model, effects.persistence).await,
-                        );
-                    }
-                    RuntimeEvent::Command(result) => {
-                        let effects = apply_command_result(model, result, observed_at);
-                        connection.schedule(effects.agent_commands);
-                        record_dispatch_errors(
-                            model,
-                            collected_diagnostics,
-                            dispatch_persistence_effects(persistence, model, effects.persistence).await,
-                        );
-                    }
-                    RuntimeEvent::CommandTaskFailed(message) => {
-                        anyhow::bail!("terminal command task failed: {message}");
-                    }
-                }
-            }
-            exit = shutdown.requested() => return Ok(exit),
-            Some(diagnostic) = persistence_diagnostics.recv() => {
-                record_diagnostic(model, collected_diagnostics, diagnostic);
-            }
-            () = render_invalidation.wait() => {
-                model.set_now(clock.now());
-            }
-        }
-    }
-}
-
-#[cfg(feature = "scene-preview")]
-async fn run_offline_scene_preview_loop(
-    terminal: &mut Tui,
-    model: &mut Model,
-    _persistence: &mut PersistenceClient,
-    persistence_diagnostics: &mut DiagnosticReceiver,
-    collected_diagnostics: &mut Vec<PersistenceDiagnostic>,
-    shutdown: &mut Shutdown,
-    clock: &RuntimeClock,
-) -> Result<RuntimeExit> {
-    let mut input = EventStream::new();
-    let mut render_invalidation = AnimationScheduler::new();
-    let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
-
-    loop {
-        let scene_frame = draw_scene_preview(terminal, model, &mut buffer)?;
-        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, clock);
-
-        tokio::select! {
-            event = input.next() => {
-                if let Some(exit) = preview_exit_for_event(event)? {
-                    return Ok(exit);
-                }
-            }
-            exit = shutdown.requested() => return Ok(exit),
-            Some(diagnostic) = persistence_diagnostics.recv() => {
-                record_diagnostic(model, collected_diagnostics, diagnostic);
-            }
-            () = render_invalidation.wait() => {
-                model.set_now(clock.now());
-            }
-        }
-    }
 }
 
 async fn run_live_loop(

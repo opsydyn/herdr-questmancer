@@ -13,17 +13,11 @@ categories = ["command-line-utilities", "development-tools"]
 [features]
 default = []
 storybook = []
-scene-preview = []
 
 [[bin]]
 name = "questmancer-storybook"
 path = "src/bin/questmancer_storybook.rs"
 required-features = ["storybook"]
-
-[[bin]]
-name = "questmancer-scene-preview"
-path = "src/bin/questmancer_scene_preview.rs"
-required-features = ["scene-preview"]
 
 [dependencies]
 anyhow = "1"

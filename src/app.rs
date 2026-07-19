@@ -6,9 +6,27 @@ use serde::{Deserialize, Serialize};
 use crate::{
     domain::{Agent, AgentKey, DomainState, PaneId, Timestamp},
     persistence::DurableIntent,
-    ui::goblins::GoblinState,
     update::{AppEvent, update},
 };
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct GoblinState {
+    released_at: Option<Timestamp>,
+}
+
+impl GoblinState {
+    pub const OUTBREAK_DURATION: Duration = Duration::from_secs(3);
+
+    pub const fn release(&mut self, now: Timestamp) {
+        self.released_at = Some(now);
+    }
+
+    #[must_use]
+    pub fn is_visible(self, now: Timestamp) -> bool {
+        self.released_at
+            .is_some_and(|start| now >= start && start.elapsed_until(now) < Self::OUTBREAK_DURATION)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, ValueEnum)]
 #[serde(rename_all = "snake_case")]

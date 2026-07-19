@@ -5,65 +5,14 @@ use std::collections::BTreeMap;
 
 use proptest::prelude::*;
 use questmancer::{
-    app::{Model, View},
     domain::{
-        AdventurerPersona, AgentKey, Campaign, CampaignStatus, ChronicleEntry, ChronicleEvent,
-        DomainState, GuildSummons, PersonaKey, Presence, WorkspaceId,
+        AdventurerPersona, Campaign, CampaignStatus, ChronicleEntry, ChronicleEvent, DomainState,
+        GuildSummons, PersonaKey, Presence, WorkspaceId,
     },
-    ui::delve_scene::layout_delves,
     update::{AppEvent, Command, update},
 };
-use ratatui::layout::Rect;
 
 proptest! {
-    #[test]
-    fn every_generated_agent_is_owned_by_exactly_one_visible_delve(
-        workspaces in prop::collection::vec(support::strategies::workspace_id(), 0..=12),
-        agents_per_workspace in prop::collection::vec(0usize..=4, 0..=12),
-    ) {
-        let mut campaigns = BTreeMap::new();
-        let mut agents = BTreeMap::new();
-        let template = support::fixture_domain().agents.values().next().unwrap().clone();
-        for (workspace_index, workspace_id) in workspaces.into_iter().enumerate() {
-            let count = agents_per_workspace.get(workspace_index).copied().unwrap_or_default();
-            let mut keys = Vec::with_capacity(count);
-            for agent_index in 0..count {
-                let mut agent = template.clone();
-                agent.key = AgentKey::new(format!("agent-{workspace_index}-{agent_index}"));
-                agent.pane_id = questmancer::domain::PaneId::new(format!("pane-{workspace_index}-{agent_index}"));
-                agent.workspace_id = workspace_id.clone();
-                keys.push(agent.key.clone());
-                agents.insert(agent.key.clone(), agent);
-            }
-            campaigns.entry(workspace_id.clone()).or_insert_with(|| Campaign {
-                workspace_id,
-                label: "site".to_owned(),
-                cwd: "/tmp".into(),
-                party: Vec::new(),
-            }).party.extend(keys);
-        }
-
-        for (width, height) in [(240, 120), (80, 24), (60, 18), (1, 1), (0, 0)] {
-            let delves = layout_delves(&campaigns, &agents, Rect::new(0, 0, width, height), None);
-            let mut ownership = BTreeMap::<AgentKey, usize>::new();
-            for delve in &delves {
-                for key in &delve.adventurers {
-                    *ownership.entry(key.clone()).or_default() += 1;
-                }
-            }
-            for count in ownership.values() {
-                prop_assert_eq!(*count, 1);
-            }
-            if width == 0 || height == 0 {
-                prop_assert!(delves.is_empty());
-                prop_assert!(ownership.is_empty());
-            }
-            if width > 0 && height > 0 {
-                prop_assert_eq!(ownership.len(), agents.len());
-            }
-        }
-    }
-
     #[test]
     fn managed_pane_is_absent_from_the_delve_model_and_rendered_surface(
         managed_pane in support::pane_id(),
@@ -83,19 +32,6 @@ proptest! {
         prop_assert!(state.agent_key_for_pane(&managed_pane).is_none());
         prop_assert!(state.agents.values().all(|agent| agent.name != "webmaster-managed-pane"));
 
-        let mut model = Model::new(View::Delve);
-        model.replace_domain(state);
-        let backend = ratatui::backend::TestBackend::new(120, 30);
-        let mut terminal = ratatui::Terminal::new(backend).unwrap();
-        terminal.draw(|frame| questmancer::ui::render(frame, &model)).unwrap();
-        let screen = terminal
-            .backend()
-            .buffer()
-            .content()
-            .iter()
-            .map(ratatui::buffer::Cell::symbol)
-            .collect::<String>();
-        prop_assert!(!screen.contains("webmaster-managed-pane"));
     }
 
     #[test]

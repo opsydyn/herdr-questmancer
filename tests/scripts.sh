@@ -460,19 +460,6 @@ test_current_release_surfaces_have_no_legacy_identity_or_vocabulary() {
   fi
 }
 
-test_scene_preview_does_not_leak_into_plugin_release_surfaces() {
-  local -a surfaces=(
-    "$ROOT/herdr-plugin.toml"
-    "$ROOT/herdr/install.sh"
-    "$ROOT/herdr/run.sh"
-    "$ROOT/herdr/control.sh"
-    "$ROOT/.github"
-  )
-  if rg -n -F 'questmancer-scene-preview' "${surfaces[@]}"; then
-    fail "scene preview leaked into the plugin release surface"
-  fi
-}
-
 make_herdr "$TMP/herdr"
 mkdir -p "$TMP/bin"
 make_date "$TMP/bin/date"
@@ -497,9 +484,7 @@ test_workflow_yaml_contract_and_comment_mutations
 test_contributor_test_recipes_reference_real_targets
 test_native_archive_installs_after_checksum_verification
 test_current_release_surfaces_have_no_legacy_identity_or_vocabulary
-test_scene_preview_does_not_leak_into_plugin_release_surfaces
-
-if grep -R -E -q 'questmancer-storybook|storybook|questmancer-scene-preview|scene-preview' herdr-plugin.toml herdr; then
+if grep -R -E -q 'questmancer-storybook|storybook' herdr-plugin.toml herdr; then
   echo "developer preview leaked into the plugin release surface" >&2
   exit 1
 fi

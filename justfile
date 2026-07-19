@@ -60,9 +60,3 @@ storybook:
 
 storybook-test:
     cargo test --all-targets --features storybook
-
-scene-preview:
-    cargo run --features scene-preview --bin questmancer-scene-preview
-
-scene-preview-test:
-    cargo test --all-targets --features scene-preview
