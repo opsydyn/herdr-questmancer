@@ -46,6 +46,13 @@ pub fn action_for(key: KeyEvent) -> Action {
 }
 
 fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
+    if matches!(modal, Modal::Scrying) {
+        return match key.code {
+            KeyCode::Esc => Action::Dismiss,
+            KeyCode::Char('o') => Action::Refresh,
+            _ => Action::None,
+        };
+    }
     if matches!(modal, Modal::Help) {
         return match key.code {
             KeyCode::Esc => Action::Dismiss,

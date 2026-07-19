@@ -548,6 +548,7 @@ pub fn modal_fixture(modal: Modal) -> Model {
                 application.push_modal_character(character);
             }
         }
+        Modal::Scrying => application.open_scrying(),
     }
     application
 }

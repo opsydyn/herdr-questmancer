@@ -34,6 +34,7 @@ impl ScenePresentation {
                 Modal::Help => SceneOverlay::Help,
                 Modal::Counsel { .. } => SceneOverlay::Counsel,
                 Modal::Search { .. } => SceneOverlay::Search,
+                Modal::Scrying => SceneOverlay::Scrying,
             },
         }
     }

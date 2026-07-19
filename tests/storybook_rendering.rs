@@ -745,6 +745,7 @@ fn every_completed_story_renders_at_reference_and_minimum_viewports() {
                 Modal::Counsel { .. } => "ISSUE COUNSEL".to_owned(),
                 Modal::Search { .. } => "SEARCH ADVENTURERS".to_owned(),
                 Modal::Help => "QUESTMANCER'S FIELD GUIDE".to_owned(),
+                Modal::Scrying => "SCRYING".to_owned(),
                 Modal::None => match model.view() {
                     View::Guild => "QUESTMANCER'S GUILD HALL".to_owned(),
                     View::Delve => "QUESTMANCER DELVES".to_owned(),

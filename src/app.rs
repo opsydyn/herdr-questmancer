@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
@@ -200,6 +202,7 @@ pub enum Modal {
     Search {
         query: String,
     },
+    Scrying,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -227,6 +230,7 @@ pub struct Model {
     durable_intent: DurableIntent,
     managed_pane_id: Option<PaneId>,
     goblins: GoblinState,
+    last_interaction_at: Option<Timestamp>,
 }
 
 impl Model {
@@ -246,6 +250,7 @@ impl Model {
             durable_intent: DurableIntent::default(),
             managed_pane_id: None,
             goblins: GoblinState::default(),
+            last_interaction_at: None,
         }
     }
 
@@ -407,7 +412,7 @@ impl Model {
     pub fn counsel_draft(&self) -> Option<&str> {
         match &self.modal {
             Modal::Counsel { draft } => Some(draft),
-            Modal::None | Modal::Help | Modal::Search { .. } => None,
+            Modal::None | Modal::Help | Modal::Search { .. } | Modal::Scrying => None,
         }
     }
 
@@ -419,7 +424,7 @@ impl Model {
         match &mut self.modal {
             Modal::Counsel { draft } => draft.push(character),
             Modal::Search { query } => query.push(character),
-            Modal::None | Modal::Help => {}
+            Modal::None | Modal::Help | Modal::Scrying => {}
         }
     }
 
@@ -435,7 +440,7 @@ impl Model {
             Modal::Search { query } => {
                 query.pop();
             }
-            Modal::None | Modal::Help => {}
+            Modal::None | Modal::Help | Modal::Scrying => {}
         }
     }
 
@@ -443,12 +448,25 @@ impl Model {
         match &mut self.modal {
             Modal::Counsel { draft } => draft.clear(),
             Modal::Search { query } => query.clear(),
-            Modal::None | Modal::Help => {}
+            Modal::None | Modal::Help | Modal::Scrying => {}
         }
     }
 
     pub fn dismiss_modal(&mut self) {
         self.modal = Modal::None;
+    }
+
+    pub fn open_scrying(&mut self) {
+        self.modal = Modal::Scrying;
+    }
+
+    pub fn note_interaction(&mut self) {
+        self.last_interaction_at = Some(self.now);
+    }
+
+    pub fn command_ribbon_visible(&self) -> bool {
+        self.last_interaction_at
+            .is_some_and(|started| started.elapsed_until(self.now) <= Duration::from_millis(3_000))
     }
 
     pub fn take_counsel(&mut self) -> Option<String> {

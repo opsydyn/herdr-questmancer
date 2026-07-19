@@ -117,3 +117,27 @@ fn help_modal_accepts_only_dismissal_keys() {
         Action::ShowHelp
     );
 }
+
+#[test]
+fn scrying_modal_accepts_only_refresh_and_dismissal() {
+    for code in [
+        KeyCode::Char('q'),
+        KeyCode::Char('j'),
+        KeyCode::Enter,
+        KeyCode::Char('/'),
+    ] {
+        assert_eq!(
+            action_for_event_in(&Event::Key(key(code)), &Modal::Scrying),
+            Action::None,
+            "scrying leaked {code:?}"
+        );
+    }
+    assert_eq!(
+        action_for_event_in(&Event::Key(key(KeyCode::Char('o'))), &Modal::Scrying),
+        Action::Refresh
+    );
+    assert_eq!(
+        action_for_event_in(&Event::Key(key(KeyCode::Esc)), &Modal::Scrying),
+        Action::Dismiss
+    );
+}

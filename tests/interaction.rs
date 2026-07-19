@@ -351,6 +351,7 @@ fn navigation_with_only_the_managed_pane_has_no_output_effect() {
 fn refresh_loads_only_the_selected_output() {
     let mut selected = live_model_with_two_agents();
     let refresh = reduce_action(&mut selected, Action::Refresh);
+    assert_eq!(selected.modal(), &Modal::Scrying);
     assert_eq!(
         refresh.commands,
         vec![AgentCommand::LoadOutput {
@@ -362,6 +363,7 @@ fn refresh_loads_only_the_selected_output() {
     let mut empty = Model::new(View::Guild);
     let no_refresh = reduce_action(&mut empty, Action::Refresh);
     assert!(no_refresh.commands.is_empty());
+    assert_eq!(empty.modal(), &Modal::None);
     assert_eq!(
         empty.status_message(),
         Some("No adventurer is selected to scry.")

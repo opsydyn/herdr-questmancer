@@ -10,6 +10,7 @@ pub mod input;
 pub mod persona;
 pub mod pixel;
 pub mod scene_adapter;
+pub mod scene_overlays;
 pub mod theatre;
 pub mod widgets;
 

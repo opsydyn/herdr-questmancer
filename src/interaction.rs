@@ -23,6 +23,9 @@ pub struct ActionReduction {
 pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
     let before = PersistedStateV1::capture(model);
     let mut commands = Vec::new();
+    if !matches!(action, Action::Redraw | Action::None) {
+        model.note_interaction();
+    }
     if intercept_help_modal(model, action) {
         return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
     }
@@ -100,7 +103,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             match model.modal() {
                 Modal::Counsel { .. } => submit_counsel(model, &mut commands),
                 Modal::Search { .. } => submit_search(model, &mut commands),
-                Modal::None | Modal::Help => {}
+                Modal::None | Modal::Help | Modal::Scrying => {}
             }
             ControlFlow::Continue(())
         }
@@ -122,7 +125,10 @@ fn observe_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
 
 fn refresh_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     match selected_pane_state(model) {
-        SelectedPane::Available(pane_id) => commands.push(load_output(model, pane_id)),
+        SelectedPane::Available(pane_id) => {
+            model.open_scrying();
+            commands.push(load_output(model, pane_id));
+        }
         SelectedPane::Managed => model.set_action_feedback(
             "The scrying table cannot observe the Questmancer's own managed pane.".to_owned(),
         ),

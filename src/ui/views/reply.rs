@@ -37,7 +37,7 @@ pub(crate) fn render(frame: &mut Frame<'_>, model: &Model) {
             query.as_str(),
             "[enter] find   [esc] cancel   [ctrl-u] clear",
         ),
-        Modal::None | Modal::Help => return,
+        Modal::None | Modal::Help | Modal::Scrying => return,
     };
     let frame_area = frame.area();
     if frame_area.width < 8 || frame_area.height < 5 {
