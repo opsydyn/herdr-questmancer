@@ -1,7 +1,8 @@
 # Questmancer sprite art direction
 
-Status: approved direction; Storybook passes one and two are available for visual
-review. Production sprite integration has not begun.
+Status: approved direction; silhouette, material and two-tier portrait Storybook
+passes are available for visual review. Production sprite integration has not
+begun.
 
 ## Decision
 
@@ -46,13 +47,14 @@ shading.
 
 | Presentation | Logical size | Terminal footprint | Purpose |
 |---|---:|---:|---|
-| Profile portrait | 16x24 | 16 columns x 12 rows | The full Adventurer Card and an art-review fixture. |
-| Scene spritlet | 8x14 to 10x16 | compact | Guild Hall and Delve actor placement. |
+| Profile portrait | 24x32 | 24 columns x 16 rows | Face, gear and material detail in the full Adventurer Card. |
+| World sprite | 16x24 | 16 columns x 12 rows | Readable Guild Hall and Delve actor with the same class identity. |
 
 Both sizes share the same silhouette rules, material roles, class gear and foot
-anchor. They are independently authored; the scene spritlet must not be a
-mechanical downscale of the portrait. Optional 2x display in a development view
-uses nearest-neighbour expansion in the RGB buffer only.
+anchor. They are independently authored; the world sprite must not be a
+mechanical downscale of the portrait. The existing compact production spritlets
+remain unchanged during this review slice. Optional 2x display in a development
+view uses nearest-neighbour expansion in the RGB buffer only.
 
 The standing anchor is horizontally centred on the bottom opaque row. Hats,
 ears, staffs and weapons may use outer frame space, but feet remain stable
@@ -135,7 +137,7 @@ tool. The lab should show, for each fixture:
 The lab is for review only. It has no agent prompt, Herdr command, persistence
 mutation or sprite-editor ambition.
 
-The current Storybook sequence is intentionally split into three stable views:
+The current Storybook sequence is intentionally split into four stable views:
 
 - **Sprite Silhouette Lab** preserves the outline-and-flat-fill baseline.
 - **Sprite Material & Face Lab** presents the three material passes at native
@@ -143,14 +145,19 @@ The current Storybook sequence is intentionally split into three stable views:
 - **Sprite Material Inspection 2x** reuses those exact assets through a
   nearest-neighbour scene blit. Use `enter` in Storybook to give all three
   inspection cards their full-width review surface.
+- **Sprite World & Portrait Masters** places each 16x24 world sprite beside its
+  independently authored 24x32 portrait. Neither tier is scaled to manufacture
+  the other.
 
-## Three review passes
+## Four review passes
 
 1. **Silhouette:** outline plus one flat light fill. Goblin, Wizard and
    Barbarian must be recognisable before detail.
 2. **Palette and face:** add material clusters, eyes and the single focal accent;
    review at 1x against all three backgrounds.
-3. **Animation and card:** add authored frames, then review the real profile
+3. **World and portrait:** approve recognisable 16x24 world sprites beside
+   richer 24x32 masters before either enters production.
+4. **Animation and card:** add authored frames, then review the real profile
    card beside its text. Art never earns space by making the card larger.
 
 ## Automated safety checks
@@ -162,7 +169,7 @@ They do not substitute for the three visible review passes.
 
 ## Implementation order
 
-1. Add the three Storybook fixtures and the fixed portrait/spritlet contracts.
+1. Add the Storybook fixtures and fixed world/portrait contracts.
 2. Author and approve silhouette-only frames.
 3. Add named palette roles and material/face detail.
 4. Replace the old profile-card rectangle composer with the portrait path.

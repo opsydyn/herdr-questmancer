@@ -543,6 +543,24 @@ fn build_catalogue() -> Vec<Story> {
                 AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBarbarian),
             ],
         ),
+        complete_story(
+            "atlas.sprite-portrait-masters",
+            "Sprite World & Portrait Masters",
+            Category::AssetAtlas,
+            "Independent 16x24 world and 24x32 portrait art compared class by class.",
+            Viewport::new(120, 40, 80, 22),
+            sprite_portrait_masters,
+            &[
+                AssetId::SceneFirst(SceneFirstAsset::SpritePortraitGoblin),
+                AssetId::SceneFirst(SceneFirstAsset::SpritePortraitWizard),
+                AssetId::SceneFirst(SceneFirstAsset::SpritePortraitBarbarian),
+            ],
+            &[
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialGoblin),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialWizard),
+                AssetId::SceneFirst(SceneFirstAsset::SpriteMaterialBarbarian),
+            ],
+        ),
     ];
 
     stories.extend([
@@ -1081,7 +1099,8 @@ fn widget_atlas_shows(build: StoryBuilder) -> &'static [AssetId] {
             }
             AtlasContent::Pixel { .. }
             | AtlasContent::RgbSprite { .. }
-            | AtlasContent::RgbSpriteScaled { .. } => {}
+            | AtlasContent::RgbSpriteScaled { .. }
+            | AtlasContent::RgbSpritePair { .. } => {}
         }
     }
     canonical_shows(&[], &shows)
@@ -1312,6 +1331,10 @@ fn sprite_material_and_face_lab(context: &StoryContext) -> StoryFixture {
 
 fn sprite_material_inspection(context: &StoryContext) -> StoryFixture {
     StoryFixture::AssetAtlas(fixtures::sprite_material_inspection_fixture(context))
+}
+
+fn sprite_portrait_masters(context: &StoryContext) -> StoryFixture {
+    StoryFixture::AssetAtlas(fixtures::sprite_portrait_masters_fixture(context))
 }
 
 fn guild_hall_empty(context: &StoryContext) -> StoryFixture {

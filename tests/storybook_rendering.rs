@@ -346,7 +346,7 @@ fn narrow_shell_uses_a_one_line_story_selector() {
     let stories = catalogue();
     let app = StorybookApp::new(stories);
     let screen = render_storybook(&app, stories, 79, 24);
-    assert!(screen.contains("1/76 Classes and Gear"));
+    assert!(screen.contains("1/77 Classes and Gear"));
     assert!(screen.contains("PRODUCTION CANVAS"));
     assert!(!screen.contains("STORIES"));
     assert!(!screen.contains("COVERAGE"));
@@ -899,6 +899,16 @@ fn asset_belongs_to_story(asset: AssetId, story_id: &str) -> bool {
                     questmancer::storybook::assets::SceneFirstAsset::SpriteMaterialWizard
                         |
                     questmancer::storybook::assets::SceneFirstAsset::SpriteMaterialBarbarian
+                )
+            )
+            | (
+                "atlas.sprite-portrait-masters",
+                AssetId::SceneFirst(
+                    questmancer::storybook::assets::SceneFirstAsset::SpritePortraitGoblin
+                        |
+                    questmancer::storybook::assets::SceneFirstAsset::SpritePortraitWizard
+                        |
+                    questmancer::storybook::assets::SceneFirstAsset::SpritePortraitBarbarian
                 )
             )
     )

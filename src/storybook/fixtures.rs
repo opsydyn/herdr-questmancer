@@ -642,6 +642,11 @@ pub enum AtlasContent {
         background: Rgb,
         scale: u16,
     },
+    RgbSpritePair {
+        world: SpriteFrame,
+        portrait: SpriteFrame,
+        background: Rgb,
+    },
     AdventurerCard {
         agent: Agent,
         theatre: TheatreFrame,
@@ -1106,6 +1111,308 @@ const BARBARIAN_MATERIAL: &[&str] = &[
     "................",
 ];
 
+const GOBLIN_PORTRAIT_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(24, 19, 28)),
+    },
+    IndexedPaletteEntry {
+        key: 's',
+        colour: Some(Rgb::new(43, 84, 52)),
+    },
+    IndexedPaletteEntry {
+        key: 'g',
+        colour: Some(Rgb::new(76, 151, 63)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(132, 194, 75)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(71, 38, 32)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(128, 67, 43)),
+    },
+    IndexedPaletteEntry {
+        key: 'b',
+        colour: Some(Rgb::new(188, 111, 58)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(57, 42, 82)),
+    },
+    IndexedPaletteEntry {
+        key: 'A',
+        colour: Some(Rgb::new(100, 67, 145)),
+    },
+    IndexedPaletteEntry {
+        key: 'p',
+        colour: Some(Rgb::new(153, 103, 190)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(103, 118, 124)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(185, 199, 200)),
+    },
+    IndexedPaletteEntry {
+        key: 'w',
+        colour: Some(Rgb::new(244, 239, 209)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(255, 213, 75)),
+    },
+];
+
+const WIZARD_PORTRAIT_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(23, 19, 31)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(48, 39, 91)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(82, 64, 151)),
+    },
+    IndexedPaletteEntry {
+        key: 'v',
+        colour: Some(Rgb::new(123, 98, 210)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(139, 79, 54)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(226, 145, 91)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 207, 139)),
+    },
+    IndexedPaletteEntry {
+        key: 'r',
+        colour: Some(Rgb::new(151, 143, 151)),
+    },
+    IndexedPaletteEntry {
+        key: 'R',
+        colour: Some(Rgb::new(215, 207, 201)),
+    },
+    IndexedPaletteEntry {
+        key: 'w',
+        colour: Some(Rgb::new(246, 238, 221)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(177, 114, 39)),
+    },
+    IndexedPaletteEntry {
+        key: 'L',
+        colour: Some(Rgb::new(247, 193, 74)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(101, 63, 38)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(177, 122, 63)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(64, 193, 231)),
+    },
+    IndexedPaletteEntry {
+        key: 'E',
+        colour: Some(Rgb::new(174, 240, 255)),
+    },
+];
+
+const BARBARIAN_PORTRAIT_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(26, 19, 26)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(139, 67, 42)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(215, 116, 65)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 187, 111)),
+    },
+    IndexedPaletteEntry {
+        key: 'r',
+        colour: Some(Rgb::new(65, 35, 29)),
+    },
+    IndexedPaletteEntry {
+        key: 'R',
+        colour: Some(Rgb::new(126, 61, 35)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(79, 43, 35)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(139, 73, 43)),
+    },
+    IndexedPaletteEntry {
+        key: 'b',
+        colour: Some(Rgb::new(192, 107, 55)),
+    },
+    IndexedPaletteEntry {
+        key: 'F',
+        colour: Some(Rgb::new(221, 211, 180)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(103, 118, 124)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(180, 194, 195)),
+    },
+    IndexedPaletteEntry {
+        key: 'w',
+        colour: Some(Rgb::new(231, 235, 221)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(139, 34, 37)),
+    },
+    IndexedPaletteEntry {
+        key: 'A',
+        colour: Some(Rgb::new(210, 55, 49)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(238, 225, 185)),
+    },
+    IndexedPaletteEntry {
+        key: 'E',
+        colour: Some(Rgb::new(255, 244, 211)),
+    },
+];
+
+const GOBLIN_PORTRAIT: &[&str] = &[
+    "........................",
+    "...oo..............oo...",
+    ".osso....oooooo....osso.",
+    "osggso.osgggggggsoosggso",
+    "osgggsosgghhhggsoosgggso",
+    ".osggsosgggggggggsosggso",
+    "...osgghhgggggghhggso...",
+    "...osgheooggggooehggso..",
+    "....osgggoohhoohggggso..",
+    ".....osgggddddggggso....",
+    ".w....osggddddddggso....",
+    ".M.....osggggggggso.....",
+    ".mM.ooddddddddddoo......",
+    ".mM..odDddddddddDdo.....",
+    "odo..odDddaaaaaddDdo....",
+    ".od.ogDdaAAAAAadDgo.....",
+    "..d.ogDdaApppAadDgo.....",
+    "....ogDddaaaaaddDgo.....",
+    "..odoodDDbbbbDDdo.......",
+    "..odoodddddddddo........",
+    "..ooooodddDdddoo........",
+    ".......odddodddo........",
+    ".......oddo.oddo........",
+    ".......oddo.oddo........",
+    ".......oddo.oddo........",
+    "......oodo.oddoo........",
+    ".....ooodo.odooo........",
+    ".....oooo...oooo........",
+    "......oo.....oo.........",
+    "........................",
+    "........................",
+    "........................",
+];
+
+const WIZARD_PORTRAIT: &[&str] = &[
+    "........................",
+    ".............oo.........",
+    "...........ocCo.........",
+    "..oo......ocCCo.........",
+    ".oEeEo...ocCCvCo........",
+    ".oEeeo..ocCCvvCo........",
+    "..oeo..ocCCvvvCo........",
+    "..omo.ocCCvvvvCo........",
+    "..omoocCCCvvvvCo........",
+    "..omoocCCCCvvvvCo.......",
+    "..omooocCCCCCCCCoo......",
+    "..omooolLLLLLloo........",
+    "..omo.okKKKKko..........",
+    "..omo.okohhoko..........",
+    "..omo.okKhhKko..........",
+    "..omo.orRRRRro..........",
+    "..omoorRRwRRro..........",
+    "..omo.orRRRRro..........",
+    "..oMoorRRRRRro..........",
+    "..omkocCCCCCco..........",
+    "..omocCCCLCCCco.........",
+    "..omocCvCCCCCCo.........",
+    "..omocCvCCvCCCo.........",
+    "..omocCvCCvCCCo.........",
+    "..omocCvLLvCCCo.........",
+    "..omocCCllCCCCo.........",
+    "..omocCCC.CCCCo.........",
+    "..omocCC...CCCo.........",
+    "..omocCo...ocCo.........",
+    "...ooCo.....oCoo........",
+    ".....oo........oo.......",
+    "........................",
+];
+
+const BARBARIAN_PORTRAIT: &[&str] = &[
+    "........................",
+    "...........o..o..o......",
+    ".........orRrRRRo.......",
+    "........orRRRRRRRo......",
+    "........orRKKKKRRo......",
+    "........orKhhhKRRo......",
+    "........orKohhoRRo......",
+    "........orKKhKRrRo......",
+    "...oMo.oorRRRRRRroo.....",
+    ".oMMMo.ookKKKKKKkoo.....",
+    "oMwwMo.okKKddddKKKo.....",
+    "oMwwMMo.okKKDbbbbDKKo...",
+    ".oMMMMookKDbbDDbbDKo....",
+    ".....oDokKDbdDDdbDKo....",
+    ".....oDokKDddAAddDKo....",
+    ".....oDokKDddaaDdDKo....",
+    ".....oDokKDddddddDKo....",
+    ".....oDokDDdFFdDDko.....",
+    ".....oDoodDFeEFdDoo.....",
+    ".....oD.odDFFFFDdo......",
+    ".....oD.oddddddddo......",
+    ".....oD..oddddddo.......",
+    ".....oD..oddo.oddo......",
+    ".....oD..oddo.oddo......",
+    ".....oD..oddo.oddo......",
+    ".....oD..oddo.oddo......",
+    ".....oD.oodo.oddoo......",
+    ".....oDoooro.ooroo......",
+    ".....oDoooo...oooo......",
+    ".....ooooo.....ooo......",
+    "........................",
+    "........................",
+];
+
 const REVIEW_DELVE: Rgb = Rgb::new(12, 17, 31);
 const REVIEW_NEUTRAL: Rgb = Rgb::new(28, 27, 35);
 const REVIEW_TORCH: Rgb = Rgb::new(38, 24, 24);
@@ -1125,6 +1432,53 @@ pub fn sprite_material_inspection_fixture(_: &StoryContext) -> AssetAtlas {
     AssetAtlas {
         tiles: material_review_tiles(2),
     }
+}
+
+pub fn sprite_portrait_masters_fixture(_: &StoryContext) -> AssetAtlas {
+    let tiles = [
+        (
+            "Goblin portrait master",
+            GOBLIN_MATERIAL,
+            GOBLIN_MATERIAL_PALETTE,
+            GOBLIN_PORTRAIT,
+            GOBLIN_PORTRAIT_PALETTE,
+            REVIEW_DELVE,
+        ),
+        (
+            "Wizard portrait master",
+            WIZARD_MATERIAL,
+            WIZARD_MATERIAL_PALETTE,
+            WIZARD_PORTRAIT,
+            WIZARD_PORTRAIT_PALETTE,
+            REVIEW_NEUTRAL,
+        ),
+        (
+            "Barbarian portrait master",
+            BARBARIAN_MATERIAL,
+            BARBARIAN_MATERIAL_PALETTE,
+            BARBARIAN_PORTRAIT,
+            BARBARIAN_PORTRAIT_PALETTE,
+            REVIEW_TORCH,
+        ),
+    ]
+    .into_iter()
+    .map(
+        |(label, world_rows, world_palette, portrait_rows, portrait_palette, background)| {
+            AtlasTile {
+                label,
+                preferred_width: 50,
+                preferred_height: 18,
+                content: AtlasContent::RgbSpritePair {
+                    world: material_frame(world_rows, world_palette),
+                    portrait: material_frame(portrait_rows, portrait_palette),
+                    background,
+                },
+            }
+        },
+    )
+    .collect();
+
+    AssetAtlas { tiles }
 }
 
 fn material_review_tiles(scale: u16) -> Vec<AtlasTile> {

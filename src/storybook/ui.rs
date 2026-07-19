@@ -479,6 +479,18 @@ fn render_atlas_tile(frame: &mut Frame<'_>, area: Rect, tile: &AtlasTile) {
                 (*scale).max(1),
             );
         }
+        AtlasContent::RgbSpritePair {
+            world,
+            portrait,
+            background,
+        } => {
+            let pair = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Length(20), Constraint::Min(1)])
+                .split(content_area);
+            render_rgb_sprite(frame, pair[0], world, *background, 1);
+            render_rgb_sprite(frame, pair[1], portrait, *background, 1);
+        }
         AtlasContent::AdventurerCard {
             agent,
             theatre,
