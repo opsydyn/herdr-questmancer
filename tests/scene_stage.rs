@@ -40,6 +40,41 @@ fn crop_offset(crop: &RgbBuffer, full: &RgbBuffer) -> Option<(i32, i32)> {
     })
 }
 
+fn contains_environment_palette_pixel(world: WorldScene, target: &RgbBuffer) -> bool {
+    let palette: &[Rgb] = match world {
+        WorldScene::GuildHall => &[
+            Rgb::new(48, 45, 54),
+            Rgb::new(75, 70, 74),
+            Rgb::new(105, 96, 92),
+            Rgb::new(59, 36, 29),
+            Rgb::new(104, 63, 37),
+            Rgb::new(151, 93, 48),
+            Rgb::new(76, 25, 35),
+            Rgb::new(130, 43, 48),
+            Rgb::new(196, 126, 48),
+            Rgb::new(67, 22, 31),
+        ],
+        WorldScene::Delve => &[
+            Rgb::new(22, 43, 49),
+            Rgb::new(37, 65, 68),
+            Rgb::new(68, 96, 94),
+            Rgb::new(23, 50, 54),
+            Rgb::new(35, 75, 72),
+            Rgb::new(31, 67, 45),
+            Rgb::new(68, 104, 62),
+            Rgb::new(21, 52, 60),
+            Rgb::new(33, 69, 75),
+            Rgb::new(58, 94, 96),
+            Rgb::new(22, 57, 64),
+            Rgb::new(31, 77, 78),
+            Rgb::new(28, 71, 57),
+            Rgb::new(58, 100, 70),
+            Rgb::new(31, 94, 93),
+        ],
+    };
+    target.pixels().iter().any(|pixel| palette.contains(pixel))
+}
+
 fn render_at(snapshot: &SceneSnapshot, now: i64) -> (Vec<Rgb>, Option<Duration>) {
     let mut snapshot = snapshot.clone();
     snapshot.now = Timestamp::from_millis(now);
@@ -434,6 +469,10 @@ fn viewport_matrix_preserves_exact_targets_and_authored_camera_crops() {
                         .all(|pixel| *pixel != Rgb::new(255, 0, 255)),
                     "{expected_world:?} left an unpainted pixel at {viewport:?}"
                 );
+                assert!(
+                    contains_environment_palette_pixel(expected_world, &target),
+                    "{expected_world:?} omitted every known environment/material colour at {viewport:?}"
+                );
             }
         }
     }
@@ -464,11 +503,11 @@ fn viewport_matrix_preserves_exact_targets_and_authored_camera_crops() {
 fn exact_motion_phases_match_their_visible_cadence() {
     let working = snapshot(vec![agent("working", Presence::Working)]);
     let (working_start, working_deadline) = render_at(&working, 1_000);
-    let (working_before, _) = render_at(&working, 1_165);
-    let (working_next, _) = render_at(&working, 1_166);
+    let (working_after_five_steps, _) = render_at(&working, 1_996);
+    let (working_after_six_steps, _) = render_at(&working, 2_000);
     assert_eq!(working_deadline, Some(Duration::from_millis(166)));
-    assert_eq!(working_start, working_before);
-    assert_ne!(working_before, working_next);
+    assert_ne!(working_start, working_after_five_steps);
+    assert_eq!(working_start, working_after_six_steps);
 
     let blocked = snapshot(vec![agent("blocked", Presence::Blocked)]);
     let (blocked_start, blocked_deadline) = render_at(&blocked, 1_000);
@@ -561,4 +600,38 @@ fn renderer_deadlines_only_track_animation_inside_the_camera() {
         PixelSize::new(0, 0),
     );
     assert_eq!(zero_frame.next_frame_in, None);
+}
+
+#[test]
+fn fresh_spoils_deadline_requires_a_visible_animated_pixel() {
+    let mut completed = agent("completed", Presence::Done);
+    completed.transition = Some(SceneTransition {
+        summons: GuildSummons::SpoilsReturned,
+        since: Timestamp::from_millis(1_000),
+    });
+    let mut fresh = snapshot(vec![completed]);
+    fresh.now = Timestamp::from_millis(1_000);
+
+    let (empty_effect_pixel, _) = render(&fresh, PixelSize::new(1, 1));
+    assert_eq!(empty_effect_pixel.next_frame_in, None);
+
+    let (visible_effect_pixels, _) = render(&fresh, PixelSize::new(20, 20));
+    assert_eq!(
+        visible_effect_pixels.next_frame_in,
+        Some(Duration::from_millis(125))
+    );
+}
+
+#[test]
+fn actor_deadline_requires_a_visible_painted_pixel() {
+    let blocked = snapshot(vec![agent("blocked", Presence::Blocked)]);
+
+    let (transparent_actor_edge, _) = render(&blocked, PixelSize::new(9, 1));
+    assert_eq!(transparent_actor_edge.next_frame_in, None);
+
+    let (visible_actor, _) = render(&blocked, PixelSize::new(20, 20));
+    assert_eq!(
+        visible_actor.next_frame_in,
+        Some(Duration::from_millis(500))
+    );
 }

@@ -1,7 +1,7 @@
 #[allow(dead_code)]
 mod support;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 use proptest::prelude::*;
 use questmancer::{
@@ -14,6 +14,30 @@ use questmancer::{
         stage::{ScenePlan, WorldScene},
     },
 };
+
+fn focused_crop_origin(focus: (i32, i32), viewport: PixelSize) -> (i32, i32) {
+    let width = i32::from(viewport.width);
+    let height = i32::from(viewport.height);
+    (
+        (focus.0 - width / 2).clamp(0, 160 - width),
+        (focus.1 - height / 2).clamp(0, 90 - height),
+    )
+}
+
+fn known_environment_palette(world: WorldScene, canonical: &RgbBuffer) -> HashSet<Rgb> {
+    canonical
+        .pixels()
+        .iter()
+        .copied()
+        .enumerate()
+        .filter_map(|(index, pixel)| {
+            let x = i32::try_from(index % 160).expect("canonical x fits i32");
+            let y = i32::try_from(index / 160).expect("canonical y fits i32");
+            let first_delve_actor = (60..68).contains(&x) && (25..41).contains(&y);
+            (world != WorldScene::Delve || !first_delve_actor).then_some(pixel)
+        })
+        .collect()
+}
 
 proptest! {
     #[test]
@@ -133,6 +157,23 @@ proptest! {
             (WorldScene::GuildHall, guild),
             (WorldScene::Delve, delve),
         ] {
+            let mut environment_snapshot = snapshot.clone();
+            if expected_world == WorldScene::GuildHall {
+                for agent in &mut environment_snapshot.agents {
+                    agent.presence = Presence::Exited;
+                    agent.transition = None;
+                    agent.focused = false;
+                }
+            }
+            let mut canonical = RgbBuffer::filled(0, 0, Rgb::BLACK);
+            let canonical_frame = render_scene(
+                &environment_snapshot,
+                PixelSize::new(160, 90),
+                &mut canonical,
+            );
+            prop_assert_eq!(canonical_frame.world, expected_world);
+            let environment_palette = known_environment_palette(expected_world, &canonical);
+
             let sentinel = Rgb::new(255, 0, 255);
             let mut target = RgbBuffer::filled(1, 1, sentinel);
             let frame = render_scene(&snapshot, viewport, &mut target);
@@ -141,6 +182,69 @@ proptest! {
             if width > 0 && height > 0 {
                 prop_assert!(!target.pixels().is_empty());
                 prop_assert!(target.pixels().iter().all(|pixel| *pixel != sentinel));
+                prop_assert!(
+                    target.pixels().iter().any(|pixel| environment_palette.contains(pixel)),
+                    "{expected_world:?} omitted the known environment/material palette; first pixel: {:?}",
+                    target.get(0, 0)
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn arbitrary_focused_crops_remain_inside_the_authored_world(
+        mut source in support::strategies::scene_snapshot(),
+        width in 1_u16..120,
+        height in 1_u16..72,
+    ) {
+        prop_assume!(!source.agents.is_empty());
+        source.motion = Motion::None;
+
+        let mut guild = source.clone();
+        guild.connection = SceneConnection::Connected;
+        for agent in &mut guild.agents {
+            agent.presence = Presence::Exited;
+            agent.transition = None;
+            agent.focused = false;
+        }
+        guild.agents[0].presence = Presence::Blocked;
+        guild.agents[0].focused = true;
+
+        let mut delve = source;
+        delve.connection = SceneConnection::Connected;
+        for agent in &mut delve.agents {
+            agent.presence = Presence::Exited;
+            agent.transition = None;
+            agent.focused = false;
+        }
+        delve.agents[0].presence = Presence::Working;
+        delve.agents[0].focused = true;
+
+        let viewport = PixelSize::new(width, height);
+        for (expected_world, focus, snapshot) in [
+            (WorldScene::GuildHall, (124, 48), guild),
+            (WorldScene::Delve, (81, 47), delve),
+        ] {
+            let mut canonical = RgbBuffer::filled(0, 0, Rgb::BLACK);
+            let full_frame = render_scene(
+                &snapshot,
+                PixelSize::new(160, 90),
+                &mut canonical,
+            );
+            prop_assert_eq!(full_frame.world, expected_world);
+
+            let mut crop = RgbBuffer::filled(0, 0, Rgb::BLACK);
+            let crop_frame = render_scene(&snapshot, viewport, &mut crop);
+            prop_assert_eq!(crop_frame.world, expected_world);
+            let (origin_x, origin_y) = focused_crop_origin(focus, viewport);
+            prop_assert!(origin_x >= 0);
+            prop_assert!(origin_y >= 0);
+            prop_assert!(origin_x + i32::from(width) <= 160);
+            prop_assert!(origin_y + i32::from(height) <= 90);
+            for y in 0..i32::from(height) {
+                for x in 0..i32::from(width) {
+                    prop_assert_eq!(crop.get(x, y), canonical.get(x + origin_x, y + origin_y));
+                }
             }
         }
     }

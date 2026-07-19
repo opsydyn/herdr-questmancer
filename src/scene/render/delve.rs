@@ -28,7 +28,7 @@ use crate::{
 
 use super::{
     actor_animation_fps, actor_animation_phase, effect_animation_phase, fps_period, is_visible,
-    lighting,
+    lighting, painted_sprite_is_visible,
 };
 
 pub const WIDTH: i32 = 160;
@@ -732,11 +732,7 @@ fn paint_depth_sorted(
                     compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
                 let actor_origin =
                     translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
-                if is_visible(
-                    origin,
-                    PixelRect::new(anchor.x, anchor.y - 1, 8, 15),
-                    target.size(),
-                ) {
+                if painted_sprite_is_visible(&sprite, actor_origin, target.size()) {
                     visible_fps =
                         visible_fps.max(actor_animation_fps(snapshot.motion, placement.pose));
                 }
@@ -942,28 +938,30 @@ fn paint_effects(
     for effect in &plan.effects {
         match effect {
             SceneEffect::FreshSpoils { agent, since } => {
-                if snapshot.motion == Motion::Full
-                    && is_visible(origin, PixelRect::new(118, 56, 31, 27), target.size())
-                {
-                    visible_fps = Some(8);
-                }
                 let phase =
                     effect_animation_phase(snapshot.motion, since.elapsed_until(snapshot.now));
                 let seed =
                     stable_hash(agent.as_str().as_bytes()) ^ u64::try_from(phase).unwrap_or(0);
+                let mut effect_visible = false;
                 for index in 0..10_u64 {
                     let value = seed.rotate_left(u32::try_from(index * 5).unwrap_or(0));
+                    let x = 119 + i32::try_from(value % 28).unwrap_or(0);
+                    let y = 57 + i32::try_from(value.rotate_left(9) % 25).unwrap_or(0);
+                    effect_visible |= is_visible(origin, PixelRect::new(x, y, 1, 1), target.size());
                     put(
                         target,
                         origin,
-                        119 + i32::try_from(value % 28).unwrap_or(0),
-                        57 + i32::try_from(value.rotate_left(9) % 25).unwrap_or(0),
+                        x,
+                        y,
                         if index.is_multiple_of(2) {
                             TEAL_LIGHT
                         } else {
                             CHEST_GOLD
                         },
                     );
+                }
+                if snapshot.motion == Motion::Full && effect_visible {
+                    visible_fps = Some(8);
                 }
             }
             SceneEffect::RecentDeparture { workspace_id, .. } => {

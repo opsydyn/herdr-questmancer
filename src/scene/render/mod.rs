@@ -9,6 +9,7 @@ use crate::scene::{
     SceneFrame,
     pixel::{PixelPoint, PixelRect, PixelSize, RgbBuffer},
     snapshot::SceneSnapshot,
+    sprite::SpriteFrame,
     stage::{ScenePlan, ScenePose},
 };
 
@@ -44,8 +45,8 @@ pub(crate) fn actor_animation_phase(motion: Motion, pose: ScenePose, elapsed: Du
     let Some(fps) = actor_animation_fps(motion, pose) else {
         return 0;
     };
-    let period_ms = fps_period(fps).as_millis();
-    u8::try_from((elapsed.as_millis() / period_ms) % 3).unwrap_or(0)
+    let steps = elapsed.as_millis().saturating_mul(u128::from(fps)) / 1_000;
+    u8::try_from(steps % 3).unwrap_or(0)
 }
 
 pub(crate) fn effect_animation_phase(motion: Motion, elapsed: Duration) -> u128 {
@@ -62,4 +63,22 @@ pub(crate) fn is_visible(origin: PixelPoint, world_bounds: PixelRect, viewport: 
     let right = left.saturating_add(i32::from(world_bounds.width));
     let bottom = top.saturating_add(i32::from(world_bounds.height));
     left < i32::from(viewport.width) && right > 0 && top < i32::from(viewport.height) && bottom > 0
+}
+
+pub(crate) fn painted_sprite_is_visible(
+    frame: &SpriteFrame,
+    origin: PixelPoint,
+    viewport: PixelSize,
+) -> bool {
+    let width = usize::from(frame.size().width);
+    frame.pixels().iter().enumerate().any(|(index, pixel)| {
+        if pixel.is_none() {
+            return false;
+        }
+        let x = i32::try_from(index % width).unwrap_or(i32::MAX);
+        let y = i32::try_from(index / width).unwrap_or(i32::MAX);
+        let x = origin.x.saturating_add(x);
+        let y = origin.y.saturating_add(y);
+        x >= 0 && y >= 0 && x < i32::from(viewport.width) && y < i32::from(viewport.height)
+    })
 }

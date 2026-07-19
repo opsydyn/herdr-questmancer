@@ -26,7 +26,7 @@ use crate::{
 
 use super::{
     actor_animation_fps, actor_animation_phase, effect_animation_phase, fps_period, is_visible,
-    lighting,
+    lighting, painted_sprite_is_visible,
 };
 
 pub const WIDTH: i32 = 160;
@@ -317,20 +317,16 @@ fn paint_actors(
         else {
             continue;
         };
-        let actor_bounds = if matches!(placement.station, TruthfulStation::CampaignToken(_)) {
-            PixelRect::new(anchor.x, anchor.y - 1, 5, 6)
-        } else {
-            PixelRect::new(anchor.x, anchor.y - 1, 8, 15)
-        };
-        if is_visible(origin, actor_bounds, target.size()) {
-            visible_fps = visible_fps.max(actor_animation_fps(snapshot.motion, placement.pose));
-        }
+        let animation = actor_animation_phase(
+            snapshot.motion,
+            placement.pose,
+            agent.presence_since.elapsed_until(snapshot.now),
+        );
         if let TruthfulStation::CampaignToken(_) = placement.station {
-            let animation = actor_animation_phase(
-                snapshot.motion,
-                placement.pose,
-                agent.presence_since.elapsed_until(snapshot.now),
-            );
+            let token_origin = translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
+            if token_is_visible(token_origin, target.size()) {
+                visible_fps = visible_fps.max(actor_animation_fps(snapshot.motion, placement.pose));
+            }
             paint_token(
                 target,
                 translate(origin, anchor.x, anchor.y),
@@ -346,21 +342,32 @@ fn paint_actors(
                 animation,
             );
         } else {
-            let animation = actor_animation_phase(
-                snapshot.motion,
-                placement.pose,
-                agent.presence_since.elapsed_until(snapshot.now),
-            );
             let sprite =
                 compact_adventurer_animation_frame(&agent.persona, placement.pose, animation);
-            blit(
-                &sprite,
-                translate(origin, anchor.x, anchor.y - i32::from(animation == 1)),
-                target,
-            );
+            let actor_origin = translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
+            if painted_sprite_is_visible(&sprite, actor_origin, target.size()) {
+                visible_fps = visible_fps.max(actor_animation_fps(snapshot.motion, placement.pose));
+            }
+            blit(&sprite, actor_origin, target);
         }
     }
     visible_fps
+}
+
+fn token_is_visible(origin: PixelPoint, viewport: PixelSize) -> bool {
+    is_visible(
+        PixelPoint::new(0, 0),
+        PixelRect::new(origin.x, origin.y + 1, 5, 3),
+        viewport,
+    ) || [(1, 0), (2, 0), (3, 0), (1, 4), (3, 4)]
+        .into_iter()
+        .any(|(x, y)| {
+            is_visible(
+                PixelPoint::new(0, 0),
+                PixelRect::new(origin.x + x, origin.y + y, 1, 1),
+                viewport,
+            )
+        })
 }
 
 fn paint_token(
@@ -465,14 +472,12 @@ fn paint_effects(
     for effect in &plan.effects {
         match effect {
             SceneEffect::FreshSpoils { agent, since } => {
-                if snapshot.motion == Motion::Full
-                    && is_visible(origin, PixelRect::new(111, 58, 49, 27), target.size())
-                {
-                    visible_fps = Some(8);
-                }
                 let phase =
                     effect_animation_phase(snapshot.motion, since.elapsed_until(snapshot.now));
-                paint_spoils_flash(target, origin, agent, phase);
+                let visible = paint_spoils_flash(target, origin, agent, phase);
+                if snapshot.motion == Motion::Full && visible {
+                    visible_fps = Some(8);
+                }
             }
             SceneEffect::RecentDeparture { workspace_id, .. } => {
                 let offset =
@@ -484,12 +489,19 @@ fn paint_effects(
     visible_fps
 }
 
-fn paint_spoils_flash(target: &mut RgbBuffer, origin: PixelPoint, agent: &AgentKey, phase: u128) {
+fn paint_spoils_flash(
+    target: &mut RgbBuffer,
+    origin: PixelPoint,
+    agent: &AgentKey,
+    phase: u128,
+) -> bool {
     let seed = stable_hash(agent.as_str().as_bytes()) ^ u64::try_from(phase).unwrap_or(u64::MAX);
+    let mut visible = false;
     for index in 0..12_u64 {
         let value = seed.rotate_left(u32::try_from(index * 5).unwrap_or(0));
         let x = 113 + i32::try_from(value % 44).unwrap_or(0);
         let y = 59 + i32::try_from(value.rotate_left(13) % 25).unwrap_or(0);
+        visible |= is_visible(origin, PixelRect::new(x, y, 1, 1), target.size());
         put(
             target,
             origin,
@@ -502,6 +514,7 @@ fn paint_spoils_flash(target: &mut RgbBuffer, origin: PixelPoint, agent: &AgentK
             },
         );
     }
+    visible
 }
 
 fn paint_connection_fact(snapshot: &SceneSnapshot, target: &mut RgbBuffer, origin: PixelPoint) {
