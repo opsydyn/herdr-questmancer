@@ -152,11 +152,12 @@ agent processes or persistent state:
 just storybook
 ```
 
-It contains fifteen fixed production stories, each owned exactly once:
+It contains sixteen fixed production stories, each owned exactly once:
 
 - Guild Hall
 - Delve
 - all eight classic world masters
+- the Barbarian v2 legacy comparison and complete semantic pose family
 - all eight classic portrait masters
 - native Barbarian, Rogue, Wizard and Goblin card portraits with authored-sprite fallbacks
 - Goblin world and portrait Easter egg

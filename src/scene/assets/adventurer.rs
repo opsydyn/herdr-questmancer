@@ -175,10 +175,12 @@ pub fn adventurer_portrait_frame(persona: &AdventurerPersona) -> Option<SpriteFr
 #[must_use]
 pub fn adventurer_animation_frame(
     persona: &AdventurerPersona,
-    _pose: ScenePose,
-    _animation_frame: u8,
+    pose: ScenePose,
+    animation_frame: u8,
 ) -> SpriteFrame {
-    if persona.class == AdventurerClass::Druid {
+    if persona.class == AdventurerClass::Barbarian {
+        super::barbarian_v2::frame(pose, animation_frame)
+    } else if persona.class == AdventurerClass::Druid {
         let frame = druid_world_frame();
         let accent = adventurer_palette(
             persona.appearance.skin_tone,

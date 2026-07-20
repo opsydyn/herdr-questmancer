@@ -17,6 +17,7 @@ fn catalogue_contains_every_production_scene_interaction_once() {
 
     for title in [
         "Assets / Core World Masters",
+        "Assets / Barbarian v2 Poses",
         "Assets / Core Portrait Masters",
         "Assets / Goblin Easter Egg",
         "Asset / Native Barbarian Card",

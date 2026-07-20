@@ -91,3 +91,36 @@ fn every_domain_class_routes_to_authored_world_and_portrait_assets() {
         assert_eq!(portrait.size(), PixelSize::new(24, 32), "{class:?}");
     }
 }
+
+#[test]
+fn barbarian_v2_has_truthful_pose_specific_world_frames() {
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new("barbarian-v2-poses"));
+    persona.class = AdventurerClass::Barbarian;
+
+    let settled = adventurer_animation_frame(&persona, ScenePose::Settled, 0);
+    let working_0 = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+    let working_1 = adventurer_animation_frame(&persona, ScenePose::Working, 1);
+    let counsel = adventurer_animation_frame(&persona, ScenePose::SeekingCounsel, 0);
+    let spoils = adventurer_animation_frame(&persona, ScenePose::ReturningWithSpoils, 0);
+    let resting = adventurer_animation_frame(&persona, ScenePose::Resting, 0);
+    let unknown = adventurer_animation_frame(&persona, ScenePose::Unknown, 0);
+
+    for frame in [
+        &settled, &working_0, &working_1, &counsel, &spoils, &resting, &unknown,
+    ] {
+        assert_eq!(frame.size(), PixelSize::new(16, 24));
+    }
+    assert_ne!(
+        working_0, working_1,
+        "working must animate by authored pixels"
+    );
+    for (label, frame) in [
+        ("working", &working_0),
+        ("counsel", &counsel),
+        ("spoils", &spoils),
+        ("resting", &resting),
+        ("unknown", &unknown),
+    ] {
+        assert_ne!(settled, *frame, "{label} aliases the settled pose");
+    }
+}

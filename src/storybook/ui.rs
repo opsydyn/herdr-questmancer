@@ -9,11 +9,12 @@ use ratatui::{
 };
 
 use crate::{
-    domain::{AdventurerPersona, PersonaKey},
+    domain::{AdventurerClass, AdventurerPersona, PersonaKey},
     scene::{
         assets::{
             adventurer::{adventurer_animation_frame, adventurer_portrait_frame},
             archetypes::{goblin_portrait_frame, goblin_world_frame},
+            barbarian_v2,
         },
         pixel::{PixelSize, Rgb, RgbBuffer},
         presentation::ScenePresentation,
@@ -271,6 +272,24 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
         ];
     }
 
+    if gallery == ArchetypeGallery::BarbarianV2Poses {
+        let legacy = crate::scene::assets::archetypes::world_frame(AdventurerClass::Barbarian)
+            .expect("legacy Barbarian master remains available during review");
+        return vec![
+            ("Legacy", legacy),
+            ("Settled", barbarian_v2::frame(ScenePose::Settled, 0)),
+            ("Working A", barbarian_v2::frame(ScenePose::Working, 0)),
+            ("Working B", barbarian_v2::frame(ScenePose::Working, 1)),
+            ("Counsel", barbarian_v2::frame(ScenePose::SeekingCounsel, 0)),
+            (
+                "Spoils",
+                barbarian_v2::frame(ScenePose::ReturningWithSpoils, 0),
+            ),
+            ("Resting", barbarian_v2::frame(ScenePose::Resting, 0)),
+            ("Unknown", barbarian_v2::frame(ScenePose::Unknown, 0)),
+        ];
+    }
+
     CORE_ARCHETYPES
         .iter()
         .map(|class| {
@@ -283,7 +302,9 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
                 }
                 ArchetypeGallery::PortraitMasters => adventurer_portrait_frame(&persona)
                     .expect("every core archetype has a portrait master"),
-                ArchetypeGallery::GoblinEasterEgg => unreachable!(),
+                ArchetypeGallery::BarbarianV2Poses | ArchetypeGallery::GoblinEasterEgg => {
+                    unreachable!()
+                }
             };
             (class_label(*class), sprite)
         })

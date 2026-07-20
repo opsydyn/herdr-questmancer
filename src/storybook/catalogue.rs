@@ -243,7 +243,7 @@ fn build_catalogue() -> Vec<Story> {
     stories
 }
 
-fn asset_stories() -> [Story; 7] {
+fn asset_stories() -> [Story; 8] {
     [
         story!(
             "asset.world-masters",
@@ -253,6 +253,15 @@ fn asset_stories() -> [Story; 7] {
             ASSET_VIEWPORT,
             core_world_masters,
             CoreWorldMasters
+        ),
+        story!(
+            "asset.barbarian-v2-poses",
+            "Assets / Barbarian v2 Poses",
+            Category::Assets,
+            "Legacy comparison and every truthful production pose for the compact Barbarian v2 experiment.",
+            ASSET_VIEWPORT,
+            barbarian_v2_poses,
+            BarbarianV2PoseFamily
         ),
         story!(
             "asset.portrait-masters",
@@ -326,6 +335,10 @@ fn scene(model: crate::app::Model) -> StoryFixture {
 
 fn guild_world(context: StoryContext) -> StoryFixture {
     scene(fixtures::guild_world_fixture(context))
+}
+
+fn barbarian_v2_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::barbarian_v2_pose_fixture()
 }
 
 fn delve_world(context: StoryContext) -> StoryFixture {

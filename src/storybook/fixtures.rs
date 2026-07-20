@@ -33,8 +33,13 @@ pub enum StoryFixture {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ArchetypeGallery {
     WorldMasters,
+    BarbarianV2Poses,
     PortraitMasters,
     GoblinEasterEgg,
+}
+
+pub const fn barbarian_v2_pose_fixture() -> StoryFixture {
+    StoryFixture::ArchetypeGallery(ArchetypeGallery::BarbarianV2Poses)
 }
 
 pub const CORE_ARCHETYPES: [AdventurerClass; 8] = [
