@@ -8,6 +8,7 @@ pub mod domain;
 pub mod herdr;
 pub mod interaction;
 pub mod persistence;
+pub mod portrait;
 pub mod runtime;
 pub mod runtime_loop;
 pub mod scene;

@@ -21,11 +21,12 @@ impl StoryId {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Category {
     Worlds,
+    Assets,
     Interactions,
 }
 
 impl Category {
-    pub const ALL: [Self; 2] = [Self::Worlds, Self::Interactions];
+    pub const ALL: [Self; 3] = [Self::Worlds, Self::Assets, Self::Interactions];
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -145,6 +146,7 @@ pub fn validate_coverage(
 }
 
 const WORLD_VIEWPORT: Viewport = Viewport::new(160, 45, 80, 24);
+const ASSET_VIEWPORT: Viewport = Viewport::new(120, 36, 80, 28);
 const NARROW_VIEWPORT: Viewport = Viewport::new(64, 24, 48, 18);
 
 macro_rules! story {
@@ -163,7 +165,7 @@ macro_rules! story {
 }
 
 fn build_catalogue() -> Vec<Story> {
-    vec![
+    let mut stories = vec![
         story!(
             "world.guild",
             "World / Guild Hall",
@@ -236,6 +238,76 @@ fn build_catalogue() -> Vec<Story> {
             narrow,
             NarrowParchment
         ),
+    ];
+    stories.splice(2..2, asset_stories());
+    stories
+}
+
+fn asset_stories() -> [Story; 7] {
+    [
+        story!(
+            "asset.world-masters",
+            "Assets / Core World Masters",
+            Category::Assets,
+            "Every classic production archetype at scene scale.",
+            ASSET_VIEWPORT,
+            core_world_masters,
+            CoreWorldMasters
+        ),
+        story!(
+            "asset.portrait-masters",
+            "Assets / Core Portrait Masters",
+            Category::Assets,
+            "Every classic production archetype at portrait scale.",
+            ASSET_VIEWPORT,
+            core_portrait_masters,
+            CorePortraitMasters
+        ),
+        story!(
+            "asset.goblin",
+            "Assets / Goblin Easter Egg",
+            Category::Assets,
+            "The authored Goblin ancestry callback at both production scales.",
+            ASSET_VIEWPORT,
+            goblin_easter_egg,
+            GoblinEasterEgg
+        ),
+        story!(
+            "asset.native-barbarian-portrait",
+            "Asset / Native Barbarian Card",
+            Category::Assets,
+            "The production card uses the embedded PNG on native protocols and its authored sprite fallback everywhere else.",
+            ASSET_VIEWPORT,
+            native_barbarian_portrait,
+            NativeBarbarianPortrait
+        ),
+        story!(
+            "asset.native-rogue-portrait",
+            "Asset / Native Rogue Card",
+            Category::Assets,
+            "The production Rogue card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_rogue_portrait,
+            NativeRoguePortrait
+        ),
+        story!(
+            "asset.native-wizard-portrait",
+            "Asset / Native Wizard Card",
+            Category::Assets,
+            "The production Wizard card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_wizard_portrait,
+            NativeWizardPortrait
+        ),
+        story!(
+            "asset.native-goblin-portrait",
+            "Asset / Native Goblin Card",
+            Category::Assets,
+            "Goblin ancestry takes priority over class when its embedded native portrait is available.",
+            ASSET_VIEWPORT,
+            native_goblin_portrait,
+            NativeGoblinPortrait
+        ),
     ]
 }
 
@@ -249,7 +321,7 @@ pub fn validate_catalogue() -> Result<CoverageReport, CoverageError> {
 }
 
 fn scene(model: crate::app::Model) -> StoryFixture {
-    StoryFixture::SceneApplication(model)
+    StoryFixture::SceneApplication(Box::new(model))
 }
 
 fn guild_world(context: StoryContext) -> StoryFixture {
@@ -260,8 +332,36 @@ fn delve_world(context: StoryContext) -> StoryFixture {
     scene(fixtures::delve_world_fixture(context))
 }
 
+fn core_world_masters(_: StoryContext) -> StoryFixture {
+    StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::WorldMasters)
+}
+
+fn core_portrait_masters(_: StoryContext) -> StoryFixture {
+    StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::PortraitMasters)
+}
+
+fn goblin_easter_egg(_: StoryContext) -> StoryFixture {
+    StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::GoblinEasterEgg)
+}
+
 fn selected(context: StoryContext) -> StoryFixture {
     scene(fixtures::selected_adventurer_interaction_fixture(context))
+}
+
+fn native_barbarian_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_barbarian_portrait_fixture(context))
+}
+
+fn native_rogue_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_rogue_portrait_fixture(context))
+}
+
+fn native_wizard_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_wizard_portrait_fixture(context))
+}
+
+fn native_goblin_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_goblin_portrait_fixture(context))
 }
 
 fn counsel(context: StoryContext) -> StoryFixture {

@@ -1,6 +1,11 @@
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{
+    Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
+};
 
-use crate::app::{Modal, View};
+use crate::{
+    app::{Modal, View},
+    scene::SceneFrame,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Action {
@@ -13,6 +18,7 @@ pub enum Action {
     Previous,
     First,
     Last,
+    SelectAt { column: u16, row: u16 },
     Observe,
     Counsel,
     AcknowledgeSummons,
@@ -25,6 +31,23 @@ pub enum Action {
     Backspace,
     ClearInput,
     None,
+}
+
+pub fn action_for_scene_event_in(event: &Event, modal: &Modal, scene: &SceneFrame) -> Action {
+    if modal != &Modal::None {
+        return action_for_event_in(event, modal);
+    }
+    if let Event::Mouse(mouse) = event
+        && mouse.kind == MouseEventKind::Down(MouseButton::Left)
+    {
+        return scene
+            .agent_at(mouse.column, mouse.row)
+            .map_or(Action::Dismiss, |_| Action::SelectAt {
+                column: mouse.column,
+                row: mouse.row,
+            });
+    }
+    action_for_event_in(event, modal)
 }
 
 pub fn action_for_event(event: &Event) -> Action {

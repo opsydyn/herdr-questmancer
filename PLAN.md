@@ -108,7 +108,7 @@ copying Herdr topology, agent output, or live state.
 - Contextual parchment overlays preserve selection, observation, counsel,
   search, scrying, acknowledgement and Reviewr actions
 - The legacy text renderer and standalone scene-preview binary were removed
-- Storybook now reviews eight fixed stories through the production scene path
+- Storybook now reviews eleven fixed stories through production render paths
 
 ## Release acceptance
 

@@ -8,15 +8,45 @@ pub mod stage;
 
 use std::time::Duration;
 
-use pixel::{PixelSize, RgbBuffer};
+use crate::domain::AgentKey;
+use pixel::{PixelRect, PixelSize, RgbBuffer};
 use presentation::ScenePresentation;
 use snapshot::SceneSnapshot;
 use stage::{ScenePlan, WorldScene};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SceneFrame {
     pub world: WorldScene,
     pub next_frame_in: Option<Duration>,
+    pub actors: Vec<SceneActorRegion>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SceneActorRegion {
+    pub agent: AgentKey,
+    /// Bounds in the RGB scene's pixel coordinates.
+    pub bounds: PixelRect,
+}
+
+impl SceneFrame {
+    #[must_use]
+    pub fn agent_at(&self, column: u16, row: u16) -> Option<&AgentKey> {
+        let x = i32::from(column);
+        let top = i32::from(row) * 2;
+        let bottom = top + 1;
+        self.actors
+            .iter()
+            .rev()
+            .find(|region| contains(region.bounds, x, top) || contains(region.bounds, x, bottom))
+            .map(|region| &region.agent)
+    }
+}
+
+fn contains(rect: PixelRect, x: i32, y: i32) -> bool {
+    x >= rect.x
+        && x < rect.x + i32::from(rect.width)
+        && y >= rect.y
+        && y < rect.y + i32::from(rect.height)
 }
 
 pub fn render_scene(

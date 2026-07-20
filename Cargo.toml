@@ -41,6 +41,8 @@ tokio = { version = "1", features = [
   "test-util",
   "time"
 ] }
+ratatui-image = { version = "11.0.6", default-features = false, features = ["crossterm"] }
+image = { version = "0.25.6", default-features = false, features = ["png"] }
 
 [dev-dependencies]
 proptest = "1.11"

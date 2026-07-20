@@ -1,7 +1,15 @@
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use std::time::Duration;
+
+use crossterm::event::{
+    Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+};
 use questmancer::{
     app::{Modal, View},
-    ui::input::{Action, action_for, action_for_event, action_for_event_in},
+    domain::AgentKey,
+    scene::{SceneActorRegion, SceneFrame, pixel::PixelRect, stage::WorldScene},
+    ui::input::{
+        Action, action_for, action_for_event, action_for_event_in, action_for_scene_event_in,
+    },
 };
 
 fn key(code: KeyCode) -> KeyEvent {
@@ -41,6 +49,56 @@ fn unrelated_keys_are_ignored() {
 #[test]
 fn resize_requests_a_redraw() {
     assert_eq!(action_for_event(&Event::Resize(100, 40)), Action::Redraw);
+}
+
+#[test]
+fn clicking_a_rendered_adventurer_selects_only_that_agent() {
+    let frame = SceneFrame {
+        world: WorldScene::GuildHall,
+        next_frame_in: Some(Duration::from_millis(100)),
+        actors: vec![SceneActorRegion {
+            agent: AgentKey::new("codex"),
+            bounds: PixelRect::new(10, 20, 8, 14),
+        }],
+    };
+    let click = Event::Mouse(MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Left),
+        column: 12,
+        row: 11,
+        modifiers: KeyModifiers::NONE,
+    });
+
+    assert_eq!(
+        action_for_scene_event_in(&click, &Modal::None, &frame),
+        Action::SelectAt {
+            column: 12,
+            row: 11
+        }
+    );
+    assert_eq!(
+        action_for_scene_event_in(&click, &Modal::Help, &frame),
+        Action::None
+    );
+}
+
+#[test]
+fn clicking_empty_world_space_dismisses_the_adventurer_card() {
+    let frame = SceneFrame {
+        world: WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: Vec::new(),
+    };
+    let click = Event::Mouse(MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Left),
+        column: 12,
+        row: 11,
+        modifiers: KeyModifiers::NONE,
+    });
+
+    assert_eq!(
+        action_for_scene_event_in(&click, &Modal::None, &frame),
+        Action::Dismiss
+    );
 }
 
 #[test]

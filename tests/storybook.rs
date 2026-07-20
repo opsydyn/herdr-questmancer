@@ -16,6 +16,13 @@ fn catalogue_contains_every_production_scene_interaction_once() {
         .collect::<Vec<_>>();
 
     for title in [
+        "Assets / Core World Masters",
+        "Assets / Core Portrait Masters",
+        "Assets / Goblin Easter Egg",
+        "Asset / Native Barbarian Card",
+        "Asset / Native Rogue Card",
+        "Asset / Native Wizard Card",
+        "Asset / Native Goblin Card",
         "Interaction / Selected Adventurer",
         "Interaction / Counsel Parchment",
         "Interaction / Search Parchment",
@@ -53,7 +60,50 @@ fn every_production_story_renders_at_its_minimum_viewport() {
         );
         let mut terminal = Terminal::new(backend).unwrap();
         terminal
-            .draw(|frame| ui::render(frame, &app, stories, &StoryContext::fixed()))
+            .draw(|frame| ui::render(frame, &app, stories, &StoryContext::fixed(), None))
             .unwrap();
+    }
+}
+
+#[test]
+fn core_master_galleries_name_every_reviewed_archetype() {
+    let stories = catalogue();
+    for title in [
+        "Assets / Core World Masters",
+        "Assets / Core Portrait Masters",
+    ] {
+        let index = stories
+            .iter()
+            .position(|story| story.title == title)
+            .expect("core gallery is catalogued");
+        let mut app = StorybookApp::new(stories);
+        app.select(index, stories);
+        let backend = TestBackend::new(180, 38);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal
+            .draw(|frame| ui::render(frame, &app, stories, &StoryContext::fixed(), None))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        let screen = (0..38)
+            .map(|y| {
+                (0..180)
+                    .map(|x| buffer.cell((x, y)).unwrap().symbol())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        for class in [
+            "Barbarian",
+            "Bard",
+            "Cleric",
+            "Druid",
+            "Paladin",
+            "Ranger",
+            "Rogue",
+            "Wizard",
+        ] {
+            assert!(screen.contains(class), "{title} omits {class}");
+        }
     }
 }

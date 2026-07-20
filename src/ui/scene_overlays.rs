@@ -4,24 +4,248 @@ use ratatui::{
     text::{Line, Text},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
+use ratatui_image::Image;
 
 use crate::{
     app::{Modal, Model},
-    scene::presentation::{SceneOverlay, ScenePresentation},
-    ui::theme::{PARCHMENT, PARCHMENT_BORDER},
+    domain::Presence,
+    portrait::PortraitGallery,
+    scene::{
+        SceneFrame,
+        assets::adventurer::adventurer_portrait_frame,
+        pixel::{PixelPoint, Rgb, RgbBuffer},
+        presentation::{SceneOverlay, ScenePresentation},
+        sprite::blit,
+    },
+    ui::{
+        scene_adapter::flush_rgb,
+        theme::{PARCHMENT, PARCHMENT_BORDER},
+    },
 };
+
+pub fn render_scene_identity_labels(frame: &mut Frame<'_>, model: &Model, scene: &SceneFrame) {
+    let area = frame.area();
+    if area.width < 40 || area.height < 8 {
+        return;
+    }
+    let mut occupied = Vec::new();
+    for region in &scene.actors {
+        let Some(agent) = model.domain().agents.get(&region.agent) else {
+            continue;
+        };
+        let elapsed = format_elapsed(agent.presence_since.elapsed_until(model.now()));
+        let label = compact_label(
+            &format!(
+                "{} · {} {elapsed}",
+                agent.name,
+                presence_badge(agent.presence)
+            ),
+            36,
+        );
+        let width = u16::try_from(label.chars().count())
+            .unwrap_or(u16::MAX)
+            .min(area.width);
+        if width == 0 {
+            continue;
+        }
+        let actor_centre = region.bounds.x + i32::from(region.bounds.width) / 2;
+        let preferred_x = actor_centre - i32::from(width) / 2;
+        let maximum_x = i32::from(area.right().saturating_sub(width));
+        let x = preferred_x.clamp(i32::from(area.x), maximum_x.max(i32::from(area.x)));
+        let actor_row = region.bounds.y.div_euclid(2);
+        let below = (region.bounds.y + i32::from(region.bounds.height) + 1).div_euclid(2);
+        let candidates = [actor_row - 1, below];
+        let Some(label_area) = candidates.into_iter().find_map(|y| {
+            let y = u16::try_from(y).ok()?;
+            if y < area.y || y >= area.bottom().saturating_sub(1) {
+                return None;
+            }
+            let candidate = Rect::new(u16::try_from(x).ok()?, y, width, 1);
+            (!occupied
+                .iter()
+                .any(|other| rects_intersect(candidate, *other)))
+            .then_some(candidate)
+        }) else {
+            continue;
+        };
+        occupied.push(label_area);
+        let selected = model.selected_agent_key() == Some(&region.agent);
+        let style = if selected {
+            PARCHMENT
+        } else {
+            PARCHMENT_BORDER
+        };
+        frame.render_widget(Paragraph::new(label).style(style), label_area);
+    }
+}
+
+fn rects_intersect(left: Rect, right: Rect) -> bool {
+    left.x < right.right()
+        && left.right() > right.x
+        && left.y < right.bottom()
+        && left.bottom() > right.y
+}
+
+fn compact_label(label: &str, maximum: usize) -> String {
+    if label.chars().count() <= maximum {
+        return label.to_owned();
+    }
+    let mut compact = label
+        .chars()
+        .take(maximum.saturating_sub(1))
+        .collect::<String>();
+    compact.push('…');
+    compact
+}
+
+fn presence_badge(presence: Presence) -> &'static str {
+    match presence {
+        Presence::Working => "WORKING",
+        Presence::Blocked => "! NEEDS COUNSEL",
+        Presence::Done => "✓ COMPLETED",
+        Presence::Idle => "RESTING",
+        Presence::Exited => "× DEPARTED",
+        Presence::Unknown => "? UNKNOWN",
+    }
+}
 
 pub fn render_scene_overlays(
     frame: &mut Frame<'_>,
     model: &Model,
     presentation: &ScenePresentation,
+    portraits: Option<&PortraitGallery>,
 ) {
     match presentation.overlay {
         SceneOverlay::Counsel | SceneOverlay::Search => render_input_parchment(frame, model),
         SceneOverlay::Help => render_help_parchment(frame),
         SceneOverlay::Scrying => render_scrying_parchment(frame, model),
-        SceneOverlay::None if model.command_ribbon_visible() => render_command_ribbon(frame, model),
-        SceneOverlay::None => {}
+        SceneOverlay::None => {
+            render_adventurer_card(frame, model, portraits);
+            if model.command_ribbon_visible() {
+                render_command_ribbon(frame, model);
+            }
+        }
+    }
+}
+
+fn render_adventurer_card(
+    frame: &mut Frame<'_>,
+    model: &Model,
+    portraits: Option<&PortraitGallery>,
+) {
+    if !model.adventurer_card_visible() {
+        return;
+    }
+    let Some(agent) = model.selected_agent() else {
+        return;
+    };
+    let area = frame.area();
+    if area.width < 60 || area.height < 14 {
+        return;
+    }
+    let detailed = area.width >= 96 && area.height >= 20;
+    let width = area
+        .width
+        .saturating_sub(4)
+        .min(if detailed { 78 } else { 48 });
+    let height = (if detailed { 18 } else { 13 }).min(area.height.saturating_sub(2));
+    let card = Rect::new(area.right() - width - 1, area.y + 1, width, height);
+    let campaign = model
+        .domain()
+        .campaigns
+        .get(&agent.workspace_id)
+        .map_or(agent.workspace_id.as_str(), |campaign| {
+            campaign.label.as_str()
+        });
+    let elapsed = format_elapsed(agent.presence_since.elapsed_until(model.now()));
+    let status = presence_label(agent.presence);
+    let role = format!("{:?} {:?}", agent.persona.ancestry, agent.persona.class);
+    let message = agent
+        .custom_status
+        .as_deref()
+        .unwrap_or("No current field report.");
+    let lines = vec![
+        Line::from(agent.persona.name.clone()),
+        Line::from(format!("{role} · {}", agent.persona.epithet.as_str())),
+        Line::from(""),
+        Line::from(format!("Agent: {}", agent.name)),
+        Line::from(format!("Campaign: {campaign}")),
+        Line::from(format!("{status} · {elapsed}")),
+        Line::from(message.to_owned()),
+        Line::from(""),
+        Line::from("Esc close · Enter observe · r counsel · o scry"),
+    ];
+    if detailed {
+        render_portrait_card(frame, card, &agent.persona, Text::from(lines), portraits);
+    } else {
+        render_parchment(frame, card, " ADVENTURER ", Text::from(lines));
+    }
+}
+
+fn render_portrait_card(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    persona: &crate::domain::AdventurerPersona,
+    text: Text<'_>,
+    portraits: Option<&PortraitGallery>,
+) {
+    const PARCHMENT_RGB: Rgb = Rgb::new(230, 207, 154);
+    frame.render_widget(Clear, area);
+    frame.render_widget(
+        Block::default()
+            .title(" ADVENTURER ")
+            .title_alignment(Alignment::Center)
+            .borders(Borders::ALL)
+            .style(PARCHMENT)
+            .border_style(PARCHMENT_BORDER),
+        area,
+    );
+
+    let portrait_area = Rect::new(area.x + 2, area.y + 1, 24, 16);
+    frame.render_widget(Block::default().style(PARCHMENT), portrait_area);
+    if let Some(portrait) = portraits.and_then(|gallery| gallery.portrait_for(persona)) {
+        frame.render_widget(Image::new(portrait), portrait_area);
+    } else {
+        let mut pixels = RgbBuffer::filled(24, 32, PARCHMENT_RGB);
+        if let Some(portrait) = adventurer_portrait_frame(persona) {
+            blit(&portrait, PixelPoint::new(0, 0), &mut pixels);
+        }
+        flush_rgb(frame.buffer_mut(), portrait_area, &pixels, PARCHMENT_RGB);
+    }
+
+    let text_area = Rect::new(
+        area.x + 28,
+        area.y + 1,
+        area.width.saturating_sub(29),
+        area.height.saturating_sub(2),
+    );
+    frame.render_widget(
+        Paragraph::new(text)
+            .style(PARCHMENT)
+            .wrap(Wrap { trim: false }),
+        text_area,
+    );
+}
+
+fn presence_label(presence: Presence) -> &'static str {
+    match presence {
+        Presence::Working => "Working",
+        Presence::Blocked => "Needs counsel",
+        Presence::Done => "Completed",
+        Presence::Idle => "Resting",
+        Presence::Exited => "Departed",
+        Presence::Unknown => "Unknown",
+    }
+}
+
+fn format_elapsed(elapsed: std::time::Duration) -> String {
+    let seconds = elapsed.as_secs();
+    if seconds < 60 {
+        format!("{seconds}s")
+    } else if seconds < 3_600 {
+        format!("{}m", seconds / 60)
+    } else {
+        format!("{}h", seconds / 3_600)
     }
 }
 

@@ -1,8 +1,9 @@
 # Questmancer sprite art direction
 
-Status: approved direction; silhouette, material and two-tier portrait Storybook
-passes are available for visual review. Production sprite integration has not
-begun.
+Status: approved and integrated. Eight classic archetypes now use authored
+16x24 world masters and independent 24x32 portraits in production. Custom
+classes retain their domain identity while routing to the closest authored
+silhouette until bespoke masters are commissioned.
 
 ## Decision
 
@@ -12,9 +13,19 @@ dark world. The design goal is not realism or a literal copy of any existing
 game. It is an original shared vocabulary for the Guild Hall, Delve and profile
 cards.
 
-The current profile-card figure is a separate 10x12 terminal-cell rectangle
-composer. It is the source of the tall, flat, diagram-like look. The RGB scene
-renderer and its half-block adapter remain the correct technical foundation.
+The current profile card uses a native transparent PNG when an approved Kitty,
+Sixel or iTerm2 protocol is detected and an asset exists for that identity.
+Barbarian, Rogue and Wizard currently have class portraits; Goblin has an
+ancestry portrait that takes priority over class. The registered 24x32 portrait
+master is the unconditional fallback. The RGB scene renderer and its half-block
+adapter remain the correct foundation for the world itself.
+
+Detection describes the complete pane transport, not merely the outer terminal.
+For Herdr-managed panes, native Kitty graphics require
+`experimental.kitty_graphics = true` in Herdr configuration. Questmancer must
+not infer transport support from `TERM_PROGRAM`: a false positive suppresses
+the authored sprite while an intermediary discards the native image sequence,
+leaving an empty card.
 
 ```text
 transparent authored sprite
@@ -23,8 +34,10 @@ transparent authored sprite
         -> Ratatui buffer
 ```
 
-No terminal image protocol, full-block scaling trick, Braille renderer or
-renderer rewrite is required.
+Native terminal graphics are deliberately confined to the expanded card. A
+terminal's half-block image fallback is not used because Questmancer's authored
+24x32 sprite is the canonical non-native result. No full-block scaling trick,
+Braille renderer or world-renderer rewrite is required.
 
 ## Shared character grammar
 
@@ -141,26 +154,17 @@ tool. The lab should show, for each fixture:
 The lab is for review only. It has no agent prompt, Herdr command, persistence
 mutation or sprite-editor ambition.
 
-The current Storybook sequence is intentionally split into eight stable views:
+The current Storybook owns three stable asset-review views:
 
-- **Sprite Silhouette Lab** preserves the outline-and-flat-fill baseline.
-- **Sprite Material & Face Lab** presents the three material passes at native
-  scale against Delve-dark, neutral and torch-warm backgrounds.
-- **Sprite Material Inspection 2x** reuses those exact assets through a
-  nearest-neighbour scene blit. Use `enter` in Storybook to give all three
-  inspection cards their full-width review surface.
-- **Sprite World & Portrait Masters** places each 16x24 world sprite beside its
-  independently authored 24x32 portrait. Neither tier is scaled to manufacture
-  the other.
-- **Sprite Scout & Shadow World** is the native-size Bard, Ranger and Rogue
-  review surface.
-- **Sprite Scout & Shadow Masters** compares that batch's 16x24 world frames
-  with their independent 24x32 portrait masters. It is the review gate before
-  any old sprite is deprecated or any production card is changed.
-- **Sprite Grovekeeper World** is the native-size Druid review surface.
-- **Sprite Grovekeeper Masters** compares its leafy Living Staff, antlered hood
-  and beard materials at 16x24 and 24x32 before any production portrait
-  cutover.
+- **Core World Masters** shows Barbarian, Bard, Cleric, Druid, Paladin, Ranger,
+  Rogue and Wizard at their native 16x24 production scale.
+- **Core Portrait Masters** shows the same class identities as independently
+  authored 24x32 portraits. These are not scaled world sprites.
+- **Goblin Easter Egg** shows the authored Goblin ancestry callback at both
+  production scales.
+
+The Guild Hall and Delve stories render these same registered production
+assets in context. Storybook does not retain the retired 8x14 generator.
 
 ## Four review passes
 
@@ -186,13 +190,11 @@ They do not substitute for the three visible review passes.
 2. Author and approve silhouette-only frames.
 3. Add named palette roles and material/face detail.
 4. Replace the old profile-card rectangle composer with the portrait path.
-5. Re-author compact scene spritlets in the same vocabulary.
-6. Add pose-specific frames and only the small layout adjustment needed to keep
+5. Add pose-specific frames and only the small layout adjustment needed to keep
    portrait text readable.
 
 ## Non-goals
 
-- No production scene cutover.
 - No change to Herdr truth, action handling or persistence.
 - No literal Zelda or reference-sheet sprite reproduction.
 - No procedural sprite generator, ECS, image protocol or full sprite editor.

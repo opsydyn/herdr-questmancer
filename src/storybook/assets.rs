@@ -8,6 +8,13 @@ pub enum SceneFirstAsset {
     ScryingParchment,
     HelpParchment,
     NarrowParchment,
+    CoreWorldMasters,
+    CorePortraitMasters,
+    NativeBarbarianPortrait,
+    NativeRoguePortrait,
+    NativeWizardPortrait,
+    NativeGoblinPortrait,
+    GoblinEasterEgg,
 }
 
 impl SceneFirstAsset {
@@ -20,6 +27,13 @@ impl SceneFirstAsset {
         Self::ScryingParchment,
         Self::HelpParchment,
         Self::NarrowParchment,
+        Self::CoreWorldMasters,
+        Self::CorePortraitMasters,
+        Self::NativeBarbarianPortrait,
+        Self::NativeRoguePortrait,
+        Self::NativeWizardPortrait,
+        Self::NativeGoblinPortrait,
+        Self::GoblinEasterEgg,
     ];
 
     pub const fn label(self) -> &'static str {
@@ -32,6 +46,13 @@ impl SceneFirstAsset {
             Self::ScryingParchment => "interaction: scrying parchment",
             Self::HelpParchment => "interaction: help parchment",
             Self::NarrowParchment => "interaction: narrow parchment",
+            Self::CoreWorldMasters => "asset: core world masters",
+            Self::CorePortraitMasters => "asset: core portrait masters",
+            Self::NativeBarbarianPortrait => "asset: native Barbarian card portrait",
+            Self::NativeRoguePortrait => "asset: native Rogue card portrait",
+            Self::NativeWizardPortrait => "asset: native Wizard card portrait",
+            Self::NativeGoblinPortrait => "asset: native Goblin card portrait",
+            Self::GoblinEasterEgg => "asset: Goblin Easter egg",
         }
     }
 }

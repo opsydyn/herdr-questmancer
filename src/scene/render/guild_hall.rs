@@ -4,7 +4,7 @@ use crate::{
     app::Motion,
     domain::{AgentKey, WorkspaceId},
     scene::{
-        SceneFrame,
+        SceneActorRegion, SceneFrame,
         assets::{
             adventurer::adventurer_animation_frame,
             guild_hall::{GuildHallAsset, frame},
@@ -27,7 +27,7 @@ use crate::{
 use super::interaction::paint_selection_marker;
 use super::{
     actor_animation_phase, actor_next_frame_delay, actor_origin, earliest_deadline,
-    effect_animation_phase, is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
+    effect_animation_phase, is_visible, lighting, next_frame_delay,
 };
 
 pub const WIDTH: i32 = 160;
@@ -78,13 +78,14 @@ pub fn paint(
     paint_furnishings(snapshot, target, origin);
     apply_connection_light(snapshot, target, origin);
     restore_landmark_signatures(target, origin);
-    let actor_deadline = paint_actors(snapshot, plan, target, origin);
+    let (actor_deadline, actors) = paint_actors(snapshot, plan, target, origin);
     let effect_deadline = paint_effects(snapshot, plan, target, origin);
     paint_connection_fact(snapshot, target, origin);
 
     SceneFrame {
         world: plan.world,
         next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
+        actors,
     }
 }
 
@@ -308,8 +309,9 @@ fn paint_actors(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) -> Option<Duration> {
+) -> (Option<Duration>, Vec<SceneActorRegion>) {
     let mut next_frame_in = None;
+    let mut regions = Vec::new();
     for (placement, anchor) in actor_anchors(snapshot, plan) {
         let Some(agent) = snapshot
             .agents
@@ -345,22 +347,29 @@ fn paint_actors(
             if placement.selected {
                 paint_selection_marker(target, token_origin, PixelSize::new(5, 5));
             }
+            regions.push(SceneActorRegion {
+                agent: placement.agent.clone(),
+                bounds: PixelRect::new(token_origin.x, token_origin.y, 5, 5),
+            });
         } else {
             let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
-            let actor_origin = actor_origin(origin, anchor, &sprite, animation);
-            if painted_sprite_is_visible(&sprite, actor_origin, target.size())
-                && let Some(delay) =
-                    actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
-            {
-                next_frame_in = Some(earliest_deadline(next_frame_in, delay));
-            }
+            let actor_origin = actor_origin(origin, anchor, &sprite);
             blit(&sprite, actor_origin, target);
             if placement.selected {
                 paint_selection_marker(target, actor_origin, sprite.size());
             }
+            regions.push(SceneActorRegion {
+                agent: placement.agent.clone(),
+                bounds: PixelRect::new(
+                    actor_origin.x,
+                    actor_origin.y,
+                    sprite.size().width,
+                    sprite.size().height,
+                ),
+            });
         }
     }
-    next_frame_in
+    (next_frame_in, regions)
 }
 
 fn token_is_visible(origin: PixelPoint, viewport: PixelSize) -> bool {

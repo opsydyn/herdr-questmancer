@@ -239,6 +239,7 @@ pub struct Model {
     connection: ConnectionState,
     guild_focus: GuildFocus,
     modal: Modal,
+    adventurer_card_visible: bool,
     output_preview: Option<OutputPreview>,
     notices: Box<Notices>,
     reviewr_available: bool,
@@ -259,6 +260,7 @@ impl Model {
             connection: ConnectionState::Offline,
             guild_focus: GuildFocus::QuestWall,
             modal: Modal::None,
+            adventurer_card_visible: false,
             output_preview: None,
             notices: Box::default(),
             reviewr_available: false,
@@ -362,6 +364,12 @@ impl Model {
         self.domain.selected_agent = self.domain.agents.keys().next_back().cloned();
     }
 
+    pub fn select_agent(&mut self, agent: &AgentKey) {
+        if self.domain.agents.contains_key(agent) {
+            self.domain.selected_agent = Some(agent.clone());
+        }
+    }
+
     fn move_agent_selection(&mut self, direction: i8) {
         let keys = self.domain.agents.keys().cloned().collect::<Vec<_>>();
         if keys.is_empty() {
@@ -405,6 +413,18 @@ impl Model {
 
     pub const fn modal(&self) -> &Modal {
         &self.modal
+    }
+
+    pub const fn adventurer_card_visible(&self) -> bool {
+        self.adventurer_card_visible
+    }
+
+    pub const fn show_adventurer_card(&mut self) {
+        self.adventurer_card_visible = true;
+    }
+
+    pub const fn dismiss_adventurer_card(&mut self) {
+        self.adventurer_card_visible = false;
     }
 
     pub fn open_counsel(&mut self) {

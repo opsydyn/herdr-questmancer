@@ -3,8 +3,9 @@ use std::{collections::BTreeMap, path::PathBuf};
 use crate::{
     app::{ConnectionState, Model, OutputPreview, View},
     domain::{
-        AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, DomainState, GuildAttention,
-        GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp, WorkspaceId,
+        AdventurerClass, AdventurerPersona, Agent, AgentKey, Ancestry, Campaign, Chronicle,
+        DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp,
+        WorkspaceId,
     },
     interaction::reduce_action,
     ui::input::Action,
@@ -25,8 +26,27 @@ impl StoryContext {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StoryFixture {
-    SceneApplication(Model),
+    SceneApplication(Box<Model>),
+    ArchetypeGallery(ArchetypeGallery),
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ArchetypeGallery {
+    WorldMasters,
+    PortraitMasters,
+    GoblinEasterEgg,
+}
+
+pub const CORE_ARCHETYPES: [AdventurerClass; 8] = [
+    AdventurerClass::Barbarian,
+    AdventurerClass::Bard,
+    AdventurerClass::Cleric,
+    AdventurerClass::Druid,
+    AdventurerClass::Paladin,
+    AdventurerClass::Ranger,
+    AdventurerClass::Rogue,
+    AdventurerClass::Wizard,
+];
 
 pub fn guild_world_fixture(context: StoryContext) -> Model {
     fixture_model(context, View::Guild)
@@ -39,6 +59,50 @@ pub fn delve_world_fixture(context: StoryContext) -> Model {
 pub fn selected_adventurer_interaction_fixture(context: StoryContext) -> Model {
     let mut model = guild_world_fixture(context);
     let _ = reduce_action(&mut model, Action::Next);
+    model
+}
+
+pub fn native_barbarian_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Barbarian, Ancestry::Gnome)
+}
+
+pub fn native_rogue_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Rogue, Ancestry::Elf)
+}
+
+pub fn native_wizard_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Wizard, Ancestry::Human)
+}
+
+pub fn native_goblin_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Druid, Ancestry::Goblin)
+}
+
+fn native_portrait_fixture(
+    context: StoryContext,
+    class: AdventurerClass,
+    ancestry: Ancestry,
+) -> Model {
+    let mut model = guild_world_fixture(context);
+    let selected = model
+        .selected_agent_key()
+        .cloned()
+        .expect("fixture selects an adventurer");
+    model
+        .domain_mut()
+        .agents
+        .get_mut(&selected)
+        .expect("selected fixture adventurer exists")
+        .persona
+        .class = class;
+    model
+        .domain_mut()
+        .agents
+        .get_mut(&selected)
+        .expect("selected fixture adventurer exists")
+        .persona
+        .ancestry = ancestry;
+    model.show_adventurer_card();
     model
 }
 

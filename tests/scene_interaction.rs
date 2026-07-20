@@ -95,6 +95,31 @@ fn explicit_world_render_marks_only_the_selected_adventurer() {
 }
 
 #[test]
+fn rendered_adventurer_exposes_a_terminal_hit_region() {
+    let model = model(View::Guild);
+    let snapshot = SceneSnapshot::from_model(&model);
+    let presentation = ScenePresentation::from_model(&model);
+    let mut target = RgbBuffer::filled(160, 90, Rgb::BLACK);
+
+    let frame = render_scene_for_world(
+        &snapshot,
+        &presentation,
+        PixelSize::new(160, 90),
+        &mut target,
+    );
+
+    let region = frame
+        .actors
+        .iter()
+        .find(|region| region.agent == AgentKey::new("codex"))
+        .expect("rendered adventurer should be discoverable");
+    let column = u16::try_from(region.bounds.x).unwrap() + region.bounds.width / 2;
+    let row = u16::try_from(region.bounds.y).unwrap() / 2 + region.bounds.height / 4;
+
+    assert_eq!(frame.agent_at(column, row), Some(&AgentKey::new("codex")));
+}
+
+#[test]
 fn model_view_explicitly_selects_the_rendered_world() {
     for (view, world) in [
         (View::Guild, WorldScene::GuildHall),

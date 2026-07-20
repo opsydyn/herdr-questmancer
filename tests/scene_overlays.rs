@@ -7,8 +7,14 @@ use questmancer::{
         PaneId, PersonaKey, Presence, TabId, Timestamp, WorkspaceId,
     },
     interaction::reduce_action,
-    scene::presentation::ScenePresentation,
-    ui::{input::Action, scene_overlays::render_scene_overlays},
+    scene::{
+        SceneActorRegion, SceneFrame, pixel::PixelRect, presentation::ScenePresentation,
+        stage::WorldScene,
+    },
+    ui::{
+        input::Action,
+        scene_overlays::{render_scene_identity_labels, render_scene_overlays},
+    },
 };
 use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};
 
@@ -61,7 +67,7 @@ fn render(model: &Model, width: u16, height: u16) -> String {
     terminal
         .draw(|frame| {
             frame.render_widget(Paragraph::new("WORLD REMAINS"), frame.area());
-            render_scene_overlays(frame, model, &ScenePresentation::from_model(model));
+            render_scene_overlays(frame, model, &ScenePresentation::from_model(model), None);
         })
         .unwrap();
     let buffer = terminal.backend().buffer();
@@ -110,6 +116,69 @@ fn search_and_scrying_are_contextual_overlays() {
     let screen = render(&model, 120, 36);
     assert!(screen.contains("SCRYING"));
     assert!(screen.contains("cargo test passed"));
+}
+
+#[test]
+fn selected_adventurer_card_exposes_fantasy_and_system_identity() {
+    let mut model = model();
+    model.show_adventurer_card();
+    model.set_now(Timestamp::from_millis(421_000));
+    model
+        .domain_mut()
+        .agents
+        .get_mut(&AgentKey::new("codex"))
+        .unwrap()
+        .custom_status = Some("Indexing the forgotten library".to_owned());
+    let persona_name = model.selected_agent().unwrap().persona.name.clone();
+
+    let screen = render(&model, 120, 36);
+
+    assert!(screen.contains("ADVENTURER"));
+    assert!(screen.contains(&persona_name));
+    assert!(screen.contains("Agent: codex"));
+    assert!(screen.contains("Campaign: Questmancer"));
+    assert!(screen.contains("Working · 7m"));
+    assert!(screen.contains("Indexing the forgotten library"));
+}
+
+#[test]
+fn selected_adventurer_does_not_force_the_card_open() {
+    let model = model();
+
+    let screen = render(&model, 120, 36);
+
+    assert!(!screen.contains("ADVENTURER"));
+    assert!(model.selected_agent().is_some());
+}
+
+#[test]
+fn every_visible_sprite_has_an_agent_state_nameplate() {
+    let mut model = model();
+    model.set_now(Timestamp::from_millis(421_000));
+    let scene = SceneFrame {
+        world: WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: vec![SceneActorRegion {
+            agent: AgentKey::new("codex"),
+            bounds: PixelRect::new(10, 20, 8, 14),
+        }],
+    };
+    let backend = TestBackend::new(120, 36);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal
+        .draw(|frame| render_scene_identity_labels(frame, &model, &scene))
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    let screen = (0..36)
+        .map(|y| {
+            (0..120)
+                .map(|x| buffer.cell((x, y)).unwrap().symbol())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    assert!(screen.contains("codex · WORKING 7m"));
 }
 
 #[test]

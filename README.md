@@ -152,10 +152,14 @@ agent processes or persistent state:
 just storybook
 ```
 
-It contains eight fixed production stories, each owned exactly once:
+It contains fifteen fixed production stories, each owned exactly once:
 
 - Guild Hall
 - Delve
+- all eight classic world masters
+- all eight classic portrait masters
+- native Barbarian, Rogue, Wizard and Goblin card portraits with authored-sprite fallbacks
+- Goblin world and portrait Easter egg
 - selected adventurer
 - counsel parchment
 - search parchment
@@ -164,7 +168,25 @@ It contains eight fixed production stories, each owned exactly once:
 - narrow viewport
 
 Use `j`/`k` or arrow keys to move through stories and `q` to exit. Run its
-focused checks with `just storybook-test`.
+focused checks with `just storybook-test`. The Storybook header reports
+`native Kitty`, `native Sixel`, `native iTerm2`, or `authored sprite fallback`
+so the active card rendering path is explicit.
+
+Native Kitty portraits inside a Herdr-managed pane also require Herdr's
+experimental graphics bridge:
+
+```toml
+[experimental]
+kitty_graphics = true
+```
+
+After changing that setting, validate it with `herdr config check` and reload
+the server configuration with `herdr server reload-config`. Without the bridge,
+Questmancer deliberately uses its authored RGB sprite; the outer terminal being
+Kitty-compatible is not sufficient on its own.
+
+See [Native portrait rendering through Herdr](docs/troubleshooting/native-portrait-rendering.md)
+for the complete failure analysis, recovery sequence and guarded smoke test.
 
 ## Guarded live smoke test
 

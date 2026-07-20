@@ -515,33 +515,30 @@ fn viewport_matrix_preserves_exact_targets_and_authored_camera_crops() {
 }
 
 #[test]
-fn exact_motion_phases_match_their_visible_cadence() {
+fn static_authored_actors_do_not_schedule_invisible_motion() {
     let working = snapshot(vec![agent("working", Presence::Working)]);
     let (working_start, working_deadline) = render_at(&working, 1_000);
     let (working_after_five_steps, working_late_deadline) = render_at(&working, 1_996);
     let (working_after_six_steps, _) = render_at(&working, 2_000);
-    assert_eq!(working_deadline, Some(Duration::from_millis(167)));
-    assert_eq!(working_late_deadline, Some(Duration::from_millis(4)));
-    assert_ne!(working_start, working_after_five_steps);
+    assert_eq!(working_deadline, None);
+    assert_eq!(working_late_deadline, None);
+    assert_eq!(working_start, working_after_five_steps);
     assert_eq!(working_start, working_after_six_steps);
 
     let blocked = snapshot(vec![agent("blocked", Presence::Blocked)]);
     let (blocked_start, blocked_deadline) = render_at(&blocked, 1_000);
     let (blocked_before, _) = render_at(&blocked, 1_499);
     let (blocked_next, _) = render_at(&blocked, 1_500);
-    assert_eq!(blocked_deadline, Some(Duration::from_millis(500)));
+    assert_eq!(blocked_deadline, None);
     assert_eq!(blocked_start, blocked_before);
-    assert_ne!(blocked_before, blocked_next);
+    assert_eq!(blocked_before, blocked_next);
 
     let (blocked_phase_two, blocked_phase_two_deadline) = render_at(&blocked, 2_000);
     let (blocked_unchanged_boundary, _) = render_at(&blocked, 2_500);
     let (blocked_visible_change, _) = render_at(&blocked, 3_000);
-    assert_eq!(
-        blocked_phase_two_deadline,
-        Some(Duration::from_millis(1_000))
-    );
+    assert_eq!(blocked_phase_two_deadline, None);
     assert_eq!(blocked_phase_two, blocked_unchanged_boundary);
-    assert_ne!(blocked_unchanged_boundary, blocked_visible_change);
+    assert_eq!(blocked_unchanged_boundary, blocked_visible_change);
 
     let mut completed = agent("completed", Presence::Done);
     completed.transition = Some(SceneTransition {
@@ -560,9 +557,9 @@ fn exact_motion_phases_match_their_visible_cadence() {
     let (idle_start, idle_deadline) = render_at(&idle, 1_000);
     let (idle_before, _) = render_at(&idle, 1_999);
     let (idle_next, _) = render_at(&idle, 2_000);
-    assert_eq!(idle_deadline, Some(Duration::from_millis(1_000)));
+    assert_eq!(idle_deadline, None);
     assert_eq!(idle_start, idle_before);
-    assert_ne!(idle_before, idle_next);
+    assert_eq!(idle_before, idle_next);
 }
 
 #[test]
@@ -601,7 +598,7 @@ fn one_target_buffer_is_reused_for_one_thousand_fixed_frames() {
 }
 
 #[test]
-fn renderer_deadlines_only_track_animation_inside_the_camera() {
+fn static_actor_frames_do_not_schedule_camera_dependent_deadlines() {
     let blocked = agent("a-blocked", Presence::Blocked);
     let working = agent("z-working", Presence::Working);
     let value = snapshot(vec![blocked, working]);
@@ -617,9 +614,9 @@ fn renderer_deadlines_only_track_animation_inside_the_camera() {
     next.now = Timestamp::from_millis(1_500);
     let (_, next_pixels) = render(&next, viewport);
 
-    assert_eq!(start_frame.next_frame_in, Some(Duration::from_millis(500)));
+    assert_eq!(start_frame.next_frame_in, None);
     assert_eq!(start_pixels.pixels(), before_pixels.pixels());
-    assert_ne!(before_pixels.pixels(), next_pixels.pixels());
+    assert_eq!(before_pixels.pixels(), next_pixels.pixels());
 
     let (zero_frame, _) = render(
         &snapshot(vec![agent("working", Presence::Working)]),
@@ -649,7 +646,7 @@ fn fresh_spoils_deadline_requires_a_visible_animated_pixel() {
 }
 
 #[test]
-fn actor_deadline_requires_a_visible_painted_pixel() {
+fn static_authored_actor_never_requests_an_animation_deadline() {
     let mut actor = agent("blocked", Presence::Blocked);
     actor.persona.class = AdventurerClass::Wizard;
     let blocked = snapshot(vec![actor]);
@@ -658,8 +655,5 @@ fn actor_deadline_requires_a_visible_painted_pixel() {
     assert_eq!(transparent_actor_edge.next_frame_in, None);
 
     let (visible_actor, _) = render(&blocked, PixelSize::new(20, 20));
-    assert_eq!(
-        visible_actor.next_frame_in,
-        Some(Duration::from_millis(1_000))
-    );
+    assert_eq!(visible_actor.next_frame_in, None);
 }

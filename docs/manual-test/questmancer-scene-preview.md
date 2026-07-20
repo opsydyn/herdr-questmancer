@@ -33,8 +33,25 @@ For terminal-free visual review:
 just storybook
 ```
 
-Review all eight fixed stories. Storybook does not connect to Herdr, invoke
-plugin actions, write state or send text.
+Review all fifteen fixed stories, including the core world masters, core
+portrait masters, native Barbarian, Rogue, Wizard and Goblin cards, and the
+Goblin Easter egg. Storybook does
+not connect to Herdr, invoke plugin actions, write state or send text. In
+Ghostty, confirm the header reports `portrait: native Kitty`; on unsupported
+terminals it must report `portrait: authored sprite fallback` and preserve the
+24x32 authored card sprite.
+
+For a native portrait in a Herdr-managed pane, opt into Herdr's graphics bridge:
+
+```toml
+[experimental]
+kitty_graphics = true
+```
+
+Run `herdr config check`, then `herdr server reload-config`. Only change or
+reload a shared server when its owner has approved the operation. A compatible
+outer terminal without this Herdr setting must use the authored sprite fallback
+and must never leave the portrait region blank.
 
 ## Registration and singleton
 
@@ -60,6 +77,7 @@ Questmancer pane after the repeated `open`.
 | Counsel | `r` opens parchment; submit only to the disposable synthetic agent. |
 | Acknowledge | `Space` marks the current blocked episode seen locally. |
 | Help | `?` opens the contextual help parchment. |
+| Native portrait | Barbarian, Rogue and Wizard classes use their transparent PNGs when the complete pane transport reports Kitty, Sixel or iTerm2 support. Goblin ancestry uses its PNG ahead of class. Other identities and unsupported transports retain the authored sprite. |
 | Narrow viewport | The world camera crops without switching to a text dashboard. |
 | View continuity | Selection remains coherent when switching with `1` and `2`. |
 

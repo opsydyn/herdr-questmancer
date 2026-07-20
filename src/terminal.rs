@@ -21,11 +21,11 @@ use crate::{
     config::PersistencePaths,
     domain::{PaneId, Timestamp},
     herdr::environment::HerdrEnvironment,
-    interaction::reduce_action,
     persistence::{
         DiagnosticReceiver, PersistenceClient, PersistenceDiagnostic, PersistenceError,
         PersistenceWorker, load_startup,
     },
+    portrait::PortraitGallery,
     runtime::RuntimeRegistration,
     runtime_loop::{
         RuntimeConnection, RuntimeEvent, RuntimeExit, apply_command_result,
@@ -328,6 +328,7 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
             return terminal_result.and(lifecycle_result);
         }
     };
+    let portraits = PortraitGallery::detect();
     let managed_pane_id = std::env::var("HERDR_PANE_ID")
         .ok()
         .filter(|value| !value.is_empty())
@@ -345,25 +346,31 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
             .live_parts_mut()
             .expect("live lifecycle starts a runtime connection");
         run_live_loop(
-            &mut terminal,
+            RuntimeLoopContext {
+                terminal: &mut terminal,
+                shutdown: &mut shutdown,
+                clock: &clock,
+                portraits: &portraits,
+            },
             &mut model,
             connection,
             persistence,
             &mut persistence_diagnostics,
             &mut collected_diagnostics,
-            &mut shutdown,
-            &clock,
         )
         .await
     } else {
         run_offline_loop(
-            &mut terminal,
+            RuntimeLoopContext {
+                terminal: &mut terminal,
+                shutdown: &mut shutdown,
+                clock: &clock,
+                portraits: &portraits,
+            },
             &mut model,
             lifecycle.persistence_mut(),
             &mut persistence_diagnostics,
             &mut collected_diagnostics,
-            &mut shutdown,
-            &clock,
         )
         .await
     };
@@ -379,10 +386,18 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
     loop_result.map(drop).and(lifecycle_result)
 }
 
+struct RuntimeLoopContext<'a> {
+    terminal: &'a mut Tui,
+    shutdown: &'a mut Shutdown,
+    clock: &'a RuntimeClock,
+    portraits: &'a PortraitGallery,
+}
+
 fn draw_scene_application(
     terminal: &mut Tui,
     model: &Model,
     buffer: &mut RgbBuffer,
+    portraits: &PortraitGallery,
 ) -> Result<crate::scene::SceneFrame> {
     let presentation = ScenePresentation::from_model(model);
     let snapshot = SceneSnapshot::from_model(model);
@@ -396,29 +411,29 @@ fn draw_scene_application(
             buffer,
         );
         flush_rgb(frame.buffer_mut(), area, buffer, Rgb::BLACK);
-        ui::scene_overlays::render_scene_overlays(frame, model, &presentation);
+        ui::scene_overlays::render_scene_identity_labels(frame, model, &scene_frame);
+        ui::scene_overlays::render_scene_overlays(frame, model, &presentation, Some(portraits));
         rendered = Some(scene_frame);
     })?;
     rendered.context("scene application draw did not produce a frame")
 }
 
 async fn run_live_loop(
-    terminal: &mut Tui,
+    context: RuntimeLoopContext<'_>,
     model: &mut Model,
     connection: &mut RuntimeConnection,
     persistence: &mut PersistenceClient,
     persistence_diagnostics: &mut DiagnosticReceiver,
     collected_diagnostics: &mut Vec<PersistenceDiagnostic>,
-    shutdown: &mut Shutdown,
-    clock: &RuntimeClock,
 ) -> Result<RuntimeExit> {
     let mut input = EventStream::new();
     let mut render_invalidation = AnimationScheduler::new();
     let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
 
     loop {
-        let scene_frame = draw_scene_application(terminal, model, &mut buffer)?;
-        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, clock);
+        let scene_frame =
+            draw_scene_application(context.terminal, model, &mut buffer, context.portraits)?;
+        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, context.clock);
 
         tokio::select! {
             event = input.next() => {
@@ -426,10 +441,12 @@ async fn run_live_loop(
                     return Ok(RuntimeExit::InputClosed);
                 };
                 let event = event.context("read terminal input")?;
-                model.set_now(clock.now());
-                let reduction = reduce_action(
+                model.set_now(context.clock.now());
+                let action = ui::input::action_for_scene_event_in(&event, model.modal(), &scene_frame);
+                let reduction = crate::interaction::reduce_scene_action(
                     model,
-                    ui::input::action_for_event_in(&event, model.modal()),
+                    action,
+                    &scene_frame,
                 );
                 let effects = dispatch_action_effects(persistence, model, reduction).await;
                 connection.schedule(effects.agent_commands);
@@ -443,7 +460,7 @@ async fn run_live_loop(
                 }
             }
             runtime_event = connection.next_event() => {
-                let observed_at = clock.now();
+                let observed_at = context.clock.now();
                 model.set_now(observed_at);
                 match runtime_event {
                     RuntimeEvent::Connection(update) => {
@@ -469,33 +486,32 @@ async fn run_live_loop(
                     }
                 }
             }
-            exit = shutdown.requested() => return Ok(exit),
+            exit = context.shutdown.requested() => return Ok(exit),
             Some(diagnostic) = persistence_diagnostics.recv() => {
                 record_diagnostic(model, collected_diagnostics, diagnostic);
             }
             () = render_invalidation.wait() => {
-                model.set_now(clock.now());
+                model.set_now(context.clock.now());
             }
         }
     }
 }
 
 async fn run_offline_loop(
-    terminal: &mut Tui,
+    context: RuntimeLoopContext<'_>,
     model: &mut Model,
     persistence: &mut PersistenceClient,
     persistence_diagnostics: &mut DiagnosticReceiver,
     collected_diagnostics: &mut Vec<PersistenceDiagnostic>,
-    shutdown: &mut Shutdown,
-    clock: &RuntimeClock,
 ) -> Result<RuntimeExit> {
     let mut input = EventStream::new();
     let mut render_invalidation = AnimationScheduler::new();
     let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
 
     loop {
-        let scene_frame = draw_scene_application(terminal, model, &mut buffer)?;
-        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, clock);
+        let scene_frame =
+            draw_scene_application(context.terminal, model, &mut buffer, context.portraits)?;
+        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, context.clock);
 
         tokio::select! {
             event = input.next() => {
@@ -503,10 +519,12 @@ async fn run_offline_loop(
                     return Ok(RuntimeExit::InputClosed);
                 };
                 let event = event.context("read terminal input")?;
-                model.set_now(clock.now());
-                let reduction = reduce_action(
+                model.set_now(context.clock.now());
+                let action = ui::input::action_for_scene_event_in(&event, model.modal(), &scene_frame);
+                let reduction = crate::interaction::reduce_scene_action(
                     model,
-                    ui::input::action_for_event_in(&event, model.modal()),
+                    action,
+                    &scene_frame,
                 );
                 let effects = dispatch_action_effects(persistence, model, reduction).await;
                 if !effects.agent_commands.is_empty() {
@@ -523,12 +541,12 @@ async fn run_offline_loop(
                     return Ok(exit);
                 }
             }
-            exit = shutdown.requested() => return Ok(exit),
+            exit = context.shutdown.requested() => return Ok(exit),
             Some(diagnostic) = persistence_diagnostics.recv() => {
                 record_diagnostic(model, collected_diagnostics, diagnostic);
             }
             () = render_invalidation.wait() => {
-                model.set_now(clock.now());
+                model.set_now(context.clock.now());
             }
         }
     }

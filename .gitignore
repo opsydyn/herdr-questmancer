@@ -9,3 +9,4 @@
 !**/proptest-regressions/
 !**/proptest-regressions/**
 !**/*.proptest-regressions
+/pixtuoid-main

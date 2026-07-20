@@ -1,9 +1,6 @@
 #![cfg(feature = "storybook")]
 
-use std::{
-    collections::{HashSet, VecDeque},
-    time::Duration,
-};
+use std::collections::{HashSet, VecDeque};
 
 use questmancer::{
     app::Motion,
@@ -12,9 +9,11 @@ use questmancer::{
         WorkspaceId,
     },
     scene::{
+        SceneFrame,
         assets::{
+            adventurer::adventurer_animation_frame,
             delve::{DelveAsset, frame},
-            palette::{VOID, adventurer_palette},
+            palette::VOID,
         },
         pixel::{PixelRect, PixelSize, Rgb, RgbBuffer},
         render::delve::{
@@ -84,10 +83,18 @@ fn mixed_snapshot() -> SceneSnapshot {
 }
 
 fn render(snapshot: &SceneSnapshot, world: WorldScene, viewport: PixelSize) -> RgbBuffer {
+    render_with_frame(snapshot, world, viewport).0
+}
+
+fn render_with_frame(
+    snapshot: &SceneSnapshot,
+    world: WorldScene,
+    viewport: PixelSize,
+) -> (RgbBuffer, SceneFrame) {
     let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
     let frame = render_scene_for_story(snapshot, Some(world), viewport, &mut target);
     assert_eq!(frame.world, world);
-    target
+    (target, frame)
 }
 
 fn colours_in(buffer: &RgbBuffer, rect: PixelRect) -> HashSet<Rgb> {
@@ -96,11 +103,6 @@ fn colours_in(buffer: &RgbBuffer, rect: PixelRect) -> HashSet<Rgb> {
             (rect.x..rect.x + i32::from(rect.width)).filter_map(move |x| buffer.get(x, y))
         })
         .collect()
-}
-
-fn contains_colour(buffer: &RgbBuffer, rect: PixelRect, colour: Rgb) -> bool {
-    (rect.y..rect.y + i32::from(rect.height))
-        .any(|y| (rect.x..rect.x + i32::from(rect.width)).any(|x| buffer.get(x, y) == Some(colour)))
 }
 
 fn reachable_floor(mask: &DelveArchitectureMask) -> HashSet<(i32, i32)> {
@@ -240,19 +242,15 @@ fn every_authored_floor_pixel_doorway_and_named_region_is_connected() {
 }
 
 #[test]
-fn truthful_station_regions_contain_their_actor_colours_and_exited_is_absent() {
+fn truthful_station_regions_intersect_their_authored_actors_and_exited_is_absent() {
     let snapshot = mixed_snapshot();
-    let buffer = render(&snapshot, WorldScene::Delve, VIEWPORT);
-    for (presence, accent, pose) in [
-        (Presence::Working, AccentTone::Cyan, ScenePose::Working),
-        (
-            Presence::Blocked,
-            AccentTone::Magenta,
-            ScenePose::SeekingCounsel,
-        ),
-        (Presence::Done, AccentTone::Amber, ScenePose::Settled),
-        (Presence::Idle, AccentTone::Lime, ScenePose::Resting),
-        (Presence::Unknown, AccentTone::Violet, ScenePose::Unknown),
+    let (_, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+    for (presence, pose) in [
+        (Presence::Working, ScenePose::Working),
+        (Presence::Blocked, ScenePose::SeekingCounsel),
+        (Presence::Done, ScenePose::Settled),
+        (Presence::Idle, ScenePose::Resting),
+        (Presence::Unknown, ScenePose::Unknown),
     ] {
         let agent = snapshot
             .agents
@@ -268,19 +266,13 @@ fn truthful_station_regions_contain_their_actor_colours_and_exited_is_absent() {
             Presence::Idle => TruthfulStation::DelveCamp(agent.workspace_id.clone()),
             Presence::Exited => unreachable!(),
         };
-        let mut colour = adventurer_palette(
-            agent.persona.appearance.skin_tone,
-            agent.persona.appearance.hair_tone,
-            agent.persona.appearance.garb,
-            agent.persona.class,
-            accent,
-        )
-        .accent;
-        if pose == ScenePose::Unknown {
-            colour = Rgb::new(colour.r / 2, colour.g / 2, colour.b / 2);
-        }
+        let actor = frame
+            .actors
+            .iter()
+            .find(|actor| actor.agent == agent.key)
+            .expect("visible agent has an actor region");
         assert!(
-            contains_colour(&buffer, station_region(&station, pose), colour),
+            rects_intersect(actor.bounds, station_region(&station, pose)),
             "{presence:?} actor is outside its truthful region"
         );
     }
@@ -290,31 +282,49 @@ fn truthful_station_regions_contain_their_actor_colours_and_exited_is_absent() {
         .iter()
         .find(|agent| agent.presence == Presence::Exited)
         .expect("fixed exited agent exists");
-    let exited_colour = adventurer_palette(
-        exited.persona.appearance.skin_tone,
-        exited.persona.appearance.hair_tone,
-        exited.persona.appearance.garb,
-        exited.persona.class,
-        AccentTone::Red,
-    )
-    .accent;
-    assert!(!buffer.pixels().contains(&exited_colour));
+    assert!(frame.actors.iter().all(|actor| actor.agent != exited.key));
 }
 
 #[test]
 fn unknown_dimming_preserves_transparent_sprite_pixels() {
     let snapshot = mixed_snapshot();
-    let with_unknown = render(&snapshot, WorldScene::Delve, VIEWPORT);
+    let unknown = snapshot
+        .agents
+        .iter()
+        .find(|agent| agent.presence == Presence::Unknown)
+        .expect("fixed unknown agent exists");
+    let sprite = adventurer_animation_frame(&unknown.persona, ScenePose::Unknown, 0);
+    let (with_unknown, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+    let region = frame
+        .actors
+        .iter()
+        .find(|actor| actor.agent == unknown.key)
+        .expect("unknown agent has an actor region");
     let mut without_unknown_snapshot = snapshot;
     without_unknown_snapshot
         .agents
         .retain(|agent| agent.presence != Presence::Unknown);
     let without_unknown = render(&without_unknown_snapshot, WorldScene::Delve, VIEWPORT);
 
-    assert_eq!(
-        with_unknown.get(11, 7),
-        without_unknown.get(11, 7),
-        "transparent corners of the Unknown sprite must leave dungeon pixels intact"
+    let mut transparent_pixels = 0;
+    for (index, pixel) in sprite.pixels().iter().enumerate() {
+        if pixel.is_some() {
+            continue;
+        }
+        transparent_pixels += 1;
+        let x = region.bounds.x
+            + i32::try_from(index % usize::from(sprite.size().width)).expect("sprite x fits i32");
+        let y = region.bounds.y
+            + i32::try_from(index / usize::from(sprite.size().width)).expect("sprite y fits i32");
+        assert_eq!(
+            with_unknown.get(x, y),
+            without_unknown.get(x, y),
+            "transparent Unknown pixel at ({x}, {y}) changed the dungeon"
+        );
+    }
+    assert!(
+        transparent_pixels > 0,
+        "authored Unknown sprite must contain transparency"
     );
 }
 
@@ -327,7 +337,7 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "14032ad0e06163f7331a5beb819bd8a4ae73e0df9a4d2a72d282984d1bd7a6c6"
+        "a1d847670d4f890414dc224ad649c0cd64ce18ebbeea78fbd6dfaac16c832479"
     );
 
     let non_clear = first
@@ -391,7 +401,8 @@ fn narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible() {
         now: Timestamp::from_millis(10_000),
     };
     let full = render(&snapshot, WorldScene::Delve, VIEWPORT);
-    let crop = render(&snapshot, WorldScene::Delve, PixelSize::new(80, 48));
+    let (crop, crop_frame) =
+        render_with_frame(&snapshot, WorldScene::Delve, PixelSize::new(80, 48));
     let (offset_x, offset_y) = crop_offset(&crop, &full).expect("narrow Delve is a world crop");
     let visible_world = PixelRect::new(offset_x, offset_y, 80, 48);
     let gate_asset = PixelRect::new(127, 28, 16, 10);
@@ -404,17 +415,14 @@ fn narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible() {
             ScenePose::SeekingCounsel,
         )
     ));
-    assert!(contains_colour(
-        &crop,
+    let blocked_actor = crop_frame
+        .actors
+        .iter()
+        .find(|actor| actor.agent == blocked.key)
+        .expect("priority blocked actor has a rendered region");
+    assert!(rects_intersect(
+        blocked_actor.bounds,
         PixelRect::new(0, 0, 80, 48),
-        adventurer_palette(
-            blocked.persona.appearance.skin_tone,
-            blocked.persona.appearance.hair_tone,
-            blocked.persona.appearance.garb,
-            blocked.persona.class,
-            AccentTone::Magenta,
-        )
-        .accent,
     ));
 }
 
@@ -438,7 +446,7 @@ fn reconnecting_preserves_the_authored_dungeon_under_connection_light() {
 }
 
 #[test]
-fn static_delve_has_no_cadence_and_active_animation_never_exceeds_eight_fps() {
+fn static_authored_delve_actors_have_no_invisible_cadence() {
     let static_snapshot = mixed_snapshot();
     let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
     let static_frame = render_scene_for_story(
@@ -460,10 +468,7 @@ fn static_delve_has_no_cadence_and_active_animation_never_exceeds_eight_fps() {
         VIEWPORT,
         &mut target,
     );
-    let interval = active_frame
-        .next_frame_in
-        .expect("working adventurers animate under full motion");
-    assert!(interval >= Duration::from_millis(125));
+    assert_eq!(active_frame.next_frame_in, None);
 }
 
 #[test]

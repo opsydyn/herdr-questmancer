@@ -121,6 +121,7 @@ pub(crate) fn is_visible(origin: PixelPoint, world_bounds: PixelRect, viewport: 
     left < i32::from(viewport.width) && right > 0 && top < i32::from(viewport.height) && bottom > 0
 }
 
+#[cfg(test)]
 pub(crate) fn painted_sprite_is_visible(
     frame: &SpriteFrame,
     origin: PixelPoint,
@@ -139,14 +140,12 @@ pub(crate) fn painted_sprite_is_visible(
     })
 }
 
-/// Places larger authored masters on the same visual foot line as the compact
-/// 8x14 fallback. Scene anchors continue to describe a station, not a
-/// particular sprite's top-left corner.
+/// Places authored masters on the scene's shared visual foot line. Scene
+/// anchors describe a station, not a particular sprite's top-left corner.
 pub(crate) fn actor_origin(
     world_origin: PixelPoint,
     anchor: PixelPoint,
     frame: &SpriteFrame,
-    animation: u8,
 ) -> PixelPoint {
     let width_offset = i32::from(frame.size().width.saturating_sub(8)) / 2;
     let height_offset = i32::from(frame.size().height.saturating_sub(14));
@@ -158,8 +157,7 @@ pub(crate) fn actor_origin(
         world_origin
             .y
             .saturating_add(anchor.y)
-            .saturating_sub(height_offset)
-            .saturating_sub(i32::from(animation == 1)),
+            .saturating_sub(height_offset),
     )
 }
 
@@ -168,16 +166,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn detailed_masters_share_the_compact_sprite_foot_line() {
-        let compact = SpriteFrame::from_pixels(8, 14, vec![None; 8 * 14]);
+    fn authored_masters_share_the_station_foot_line() {
+        let station_reference = SpriteFrame::from_pixels(8, 14, vec![None; 8 * 14]);
         let master = SpriteFrame::from_pixels(16, 24, vec![None; 16 * 24]);
         let origin = PixelPoint::new(0, 0);
         let anchor = PixelPoint::new(112, 69);
 
-        let compact_origin = actor_origin(origin, anchor, &compact, 0);
-        let master_origin = actor_origin(origin, anchor, &master, 0);
+        let reference_origin = actor_origin(origin, anchor, &station_reference);
+        let master_origin = actor_origin(origin, anchor, &master);
 
-        assert_eq!(compact_origin.y + i32::from(compact.size().height), 83);
+        assert_eq!(
+            reference_origin.y + i32::from(station_reference.size().height),
+            83
+        );
         assert_eq!(master_origin.y + i32::from(master.size().height), 83);
         assert_eq!(master_origin.x, 108);
     }

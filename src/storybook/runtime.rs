@@ -95,10 +95,11 @@ pub async fn run() -> Result<()> {
     tokio::pin!(interrupts);
     let mut app = StorybookApp::new(stories);
     let (_guard, mut terminal) = TerminalGuard::enter()?;
+    let portraits = crate::portrait::PortraitGallery::detect();
     let mut events = EventStream::new();
 
     loop {
-        terminal.draw(|frame| ui::render(frame, &app, stories, &context))?;
+        terminal.draw(|frame| ui::render(frame, &app, stories, &context, Some(&portraits)))?;
         let control = next_control(&mut events, interrupts.as_mut(), &mut app, stories).await?;
         if control == RuntimeControl::Quit {
             break;

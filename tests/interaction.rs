@@ -8,7 +8,7 @@ use questmancer::{
         Timestamp, WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
-    interaction::reduce_action,
+    interaction::{reduce_action, reduce_scene_action},
     ui::input::Action,
     update::Command,
 };
@@ -263,6 +263,96 @@ fn relative_selection_loads_one_preview_per_change() {
             lines: 80,
         }]
     );
+}
+
+#[test]
+fn pointer_selection_never_observes_or_sends_counsel() {
+    let mut model = live_model_with_two_agents();
+    let target = model.domain().agents.keys().next_back().unwrap().clone();
+    let scene = questmancer::scene::SceneFrame {
+        world: questmancer::scene::stage::WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: vec![questmancer::scene::SceneActorRegion {
+            agent: target.clone(),
+            bounds: questmancer::scene::pixel::PixelRect::new(10, 20, 8, 14),
+        }],
+    };
+
+    let reduction = reduce_scene_action(
+        &mut model,
+        Action::SelectAt {
+            column: 12,
+            row: 11,
+        },
+        &scene,
+    );
+
+    assert_eq!(model.selected_agent_key(), Some(&target));
+    assert!(model.adventurer_card_visible());
+    assert_eq!(
+        reduction.commands,
+        vec![AgentCommand::LoadOutput {
+            pane_id: PaneId::new("w1:p2"),
+            lines: 80,
+        }]
+    );
+    assert!(!reduction.commands.iter().any(|command| matches!(
+        command,
+        AgentCommand::FocusPane(_) | AgentCommand::SendCounsel { .. }
+    )));
+}
+
+#[test]
+fn selected_adventurer_card_can_be_dismissed_without_clearing_selection() {
+    let mut model = live_model_with_two_agents();
+    let target = model.domain().agents.keys().next_back().unwrap().clone();
+    let scene = questmancer::scene::SceneFrame {
+        world: questmancer::scene::stage::WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: vec![questmancer::scene::SceneActorRegion {
+            agent: target.clone(),
+            bounds: questmancer::scene::pixel::PixelRect::new(10, 20, 8, 14),
+        }],
+    };
+
+    let _ = reduce_scene_action(
+        &mut model,
+        Action::SelectAt {
+            column: 12,
+            row: 11,
+        },
+        &scene,
+    );
+    assert!(model.adventurer_card_visible());
+
+    let _ = reduce_action(&mut model, Action::Dismiss);
+
+    assert!(!model.adventurer_card_visible());
+    assert_eq!(model.selected_agent_key(), Some(&target));
+}
+
+#[test]
+fn clicking_the_selected_adventurer_toggles_its_card_closed() {
+    let mut model = live_model_with_two_agents();
+    let target = model.domain().agents.keys().next_back().unwrap().clone();
+    let scene = questmancer::scene::SceneFrame {
+        world: questmancer::scene::stage::WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: vec![questmancer::scene::SceneActorRegion {
+            agent: target.clone(),
+            bounds: questmancer::scene::pixel::PixelRect::new(10, 20, 8, 14),
+        }],
+    };
+    let click = Action::SelectAt {
+        column: 12,
+        row: 11,
+    };
+
+    let _ = reduce_scene_action(&mut model, click, &scene);
+    let _ = reduce_scene_action(&mut model, click, &scene);
+
+    assert!(!model.adventurer_card_visible());
+    assert_eq!(model.selected_agent_key(), Some(&target));
 }
 
 #[test]

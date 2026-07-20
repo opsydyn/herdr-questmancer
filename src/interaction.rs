@@ -5,6 +5,7 @@ use crate::{
     command::AgentCommand,
     domain::{Agent, Presence},
     persistence::PersistedStateV1,
+    scene::SceneFrame,
     ui::{
         copy::{SUMMONS_ACKNOWLEDGED, no_match},
         input::Action,
@@ -96,7 +97,11 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             ControlFlow::Continue(())
         }
         Action::Dismiss => {
-            model.dismiss_modal();
+            if model.modal() == &Modal::None {
+                model.dismiss_adventurer_card();
+            } else {
+                model.dismiss_modal();
+            }
             ControlFlow::Continue(())
         }
         Action::Submit => {
@@ -107,9 +112,32 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             }
             ControlFlow::Continue(())
         }
-        Action::Redraw | Action::None => ControlFlow::Continue(()),
+        Action::SelectAt { .. } | Action::Redraw | Action::None => ControlFlow::Continue(()),
     };
     finish_reduction(model, &before, control, commands)
+}
+
+#[must_use]
+pub fn reduce_scene_action(
+    model: &mut Model,
+    action: Action,
+    scene: &SceneFrame,
+) -> ActionReduction {
+    let Action::SelectAt { column, row } = action else {
+        return reduce_action(model, action);
+    };
+    let before = PersistedStateV1::capture(model);
+    model.note_interaction();
+    let mut commands = Vec::new();
+    if let Some(agent) = scene.agent_at(column, row).cloned() {
+        if model.selected_agent_key() == Some(&agent) && model.adventurer_card_visible() {
+            model.dismiss_adventurer_card();
+        } else {
+            select_agent_key(model, &agent, &mut commands);
+            model.show_adventurer_card();
+        }
+    }
+    finish_reduction(model, &before, ControlFlow::Continue(()), commands)
 }
 
 fn observe_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
@@ -294,6 +322,7 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     };
     let before = selected_pane(model);
     model.domain_mut().selected_agent = Some(agent_key);
+    model.show_adventurer_card();
     let after = selected_pane(model);
     model.dismiss_modal();
     model.clear_action_feedback();
@@ -345,6 +374,24 @@ fn visible_presence_terms(agent: &Agent) -> &'static [&'static str] {
 fn select_agent(model: &mut Model, select: fn(&mut Model), commands: &mut Vec<AgentCommand>) {
     let before = selected_pane(model);
     select(model);
+    let after = selected_pane(model);
+    if after.is_some() {
+        model.show_adventurer_card();
+    }
+    if after != before
+        && let Some(pane_id) = after
+    {
+        commands.push(load_output(model, pane_id));
+    }
+}
+
+fn select_agent_key(
+    model: &mut Model,
+    agent: &crate::domain::AgentKey,
+    commands: &mut Vec<AgentCommand>,
+) {
+    let before = selected_pane(model);
+    model.select_agent(agent);
     let after = selected_pane(model);
     if after != before
         && let Some(pane_id) = after

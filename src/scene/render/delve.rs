@@ -8,7 +8,7 @@ use crate::{
     app::Motion,
     domain::Presence,
     scene::{
-        SceneFrame,
+        SceneActorRegion, SceneFrame,
         assets::{
             adventurer::adventurer_animation_frame,
             delve::{
@@ -28,9 +28,11 @@ use crate::{
 };
 
 use super::interaction::paint_selection_marker;
+#[cfg(test)]
+use super::painted_sprite_is_visible;
 use super::{
-    actor_animation_phase, actor_next_frame_delay, actor_origin, earliest_deadline,
-    effect_animation_phase, is_visible, lighting, next_frame_delay, painted_sprite_is_visible,
+    actor_animation_phase, actor_origin, earliest_deadline, effect_animation_phase, is_visible,
+    lighting, next_frame_delay,
 };
 
 pub const WIDTH: i32 = 160;
@@ -347,13 +349,15 @@ impl<'a> DelvePainter<'a> {
         .expect("unrecorded material painting cannot conflict");
         paint_background_architecture(self.target, self.origin, self.seed);
         apply_lighting(self.snapshot, self.target, self.origin);
-        let actor_deadline = paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin);
+        let (actor_deadline, actors) =
+            paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin);
         let effect_deadline = paint_effects(self.snapshot, self.plan, self.target, self.origin);
         paint_connection_fact(self.snapshot, self.target, self.origin);
 
         SceneFrame {
             world: self.plan.world,
             next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
+            actors,
         }
     }
 }
@@ -698,7 +702,7 @@ fn paint_depth_sorted(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
-) -> Option<Duration> {
+) -> (Option<Duration>, Vec<SceneActorRegion>) {
     let mut items = actor_anchors(plan)
         .into_iter()
         .map(|(placement, anchor)| DepthItem::Actor { placement, anchor })
@@ -714,7 +718,7 @@ fn paint_depth_sorted(
     );
     items.sort_by_key(|item| item.foot_row());
 
-    let mut next_frame_in = None;
+    let mut regions = Vec::new();
     for item in items {
         match item {
             DepthItem::Actor { placement, anchor } => {
@@ -728,13 +732,7 @@ fn paint_depth_sorted(
                 let elapsed = agent.presence_since.elapsed_until(snapshot.now);
                 let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
                 let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
-                let actor_origin = actor_origin(origin, anchor, &sprite, animation);
-                if painted_sprite_is_visible(&sprite, actor_origin, target.size())
-                    && let Some(delay) =
-                        actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
-                {
-                    next_frame_in = Some(earliest_deadline(next_frame_in, delay));
-                }
+                let actor_origin = actor_origin(origin, anchor, &sprite);
                 if placement.pose == ScenePose::Unknown {
                     blit_dimmed(&sprite, actor_origin, target);
                 } else {
@@ -743,6 +741,15 @@ fn paint_depth_sorted(
                 if placement.selected {
                     paint_selection_marker(target, actor_origin, sprite.size());
                 }
+                regions.push(SceneActorRegion {
+                    agent: placement.agent.clone(),
+                    bounds: PixelRect::new(
+                        actor_origin.x,
+                        actor_origin.y,
+                        sprite.size().width,
+                        sprite.size().height,
+                    ),
+                });
             }
             DepthItem::Asset { asset, anchor } => {
                 blit_asset(asset, target, origin, anchor.x, anchor.y);
@@ -752,7 +759,7 @@ fn paint_depth_sorted(
             }
         }
     }
-    next_frame_in
+    (None, regions)
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -1069,7 +1076,7 @@ mod tests {
             WorkspaceId,
         },
         scene::{
-            assets::adventurer::compact_adventurer_animation_frame,
+            assets::adventurer::adventurer_animation_frame,
             snapshot::{SceneConnection, SceneSnapshot},
             stage::{ActorPlacement, SceneCadence, SceneCamera, ScenePlan, WorldScene},
         },
@@ -1085,31 +1092,29 @@ mod tests {
     }
 
     #[test]
-    fn exit_slots_keep_human_and_orc_edge_details_inside_the_landing() {
-        for ancestry in [Ancestry::Human, Ancestry::Orc] {
+    fn exit_slots_keep_authored_masters_inside_the_world() {
+        for class in AdventurerClass::ALL {
             let mut persona =
-                AdventurerPersona::for_key(PersonaKey::new(format!("exit-edge-{ancestry:?}")));
-            persona.ancestry = ancestry;
+                AdventurerPersona::for_key(PersonaKey::new(format!("exit-edge-{class:?}")));
+            persona.class = *class;
             for animation_frame in 0..3 {
-                let sprite = compact_adventurer_animation_frame(
-                    &persona,
-                    ScenePose::Working,
-                    animation_frame,
-                );
+                let sprite =
+                    adventurer_animation_frame(&persona, ScenePose::Working, animation_frame);
                 for anchor in EXIT_SLOTS.iter().take(VISIBLE_ACTORS_PER_STATION) {
+                    let sprite_origin = actor_origin(PixelPoint::new(0, 0), *anchor, &sprite);
                     for (index, pixel) in sprite.pixels().iter().enumerate() {
                         if pixel.is_none() {
                             continue;
                         }
-                        let x = anchor.x
+                        let x = sprite_origin.x
                             + i32::try_from(index % usize::from(sprite.size().width))
                                 .expect("sprite x fits i32");
-                        let y = anchor.y
+                        let y = sprite_origin.y
                             + i32::try_from(index / usize::from(sprite.size().width))
                                 .expect("sprite y fits i32");
                         assert!(
-                            contains(EXIT_LANDING, x, y),
-                            "{ancestry:?} frame {animation_frame} at {anchor:?} paints ({x}, {y}) outside {EXIT_LANDING:?}"
+                            (0..WIDTH).contains(&x) && (0..HEIGHT).contains(&y),
+                            "{class:?} frame {animation_frame} at {anchor:?} paints ({x}, {y}) outside the Delve"
                         );
                     }
                 }
@@ -1187,27 +1192,21 @@ mod tests {
                     persona.ancestry = *ancestry;
                     persona.class = *class;
                     for animation_frame in 0..3 {
-                        let sprite = compact_adventurer_animation_frame(
-                            &persona,
-                            placement.pose,
-                            animation_frame,
+                        let sprite =
+                            adventurer_animation_frame(&persona, placement.pose, animation_frame);
+                        let sprite_origin = actor_origin(PixelPoint::new(0, 0), anchor, &sprite);
+                        assert!(
+                            painted_sprite_is_visible(
+                                &sprite,
+                                sprite_origin,
+                                PixelSize::new(
+                                    u16::try_from(WIDTH).expect("Delve width fits u16"),
+                                    u16::try_from(HEIGHT).expect("Delve height fits u16"),
+                                ),
+                            ),
+                            "{} {ancestry:?} {class:?} frame {animation_frame} is fully clipped",
+                            placement.agent
                         );
-                        for (index, pixel) in sprite.pixels().iter().enumerate() {
-                            if pixel.is_none() {
-                                continue;
-                            }
-                            let x = anchor.x
-                                + i32::try_from(index % usize::from(sprite.size().width))
-                                    .expect("sprite x fits i32");
-                            let y = anchor.y
-                                + i32::try_from(index / usize::from(sprite.size().width))
-                                    .expect("sprite y fits i32");
-                            assert!(
-                                contains(region, x, y),
-                                "{} {ancestry:?} {class:?} frame {animation_frame} at ({x}, {y}) escapes {region:?}",
-                                placement.agent
-                            );
-                        }
                     }
                 }
             }

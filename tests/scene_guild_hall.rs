@@ -12,6 +12,7 @@ use questmancer::{
         WorkspaceId,
     },
     scene::{
+        SceneFrame,
         assets::palette::{
             EMBER, INK_BLUE, OAK, PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_GOLD, SHADOW, VOID,
         },
@@ -91,11 +92,15 @@ fn mixed_snapshot() -> SceneSnapshot {
 }
 
 fn render(snapshot: &SceneSnapshot, viewport: PixelSize) -> RgbBuffer {
+    render_with_frame(snapshot, viewport).0
+}
+
+fn render_with_frame(snapshot: &SceneSnapshot, viewport: PixelSize) -> (RgbBuffer, SceneFrame) {
     let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
     let frame =
         render_scene_for_story(snapshot, Some(WorldScene::GuildHall), viewport, &mut target);
     assert_eq!(frame.world, WorldScene::GuildHall);
-    target
+    (target, frame)
 }
 
 fn rect_contains(buffer: &RgbBuffer, rect: PixelRect, colour: Rgb) -> bool {
@@ -133,7 +138,9 @@ fn hash_parity(workspace: &str) -> usize {
 
 #[test]
 fn canonical_room_contains_every_owned_landmark_signature() {
-    let buffer = render(&mixed_snapshot(), VIEWPORT);
+    let mut snapshot = mixed_snapshot();
+    snapshot.agents.clear();
+    let buffer = render(&snapshot, VIEWPORT);
     for (name, rect, colour) in [
         ("guild door", PixelRect::new(5, 14, 25, 46), OAK),
         ("quest wall", PixelRect::new(34, 11, 43, 27), PARCHMENT),
@@ -152,46 +159,60 @@ fn canonical_room_contains_every_owned_landmark_signature() {
 
 #[test]
 fn actors_occupy_truthful_station_bounds_with_unique_final_anchors() {
-    let buffer = render(&mixed_snapshot(), VIEWPORT);
+    let (buffer, frame) = render_with_frame(&mixed_snapshot(), VIEWPORT);
     let expected = [
         (
-            AccentTone::Cyan,
+            "first-working",
             PixelRect::new(35, 47, 80, 27),
             "first campaign token",
         ),
         (
-            AccentTone::Lime,
+            "second-working",
             PixelRect::new(35, 47, 80, 27),
             "second campaign token",
         ),
         (
-            AccentTone::Magenta,
+            "counsel-seeker",
             PixelRect::new(112, 31, 24, 38),
             "counsel seeker",
         ),
         (
-            AccentTone::Blue,
+            "spoils-returnee",
             PixelRect::new(108, 61, 51, 29),
             "spoils returnee",
         ),
         (
-            AccentTone::Teal,
+            "hearth-resting",
             PixelRect::new(128, 42, 31, 39),
             "hearth resting",
         ),
     ];
     let mut anchors = HashSet::new();
-    for (accent, bounds, label) in expected {
-        let anchor = first_pixel(&buffer, accent_colour(accent))
-            .unwrap_or_else(|| panic!("{label} has no persona-owned accent pixel"));
+    for (agent, station, label) in expected {
+        let region = frame
+            .actors
+            .iter()
+            .find(|region| region.agent == AgentKey::new(agent))
+            .unwrap_or_else(|| panic!("{label} has no rendered actor region"));
+        let anchor = (
+            region.bounds.x + i32::from(region.bounds.width / 2),
+            region.bounds.y + i32::from(region.bounds.height) - 1,
+        );
         assert!(
-            anchor.0 >= bounds.x
-                && anchor.0 < bounds.x + i32::from(bounds.width)
-                && anchor.1 >= bounds.y
-                && anchor.1 < bounds.y + i32::from(bounds.height),
-            "{label} anchor {anchor:?} is outside {bounds:?}"
+            anchor.0 >= station.x
+                && anchor.0 < station.x + i32::from(station.width)
+                && anchor.1 >= station.y
+                && anchor.1 < station.y + i32::from(station.height),
+            "{label} anchor {anchor:?} is outside {station:?}"
         );
         assert!(anchors.insert(anchor), "two actors share anchor {anchor:?}");
+        assert!(
+            (region.bounds.y..region.bounds.y + i32::from(region.bounds.height)).any(|y| {
+                (region.bounds.x..region.bounds.x + i32::from(region.bounds.width))
+                    .any(|x| buffer.get(x, y).is_some_and(|pixel| pixel != VOID))
+            }),
+            "{label} region is visually empty"
+        );
     }
 }
 
