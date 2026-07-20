@@ -6,11 +6,11 @@ use crate::{
     scene::{
         SceneActorRegion, SceneFrame,
         assets::{
-            adventurer::adventurer_animation_frame,
+            adventurer::{adventurer_animation_frame, adventurer_pose_is_animated},
             guild_hall::{GuildHallAsset, frame},
             palette::{
-                AMBER_LIGHT, BRASS_DARK, EMBER, FLAME, INK_BLUE, OAK, OAK_DARK, OAK_LIGHT,
-                PARCHMENT, PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_DARK, RUG_GOLD, SHADOW, STONE,
+                AMBER_LIGHT, EMBER, FLAME, INK_BLUE, OAK, OAK_DARK, OAK_LIGHT, PARCHMENT,
+                PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_DARK, RUG_GOLD, SHADOW, STONE,
                 STONE_DARK, STONE_LIGHT, VOID, WINE_DARK,
             },
         },
@@ -18,8 +18,7 @@ use crate::{
         snapshot::{SceneConnection, SceneSnapshot},
         sprite::blit,
         stage::{
-            ActorPlacement, CameraAnchor, SceneCamera, SceneEffect, ScenePlan, ScenePose,
-            TruthfulStation,
+            ActorPlacement, CameraAnchor, SceneCamera, SceneEffect, ScenePlan, TruthfulStation,
         },
     },
 };
@@ -322,90 +321,30 @@ fn paint_actors(
         };
         let elapsed = agent.presence_since.elapsed_until(snapshot.now);
         let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
-        if let TruthfulStation::CampaignToken(_) = placement.station {
-            let token_origin = translate(origin, anchor.x, anchor.y - i32::from(animation == 1));
-            if token_is_visible(token_origin, target.size())
-                && let Some(delay) =
-                    actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
-            {
-                next_frame_in = Some(earliest_deadline(next_frame_in, delay));
-            }
-            paint_token(
-                target,
-                translate(origin, anchor.x, anchor.y),
-                crate::scene::assets::palette::adventurer_palette(
-                    agent.persona.appearance.skin_tone,
-                    agent.persona.appearance.hair_tone,
-                    agent.persona.appearance.garb,
-                    agent.persona.class,
-                    agent.persona.appearance.accent,
-                )
-                .accent,
-                placement.pose == ScenePose::Unknown,
-                animation,
-            );
-            if placement.selected {
-                paint_selection_marker(target, token_origin, PixelSize::new(5, 5));
-            }
-            regions.push(SceneActorRegion {
-                agent: placement.agent.clone(),
-                bounds: PixelRect::new(token_origin.x, token_origin.y, 5, 5),
-            });
-        } else {
-            let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
-            let actor_origin = actor_origin(origin, anchor, &sprite);
-            blit(&sprite, actor_origin, target);
-            if placement.selected {
-                paint_selection_marker(target, actor_origin, sprite.size());
-            }
-            regions.push(SceneActorRegion {
-                agent: placement.agent.clone(),
-                bounds: PixelRect::new(
-                    actor_origin.x,
-                    actor_origin.y,
-                    sprite.size().width,
-                    sprite.size().height,
-                ),
-            });
+        let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
+        let actor_origin = actor_origin(origin, anchor, &sprite);
+        let bounds = PixelRect::new(
+            actor_origin.x,
+            actor_origin.y,
+            sprite.size().width,
+            sprite.size().height,
+        );
+        if adventurer_pose_is_animated(&agent.persona, placement.pose)
+            && is_visible(PixelPoint::new(0, 0), bounds, target.size())
+            && let Some(delay) = actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
+        {
+            next_frame_in = Some(earliest_deadline(next_frame_in, delay));
         }
+        blit(&sprite, actor_origin, target);
+        if placement.selected {
+            paint_selection_marker(target, actor_origin, sprite.size());
+        }
+        regions.push(SceneActorRegion {
+            agent: placement.agent.clone(),
+            bounds,
+        });
     }
     (next_frame_in, regions)
-}
-
-fn token_is_visible(origin: PixelPoint, viewport: PixelSize) -> bool {
-    is_visible(
-        PixelPoint::new(0, 0),
-        PixelRect::new(origin.x, origin.y + 1, 5, 3),
-        viewport,
-    ) || [(1, 0), (2, 0), (3, 0), (1, 4), (3, 4)]
-        .into_iter()
-        .any(|(x, y)| {
-            is_visible(
-                PixelPoint::new(0, 0),
-                PixelRect::new(origin.x + x, origin.y + y, 1, 1),
-                viewport,
-            )
-        })
-}
-
-fn paint_token(
-    target: &mut RgbBuffer,
-    anchor: PixelPoint,
-    accent: Rgb,
-    unknown: bool,
-    animation: u8,
-) {
-    let anchor = PixelPoint::new(anchor.x, anchor.y - i32::from(animation == 1));
-    target.fill_rect(PixelRect::new(anchor.x, anchor.y + 1, 5, 3), accent);
-    target.put(anchor.x + 1, anchor.y, PARCHMENT_LIGHT);
-    target.put(
-        anchor.x + 2,
-        anchor.y,
-        if unknown { SHADOW } else { accent },
-    );
-    target.put(anchor.x + 3, anchor.y, PARCHMENT_LIGHT);
-    target.put(anchor.x + 1, anchor.y + 4, BRASS_DARK);
-    target.put(anchor.x + 3, anchor.y + 4, BRASS_DARK);
 }
 
 fn actor_anchors<'a>(
@@ -424,8 +363,8 @@ fn actor_anchors<'a>(
             TruthfulStation::CampaignToken(workspace) => {
                 let base_x = campaign_table(snapshot, workspace).actor_base_x();
                 PixelPoint::new(
-                    base_x + 4 + i32::try_from(slot % 4).unwrap_or(0) * 6,
-                    56 + i32::try_from(slot / 4).unwrap_or(0) * 6,
+                    base_x + i32::try_from(slot % 2).unwrap_or(0) * 16,
+                    56 + i32::try_from(slot / 2).unwrap_or(0) * 14,
                 )
             }
             TruthfulStation::CounselBell => PixelPoint::new(

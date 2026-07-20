@@ -212,3 +212,10 @@ pub fn adventurer_animation_frame(
             .expect("every non-Druid production class has an authored sprite route")
     }
 }
+
+/// Whether time can select different authored pixels for this adventurer pose.
+/// Renderers use this to avoid scheduling frames for static class masters.
+#[must_use]
+pub fn adventurer_pose_is_animated(persona: &AdventurerPersona, pose: ScenePose) -> bool {
+    persona.class == AdventurerClass::Barbarian && matches!(pose, ScenePose::Working)
+}

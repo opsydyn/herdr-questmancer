@@ -8,8 +8,8 @@ use std::{
 use questmancer::{
     app::Motion,
     domain::{
-        AccentTone, AdventurerPersona, AgentKey, GuildSummons, PersonaKey, Presence, Timestamp,
-        WorkspaceId,
+        AccentTone, AdventurerClass, AdventurerPersona, AgentKey, GuildSummons, PersonaKey,
+        Presence, Timestamp, WorkspaceId,
     },
     scene::{
         SceneFrame,
@@ -108,30 +108,6 @@ fn rect_contains(buffer: &RgbBuffer, rect: PixelRect, colour: Rgb) -> bool {
         .any(|y| (rect.x..rect.x + i32::from(rect.width)).any(|x| buffer.get(x, y) == Some(colour)))
 }
 
-fn first_pixel(buffer: &RgbBuffer, colour: Rgb) -> Option<(i32, i32)> {
-    for y in 0..i32::from(buffer.size().height) {
-        for x in 0..i32::from(buffer.size().width) {
-            if buffer.get(x, y) == Some(colour) {
-                return Some((x, y));
-            }
-        }
-    }
-    None
-}
-
-fn accent_colour(accent: AccentTone) -> Rgb {
-    let mut persona = AdventurerPersona::for_key(PersonaKey::new("accent-colour"));
-    persona.appearance.accent = accent;
-    questmancer::scene::assets::palette::adventurer_palette(
-        persona.appearance.skin_tone,
-        persona.appearance.hair_tone,
-        persona.appearance.garb,
-        persona.class,
-        persona.appearance.accent,
-    )
-    .accent
-}
-
 fn hash_parity(workspace: &str) -> usize {
     usize::from(blake3::hash(workspace.as_bytes()).as_bytes()[0] % 2)
 }
@@ -217,6 +193,25 @@ fn actors_occupy_truthful_station_bounds_with_unique_final_anchors() {
 }
 
 #[test]
+fn campaign_tables_show_full_adventurer_identity_instead_of_colour_tokens() {
+    let snapshot = mixed_snapshot();
+    let (_, frame) = render_with_frame(&snapshot, VIEWPORT);
+
+    for key in ["first-working", "second-working"] {
+        let region = frame
+            .actors
+            .iter()
+            .find(|region| region.agent == AgentKey::new(key))
+            .unwrap_or_else(|| panic!("{key} has no campaign-table actor"));
+        assert_eq!(
+            (region.bounds.width, region.bounds.height),
+            (16, 24),
+            "{key} was reduced to an unrecognisable campaign token"
+        );
+    }
+}
+
+#[test]
 fn focused_campaign_crop_uses_the_same_physical_table_as_its_actor() {
     let workspace = (0..100)
         .map(|index| format!("focus-parity-mismatch-{index}"))
@@ -238,15 +233,23 @@ fn focused_campaign_crop_uses_the_same_physical_table_as_its_actor() {
     };
 
     assert_eq!(hash_parity(&workspace), 1);
-    let buffer = render(&snapshot, PixelSize::new(80, 48));
+    let (buffer, frame) = render_with_frame(&snapshot, PixelSize::new(80, 48));
+    let region = frame
+        .actors
+        .iter()
+        .find(|region| region.agent == AgentKey::new("focused-working"))
+        .expect("the focused crop retains its working adventurer region");
     assert!(
-        first_pixel(&buffer, accent_colour(AccentTone::Cyan)).is_some(),
+        (region.bounds.y..region.bounds.y + i32::from(region.bounds.height)).any(|y| {
+            (region.bounds.x..region.bounds.x + i32::from(region.bounds.width))
+                .any(|x| buffer.get(x, y).is_some_and(|pixel| pixel != VOID))
+        }),
         "the focused 80px crop must retain its working actor"
     );
 }
 
 #[test]
-fn campaign_tokens_have_unique_anchors_per_physical_table_across_three_campaigns() {
+fn campaign_adventurers_have_unique_anchors_per_physical_table_across_three_campaigns() {
     let snapshot = SceneSnapshot {
         connection: SceneConnection::Connected,
         campaigns: vec![
@@ -278,28 +281,35 @@ fn campaign_tokens_have_unique_anchors_per_physical_table_across_three_campaigns
         now: Timestamp::from_millis(10_000),
     };
 
-    let buffer = render(&snapshot, VIEWPORT);
+    let (_, frame) = render_with_frame(&snapshot, VIEWPORT);
     let expected = [
         (
-            AccentTone::Cyan,
+            "left-first-agent",
             PixelRect::new(35, 47, 38, 27),
-            "first left-table token",
+            "first left-table adventurer",
         ),
         (
-            AccentTone::Lime,
+            "right-agent",
             PixelRect::new(77, 47, 38, 27),
-            "right-table token",
+            "right-table adventurer",
         ),
         (
-            AccentTone::Magenta,
+            "left-second-agent",
             PixelRect::new(35, 47, 38, 27),
-            "second left-table token",
+            "second left-table adventurer",
         ),
     ];
     let mut anchors = HashSet::new();
-    for (accent, bounds, label) in expected {
-        let anchor = first_pixel(&buffer, accent_colour(accent))
-            .unwrap_or_else(|| panic!("{label} has no persona-owned accent pixel"));
+    for (key, bounds, label) in expected {
+        let region = frame
+            .actors
+            .iter()
+            .find(|region| region.agent == AgentKey::new(key))
+            .unwrap_or_else(|| panic!("{label} has no rendered region"));
+        let anchor = (
+            region.bounds.x + i32::from(region.bounds.width / 2),
+            region.bounds.y + i32::from(region.bounds.height) - 1,
+        );
         assert!(
             anchor.0 >= bounds.x
                 && anchor.0 < bounds.x + i32::from(bounds.width)
@@ -496,4 +506,45 @@ fn static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps() {
         &mut target,
     );
     assert_eq!(settled_frame.next_frame_in, None);
+}
+
+#[test]
+fn campaign_table_motion_is_authored_and_does_not_wake_static_classes() {
+    let mut barbarian = agent(
+        "animated-barbarian",
+        "amber-library",
+        Presence::Working,
+        AccentTone::Red,
+    );
+    barbarian.persona.class = AdventurerClass::Barbarian;
+    let mut snapshot = SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns: vec![campaign("amber-library", 7)],
+        agents: vec![barbarian],
+        motion: Motion::Full,
+        now: Timestamp::from_millis(1_000),
+    };
+
+    let (first, first_frame) = render_with_frame(&snapshot, VIEWPORT);
+    assert_eq!(
+        first_frame.next_frame_in,
+        Some(Duration::from_millis(167)),
+        "the authored working Barbarian pose should schedule its next frame"
+    );
+
+    snapshot.now = Timestamp::from_millis(1_167);
+    let (second, second_frame) = render_with_frame(&snapshot, VIEWPORT);
+    assert_ne!(
+        first.pixels(),
+        second.pixels(),
+        "the scheduled frame must change visible authored pixels"
+    );
+    assert!(second_frame.next_frame_in.is_some());
+
+    snapshot.agents[0].persona.class = AdventurerClass::Rogue;
+    let (_, static_frame) = render_with_frame(&snapshot, VIEWPORT);
+    assert_eq!(
+        static_frame.next_frame_in, None,
+        "a static class master must not keep the Guild Hall render loop awake"
+    );
 }
