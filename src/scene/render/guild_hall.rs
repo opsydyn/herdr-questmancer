@@ -880,7 +880,7 @@ fn actor_anchors<'a>(
                 69 - i32::try_from(slot / 5).unwrap_or(0) * 3,
             ),
             TruthfulStation::Hearth => PixelPoint::new(
-                132 + i32::try_from(slot % 3).unwrap_or(0) * 9,
+                132 + i32::try_from(slot % 3).unwrap_or(0) * 8,
                 47 - i32::try_from(slot / 3).unwrap_or(0) * 3,
             ),
             TruthfulStation::DelveActive(_)

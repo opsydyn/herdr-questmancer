@@ -237,6 +237,30 @@ fn compact_guild_hall_keeps_the_whole_party_visible_and_clickable() {
 }
 
 #[test]
+fn canonical_hearth_keeps_three_resting_adventurers_inside_the_room() {
+    let mut snapshot = mixed_snapshot();
+    snapshot.agents = ["first", "second", "third"]
+        .into_iter()
+        .map(|key| agent(key, "amber-library", Presence::Idle, AccentTone::Teal))
+        .collect();
+
+    let (_, frame) = render_with_frame(&snapshot, VIEWPORT);
+
+    assert_eq!(frame.actors.len(), 3);
+    for actor in frame.actors {
+        assert!(
+            actor.bounds.x >= 0
+                && actor.bounds.y >= 0
+                && actor.bounds.x + i32::from(actor.bounds.width) <= i32::from(VIEWPORT.width)
+                && actor.bounds.y + i32::from(actor.bounds.height) <= i32::from(VIEWPORT.height),
+            "{} is cropped outside the canonical Hall: {:?}",
+            actor.agent,
+            actor.bounds
+        );
+    }
+}
+
+#[test]
 fn librarian_has_one_complete_non_agent_station_in_canonical_and_compact_halls() {
     for viewport in [PixelSize::new(160, 90), PixelSize::new(80, 48)] {
         let (_, frame) = render_with_frame(&mixed_snapshot(), viewport);
