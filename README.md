@@ -16,7 +16,8 @@ The production interface is one RGB pixel world with two rooms:
 
 Both rooms retain the same selection and commands. An in-world selection rune
 marks the selected adventurer; contextual parchment overlays handle counsel,
-search, scrying and help without replacing the scene with a dashboard.
+search and scrying without replacing the scene with a dashboard. A persistent
+Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
 
 ## Requirements
 
@@ -90,13 +91,18 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `o` | Refresh the selected adventurer's recent output |
 | `/` | Search the party and campaigns |
 | `v` | Inspect spoils through Reviewr when available |
-| `?` | Open help |
+| `?` | Open or close the Librarian's Ledger |
 | `Esc` | Dismiss the active parchment |
 | `q` / `Ctrl-C` | Close Questmancer when no text parchment is open |
 
 Counsel and search accept ordinary text. `Enter` submits, `Ctrl-U` clears, and
 `Esc` cancels. Questmancer never selects, focuses, reads, or counsels its own
 managed pane.
+
+The persistent Librarian is a non-agent Guild Hall character. Click him—or
+press `?` anywhere—to open the same four-page handbook. Use left/right to page
+through Welcome, Reading the Party, Questmancer's Tools and Safe Chronicle;
+`Esc` closes it. The Librarian cannot receive counsel, focus or output commands.
 
 Herdr and the coding-agent CLI remain authoritative. Questmancer does not
 manually steer sprites: their identity, location, pose and attention effects
@@ -152,7 +158,7 @@ agent processes or persistent state:
 just storybook
 ```
 
-It contains sixteen fixed production stories, each owned exactly once:
+It contains seventeen fixed production stories, each owned exactly once:
 
 - Guild Hall
 - Delve
@@ -161,11 +167,12 @@ It contains sixteen fixed production stories, each owned exactly once:
 - all eight classic portrait masters
 - native Barbarian, Rogue, Wizard and Goblin card portraits with authored-sprite fallbacks
 - Goblin world and portrait Easter egg
+- persistent Librarian world and Ledger fallback sprites
 - selected adventurer
 - counsel parchment
 - search parchment
 - scrying parchment
-- help parchment
+- Librarian's Ledger
 - narrow viewport
 
 Use `j`/`k` or arrow keys to move through stories and `q` to exit. Run its
