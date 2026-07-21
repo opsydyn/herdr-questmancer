@@ -7,10 +7,12 @@ outer terminal and Herdr form one graphics transport.
 
 ## Confirmed working result
 
-The production Barbarian, Rogue, Wizard and Goblin cards can render embedded
-transparent PNGs in Ghostty through Herdr 0.7.4 using Kitty graphics. The world
-remains rendered by Questmancer's RGB half-block scene adapter. Only the
-expanded card uses the native image protocol.
+The native-card path is confirmed for Barbarian, Rogue, Wizard and Goblin
+through Ghostty and Herdr 0.7.4 using Kitty graphics. Bard is registered with
+the same transparent PNG contract and automated coverage; its live native
+render remains a manual-review item. The world remains rendered by
+Questmancer's RGB half-block scene adapter. Only the expanded card uses the
+native image protocol.
 
 Current implementation:
 
@@ -131,7 +133,7 @@ Both final log records should be `succeeded` with empty stderr.
 3. Attach a fresh Herdr client after enabling the bridge.
 4. Open Questmancer and create disposable agents only; never repurpose an
    unrelated live agent for testing.
-5. Select a Barbarian, Rogue, Wizard or Goblin adventurer with an embedded
+5. Select a Barbarian, Bard, Rogue, Wizard or Goblin adventurer with an embedded
    portrait.
 6. Confirm the card shows the transparent PNG while the Guild Hall remains the
    RGB half-block world.

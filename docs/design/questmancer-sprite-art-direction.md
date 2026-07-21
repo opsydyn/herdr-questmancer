@@ -15,7 +15,7 @@ cards.
 
 The current profile card uses a native transparent PNG when an approved Kitty,
 Sixel or iTerm2 protocol is detected and an asset exists for that identity.
-Barbarian, Rogue and Wizard currently have class portraits; Goblin has an
+Barbarian, Bard, Rogue and Wizard currently have class portraits; Goblin has an
 ancestry portrait that takes priority over class. The registered 24x32 portrait
 master is the unconditional fallback. The RGB scene renderer and its half-block
 adapter remain the correct foundation for the world itself.
