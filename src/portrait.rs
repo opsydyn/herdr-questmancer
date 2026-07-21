@@ -52,6 +52,7 @@ impl PortraitCapability {
 pub struct PortraitGallery {
     capability: PortraitCapability,
     portraits: BTreeMap<PortraitKey, Protocol>,
+    librarian: Option<Protocol>,
     diagnostic: Option<String>,
 }
 
@@ -73,6 +74,7 @@ impl PortraitGallery {
         Self {
             capability: PortraitCapability::Unsupported,
             portraits: BTreeMap::new(),
+            librarian: None,
             diagnostic: Some(diagnostic.into()),
         }
     }
@@ -82,6 +84,11 @@ impl PortraitGallery {
         self.portraits
             .get(&PortraitKey::Ancestry(persona.ancestry))
             .or_else(|| self.portraits.get(&PortraitKey::Class(persona.class)))
+    }
+
+    #[must_use]
+    pub const fn librarian(&self) -> Option<&Protocol> {
+        self.librarian.as_ref()
     }
 
     #[must_use]
@@ -100,6 +107,7 @@ impl PortraitGallery {
             return Self {
                 capability,
                 portraits: BTreeMap::new(),
+                librarian: None,
                 diagnostic: None,
             };
         }
@@ -114,10 +122,18 @@ impl PortraitGallery {
                 Err(error) => failures.push(format!("{key:?}: {error}")),
             }
         }
+        let librarian = match prepare_portrait(picker, librarian_asset()) {
+            Ok(protocol) => Some(protocol),
+            Err(error) => {
+                failures.push(format!("Librarian: {error}"));
+                None
+            }
+        };
 
         Self {
             capability,
             portraits,
+            librarian,
             diagnostic: (!failures.is_empty())
                 .then(|| format!("portrait assets unavailable: {}", failures.join(", "))),
         }
@@ -130,9 +146,15 @@ impl fmt::Debug for PortraitGallery {
             .debug_struct("PortraitGallery")
             .field("capability", &self.capability)
             .field("classes", &self.portraits.keys().collect::<Vec<_>>())
+            .field("librarian", &self.librarian.is_some())
             .field("diagnostic", &self.diagnostic)
             .finish()
     }
+}
+
+#[must_use]
+pub const fn librarian_asset() -> &'static [u8] {
+    include_bytes!("assets/librarian.png")
 }
 
 #[must_use]
@@ -241,6 +263,7 @@ mod tests {
 
         assert_eq!(gallery.capability(), PortraitCapability::Unsupported);
         assert!(gallery.portrait_for(&persona).is_none());
+        assert!(gallery.librarian().is_none());
     }
 
     #[test]
@@ -267,6 +290,7 @@ mod tests {
         assert!(gallery.portrait_for(&wizard).is_some());
         assert!(gallery.portrait_for(&goblin).is_some());
         assert!(gallery.portrait_for(&druid).is_none());
+        assert!(gallery.librarian().is_some());
         assert!(gallery.diagnostic().is_none());
     }
 
