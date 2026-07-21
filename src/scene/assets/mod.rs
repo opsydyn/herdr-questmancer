@@ -3,6 +3,7 @@ pub mod archetypes;
 pub(crate) mod barbarian_v2;
 pub mod delve;
 pub mod guild_hall;
+pub mod librarian;
 pub mod palette;
 
 use std::collections::HashMap;
