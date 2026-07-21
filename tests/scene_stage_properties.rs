@@ -190,7 +190,7 @@ proptest! {
     }
 
     #[test]
-    fn arbitrary_focused_crops_match_authored_origins_within_reference_bounds(
+    fn arbitrary_delve_crops_match_authored_origins_within_reference_bounds(
         mut source in support::strategies::scene_snapshot(),
         width in 1_u16..120,
         height in 1_u16..72,
@@ -198,50 +198,53 @@ proptest! {
         prop_assume!(!source.agents.is_empty());
         source.motion = Motion::None;
 
-        let mut guild = source.clone();
-        guild.connection = SceneConnection::Connected;
-        for agent in &mut guild.agents {
+        source.connection = SceneConnection::Connected;
+        for agent in &mut source.agents {
             agent.presence = Presence::Exited;
             agent.transition = None;
             agent.focused = false;
         }
-        guild.agents[0].presence = Presence::Blocked;
-        guild.agents[0].focused = true;
-
-        let mut delve = source;
-        delve.connection = SceneConnection::Connected;
-        for agent in &mut delve.agents {
-            agent.presence = Presence::Exited;
-            agent.transition = None;
-            agent.focused = false;
-        }
-        delve.agents[0].presence = Presence::Working;
-        delve.agents[0].focused = true;
+        source.agents[0].presence = Presence::Working;
+        source.agents[0].focused = true;
 
         let viewport = PixelSize::new(width, height);
-        for (expected_world, focus, snapshot) in [
-            (WorldScene::GuildHall, (124, 48), guild),
-            (WorldScene::Delve, (81, 47), delve),
-        ] {
-            let mut reference = RgbBuffer::filled(0, 0, Rgb::BLACK);
-            let reference_frame = render_scene(&snapshot, PixelSize::new(160, 90), &mut reference);
-            prop_assert_eq!(reference_frame.world, expected_world);
+        let mut reference = RgbBuffer::filled(0, 0, Rgb::BLACK);
+        let reference_frame = render_scene(&source, PixelSize::new(160, 90), &mut reference);
+        prop_assert_eq!(reference_frame.world, WorldScene::Delve);
 
-            let mut crop = RgbBuffer::filled(0, 0, Rgb::BLACK);
-            let crop_frame = render_scene(&snapshot, viewport, &mut crop);
-            prop_assert_eq!(crop_frame.world, expected_world);
-            let (origin_x, origin_y) = focused_crop_origin(focus, viewport);
-            let reference_x = origin_x;
-            let reference_y = origin_y;
-            prop_assert!(reference_x >= 0);
-            prop_assert!(reference_y >= 0);
-            prop_assert!(reference_x + i32::from(width) <= 160);
-            prop_assert!(reference_y + i32::from(height) <= 90);
-            for y in 0..i32::from(height) {
-                for x in 0..i32::from(width) {
-                    prop_assert_eq!(crop.get(x, y), reference.get(x + reference_x, y + reference_y));
-                }
+        let mut crop = RgbBuffer::filled(0, 0, Rgb::BLACK);
+        let crop_frame = render_scene(&source, viewport, &mut crop);
+        prop_assert_eq!(crop_frame.world, WorldScene::Delve);
+        let (reference_x, reference_y) = focused_crop_origin((81, 47), viewport);
+        prop_assert!(reference_x >= 0);
+        prop_assert!(reference_y >= 0);
+        prop_assert!(reference_x + i32::from(width) <= 160);
+        prop_assert!(reference_y + i32::from(height) <= 90);
+        for y in 0..i32::from(height) {
+            for x in 0..i32::from(width) {
+                prop_assert_eq!(crop.get(x, y), reference.get(x + reference_x, y + reference_y));
             }
+        }
+    }
+
+    #[test]
+    fn responsive_guild_hall_never_returns_a_cropped_actor_region(
+        mut snapshot in support::strategies::scene_snapshot(),
+        width in 0_u16..400,
+        height in 0_u16..240,
+    ) {
+        snapshot.connection = SceneConnection::Offline;
+        snapshot.motion = Motion::None;
+        let viewport = PixelSize::new(width, height);
+        let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
+        let frame = render_scene(&snapshot, viewport, &mut target);
+
+        prop_assert_eq!(frame.world, WorldScene::GuildHall);
+        for actor in frame.actors {
+            prop_assert!(actor.bounds.x >= 0);
+            prop_assert!(actor.bounds.y >= 0);
+            prop_assert!(actor.bounds.x + i32::from(actor.bounds.width) <= i32::from(width));
+            prop_assert!(actor.bounds.y + i32::from(actor.bounds.height) <= i32::from(height));
         }
     }
 }

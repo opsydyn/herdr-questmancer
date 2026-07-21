@@ -460,7 +460,7 @@ fn cadence_is_derived_only_from_motion_and_visible_needs() {
 }
 
 #[test]
-fn viewport_matrix_preserves_exact_targets_and_authored_camera_crops() {
+fn viewport_matrix_preserves_exact_targets_and_world_specific_viewport_contracts() {
     let guild = snapshot(Vec::new());
     let mut delve_agent = agent("working", Presence::Working);
     delve_agent.focused = true;
@@ -500,7 +500,16 @@ fn viewport_matrix_preserves_exact_targets_and_authored_camera_crops() {
     let mut blocked = agent("blocked", Presence::Blocked);
     blocked.focused = true;
     let guild_focus = snapshot(vec![blocked]);
-    assert_authored_camera_crop(WorldScene::GuildHall, &guild_focus, (80, 24));
+    let (guild_frame, compact_guild) = render(&guild_focus, PixelSize::new(80, 48));
+    assert_eq!(guild_frame.actors.len(), 1);
+    assert_eq!(guild_frame.actors[0].agent, AgentKey::new("blocked"));
+    assert!(
+        compact_guild
+            .pixels()
+            .iter()
+            .all(|pixel| *pixel != Rgb::new(255, 0, 255)),
+        "the responsive Guild Hall must paint its complete compact composition"
+    );
     assert_authored_camera_crop(WorldScene::Delve, &delve, (41, 23));
 
     for value in [&guild, &delve] {
@@ -638,7 +647,7 @@ fn fresh_spoils_deadline_requires_a_visible_animated_pixel() {
     let (empty_effect_pixel, _) = render(&fresh, PixelSize::new(1, 1));
     assert_eq!(empty_effect_pixel.next_frame_in, None);
 
-    let (visible_effect_pixels, _) = render(&fresh, PixelSize::new(20, 20));
+    let (visible_effect_pixels, _) = render(&fresh, PixelSize::new(40, 36));
     assert_eq!(
         visible_effect_pixels.next_frame_in,
         Some(Duration::from_millis(125))

@@ -212,6 +212,79 @@ fn campaign_tables_show_full_adventurer_identity_instead_of_colour_tokens() {
 }
 
 #[test]
+fn compact_guild_hall_keeps_the_whole_party_visible_and_clickable() {
+    let viewport = PixelSize::new(80, 48);
+    let (_, frame) = render_with_frame(&mixed_snapshot(), viewport);
+
+    assert_eq!(frame.actors.len(), 5, "the compact hall retains the party");
+    for region in &frame.actors {
+        assert!(
+            region.bounds.x >= 0
+                && region.bounds.y >= 0
+                && region.bounds.x + i32::from(region.bounds.width) <= i32::from(viewport.width)
+                && region.bounds.y + i32::from(region.bounds.height) <= i32::from(viewport.height),
+            "{} is cropped outside the compact hall: {:?}",
+            region.agent,
+            region.bounds
+        );
+        assert_eq!(
+            (region.bounds.width, region.bounds.height),
+            (16, 24),
+            "{} must retain its authored world-master scale",
+            region.agent
+        );
+    }
+}
+
+#[test]
+fn minimum_guild_hall_shows_one_complete_priority_adventurer() {
+    let viewport = PixelSize::new(40, 36);
+    let (_, frame) = render_with_frame(&mixed_snapshot(), viewport);
+
+    assert_eq!(
+        frame.actors.len(),
+        1,
+        "the minimum hall must become a coherent adventurer vignette"
+    );
+    let region = &frame.actors[0];
+    assert_eq!(
+        region.agent,
+        AgentKey::new("counsel-seeker"),
+        "the most urgent adventurer must survive minimum-size reduction"
+    );
+    assert_eq!(
+        (region.bounds.width, region.bounds.height),
+        (16, 24),
+        "the priority adventurer must retain authored scale"
+    );
+    assert!(
+        region.bounds.x >= 0
+            && region.bounds.y >= 0
+            && region.bounds.x + i32::from(region.bounds.width) <= i32::from(viewport.width)
+            && region.bounds.y + i32::from(region.bounds.height) <= i32::from(viewport.height),
+        "the priority adventurer is cropped outside the minimum hall: {:?}",
+        region.bounds
+    );
+}
+
+#[test]
+fn compact_guild_hall_degrades_to_vignette_when_party_exceeds_capacity() {
+    let viewport = PixelSize::new(64, 40);
+    let (_, frame) = render_with_frame(&mixed_snapshot(), viewport);
+
+    assert_eq!(
+        frame.actors.len(),
+        1,
+        "compact mode must not retain actors it cannot render completely"
+    );
+    assert_eq!(frame.actors[0].agent, AgentKey::new("counsel-seeker"));
+    assert!(
+        frame.actors[0].bounds.y + i32::from(frame.actors[0].bounds.height)
+            <= i32::from(viewport.height)
+    );
+}
+
+#[test]
 fn focused_campaign_crop_uses_the_same_physical_table_as_its_actor() {
     let workspace = (0..100)
         .map(|index| format!("focus-parity-mismatch-{index}"))

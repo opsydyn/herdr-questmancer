@@ -33,7 +33,7 @@ For terminal-free visual review:
 just storybook
 ```
 
-Review all fifteen fixed stories, including the core world masters, core
+Review all sixteen fixed stories, including the core world masters, core
 portrait masters, native Barbarian, Rogue, Wizard and Goblin cards, and the
 Goblin Easter egg. Storybook does
 not connect to Herdr, invoke plugin actions, write state or send text. In
