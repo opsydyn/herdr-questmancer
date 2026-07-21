@@ -92,6 +92,10 @@ pub fn native_goblin_portrait_fixture(context: StoryContext) -> Model {
     native_portrait_fixture(context, AdventurerClass::Druid, Ancestry::Goblin)
 }
 
+pub fn native_orc_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Paladin, Ancestry::Orc)
+}
+
 fn native_portrait_fixture(
     context: StoryContext,
     class: AdventurerClass,

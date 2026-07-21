@@ -179,20 +179,24 @@ pub const fn portrait_asset(class: AdventurerClass) -> Option<&'static [u8]> {
 pub const fn ancestry_portrait_asset(ancestry: Ancestry) -> Option<&'static [u8]> {
     match ancestry {
         Ancestry::Goblin => Some(include_bytes!("assets/portraits/goblin-card.png")),
+        Ancestry::Orc => Some(include_bytes!("assets/portraits/orc-card.png")),
         Ancestry::Human
         | Ancestry::Dwarf
         | Ancestry::Elf
         | Ancestry::Halfling
-        | Ancestry::Orc
         | Ancestry::Gnome => None,
     }
 }
 
-fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 6] {
+fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 7] {
     [
         (
             PortraitKey::Ancestry(Ancestry::Goblin),
             ancestry_portrait_asset(Ancestry::Goblin).expect("Goblin portrait is embedded"),
+        ),
+        (
+            PortraitKey::Ancestry(Ancestry::Orc),
+            ancestry_portrait_asset(Ancestry::Orc).expect("Orc portrait is embedded"),
         ),
         (
             PortraitKey::Class(AdventurerClass::Barbarian),
@@ -252,7 +256,7 @@ mod tests {
         for ancestry in Ancestry::ALL {
             assert_eq!(
                 ancestry_portrait_asset(*ancestry).is_some(),
-                *ancestry == Ancestry::Goblin,
+                matches!(ancestry, Ancestry::Goblin | Ancestry::Orc),
                 "{ancestry:?}"
             );
         }
@@ -299,6 +303,8 @@ mod tests {
         druid.class = AdventurerClass::Druid;
         let mut goblin = druid.clone();
         goblin.ancestry = Ancestry::Goblin;
+        let mut orc = druid.clone();
+        orc.ancestry = Ancestry::Orc;
 
         assert_eq!(gallery.capability(), PortraitCapability::Kitty);
         assert!(gallery.portrait_for(&barbarian).is_some());
@@ -307,28 +313,34 @@ mod tests {
         assert!(gallery.portrait_for(&rogue).is_some());
         assert!(gallery.portrait_for(&wizard).is_some());
         assert!(gallery.portrait_for(&goblin).is_some());
+        assert!(gallery.portrait_for(&orc).is_some());
         assert!(gallery.portrait_for(&druid).is_none());
         assert!(gallery.librarian().is_some());
         assert!(gallery.diagnostic().is_none());
     }
 
     #[test]
-    fn goblin_ancestry_portrait_takes_priority_over_class_portrait() {
+    fn native_ancestry_portraits_take_priority_over_class_portraits() {
         let mut picker = Picker::halfblocks();
         picker.set_protocol_type(ProtocolType::Kitty);
         let gallery = PortraitGallery::from_picker(&picker);
-        let mut persona =
-            AdventurerPersona::for_key(crate::domain::PersonaKey::new("goblin-wizard"));
-        persona.ancestry = Ancestry::Goblin;
-        persona.class = AdventurerClass::Wizard;
+        for (ancestry, class) in [
+            (Ancestry::Goblin, AdventurerClass::Wizard),
+            (Ancestry::Orc, AdventurerClass::Paladin),
+        ] {
+            let mut persona =
+                AdventurerPersona::for_key(crate::domain::PersonaKey::new("ancestry"));
+            persona.ancestry = ancestry;
+            persona.class = class;
 
-        let selected = gallery.portrait_for(&persona).expect("Goblin portrait");
-        let ancestry = gallery
-            .portraits
-            .get(&PortraitKey::Ancestry(Ancestry::Goblin))
-            .expect("Goblin protocol");
+            let selected = gallery.portrait_for(&persona).expect("ancestry portrait");
+            let portrait = gallery
+                .portraits
+                .get(&PortraitKey::Ancestry(ancestry))
+                .expect("ancestry protocol");
 
-        assert!(std::ptr::eq(selected, ancestry));
+            assert!(std::ptr::eq(selected, portrait), "{ancestry:?}");
+        }
     }
 
     #[test]

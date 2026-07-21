@@ -17,6 +17,7 @@ pub enum SceneFirstAsset {
     NativeRoguePortrait,
     NativeWizardPortrait,
     NativeGoblinPortrait,
+    NativeOrcPortrait,
     GoblinEasterEgg,
     LibrarianAssets,
 }
@@ -40,6 +41,7 @@ impl SceneFirstAsset {
         Self::NativeRoguePortrait,
         Self::NativeWizardPortrait,
         Self::NativeGoblinPortrait,
+        Self::NativeOrcPortrait,
         Self::GoblinEasterEgg,
         Self::LibrarianAssets,
     ];
@@ -63,6 +65,7 @@ impl SceneFirstAsset {
             Self::NativeRoguePortrait => "asset: native Rogue card portrait",
             Self::NativeWizardPortrait => "asset: native Wizard card portrait",
             Self::NativeGoblinPortrait => "asset: native Goblin card portrait",
+            Self::NativeOrcPortrait => "asset: native Orc card portrait",
             Self::GoblinEasterEgg => "asset: Goblin Easter egg",
             Self::LibrarianAssets => "asset: Librarian world and ledger sprites",
         }

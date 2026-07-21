@@ -297,7 +297,7 @@ fn asset_stories() -> Vec<Story> {
     stories
 }
 
-fn native_card_stories() -> [Story; 6] {
+fn native_card_stories() -> [Story; 7] {
     [
         story!(
             "asset.native-barbarian-portrait",
@@ -352,6 +352,15 @@ fn native_card_stories() -> [Story; 6] {
             ASSET_VIEWPORT,
             native_goblin_portrait,
             NativeGoblinPortrait
+        ),
+        story!(
+            "asset.native-orc-portrait",
+            "Asset / Native Orc Card",
+            Category::Assets,
+            "Orc ancestry takes priority over class when its embedded native portrait is available.",
+            ASSET_VIEWPORT,
+            native_orc_portrait,
+            NativeOrcPortrait
         ),
     ]
 }
@@ -423,6 +432,10 @@ fn native_wizard_portrait(context: StoryContext) -> StoryFixture {
 
 fn native_goblin_portrait(context: StoryContext) -> StoryFixture {
     scene(fixtures::native_goblin_portrait_fixture(context))
+}
+
+fn native_orc_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_orc_portrait_fixture(context))
 }
 
 fn counsel(context: StoryContext) -> StoryFixture {
