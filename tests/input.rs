@@ -35,7 +35,7 @@ fn number_and_function_keys_switch_views() {
 
 #[test]
 fn global_keys_map_to_explicit_actions() {
-    assert_eq!(action_for(key(KeyCode::Char('?'))), Action::ShowHelp);
+    assert_eq!(action_for(key(KeyCode::Char('?'))), Action::ToggleLedger);
     assert_eq!(action_for(key(KeyCode::Esc)), Action::Dismiss);
     assert_eq!(action_for(key(KeyCode::Char('q'))), Action::Quit);
     assert_eq!(
@@ -80,7 +80,13 @@ fn clicking_a_rendered_adventurer_selects_only_that_agent() {
         }
     );
     assert_eq!(
-        action_for_scene_event_in(&click, &Modal::Help, &frame),
+        action_for_scene_event_in(
+            &click,
+            &Modal::LibrarianLedger {
+                page: questmancer::ledger::LedgerPageId::Welcome,
+            },
+            &frame,
+        ),
         Action::None
     );
 }
@@ -187,27 +193,37 @@ fn counsel_modal_treats_global_shortcuts_as_composed_text() {
 }
 
 #[test]
-fn help_modal_accepts_only_dismissal_keys() {
+fn ledger_modal_accepts_only_navigation_and_dismissal_keys() {
+    let modal = Modal::LibrarianLedger {
+        page: questmancer::ledger::LedgerPageId::Welcome,
+    };
     for code in [
         KeyCode::Char('q'),
-        KeyCode::Char('j'),
         KeyCode::Enter,
         KeyCode::Char('/'),
         KeyCode::Char('r'),
     ] {
         assert_eq!(
-            action_for_event_in(&Event::Key(key(code)), &Modal::Help),
+            action_for_event_in(&Event::Key(key(code)), &modal),
             Action::None,
-            "help leaked {code:?}"
+            "ledger leaked {code:?}"
         );
     }
     assert_eq!(
-        action_for_event_in(&Event::Key(key(KeyCode::Esc)), &Modal::Help),
+        action_for_event_in(&Event::Key(key(KeyCode::Esc)), &modal),
         Action::Dismiss
     );
     assert_eq!(
-        action_for_event_in(&Event::Key(key(KeyCode::Char('?'))), &Modal::Help),
-        Action::ShowHelp
+        action_for_event_in(&Event::Key(key(KeyCode::Char('?'))), &modal),
+        Action::ToggleLedger
+    );
+    assert_eq!(
+        action_for_event_in(&Event::Key(key(KeyCode::Right)), &modal),
+        Action::Next
+    );
+    assert_eq!(
+        action_for_event_in(&Event::Key(key(KeyCode::Left)), &modal),
+        Action::Previous
     );
 }
 

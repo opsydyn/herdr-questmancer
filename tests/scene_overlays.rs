@@ -119,6 +119,22 @@ fn search_and_scrying_are_contextual_overlays() {
 }
 
 #[test]
+fn librarian_ledger_is_the_single_responsive_help_surface() {
+    let mut model = model();
+    let _ = reduce_action(&mut model, Action::ToggleLedger);
+
+    let wide = render(&model, 120, 36);
+    assert!(wide.contains("LIBRARIAN'S LEDGER"));
+    assert!(wide.contains("Welcome to the Guild"));
+    assert!(wide.contains("Page 1 / 4"));
+    assert!(wide.contains("Esc/? close"));
+
+    let compact = render(&model, 64, 24);
+    assert!(compact.contains("LIBRARIAN'S LEDGER"));
+    assert!(compact.contains("Welcome to the Guild"));
+}
+
+#[test]
 fn selected_adventurer_card_exposes_fantasy_and_system_identity() {
     let mut model = model();
     model.show_adventurer_card();
@@ -197,7 +213,7 @@ fn command_ribbon_expires_after_three_seconds() {
 #[test]
 fn overlays_are_safe_at_zero_and_minimum_viewports() {
     let mut model = model();
-    let _ = reduce_action(&mut model, Action::ShowHelp);
+    let _ = reduce_action(&mut model, Action::ToggleLedger);
     for (width, height) in [(0, 0), (1, 1), (40, 18), (80, 24)] {
         let _ = render(&model, width, height);
     }

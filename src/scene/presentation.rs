@@ -9,7 +9,7 @@ pub enum SceneOverlay {
     None,
     Counsel,
     Search,
-    Help,
+    LibrarianLedger,
     Scrying,
 }
 
@@ -31,7 +31,7 @@ impl ScenePresentation {
             selected_agent: model.selected_agent_key().cloned(),
             overlay: match model.modal() {
                 Modal::None => SceneOverlay::None,
-                Modal::Help => SceneOverlay::Help,
+                Modal::LibrarianLedger { .. } => SceneOverlay::LibrarianLedger,
                 Modal::Counsel { .. } => SceneOverlay::Counsel,
                 Modal::Search { .. } => SceneOverlay::Search,
                 Modal::Scrying => SceneOverlay::Scrying,

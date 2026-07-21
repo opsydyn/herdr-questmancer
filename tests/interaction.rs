@@ -9,6 +9,10 @@ use questmancer::{
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::{reduce_action, reduce_scene_action},
+    ledger::LedgerPageId,
+    scene::{
+        SceneFrame, SceneInteractable, SceneInteractableRegion, pixel::PixelRect, stage::WorldScene,
+    },
     ui::input::Action,
     update::Command,
 };
@@ -82,12 +86,12 @@ fn quit_is_an_explicit_typed_loop_outcome() {
 }
 
 #[test]
-fn help_opens_toggles_and_blocks_normal_model_actions() {
+fn ledger_opens_pages_toggles_and_blocks_normal_model_actions() {
     let mut model = live_model_with_two_agents();
     let selected = model.selected_agent_key().cloned();
 
-    let opened = reduce_action(&mut model, Action::ShowHelp);
-    assert_eq!(model.modal(), &Modal::Help);
+    let opened = reduce_action(&mut model, Action::ToggleLedger);
+    assert!(matches!(model.modal(), Modal::LibrarianLedger { .. }));
     assert!(opened.commands.is_empty());
     assert!(opened.persistence.is_empty());
 
@@ -99,28 +103,28 @@ fn help_opens_toggles_and_blocks_normal_model_actions() {
         Action::Search,
     ] {
         let blocked = reduce_action(&mut model, action);
-        assert_eq!(model.view(), View::Guild, "help leaked {action:?}");
+        assert_eq!(model.view(), View::Guild, "ledger leaked {action:?}");
         assert_eq!(
             model.guild_focus(),
             GuildFocus::QuestWall,
-            "help leaked {action:?}"
+            "ledger leaked {action:?}"
         );
         assert_eq!(
             model.selected_agent_key(),
             selected.as_ref(),
-            "help leaked {action:?}"
+            "ledger leaked {action:?}"
         );
-        assert_eq!(model.modal(), &Modal::Help, "help leaked {action:?}");
-        assert!(blocked.commands.is_empty(), "help leaked {action:?}");
-        assert!(blocked.persistence.is_empty(), "help leaked {action:?}");
+        assert!(matches!(model.modal(), Modal::LibrarianLedger { .. }));
+        assert!(blocked.commands.is_empty(), "ledger leaked {action:?}");
+        assert!(blocked.persistence.is_empty(), "ledger leaked {action:?}");
     }
 
-    let closed = reduce_action(&mut model, Action::ShowHelp);
+    let closed = reduce_action(&mut model, Action::ToggleLedger);
     assert_eq!(model.modal(), &Modal::None);
     assert!(closed.commands.is_empty());
     assert!(closed.persistence.is_empty());
 
-    let _ = reduce_action(&mut model, Action::ShowHelp);
+    let _ = reduce_action(&mut model, Action::ToggleLedger);
     let dismissed = reduce_action(&mut model, Action::Dismiss);
     assert_eq!(model.modal(), &Modal::None);
     assert!(dismissed.commands.is_empty());
@@ -301,6 +305,35 @@ fn pointer_selection_never_observes_or_sends_counsel() {
         command,
         AgentCommand::FocusPane(_) | AgentCommand::SendCounsel { .. }
     )));
+}
+
+#[test]
+fn clicking_librarian_opens_fresh_ledger_without_selecting_or_commanding_an_agent() {
+    let mut model = live_model_with_two_agents();
+    let selected = model.selected_agent_key().cloned();
+    let scene = SceneFrame {
+        world: WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: Vec::new(),
+        interactables: vec![SceneInteractableRegion {
+            kind: SceneInteractable::Librarian,
+            bounds: PixelRect::new(10, 20, 16, 24),
+        }],
+    };
+
+    let reduction = reduce_scene_action(
+        &mut model,
+        Action::SelectAt {
+            column: 12,
+            row: 11,
+        },
+        &scene,
+    );
+
+    assert_eq!(model.ledger_page(), Some(LedgerPageId::Welcome));
+    assert_eq!(model.selected_agent_key(), selected.as_ref());
+    assert!(reduction.commands.is_empty());
+    assert!(reduction.persistence.is_empty());
 }
 
 #[test]

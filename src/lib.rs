@@ -7,6 +7,7 @@ pub mod config;
 pub mod domain;
 pub mod herdr;
 pub mod interaction;
+pub mod ledger;
 pub mod persistence;
 pub mod portrait;
 pub mod runtime;

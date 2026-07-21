@@ -81,7 +81,7 @@ fn snapshot_ignores_legacy_ui_persistence_and_goblin_state() {
     changed.switch_to(View::Delve);
     changed.domain_mut().selected_agent = Some(AgentKey::new("beta"));
     changed.set_guild_focus(GuildFocus::Door);
-    changed.toggle_help();
+    changed.toggle_ledger();
     changed.set_output_preview(Some(OutputPreview {
         pane_id: PaneId::new("pane-alpha"),
         revision: 99,

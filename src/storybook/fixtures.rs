@@ -124,7 +124,7 @@ pub fn scrying_interaction_fixture(context: StoryContext) -> Model {
 }
 
 pub fn help_interaction_fixture(context: StoryContext) -> Model {
-    interaction_fixture(context, Action::ShowHelp, "")
+    interaction_fixture(context, Action::ToggleLedger, "")
 }
 
 pub fn narrow_interaction_fixture(context: StoryContext) -> Model {

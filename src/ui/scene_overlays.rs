@@ -9,10 +9,11 @@ use ratatui_image::Image;
 use crate::{
     app::{Modal, Model},
     domain::Presence,
+    ledger,
     portrait::PortraitGallery,
     scene::{
         SceneFrame,
-        assets::adventurer::adventurer_portrait_frame,
+        assets::{adventurer::adventurer_portrait_frame, librarian},
         pixel::{PixelPoint, Rgb, RgbBuffer},
         presentation::{SceneOverlay, ScenePresentation},
         sprite::blit,
@@ -117,7 +118,7 @@ pub fn render_scene_overlays(
 ) {
     match presentation.overlay {
         SceneOverlay::Counsel | SceneOverlay::Search => render_input_parchment(frame, model),
-        SceneOverlay::Help => render_help_parchment(frame),
+        SceneOverlay::LibrarianLedger => render_librarian_ledger(frame, model, portraits),
         SceneOverlay::Scrying => render_scrying_parchment(frame, model),
         SceneOverlay::None => {
             render_adventurer_card(frame, model, portraits);
@@ -271,26 +272,95 @@ fn render_input_parchment(frame: &mut Frame<'_>, model: &Model) {
     render_parchment(frame, area, title, Text::from(lines));
 }
 
-fn render_help_parchment(frame: &mut Frame<'_>) {
-    let Some(area) = centered(frame.area(), 72, 15) else {
+fn render_librarian_ledger(
+    frame: &mut Frame<'_>,
+    model: &Model,
+    portraits: Option<&PortraitGallery>,
+) {
+    let Some(page_id) = model.ledger_page() else {
         return;
     };
-    let lines = vec![
-        Line::from("[1/2] Guild Hall / Delve"),
-        Line::from("[j/k or arrows] Select adventurer"),
-        Line::from("[Enter] Observe selected adventurer"),
-        Line::from("[r] Issue counsel"),
-        Line::from("[/] Search the guild"),
-        Line::from("[o] Open the scrying parchment"),
-        Line::from("[v] Inspect spoils"),
-        Line::from("[Esc/?] Close guide"),
-    ];
-    render_parchment(
-        frame,
-        area,
-        " QUESTMANCER'S FIELD GUIDE ",
-        Text::from(lines),
+    let page = ledger::page(page_id);
+    let available = frame.area();
+    if available.width == 0 || available.height == 0 {
+        return;
+    }
+    let wide = available.width >= 96 && available.height >= 22;
+    let width = available
+        .width
+        .saturating_sub(2)
+        .min(if wide { 88 } else { 64 });
+    let height = available
+        .height
+        .saturating_sub(2)
+        .min(if wide { 20 } else { 18 });
+    let Some(area) = centered(available, width, height) else {
+        return;
+    };
+    render_parchment(frame, area, " LIBRARIAN'S LEDGER ", Text::default());
+
+    let page_number = page_id.index() + 1;
+    let footer = format!(
+        "Page {page_number} / {} · j/k or arrows turn · g/G ends",
+        ledger::LedgerPageId::ALL.len()
     );
+    let lines = std::iter::once(Line::from(page.title))
+        .chain(std::iter::once(Line::from("")))
+        .chain(page.body.iter().map(|line| Line::from(*line)))
+        .chain(std::iter::once(Line::from("")))
+        .chain(std::iter::once(Line::from(footer)))
+        .chain(std::iter::once(Line::from("Esc/? close")))
+        .collect::<Vec<_>>();
+
+    if wide {
+        let portrait_area = Rect::new(area.x + 2, area.y + 2, 24, 16);
+        render_librarian_illustration(frame, portrait_area, portraits);
+        let text_area = Rect::new(
+            area.x + 28,
+            area.y + 2,
+            area.width.saturating_sub(30),
+            area.height.saturating_sub(4),
+        );
+        frame.render_widget(
+            Paragraph::new(Text::from(lines))
+                .style(PARCHMENT)
+                .wrap(Wrap { trim: false }),
+            text_area,
+        );
+    } else {
+        let text_area = Rect::new(
+            area.x + 2,
+            area.y + 2,
+            area.width.saturating_sub(4),
+            area.height.saturating_sub(4),
+        );
+        frame.render_widget(
+            Paragraph::new(Text::from(lines))
+                .style(PARCHMENT)
+                .wrap(Wrap { trim: false }),
+            text_area,
+        );
+    }
+}
+
+fn render_librarian_illustration(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    portraits: Option<&PortraitGallery>,
+) {
+    const PARCHMENT_RGB: Rgb = Rgb::new(230, 207, 154);
+    frame.render_widget(Block::default().style(PARCHMENT), area);
+    if let Some(image) = portraits.and_then(PortraitGallery::librarian) {
+        frame.render_widget(Image::new(image), area);
+    } else {
+        let mut pixels = RgbBuffer::filled(24, 32, PARCHMENT_RGB);
+        blit(
+            librarian::ledger_portrait(),
+            PixelPoint::new(0, 0),
+            &mut pixels,
+        );
+        flush_rgb(frame.buffer_mut(), area, &pixels, PARCHMENT_RGB);
+    }
 }
 
 fn render_scrying_parchment(frame: &mut Frame<'_>, model: &Model) {

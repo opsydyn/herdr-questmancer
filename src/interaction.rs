@@ -27,7 +27,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
     if !matches!(action, Action::Redraw | Action::None) {
         model.note_interaction();
     }
-    if intercept_help_modal(model, action) {
+    if intercept_ledger_modal(model, action) {
         return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
     }
     let control = match action {
@@ -80,8 +80,8 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             model.open_search();
             ControlFlow::Continue(())
         }
-        Action::ShowHelp => {
-            model.toggle_help();
+        Action::ToggleLedger => {
+            model.toggle_ledger();
             ControlFlow::Continue(())
         }
         Action::TypeCharacter(character) => {
@@ -108,7 +108,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             match model.modal() {
                 Modal::Counsel { .. } => submit_counsel(model, &mut commands),
                 Modal::Search { .. } => submit_search(model, &mut commands),
-                Modal::None | Modal::Help | Modal::Scrying => {}
+                Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying => {}
             }
             ControlFlow::Continue(())
         }
@@ -129,13 +129,20 @@ pub fn reduce_scene_action(
     let before = PersistedStateV1::capture(model);
     model.note_interaction();
     let mut commands = Vec::new();
-    if let Some(agent) = scene.agent_at(column, row).cloned() {
-        if model.selected_agent_key() == Some(&agent) && model.adventurer_card_visible() {
-            model.dismiss_adventurer_card();
-        } else {
-            select_agent_key(model, &agent, &mut commands);
-            model.show_adventurer_card();
+    match scene.target_at(column, row) {
+        Some(crate::scene::SceneTarget::Agent(agent)) => {
+            let agent = agent.clone();
+            if model.selected_agent_key() == Some(&agent) && model.adventurer_card_visible() {
+                model.dismiss_adventurer_card();
+            } else {
+                select_agent_key(model, &agent, &mut commands);
+                model.show_adventurer_card();
+            }
         }
+        Some(crate::scene::SceneTarget::Interactable(
+            crate::scene::SceneInteractable::Librarian,
+        )) => model.open_ledger(),
+        None => model.dismiss_adventurer_card(),
     }
     finish_reduction(model, &before, ControlFlow::Continue(()), commands)
 }
@@ -166,12 +173,17 @@ fn refresh_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     }
 }
 
-fn intercept_help_modal(model: &mut Model, action: Action) -> bool {
-    if model.modal() != &Modal::Help {
+fn intercept_ledger_modal(model: &mut Model, action: Action) -> bool {
+    if !matches!(model.modal(), Modal::LibrarianLedger { .. }) {
         return false;
     }
-    if matches!(action, Action::ShowHelp | Action::Dismiss) {
-        model.dismiss_modal();
+    match action {
+        Action::ToggleLedger | Action::Dismiss => model.dismiss_modal(),
+        Action::Next => model.next_ledger_page(),
+        Action::Previous => model.previous_ledger_page(),
+        Action::First => model.first_ledger_page(),
+        Action::Last => model.last_ledger_page(),
+        _ => {}
     }
     true
 }

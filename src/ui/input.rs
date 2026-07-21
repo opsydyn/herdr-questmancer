@@ -10,7 +10,7 @@ use crate::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Action {
     Switch(View),
-    ShowHelp,
+    ToggleLedger,
     Dismiss,
     Redraw,
     Quit,
@@ -41,7 +41,7 @@ pub fn action_for_scene_event_in(event: &Event, modal: &Modal, scene: &SceneFram
         && mouse.kind == MouseEventKind::Down(MouseButton::Left)
     {
         return scene
-            .agent_at(mouse.column, mouse.row)
+            .target_at(mouse.column, mouse.row)
             .map_or(Action::Dismiss, |_| Action::SelectAt {
                 column: mouse.column,
                 row: mouse.row,
@@ -76,10 +76,14 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
             _ => Action::None,
         };
     }
-    if matches!(modal, Modal::Help) {
+    if matches!(modal, Modal::LibrarianLedger { .. }) {
         return match key.code {
             KeyCode::Esc => Action::Dismiss,
-            KeyCode::Char('?') => Action::ShowHelp,
+            KeyCode::Char('?') => Action::ToggleLedger,
+            KeyCode::Char('j') | KeyCode::Right | KeyCode::Down => Action::Next,
+            KeyCode::Char('k') | KeyCode::Left | KeyCode::Up => Action::Previous,
+            KeyCode::Char('g') => Action::First,
+            KeyCode::Char('G') => Action::Last,
             _ => Action::None,
         };
     }
@@ -93,7 +97,7 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
     match key.code {
         KeyCode::Char('1') | KeyCode::F(1) => Action::Switch(View::Guild),
         KeyCode::Char('2') | KeyCode::F(2) => Action::Switch(View::Delve),
-        KeyCode::Char('?') => Action::ShowHelp,
+        KeyCode::Char('?') => Action::ToggleLedger,
         KeyCode::Esc => Action::Dismiss,
         KeyCode::Char('q') => Action::Quit,
         KeyCode::Char('j') | KeyCode::Down => Action::Next,

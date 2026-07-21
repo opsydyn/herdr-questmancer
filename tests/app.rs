@@ -2,12 +2,33 @@ use questmancer::{
     app::{ConnectionState, GuildFocus, Modal, Model, Notice, View},
     domain::{AgentKey, DomainState, PaneId, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
+    ledger::LedgerPageId,
+    persistence::PersistedStateV1,
 };
 
 fn domain_state() -> DomainState {
     let response: SuccessResponse<SessionSnapshotResult> =
         serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
     DomainState::from_snapshot(&response.result.snapshot, Timestamp::from_millis(1))
+}
+
+#[test]
+fn ledger_opens_fresh_clamps_navigation_and_remains_transient() {
+    let mut model = Model::new(View::Guild);
+    let durable = PersistedStateV1::capture(&model);
+
+    model.toggle_ledger();
+    assert_eq!(model.ledger_page(), Some(LedgerPageId::Welcome));
+    model.previous_ledger_page();
+    assert_eq!(model.ledger_page(), Some(LedgerPageId::Welcome));
+    model.last_ledger_page();
+    assert_eq!(model.ledger_page(), Some(LedgerPageId::SafeChronicle));
+    model.next_ledger_page();
+    assert_eq!(model.ledger_page(), Some(LedgerPageId::SafeChronicle));
+    model.dismiss_modal();
+    model.open_ledger();
+    assert_eq!(model.ledger_page(), Some(LedgerPageId::Welcome));
+    assert_eq!(PersistedStateV1::capture(&model), durable);
 }
 
 #[test]

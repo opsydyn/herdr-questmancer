@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     domain::{Agent, AgentKey, DomainState, PaneId, Timestamp},
+    ledger::LedgerPageId,
     persistence::DurableIntent,
     update::{AppEvent, update},
 };
@@ -213,7 +214,9 @@ guild_focus!(
 pub enum Modal {
     #[default]
     None,
-    Help,
+    LibrarianLedger {
+        page: LedgerPageId,
+    },
     Counsel {
         draft: String,
     },
@@ -439,18 +442,59 @@ impl Model {
         };
     }
 
-    pub fn toggle_help(&mut self) {
-        self.modal = if self.modal == Modal::Help {
+    pub fn toggle_ledger(&mut self) {
+        self.modal = if matches!(self.modal, Modal::LibrarianLedger { .. }) {
             Modal::None
         } else {
-            Modal::Help
+            Modal::LibrarianLedger {
+                page: LedgerPageId::Welcome,
+            }
         };
+    }
+
+    pub fn open_ledger(&mut self) {
+        self.modal = Modal::LibrarianLedger {
+            page: LedgerPageId::Welcome,
+        };
+    }
+
+    pub const fn ledger_page(&self) -> Option<LedgerPageId> {
+        match self.modal {
+            Modal::LibrarianLedger { page } => Some(page),
+            _ => None,
+        }
+    }
+
+    pub fn next_ledger_page(&mut self) {
+        if let Modal::LibrarianLedger { page } = &mut self.modal {
+            *page = page.next();
+        }
+    }
+
+    pub fn previous_ledger_page(&mut self) {
+        if let Modal::LibrarianLedger { page } = &mut self.modal {
+            *page = page.previous();
+        }
+    }
+
+    pub fn first_ledger_page(&mut self) {
+        if let Modal::LibrarianLedger { page } = &mut self.modal {
+            *page = LedgerPageId::Welcome;
+        }
+    }
+
+    pub fn last_ledger_page(&mut self) {
+        if let Modal::LibrarianLedger { page } = &mut self.modal {
+            *page = LedgerPageId::SafeChronicle;
+        }
     }
 
     pub fn counsel_draft(&self) -> Option<&str> {
         match &self.modal {
             Modal::Counsel { draft } => Some(draft),
-            Modal::None | Modal::Help | Modal::Search { .. } | Modal::Scrying => None,
+            Modal::None | Modal::LibrarianLedger { .. } | Modal::Search { .. } | Modal::Scrying => {
+                None
+            }
         }
     }
 
@@ -462,7 +506,7 @@ impl Model {
         match &mut self.modal {
             Modal::Counsel { draft } => draft.push(character),
             Modal::Search { query } => query.push(character),
-            Modal::None | Modal::Help | Modal::Scrying => {}
+            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying => {}
         }
     }
 
@@ -478,7 +522,7 @@ impl Model {
             Modal::Search { query } => {
                 query.pop();
             }
-            Modal::None | Modal::Help | Modal::Scrying => {}
+            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying => {}
         }
     }
 
@@ -486,7 +530,7 @@ impl Model {
         match &mut self.modal {
             Modal::Counsel { draft } => draft.clear(),
             Modal::Search { query } => query.clear(),
-            Modal::None | Modal::Help | Modal::Scrying => {}
+            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying => {}
         }
     }
 
