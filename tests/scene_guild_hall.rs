@@ -12,7 +12,7 @@ use questmancer::{
         Presence, Timestamp, WorkspaceId,
     },
     scene::{
-        SceneFrame,
+        SceneFrame, SceneInteractable,
         assets::palette::{
             EMBER, INK_BLUE, OAK, PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_GOLD, SHADOW, VOID,
         },
@@ -234,6 +234,49 @@ fn compact_guild_hall_keeps_the_whole_party_visible_and_clickable() {
             region.agent
         );
     }
+}
+
+#[test]
+fn librarian_has_one_complete_non_agent_station_in_canonical_and_compact_halls() {
+    for viewport in [PixelSize::new(160, 90), PixelSize::new(80, 48)] {
+        let (_, frame) = render_with_frame(&mixed_snapshot(), viewport);
+        let librarians = frame
+            .interactables
+            .iter()
+            .filter(|region| region.kind == SceneInteractable::Librarian)
+            .collect::<Vec<_>>();
+
+        assert_eq!(librarians.len(), 1, "missing Librarian at {viewport:?}");
+        let bounds = librarians[0].bounds;
+        assert!(bounds.x >= 0 && bounds.y >= 0);
+        assert!(bounds.x + i32::from(bounds.width) <= i32::from(viewport.width));
+        assert!(bounds.y + i32::from(bounds.height) <= i32::from(viewport.height));
+        assert_eq!((bounds.width, bounds.height), (16, 24));
+        assert!(
+            frame
+                .actors
+                .iter()
+                .all(|actor| !overlaps(actor.bounds, bounds))
+        );
+    }
+}
+
+#[test]
+fn librarian_yields_vignette_and_status_only_halls_to_live_status() {
+    for viewport in [PixelSize::new(40, 36), PixelSize::new(12, 12)] {
+        let (_, frame) = render_with_frame(&mixed_snapshot(), viewport);
+        assert!(
+            frame.interactables.is_empty(),
+            "unexpected NPC at {viewport:?}"
+        );
+    }
+}
+
+fn overlaps(left: PixelRect, right: PixelRect) -> bool {
+    left.x < right.x + i32::from(right.width)
+        && left.x + i32::from(left.width) > right.x
+        && left.y < right.y + i32::from(right.height)
+        && left.y + i32::from(left.height) > right.y
 }
 
 #[test]

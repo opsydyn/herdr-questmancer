@@ -4,10 +4,11 @@ use crate::{
     app::Motion,
     domain::{AgentKey, WorkspaceId},
     scene::{
-        SceneActorRegion, SceneFrame,
+        SceneActorRegion, SceneFrame, SceneInteractable, SceneInteractableRegion,
         assets::{
             adventurer::{adventurer_animation_frame, adventurer_pose_is_animated},
             guild_hall::{GuildHallAsset, frame},
+            librarian,
             palette::{
                 AMBER_LIGHT, EMBER, FLAME, INK_BLUE, OAK, OAK_DARK, OAK_LIGHT, PARCHMENT,
                 PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_DARK, RUG_GOLD, SHADOW, STONE,
@@ -37,6 +38,7 @@ const COMPACT_MIN_WIDTH: u16 = 64;
 const COMPACT_MIN_HEIGHT: u16 = 40;
 const ADVENTURER_WIDTH: u16 = 16;
 const ADVENTURER_HEIGHT: u16 = 24;
+const LIBRARIAN_CANONICAL_ORIGIN: PixelPoint = PixelPoint::new(7, 64);
 
 const DOOR: PixelRect = PixelRect::new(5, 14, 25, 46);
 const QUEST_WALL: PixelRect = PixelRect::new(34, 11, 43, 27);
@@ -94,6 +96,16 @@ pub fn paint(
     apply_connection_light(snapshot, target, origin);
     restore_landmark_signatures(target, origin);
     let (actor_deadline, actors) = paint_actors(snapshot, plan, target, origin);
+    let interactables = paint_librarian(
+        target,
+        translate(
+            origin,
+            LIBRARIAN_CANONICAL_ORIGIN.x,
+            LIBRARIAN_CANONICAL_ORIGIN.y,
+        ),
+    )
+    .into_iter()
+    .collect();
     let effect_deadline = paint_effects(snapshot, plan, target, origin);
     paint_connection_fact(snapshot, target, origin);
 
@@ -101,7 +113,7 @@ pub fn paint(
         world: plan.world,
         next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
         actors,
-        interactables: Vec::new(),
+        interactables,
     }
 }
 
@@ -118,7 +130,7 @@ fn composition_for(viewport: PixelSize, actor_count: usize) -> GuildHallComposit
         GuildHallComposition::Canonical
     } else if viewport.width >= COMPACT_MIN_WIDTH
         && viewport.height >= COMPACT_MIN_HEIGHT
-        && compact_actor_capacity(viewport) >= actor_count
+        && compact_party_capacity(viewport) >= actor_count
     {
         GuildHallComposition::Compact
     } else if viewport.width >= ADVENTURER_WIDTH && viewport.height >= ADVENTURER_HEIGHT {
@@ -132,6 +144,10 @@ fn compact_actor_capacity(viewport: PixelSize) -> usize {
     let columns = viewport.width / ADVENTURER_WIDTH;
     let rows = viewport.height / ADVENTURER_HEIGHT;
     usize::from(columns) * usize::from(rows)
+}
+
+fn compact_party_capacity(viewport: PixelSize) -> usize {
+    compact_actor_capacity(viewport).saturating_sub(1)
 }
 
 fn paint_vignette(
@@ -267,6 +283,15 @@ fn paint_compact(
     paint_compact_furnishings(snapshot, target);
     apply_compact_connection_light(snapshot, target);
     let (actor_deadline, actors) = paint_compact_actors(snapshot, plan, target);
+    let librarian_origin = compact_actor_origin(
+        target.size(),
+        0,
+        plan.actors.len().saturating_add(1),
+        librarian::world().size(),
+    );
+    let interactables = paint_librarian(target, librarian_origin)
+        .into_iter()
+        .collect();
     let effect_deadline = paint_compact_effects(snapshot, plan, target, &actors);
     paint_compact_connection_fact(snapshot, target);
 
@@ -274,7 +299,7 @@ fn paint_compact(
         world: plan.world,
         next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
         actors,
-        interactables: Vec::new(),
+        interactables,
     }
 }
 
@@ -419,7 +444,12 @@ fn paint_compact_actors(
         let elapsed = agent.presence_since.elapsed_until(snapshot.now);
         let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
         let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
-        let actor_origin = compact_actor_origin(target.size(), index, count, sprite.size());
+        let actor_origin = compact_actor_origin(
+            target.size(),
+            index.saturating_add(1),
+            count.saturating_add(1),
+            sprite.size(),
+        );
         let bounds = PixelRect::new(
             actor_origin.x,
             actor_origin.y,
@@ -442,6 +472,28 @@ fn paint_compact_actors(
         });
     }
     (next_frame_in, regions)
+}
+
+fn paint_librarian(target: &mut RgbBuffer, origin: PixelPoint) -> Option<SceneInteractableRegion> {
+    let sprite = librarian::world();
+    let bounds = PixelRect::new(
+        origin.x,
+        origin.y,
+        sprite.size().width,
+        sprite.size().height,
+    );
+    if bounds.x < 0
+        || bounds.y < 0
+        || bounds.x + i32::from(bounds.width) > i32::from(target.size().width)
+        || bounds.y + i32::from(bounds.height) > i32::from(target.size().height)
+    {
+        return None;
+    }
+    blit(sprite, origin, target);
+    Some(SceneInteractableRegion {
+        kind: SceneInteractable::Librarian,
+        bounds,
+    })
 }
 
 fn compact_actor_origin(
