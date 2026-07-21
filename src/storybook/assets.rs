@@ -6,7 +6,7 @@ pub enum SceneFirstAsset {
     CounselParchment,
     SearchParchment,
     ScryingParchment,
-    HelpParchment,
+    LibrarianLedger,
     NarrowParchment,
     CoreWorldMasters,
     BarbarianV2PoseFamily,
@@ -16,6 +16,7 @@ pub enum SceneFirstAsset {
     NativeWizardPortrait,
     NativeGoblinPortrait,
     GoblinEasterEgg,
+    LibrarianAssets,
 }
 
 impl SceneFirstAsset {
@@ -26,7 +27,7 @@ impl SceneFirstAsset {
         Self::CounselParchment,
         Self::SearchParchment,
         Self::ScryingParchment,
-        Self::HelpParchment,
+        Self::LibrarianLedger,
         Self::NarrowParchment,
         Self::CoreWorldMasters,
         Self::BarbarianV2PoseFamily,
@@ -36,6 +37,7 @@ impl SceneFirstAsset {
         Self::NativeWizardPortrait,
         Self::NativeGoblinPortrait,
         Self::GoblinEasterEgg,
+        Self::LibrarianAssets,
     ];
 
     pub const fn label(self) -> &'static str {
@@ -46,7 +48,7 @@ impl SceneFirstAsset {
             Self::CounselParchment => "interaction: counsel parchment",
             Self::SearchParchment => "interaction: search parchment",
             Self::ScryingParchment => "interaction: scrying parchment",
-            Self::HelpParchment => "interaction: help parchment",
+            Self::LibrarianLedger => "interaction: Librarian's Ledger",
             Self::NarrowParchment => "interaction: narrow parchment",
             Self::CoreWorldMasters => "asset: core world masters",
             Self::BarbarianV2PoseFamily => "asset: Barbarian v2 pose family",
@@ -56,6 +58,7 @@ impl SceneFirstAsset {
             Self::NativeWizardPortrait => "asset: native Wizard card portrait",
             Self::NativeGoblinPortrait => "asset: native Goblin card portrait",
             Self::GoblinEasterEgg => "asset: Goblin Easter egg",
+            Self::LibrarianAssets => "asset: Librarian world and ledger sprites",
         }
     }
 }

@@ -36,6 +36,7 @@ pub enum ArchetypeGallery {
     BarbarianV2Poses,
     PortraitMasters,
     GoblinEasterEgg,
+    Librarian,
 }
 
 pub const fn barbarian_v2_pose_fixture() -> StoryFixture {
@@ -123,7 +124,7 @@ pub fn scrying_interaction_fixture(context: StoryContext) -> Model {
     interaction_fixture(context, Action::Refresh, "")
 }
 
-pub fn help_interaction_fixture(context: StoryContext) -> Model {
+pub fn librarian_ledger_fixture(context: StoryContext) -> Model {
     interaction_fixture(context, Action::ToggleLedger, "")
 }
 

@@ -10,6 +10,7 @@ use ratatui::{Terminal, backend::TestBackend};
 
 #[test]
 fn catalogue_contains_every_production_scene_interaction_once() {
+    assert_eq!(catalogue().len(), 17);
     let titles = catalogue()
         .iter()
         .map(|story| story.title)
@@ -20,6 +21,7 @@ fn catalogue_contains_every_production_scene_interaction_once() {
         "Assets / Barbarian v2 Poses",
         "Assets / Core Portrait Masters",
         "Assets / Goblin Easter Egg",
+        "Assets / Librarian",
         "Asset / Native Barbarian Card",
         "Asset / Native Rogue Card",
         "Asset / Native Wizard Card",
@@ -28,7 +30,7 @@ fn catalogue_contains_every_production_scene_interaction_once() {
         "Interaction / Counsel Parchment",
         "Interaction / Search Parchment",
         "Interaction / Scrying Parchment",
-        "Interaction / Help Parchment",
+        "Interaction / Librarian's Ledger",
         "Interaction / Narrow Parchment",
     ] {
         assert_eq!(

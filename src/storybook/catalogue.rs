@@ -165,16 +165,18 @@ macro_rules! story {
 }
 
 fn build_catalogue() -> Vec<Story> {
+    let mut guild = story!(
+        "world.guild",
+        "World / Guild Hall",
+        Category::Worlds,
+        "The production Guild Hall with a truthful mixed party.",
+        WORLD_VIEWPORT,
+        guild_world,
+        GuildHall
+    );
+    guild.shows = &[AssetId(SceneFirstAsset::LibrarianAssets)];
     let mut stories = vec![
-        story!(
-            "world.guild",
-            "World / Guild Hall",
-            Category::Worlds,
-            "The production Guild Hall with a truthful mixed party.",
-            WORLD_VIEWPORT,
-            guild_world,
-            GuildHall
-        ),
+        guild,
         story!(
             "world.delve",
             "World / Delve",
@@ -221,13 +223,13 @@ fn build_catalogue() -> Vec<Story> {
             ScryingParchment
         ),
         story!(
-            "interaction.help",
-            "Interaction / Help Parchment",
+            "interaction.librarian-ledger",
+            "Interaction / Librarian's Ledger",
             Category::Interactions,
-            "The production field guide over the Guild Hall.",
+            "The fixed production handbook opened from the persistent Librarian.",
             WORLD_VIEWPORT,
-            help,
-            HelpParchment
+            librarian_ledger,
+            LibrarianLedger
         ),
         story!(
             "interaction.narrow",
@@ -243,7 +245,7 @@ fn build_catalogue() -> Vec<Story> {
     stories
 }
 
-fn asset_stories() -> [Story; 8] {
+fn asset_stories() -> [Story; 9] {
     [
         story!(
             "asset.world-masters",
@@ -280,6 +282,15 @@ fn asset_stories() -> [Story; 8] {
             ASSET_VIEWPORT,
             goblin_easter_egg,
             GoblinEasterEgg
+        ),
+        story!(
+            "asset.librarian",
+            "Assets / Librarian",
+            Category::Assets,
+            "The persistent Guild Hall Librarian at both authored production scales.",
+            ASSET_VIEWPORT,
+            librarian_assets,
+            LibrarianAssets
         ),
         story!(
             "asset.native-barbarian-portrait",
@@ -357,6 +368,10 @@ fn goblin_easter_egg(_: StoryContext) -> StoryFixture {
     StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::GoblinEasterEgg)
 }
 
+fn librarian_assets(_: StoryContext) -> StoryFixture {
+    StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::Librarian)
+}
+
 fn selected(context: StoryContext) -> StoryFixture {
     scene(fixtures::selected_adventurer_interaction_fixture(context))
 }
@@ -389,8 +404,8 @@ fn scrying(context: StoryContext) -> StoryFixture {
     scene(fixtures::scrying_interaction_fixture(context))
 }
 
-fn help(context: StoryContext) -> StoryFixture {
-    scene(fixtures::help_interaction_fixture(context))
+fn librarian_ledger(context: StoryContext) -> StoryFixture {
+    scene(fixtures::librarian_ledger_fixture(context))
 }
 
 fn narrow(context: StoryContext) -> StoryFixture {

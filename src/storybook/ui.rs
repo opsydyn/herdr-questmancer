@@ -14,7 +14,7 @@ use crate::{
         assets::{
             adventurer::{adventurer_animation_frame, adventurer_portrait_frame},
             archetypes::{goblin_portrait_frame, goblin_world_frame},
-            barbarian_v2,
+            barbarian_v2, librarian,
         },
         pixel::{PixelSize, Rgb, RgbBuffer},
         presentation::ScenePresentation,
@@ -215,7 +215,11 @@ fn render_archetype_gallery(frame: &mut Frame<'_>, area: Rect, gallery: Archetyp
     for (index, (label, sprite)) in entries.iter().enumerate() {
         let column = u16::try_from(index % columns).expect("gallery column fits u16");
         let row = u16::try_from(index / columns).expect("gallery row fits u16");
-        let scale = if entries.len() <= 2 { 2 } else { 1 };
+        let scale = if entries.len() <= 2 && gallery != ArchetypeGallery::Librarian {
+            2
+        } else {
+            1
+        };
         let painted_width = sprite.size().width.saturating_mul(scale);
         let painted_height = sprite.size().height.saturating_mul(scale);
         let x = column
@@ -265,6 +269,16 @@ fn render_archetype_gallery(frame: &mut Frame<'_>, area: Rect, gallery: Archetyp
 }
 
 fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)> {
+    if gallery == ArchetypeGallery::Librarian {
+        return vec![
+            ("Librarian · world 16x24", librarian::world().clone()),
+            (
+                "Librarian · ledger fallback 24x32",
+                librarian::ledger_portrait().clone(),
+            ),
+        ];
+    }
+
     if gallery == ArchetypeGallery::GoblinEasterEgg {
         return vec![
             ("Goblin · world", goblin_world_frame()),
@@ -302,7 +316,9 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
                 }
                 ArchetypeGallery::PortraitMasters => adventurer_portrait_frame(&persona)
                     .expect("every core archetype has a portrait master"),
-                ArchetypeGallery::BarbarianV2Poses | ArchetypeGallery::GoblinEasterEgg => {
+                ArchetypeGallery::BarbarianV2Poses
+                | ArchetypeGallery::GoblinEasterEgg
+                | ArchetypeGallery::Librarian => {
                     unreachable!()
                 }
             };
