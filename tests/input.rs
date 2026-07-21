@@ -6,7 +6,10 @@ use crossterm::event::{
 use questmancer::{
     app::{Modal, View},
     domain::AgentKey,
-    scene::{SceneActorRegion, SceneFrame, pixel::PixelRect, stage::WorldScene},
+    scene::{
+        SceneActorRegion, SceneFrame, SceneInteractable, SceneInteractableRegion, SceneTarget,
+        pixel::PixelRect, stage::WorldScene,
+    },
     ui::input::{
         Action, action_for, action_for_event, action_for_event_in, action_for_scene_event_in,
     },
@@ -60,6 +63,7 @@ fn clicking_a_rendered_adventurer_selects_only_that_agent() {
             agent: AgentKey::new("codex"),
             bounds: PixelRect::new(10, 20, 8, 14),
         }],
+        interactables: Vec::new(),
     };
     let click = Event::Mouse(MouseEvent {
         kind: MouseEventKind::Down(MouseButton::Left),
@@ -87,6 +91,7 @@ fn clicking_empty_world_space_dismisses_the_adventurer_card() {
         world: WorldScene::GuildHall,
         next_frame_in: None,
         actors: Vec::new(),
+        interactables: Vec::new(),
     };
     let click = Event::Mouse(MouseEvent {
         kind: MouseEventKind::Down(MouseButton::Left),
@@ -99,6 +104,36 @@ fn clicking_empty_world_space_dismisses_the_adventurer_card() {
         action_for_scene_event_in(&click, &Modal::None, &frame),
         Action::Dismiss
     );
+}
+
+#[test]
+fn scene_targets_keep_librarian_hits_distinct_from_agents() {
+    let frame = SceneFrame {
+        world: WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: vec![SceneActorRegion {
+            agent: AgentKey::new("codex"),
+            bounds: PixelRect::new(2, 4, 4, 6),
+        }],
+        interactables: vec![SceneInteractableRegion {
+            kind: SceneInteractable::Librarian,
+            bounds: PixelRect::new(10, 20, 6, 8),
+        }],
+    };
+
+    assert_eq!(
+        frame.target_at(3, 2),
+        Some(SceneTarget::Agent(&AgentKey::new("codex")))
+    );
+    assert_eq!(
+        frame.target_at(12, 10),
+        Some(SceneTarget::Interactable(SceneInteractable::Librarian))
+    );
+    assert_eq!(
+        frame.interactable_at(12, 13),
+        Some(SceneInteractable::Librarian)
+    );
+    assert_eq!(frame.target_at(30, 20), None);
 }
 
 #[test]

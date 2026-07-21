@@ -162,6 +162,7 @@ fn every_visible_sprite_has_an_agent_state_nameplate() {
             agent: AgentKey::new("codex"),
             bounds: PixelRect::new(10, 20, 8, 14),
         }],
+        interactables: Vec::new(),
     };
     let backend = TestBackend::new(120, 36);
     let mut terminal = Terminal::new(backend).unwrap();

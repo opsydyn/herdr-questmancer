@@ -101,6 +101,7 @@ pub fn paint(
         world: plan.world,
         next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
         actors,
+        interactables: Vec::new(),
     }
 }
 
@@ -151,6 +152,7 @@ fn paint_vignette(
         world: plan.world,
         next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
         actors,
+        interactables: Vec::new(),
     }
 }
 
@@ -167,6 +169,7 @@ fn paint_status_only(
         world: plan.world,
         next_frame_in: None,
         actors: Vec::new(),
+        interactables: Vec::new(),
     }
 }
 
@@ -271,6 +274,7 @@ fn paint_compact(
         world: plan.world,
         next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
         actors,
+        interactables: Vec::new(),
     }
 }
 

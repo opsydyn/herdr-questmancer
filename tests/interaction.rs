@@ -276,6 +276,7 @@ fn pointer_selection_never_observes_or_sends_counsel() {
             agent: target.clone(),
             bounds: questmancer::scene::pixel::PixelRect::new(10, 20, 8, 14),
         }],
+        interactables: Vec::new(),
     };
 
     let reduction = reduce_scene_action(
@@ -313,6 +314,7 @@ fn selected_adventurer_card_can_be_dismissed_without_clearing_selection() {
             agent: target.clone(),
             bounds: questmancer::scene::pixel::PixelRect::new(10, 20, 8, 14),
         }],
+        interactables: Vec::new(),
     };
 
     let _ = reduce_scene_action(
@@ -342,6 +344,7 @@ fn clicking_the_selected_adventurer_toggles_its_card_closed() {
             agent: target.clone(),
             bounds: questmancer::scene::pixel::PixelRect::new(10, 20, 8, 14),
         }],
+        interactables: Vec::new(),
     };
     let click = Action::SelectAt {
         column: 12,

@@ -19,6 +19,7 @@ pub struct SceneFrame {
     pub world: WorldScene,
     pub next_frame_in: Option<Duration>,
     pub actors: Vec<SceneActorRegion>,
+    pub interactables: Vec<SceneInteractableRegion>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -28,17 +29,60 @@ pub struct SceneActorRegion {
     pub bounds: PixelRect,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SceneInteractable {
+    Librarian,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SceneInteractableRegion {
+    pub kind: SceneInteractable,
+    /// Bounds in the RGB scene's pixel coordinates.
+    pub bounds: PixelRect,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SceneTarget<'a> {
+    Agent(&'a AgentKey),
+    Interactable(SceneInteractable),
+}
+
 impl SceneFrame {
     #[must_use]
     pub fn agent_at(&self, column: u16, row: u16) -> Option<&AgentKey> {
+        match self.target_at(column, row) {
+            Some(SceneTarget::Agent(agent)) => Some(agent),
+            Some(SceneTarget::Interactable(_)) | None => None,
+        }
+    }
+
+    #[must_use]
+    pub fn interactable_at(&self, column: u16, row: u16) -> Option<SceneInteractable> {
+        match self.target_at(column, row) {
+            Some(SceneTarget::Interactable(kind)) => Some(kind),
+            Some(SceneTarget::Agent(_)) | None => None,
+        }
+    }
+
+    #[must_use]
+    pub fn target_at(&self, column: u16, row: u16) -> Option<SceneTarget<'_>> {
         let x = i32::from(column);
         let top = i32::from(row) * 2;
         let bottom = top + 1;
-        self.actors
+        if let Some(agent) = self
+            .actors
             .iter()
             .rev()
             .find(|region| contains(region.bounds, x, top) || contains(region.bounds, x, bottom))
             .map(|region| &region.agent)
+        {
+            return Some(SceneTarget::Agent(agent));
+        }
+        self.interactables
+            .iter()
+            .rev()
+            .find(|region| contains(region.bounds, x, top) || contains(region.bounds, x, bottom))
+            .map(|region| SceneTarget::Interactable(region.kind))
     }
 }
 

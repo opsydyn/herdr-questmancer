@@ -358,6 +358,7 @@ impl<'a> DelvePainter<'a> {
             world: self.plan.world,
             next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
             actors,
+            interactables: Vec::new(),
         }
     }
 }
