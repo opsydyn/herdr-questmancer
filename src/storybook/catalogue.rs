@@ -245,8 +245,8 @@ fn build_catalogue() -> Vec<Story> {
     stories
 }
 
-fn asset_stories() -> [Story; 10] {
-    [
+fn asset_stories() -> Vec<Story> {
+    let mut stories = vec![
         story!(
             "asset.world-masters",
             "Assets / Core World Masters",
@@ -292,6 +292,13 @@ fn asset_stories() -> [Story; 10] {
             librarian_assets,
             LibrarianAssets
         ),
+    ];
+    stories.extend(native_card_stories());
+    stories
+}
+
+fn native_card_stories() -> [Story; 6] {
+    [
         story!(
             "asset.native-barbarian-portrait",
             "Asset / Native Barbarian Card",
@@ -309,6 +316,15 @@ fn asset_stories() -> [Story; 10] {
             ASSET_VIEWPORT,
             native_bard_portrait,
             NativeBardPortrait
+        ),
+        story!(
+            "asset.native-paladin-portrait",
+            "Asset / Native Paladin Card",
+            Category::Assets,
+            "The production Paladin card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_paladin_portrait,
+            NativePaladinPortrait
         ),
         story!(
             "asset.native-rogue-portrait",
@@ -391,6 +407,10 @@ fn native_barbarian_portrait(context: StoryContext) -> StoryFixture {
 
 fn native_bard_portrait(context: StoryContext) -> StoryFixture {
     scene(fixtures::native_bard_portrait_fixture(context))
+}
+
+fn native_paladin_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_paladin_portrait_fixture(context))
 }
 
 fn native_rogue_portrait(context: StoryContext) -> StoryFixture {

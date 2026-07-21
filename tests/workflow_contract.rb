@@ -210,7 +210,7 @@ plan = File.read("docs/superpowers/plans/2026-07-17-questmancer-great-room.md")
   "counsel",
   "search",
   "scrying",
-  "eighteen fixed production stories",
+  "nineteen fixed production stories",
   "Librarian's Ledger",
   "persistent Librarian"
 ].each { |expected| require_text(readme, "README", expected) }

@@ -76,6 +76,10 @@ pub fn native_bard_portrait_fixture(context: StoryContext) -> Model {
     native_portrait_fixture(context, AdventurerClass::Bard, Ancestry::Halfling)
 }
 
+pub fn native_paladin_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Paladin, Ancestry::Dwarf)
+}
+
 pub fn native_rogue_portrait_fixture(context: StoryContext) -> Model {
     native_portrait_fixture(context, AdventurerClass::Rogue, Ancestry::Elf)
 }
