@@ -8,7 +8,7 @@ outer terminal and Herdr form one graphics transport.
 ## Confirmed working result
 
 The native-card path is confirmed for Barbarian, Rogue, Wizard and Goblin
-through Ghostty and Herdr 0.7.4 using Kitty graphics. Bard, Druid, Paladin and Orc
+through Ghostty and Herdr 0.7.4 using Kitty graphics. Artificer, Bard, Druid, Paladin and Orc
 are registered with the same transparent PNG contract and automated coverage;
 their live native render remains a manual-review item. The world remains rendered by
 Questmancer's RGB half-block scene adapter. Only the expanded card uses the
@@ -133,7 +133,7 @@ Both final log records should be `succeeded` with empty stderr.
 3. Attach a fresh Herdr client after enabling the bridge.
 4. Open Questmancer and create disposable agents only; never repurpose an
    unrelated live agent for testing.
-5. Select a Barbarian, Bard, Druid, Paladin, Rogue, Wizard, Goblin or Orc adventurer with an embedded
+5. Select an Artificer, Barbarian, Bard, Druid, Paladin, Rogue, Wizard, Goblin or Orc adventurer with an embedded
    portrait.
 6. Confirm the card shows the transparent PNG while the Guild Hall remains the
    RGB half-block world.
