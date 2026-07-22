@@ -163,12 +163,12 @@ pub const fn portrait_asset(class: AdventurerClass) -> Option<&'static [u8]> {
         AdventurerClass::Artificer => Some(include_bytes!("assets/portraits/artificer-card.png")),
         AdventurerClass::Barbarian => Some(include_bytes!("assets/portraits/barbarian-card.png")),
         AdventurerClass::Bard => Some(include_bytes!("assets/portraits/bard-card.png")),
+        AdventurerClass::Cleric => Some(include_bytes!("assets/portraits/cleric-card.png")),
         AdventurerClass::Druid => Some(include_bytes!("assets/portraits/druid-card.png")),
         AdventurerClass::Paladin => Some(include_bytes!("assets/portraits/paladin-card.png")),
         AdventurerClass::Rogue => Some(include_bytes!("assets/portraits/rogue-card.png")),
         AdventurerClass::Wizard => Some(include_bytes!("assets/portraits/wizard-card.png")),
-        AdventurerClass::Cleric
-        | AdventurerClass::Ranger
+        AdventurerClass::Ranger
         | AdventurerClass::Runewright
         | AdventurerClass::Testmender
         | AdventurerClass::Pathseeker => None,
@@ -188,7 +188,7 @@ pub const fn ancestry_portrait_asset(ancestry: Ancestry) -> Option<&'static [u8]
     }
 }
 
-fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 9] {
+fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 10] {
     [
         (
             PortraitKey::Ancestry(Ancestry::Goblin),
@@ -209,6 +209,10 @@ fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 9] {
         (
             PortraitKey::Class(AdventurerClass::Bard),
             portrait_asset(AdventurerClass::Bard).expect("Bard portrait is embedded"),
+        ),
+        (
+            PortraitKey::Class(AdventurerClass::Cleric),
+            portrait_asset(AdventurerClass::Cleric).expect("Cleric portrait is embedded"),
         ),
         (
             PortraitKey::Class(AdventurerClass::Druid),
@@ -255,6 +259,7 @@ mod tests {
                     AdventurerClass::Artificer
                         | AdventurerClass::Barbarian
                         | AdventurerClass::Bard
+                        | AdventurerClass::Cleric
                         | AdventurerClass::Druid
                         | AdventurerClass::Paladin
                         | AdventurerClass::Rogue
@@ -303,6 +308,8 @@ mod tests {
         barbarian.ancestry = Ancestry::Human;
         let mut artificer = barbarian.clone();
         artificer.class = AdventurerClass::Artificer;
+        let mut cleric = barbarian.clone();
+        cleric.class = AdventurerClass::Cleric;
         let mut rogue = barbarian.clone();
         rogue.class = AdventurerClass::Rogue;
         let mut bard = barbarian.clone();
@@ -313,9 +320,9 @@ mod tests {
         wizard.class = AdventurerClass::Wizard;
         let mut druid = barbarian.clone();
         druid.class = AdventurerClass::Druid;
-        let mut cleric = barbarian.clone();
-        cleric.class = AdventurerClass::Cleric;
-        let mut goblin = cleric.clone();
+        let mut ranger = barbarian.clone();
+        ranger.class = AdventurerClass::Ranger;
+        let mut goblin = ranger.clone();
         goblin.ancestry = Ancestry::Goblin;
         let mut orc = druid.clone();
         orc.ancestry = Ancestry::Orc;
@@ -323,6 +330,7 @@ mod tests {
         assert_eq!(gallery.capability(), PortraitCapability::Kitty);
         assert!(gallery.portrait_for(&artificer).is_some());
         assert!(gallery.portrait_for(&barbarian).is_some());
+        assert!(gallery.portrait_for(&cleric).is_some());
         assert!(gallery.portrait_for(&bard).is_some());
         assert!(gallery.portrait_for(&paladin).is_some());
         assert!(gallery.portrait_for(&rogue).is_some());
@@ -330,7 +338,7 @@ mod tests {
         assert!(gallery.portrait_for(&druid).is_some());
         assert!(gallery.portrait_for(&goblin).is_some());
         assert!(gallery.portrait_for(&orc).is_some());
-        assert!(gallery.portrait_for(&cleric).is_none());
+        assert!(gallery.portrait_for(&ranger).is_none());
         assert!(gallery.librarian().is_some());
         assert!(gallery.diagnostic().is_none());
     }

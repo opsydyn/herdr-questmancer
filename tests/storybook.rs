@@ -10,7 +10,7 @@ use ratatui::{Terminal, backend::TestBackend};
 
 #[test]
 fn catalogue_contains_every_production_scene_interaction_once() {
-    assert_eq!(catalogue().len(), 22);
+    assert_eq!(catalogue().len(), 23);
     let titles = catalogue()
         .iter()
         .map(|story| story.title)
@@ -25,6 +25,7 @@ fn catalogue_contains_every_production_scene_interaction_once() {
         "Asset / Native Artificer Card",
         "Asset / Native Barbarian Card",
         "Asset / Native Bard Card",
+        "Asset / Native Cleric Card",
         "Asset / Native Druid Card",
         "Asset / Native Paladin Card",
         "Asset / Native Rogue Card",
