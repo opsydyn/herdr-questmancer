@@ -100,6 +100,10 @@ pub fn native_rogue_portrait_fixture(context: StoryContext) -> Model {
     native_portrait_fixture(context, AdventurerClass::Rogue, Ancestry::Elf)
 }
 
+pub fn native_testmender_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Testmender, Ancestry::Gnome)
+}
+
 pub fn native_wizard_portrait_fixture(context: StoryContext) -> Model {
     native_portrait_fixture(context, AdventurerClass::Wizard, Ancestry::Human)
 }

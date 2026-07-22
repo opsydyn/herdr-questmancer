@@ -298,12 +298,13 @@ fn asset_stories() -> Vec<Story> {
 }
 
 fn native_card_stories() -> Vec<Story> {
-    let mut stories = native_class_card_stories().to_vec();
+    let mut stories = native_foundation_card_stories().to_vec();
+    stories.extend(native_adventurer_card_stories());
     stories.extend(native_ancestry_card_stories());
     stories
 }
 
-fn native_class_card_stories() -> [Story; 9] {
+fn native_foundation_card_stories() -> [Story; 5] {
     [
         story!(
             "asset.native-artificer-portrait",
@@ -350,6 +351,11 @@ fn native_class_card_stories() -> [Story; 9] {
             native_druid_portrait,
             NativeDruidPortrait
         ),
+    ]
+}
+
+fn native_adventurer_card_stories() -> [Story; 5] {
+    [
         story!(
             "asset.native-paladin-portrait",
             "Asset / Native Paladin Card",
@@ -376,6 +382,15 @@ fn native_class_card_stories() -> [Story; 9] {
             ASSET_VIEWPORT,
             native_rogue_portrait,
             NativeRoguePortrait
+        ),
+        story!(
+            "asset.native-testmender-portrait",
+            "Asset / Native Testmender Card",
+            Category::Assets,
+            "The production Testmender card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_testmender_portrait,
+            NativeTestmenderPortrait
         ),
         story!(
             "asset.native-wizard-portrait",
@@ -487,6 +502,10 @@ fn native_ranger_portrait(context: StoryContext) -> StoryFixture {
 
 fn native_rogue_portrait(context: StoryContext) -> StoryFixture {
     scene(fixtures::native_rogue_portrait_fixture(context))
+}
+
+fn native_testmender_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_testmender_portrait_fixture(context))
 }
 
 fn native_wizard_portrait(context: StoryContext) -> StoryFixture {
