@@ -166,12 +166,12 @@ pub const fn portrait_asset(class: AdventurerClass) -> Option<&'static [u8]> {
         AdventurerClass::Cleric => Some(include_bytes!("assets/portraits/cleric-card.png")),
         AdventurerClass::Druid => Some(include_bytes!("assets/portraits/druid-card.png")),
         AdventurerClass::Paladin => Some(include_bytes!("assets/portraits/paladin-card.png")),
+        AdventurerClass::Ranger => Some(include_bytes!("assets/portraits/ranger-card.png")),
         AdventurerClass::Rogue => Some(include_bytes!("assets/portraits/rogue-card.png")),
         AdventurerClass::Wizard => Some(include_bytes!("assets/portraits/wizard-card.png")),
-        AdventurerClass::Ranger
-        | AdventurerClass::Runewright
-        | AdventurerClass::Testmender
-        | AdventurerClass::Pathseeker => None,
+        AdventurerClass::Runewright | AdventurerClass::Testmender | AdventurerClass::Pathseeker => {
+            None
+        }
     }
 }
 
@@ -188,7 +188,7 @@ pub const fn ancestry_portrait_asset(ancestry: Ancestry) -> Option<&'static [u8]
     }
 }
 
-fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 10] {
+fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 11] {
     [
         (
             PortraitKey::Ancestry(Ancestry::Goblin),
@@ -221,6 +221,10 @@ fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 10] {
         (
             PortraitKey::Class(AdventurerClass::Paladin),
             portrait_asset(AdventurerClass::Paladin).expect("Paladin portrait is embedded"),
+        ),
+        (
+            PortraitKey::Class(AdventurerClass::Ranger),
+            portrait_asset(AdventurerClass::Ranger).expect("Ranger portrait is embedded"),
         ),
         (
             PortraitKey::Class(AdventurerClass::Rogue),
@@ -262,6 +266,7 @@ mod tests {
                         | AdventurerClass::Cleric
                         | AdventurerClass::Druid
                         | AdventurerClass::Paladin
+                        | AdventurerClass::Ranger
                         | AdventurerClass::Rogue
                         | AdventurerClass::Wizard
                 ),
@@ -310,6 +315,8 @@ mod tests {
         artificer.class = AdventurerClass::Artificer;
         let mut cleric = barbarian.clone();
         cleric.class = AdventurerClass::Cleric;
+        let mut ranger = barbarian.clone();
+        ranger.class = AdventurerClass::Ranger;
         let mut rogue = barbarian.clone();
         rogue.class = AdventurerClass::Rogue;
         let mut bard = barbarian.clone();
@@ -320,9 +327,9 @@ mod tests {
         wizard.class = AdventurerClass::Wizard;
         let mut druid = barbarian.clone();
         druid.class = AdventurerClass::Druid;
-        let mut ranger = barbarian.clone();
-        ranger.class = AdventurerClass::Ranger;
-        let mut goblin = ranger.clone();
+        let mut runewright = barbarian.clone();
+        runewright.class = AdventurerClass::Runewright;
+        let mut goblin = runewright.clone();
         goblin.ancestry = Ancestry::Goblin;
         let mut orc = druid.clone();
         orc.ancestry = Ancestry::Orc;
@@ -331,6 +338,7 @@ mod tests {
         assert!(gallery.portrait_for(&artificer).is_some());
         assert!(gallery.portrait_for(&barbarian).is_some());
         assert!(gallery.portrait_for(&cleric).is_some());
+        assert!(gallery.portrait_for(&ranger).is_some());
         assert!(gallery.portrait_for(&bard).is_some());
         assert!(gallery.portrait_for(&paladin).is_some());
         assert!(gallery.portrait_for(&rogue).is_some());
@@ -338,7 +346,7 @@ mod tests {
         assert!(gallery.portrait_for(&druid).is_some());
         assert!(gallery.portrait_for(&goblin).is_some());
         assert!(gallery.portrait_for(&orc).is_some());
-        assert!(gallery.portrait_for(&ranger).is_none());
+        assert!(gallery.portrait_for(&runewright).is_none());
         assert!(gallery.librarian().is_some());
         assert!(gallery.diagnostic().is_none());
     }

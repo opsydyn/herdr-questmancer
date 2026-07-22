@@ -33,8 +33,8 @@ For terminal-free visual review:
 just storybook
 ```
 
-Review all twenty-three fixed stories, including the core world masters, core
-portrait masters, native Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Rogue, Wizard, Goblin and Orc cards, the Goblin
+Review all twenty-four fixed stories, including the core world masters, core
+portrait masters, native Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Wizard, Goblin and Orc cards, the Goblin
 Easter egg, the persistent Librarian, and the Librarian's Ledger. Storybook does
 not connect to Herdr, invoke plugin actions, write state or send text. In
 Ghostty, confirm the header reports `portrait: native Kitty`; on unsupported
@@ -78,7 +78,7 @@ Questmancer pane after the repeated `open`.
 | Acknowledge | `Space` marks the current blocked episode seen locally. |
 | Librarian | The Librarian remains visible and clickable in every full-party Guild Hall composition. Clicking the Librarian opens the same fixed handbook as `?` without changing adventurer selection. |
 | Librarian's Ledger | `?` opens or closes the handbook; left/right pages it; `Esc` closes it. No counsel, observe or selection command passes through the open Ledger. |
-| Native portrait | Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Rogue and Wizard classes use their transparent PNGs when the complete pane transport reports Kitty, Sixel or iTerm2 support. Goblin and Orc ancestries use their PNGs ahead of class. The Librarian's Ledger uses its native Librarian illustration when available. Other identities and unsupported transports retain the authored sprite. |
+| Native portrait | Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue and Wizard classes use their transparent PNGs when the complete pane transport reports Kitty, Sixel or iTerm2 support. Goblin and Orc ancestries use their PNGs ahead of class. The Librarian's Ledger uses its native Librarian illustration when available. Other identities and unsupported transports retain the authored sprite. |
 | Narrow viewport | The Guild Hall recomposes from a compact whole-party room to a priority-adventurer vignette and finally status-only rendering; the Delve retains its authored camera crop. Neither switches to a text dashboard. |
 | View continuity | Selection remains coherent when switching with `1` and `2`. |
 

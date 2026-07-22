@@ -121,8 +121,9 @@ explicit licensing and design decision.
 
 ## Portrait rendering
 
-Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Rogue and Wizard cards have
-native PNG portraits. Goblin and Orc ancestry takes precedence over class. The
+Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue and Wizard
+cards have native PNG portraits. Goblin and Orc ancestry takes precedence over
+class. The
 Librarian's Ledger has a separate native illustration. All paths must retain a
 non-empty authored RGB sprite fallback.
 
@@ -204,7 +205,7 @@ without Herdr, agent processes or persistent state:
 just storybook
 ```
 
-It owns twenty-three fixed production stories. `j`/`k` select stories, `Enter`
+It owns twenty-four fixed production stories. `j`/`k` select stories, `Enter`
 enters inspection mode, `Esc` returns and `q` exits. Resize Ghostty while viewing
 `World / Guild Hall` to review canonical, compact and vignette compositions.
 

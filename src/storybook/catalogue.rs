@@ -297,7 +297,13 @@ fn asset_stories() -> Vec<Story> {
     stories
 }
 
-fn native_card_stories() -> [Story; 10] {
+fn native_card_stories() -> Vec<Story> {
+    let mut stories = native_class_card_stories().to_vec();
+    stories.extend(native_ancestry_card_stories());
+    stories
+}
+
+fn native_class_card_stories() -> [Story; 9] {
     [
         story!(
             "asset.native-artificer-portrait",
@@ -354,6 +360,15 @@ fn native_card_stories() -> [Story; 10] {
             NativePaladinPortrait
         ),
         story!(
+            "asset.native-ranger-portrait",
+            "Asset / Native Ranger Card",
+            Category::Assets,
+            "The production Ranger card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_ranger_portrait,
+            NativeRangerPortrait
+        ),
+        story!(
             "asset.native-rogue-portrait",
             "Asset / Native Rogue Card",
             Category::Assets,
@@ -371,6 +386,11 @@ fn native_card_stories() -> [Story; 10] {
             native_wizard_portrait,
             NativeWizardPortrait
         ),
+    ]
+}
+
+fn native_ancestry_card_stories() -> [Story; 2] {
+    [
         story!(
             "asset.native-goblin-portrait",
             "Asset / Native Goblin Card",
@@ -459,6 +479,10 @@ fn native_druid_portrait(context: StoryContext) -> StoryFixture {
 
 fn native_paladin_portrait(context: StoryContext) -> StoryFixture {
     scene(fixtures::native_paladin_portrait_fixture(context))
+}
+
+fn native_ranger_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_ranger_portrait_fixture(context))
 }
 
 fn native_rogue_portrait(context: StoryContext) -> StoryFixture {
