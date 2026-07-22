@@ -162,11 +162,11 @@ pub const fn portrait_asset(class: AdventurerClass) -> Option<&'static [u8]> {
     match class {
         AdventurerClass::Barbarian => Some(include_bytes!("assets/portraits/barbarian-card.png")),
         AdventurerClass::Bard => Some(include_bytes!("assets/portraits/bard-card.png")),
+        AdventurerClass::Druid => Some(include_bytes!("assets/portraits/druid-card.png")),
         AdventurerClass::Paladin => Some(include_bytes!("assets/portraits/paladin-card.png")),
         AdventurerClass::Rogue => Some(include_bytes!("assets/portraits/rogue-card.png")),
         AdventurerClass::Wizard => Some(include_bytes!("assets/portraits/wizard-card.png")),
         AdventurerClass::Cleric
-        | AdventurerClass::Druid
         | AdventurerClass::Ranger
         | AdventurerClass::Artificer
         | AdventurerClass::Runewright
@@ -188,7 +188,7 @@ pub const fn ancestry_portrait_asset(ancestry: Ancestry) -> Option<&'static [u8]
     }
 }
 
-fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 7] {
+fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 8] {
     [
         (
             PortraitKey::Ancestry(Ancestry::Goblin),
@@ -205,6 +205,10 @@ fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 7] {
         (
             PortraitKey::Class(AdventurerClass::Bard),
             portrait_asset(AdventurerClass::Bard).expect("Bard portrait is embedded"),
+        ),
+        (
+            PortraitKey::Class(AdventurerClass::Druid),
+            portrait_asset(AdventurerClass::Druid).expect("Druid portrait is embedded"),
         ),
         (
             PortraitKey::Class(AdventurerClass::Paladin),
@@ -238,7 +242,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn approved_classes_and_goblin_have_embedded_native_portraits() {
+    fn approved_classes_and_ancestries_have_embedded_native_portraits() {
         for class in AdventurerClass::ALL {
             assert_eq!(
                 portrait_asset(*class).is_some(),
@@ -246,6 +250,7 @@ mod tests {
                     class,
                     AdventurerClass::Barbarian
                         | AdventurerClass::Bard
+                        | AdventurerClass::Druid
                         | AdventurerClass::Paladin
                         | AdventurerClass::Rogue
                         | AdventurerClass::Wizard
@@ -301,7 +306,9 @@ mod tests {
         wizard.class = AdventurerClass::Wizard;
         let mut druid = barbarian.clone();
         druid.class = AdventurerClass::Druid;
-        let mut goblin = druid.clone();
+        let mut cleric = barbarian.clone();
+        cleric.class = AdventurerClass::Cleric;
+        let mut goblin = cleric.clone();
         goblin.ancestry = Ancestry::Goblin;
         let mut orc = druid.clone();
         orc.ancestry = Ancestry::Orc;
@@ -312,9 +319,10 @@ mod tests {
         assert!(gallery.portrait_for(&paladin).is_some());
         assert!(gallery.portrait_for(&rogue).is_some());
         assert!(gallery.portrait_for(&wizard).is_some());
+        assert!(gallery.portrait_for(&druid).is_some());
         assert!(gallery.portrait_for(&goblin).is_some());
         assert!(gallery.portrait_for(&orc).is_some());
-        assert!(gallery.portrait_for(&druid).is_none());
+        assert!(gallery.portrait_for(&cleric).is_none());
         assert!(gallery.librarian().is_some());
         assert!(gallery.diagnostic().is_none());
     }

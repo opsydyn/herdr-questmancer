@@ -204,7 +204,7 @@ without Herdr, agent processes or persistent state:
 just storybook
 ```
 
-It owns seventeen fixed production stories. `j`/`k` select stories, `Enter`
+It owns twenty-one fixed production stories. `j`/`k` select stories, `Enter`
 enters inspection mode, `Esc` returns and `q` exits. Resize Ghostty while viewing
 `World / Guild Hall` to review canonical, compact and vignette compositions.
 

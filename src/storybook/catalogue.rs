@@ -297,7 +297,7 @@ fn asset_stories() -> Vec<Story> {
     stories
 }
 
-fn native_card_stories() -> [Story; 7] {
+fn native_card_stories() -> [Story; 8] {
     [
         story!(
             "asset.native-barbarian-portrait",
@@ -316,6 +316,15 @@ fn native_card_stories() -> [Story; 7] {
             ASSET_VIEWPORT,
             native_bard_portrait,
             NativeBardPortrait
+        ),
+        story!(
+            "asset.native-druid-portrait",
+            "Asset / Native Druid Card",
+            Category::Assets,
+            "The production Druid card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_druid_portrait,
+            NativeDruidPortrait
         ),
         story!(
             "asset.native-paladin-portrait",
@@ -416,6 +425,10 @@ fn native_barbarian_portrait(context: StoryContext) -> StoryFixture {
 
 fn native_bard_portrait(context: StoryContext) -> StoryFixture {
     scene(fixtures::native_bard_portrait_fixture(context))
+}
+
+fn native_druid_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_druid_portrait_fixture(context))
 }
 
 fn native_paladin_portrait(context: StoryContext) -> StoryFixture {
