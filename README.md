@@ -144,11 +144,7 @@ plugin never rewrites global Herdr configuration or semantic agent state.
 [ui.sidebar.agents]
 rows = [
   ["state_icon", "workspace", "tab"],
-  [
-    { token = "agent", bold = true },
-    { token = "$quest_role", fg = "yellow" },
-    { token = "$quest_omen", fg = "cyan", dim = true },
-  ],
+  ["agent", "$quest_role", "$quest_omen"],
 ]
 
 [ui.sidebar.spaces]

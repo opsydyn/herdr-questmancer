@@ -2,6 +2,7 @@ use std::sync::{
     Arc,
     atomic::{AtomicU64, Ordering},
 };
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
     domain::PaneId,
@@ -74,7 +75,7 @@ impl CommandExecutor {
         Self {
             client,
             managed_pane_id,
-            next_sidebar_sequence: Arc::new(AtomicU64::new(1)),
+            next_sidebar_sequence: Arc::new(AtomicU64::new(sidebar_sequence_seed())),
         }
     }
 
@@ -211,6 +212,33 @@ impl CommandExecutor {
         }
         Ok(())
     }
+
+    pub async fn clear_marginalia(
+        &self,
+        projection: &SidebarProjection,
+    ) -> Result<(), ClientError> {
+        for agent in &projection.agents {
+            self.client
+                .report_pane_tokens(
+                    agent.pane_id.as_str(),
+                    SIDEBAR_SOURCE,
+                    cleared_tokens(&agent.tokens),
+                    self.next_sidebar_sequence.fetch_add(1, Ordering::Relaxed),
+                )
+                .await?;
+        }
+        for campaign in &projection.campaigns {
+            self.client
+                .report_workspace_tokens(
+                    campaign.workspace_id.as_str(),
+                    SIDEBAR_SOURCE,
+                    cleared_tokens(&campaign.tokens),
+                    self.next_sidebar_sequence.fetch_add(1, Ordering::Relaxed),
+                )
+                .await?;
+        }
+        Ok(())
+    }
 }
 
 fn optional_tokens(
@@ -220,6 +248,20 @@ fn optional_tokens(
         .into_iter()
         .map(|(token, value)| (token, Some(value)))
         .collect()
+}
+
+fn cleared_tokens(
+    tokens: &std::collections::BTreeMap<String, String>,
+) -> std::collections::BTreeMap<String, Option<String>> {
+    tokens.keys().cloned().map(|token| (token, None)).collect()
+}
+
+fn sidebar_sequence_seed() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(1, |duration| {
+            u64::try_from(duration.as_millis()).unwrap_or(u64::MAX.saturating_sub(1))
+        })
 }
 
 fn split_qualified_action(qualified_id: &str) -> Option<(&str, &str)> {

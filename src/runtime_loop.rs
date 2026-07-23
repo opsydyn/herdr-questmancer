@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     app::{ConnectionState, Model, OutputPreview},
     command::{AgentCommand, CommandExecutor, CommandResult},
@@ -89,6 +91,7 @@ pub struct RuntimeConnection {
     shutdown_tx: watch::Sender<bool>,
     supervisor_task: Option<JoinHandle<()>>,
     command_tasks: JoinSet<CommandResult>,
+    last_sidebar_projection: Option<SidebarProjection>,
 }
 
 impl RuntimeConnection {
@@ -111,11 +114,15 @@ impl RuntimeConnection {
             shutdown_tx,
             supervisor_task: Some(supervisor_task),
             command_tasks: JoinSet::new(),
+            last_sidebar_projection: None,
         }
     }
 
     pub fn schedule(&mut self, commands: impl IntoIterator<Item = AgentCommand>) {
         for command in commands {
+            if let AgentCommand::PublishMarginalia(projection) = &command {
+                self.last_sidebar_projection = Some(projection.clone());
+            }
             let executor = self.executor.clone();
             self.command_tasks
                 .spawn(async move { executor.execute(command).await });
@@ -171,6 +178,13 @@ impl RuntimeConnection {
             {
                 command_error = Some(error);
             }
+        }
+        if let Some(projection) = self.last_sidebar_projection.take() {
+            let _ = tokio::time::timeout(
+                Duration::from_millis(250),
+                self.executor.clear_marginalia(&projection),
+            )
+            .await;
         }
         supervisor_error.or(command_error).map_or(Ok(()), Err)
     }
@@ -375,9 +389,20 @@ fn push_unique_refresh(commands: &mut Vec<AgentCommand>) {
 mod tests {
     use std::{path::PathBuf, time::Duration};
 
-    use tokio::{sync::oneshot, time::timeout};
+    use tokio::{
+        io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
+        net::UnixListener,
+        sync::oneshot,
+        time::timeout,
+    };
 
     use super::*;
+    use crate::{
+        domain::WorkspaceId,
+        sidebar::{
+            QUEST_CAMPAIGN, QUEST_OMEN, QUEST_ROLE, SidebarAgentTokens, SidebarCampaignTokens,
+        },
+    };
 
     #[tokio::test]
     async fn shutdown_cancels_a_supervisor_blocked_on_a_saturated_update_channel() {
@@ -402,6 +427,7 @@ mod tests {
             shutdown_tx,
             supervisor_task: Some(supervisor_task),
             command_tasks: JoinSet::new(),
+            last_sidebar_projection: None,
         };
         first_sent_rx.await.unwrap();
         tokio::task::yield_now().await;
@@ -410,5 +436,67 @@ mod tests {
             .await
             .expect("shutdown hung behind the saturated supervisor update channel")
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn shutdown_clears_last_published_marginalia() {
+        let directory = tempfile::tempdir().unwrap();
+        let socket_path = directory.path().join("herdr.sock");
+        let listener = UnixListener::bind(&socket_path).unwrap();
+        let server = tokio::spawn(async move {
+            for expected_method in ["pane.report_metadata", "workspace.report_metadata"] {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut line = String::new();
+                BufReader::new(&mut stream)
+                    .read_line(&mut line)
+                    .await
+                    .unwrap();
+                let request: serde_json::Value = serde_json::from_str(&line).unwrap();
+                assert_eq!(request["method"], expected_method);
+                assert!(
+                    request["params"]["tokens"]
+                        .as_object()
+                        .unwrap()
+                        .values()
+                        .all(serde_json::Value::is_null)
+                );
+                let response = serde_json::json!({"id": request["id"], "result": {"type": "ok"}});
+                stream
+                    .write_all(serde_json::to_string(&response).unwrap().as_bytes())
+                    .await
+                    .unwrap();
+                stream.write_all(b"\n").await.unwrap();
+            }
+        });
+        let (_update_tx, update_rx) = mpsc::channel(1);
+        let (shutdown_tx, _shutdown_rx) = watch::channel(false);
+        let connection = RuntimeConnection {
+            executor: CommandExecutor::new(HerdrClient::new(socket_path), None),
+            update_rx,
+            updates_open: false,
+            shutdown_tx,
+            supervisor_task: Some(tokio::spawn(async {})),
+            command_tasks: JoinSet::new(),
+            last_sidebar_projection: Some(SidebarProjection {
+                agents: vec![SidebarAgentTokens {
+                    pane_id: PaneId::new("w1:p1"),
+                    tokens: [
+                        (QUEST_ROLE.into(), "Gnome Paladin".into()),
+                        (QUEST_OMEN.into(), "seeks counsel".into()),
+                    ]
+                    .into_iter()
+                    .collect(),
+                }],
+                campaigns: vec![SidebarCampaignTokens {
+                    workspace_id: WorkspaceId::new("w1"),
+                    tokens: [(QUEST_CAMPAIGN.into(), "1 adventurer · 1 summons".into())]
+                        .into_iter()
+                        .collect(),
+                }],
+            }),
+        };
+
+        connection.shutdown().await.unwrap();
+        server.await.unwrap();
     }
 }

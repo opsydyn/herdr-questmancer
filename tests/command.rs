@@ -255,6 +255,10 @@ async fn marginalia_publishes_only_questmancer_owned_tokens() {
             let (mut stream, _) = listener.accept().await.unwrap();
             let request = request(&mut stream).await;
             assert_eq!(request["params"]["source"], "plugin:opsydyn.questmancer");
+            assert!(
+                request["params"]["seq"].as_u64().unwrap() > 1_000_000_000_000,
+                "a fresh process must not restart sidebar metadata ordering at one"
+            );
             assert!(request["params"].get("title").is_none());
             assert!(request["params"].get("display_agent").is_none());
             assert!(request["params"].get("state_labels").is_none());
@@ -296,6 +300,57 @@ async fn marginalia_publishes_only_questmancer_owned_tokens() {
 
     assert_eq!(result, CommandResult::MarginaliaPublished);
     server.await.unwrap();
+}
+
+#[tokio::test]
+async fn marginalia_clear_removes_only_questmancer_tokens() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        for _ in 0..2 {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let request = request(&mut stream).await;
+            assert_eq!(request["params"]["source"], "plugin:opsydyn.questmancer");
+            let tokens = request["params"]["tokens"].as_object().unwrap();
+            assert!(tokens.values().all(serde_json::Value::is_null));
+            match request["method"].as_str() {
+                Some("pane.report_metadata") => {
+                    assert!(tokens.contains_key(QUEST_ROLE));
+                    assert!(tokens.contains_key(QUEST_OMEN));
+                }
+                Some("workspace.report_metadata") => {
+                    assert!(tokens.contains_key(QUEST_CAMPAIGN));
+                }
+                method => panic!("unexpected metadata method: {method:?}"),
+            }
+            respond(&mut stream, &request, json!({"type": "ok"})).await;
+        }
+    });
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
+    let projection = test_marginalia_projection();
+
+    executor.clear_marginalia(&projection).await.unwrap();
+
+    server.await.unwrap();
+}
+
+fn test_marginalia_projection() -> SidebarProjection {
+    SidebarProjection {
+        agents: vec![SidebarAgentTokens {
+            pane_id: PaneId::new("w1:p1"),
+            tokens: [
+                (QUEST_ROLE.into(), "Gnome Paladin".into()),
+                (QUEST_OMEN.into(), "seeks counsel".into()),
+            ]
+            .into_iter()
+            .collect(),
+        }],
+        campaigns: vec![SidebarCampaignTokens {
+            workspace_id: questmancer::domain::WorkspaceId::new("w1"),
+            tokens: [(QUEST_CAMPAIGN.into(), "1 adventurer · 1 summons".into())]
+                .into_iter()
+                .collect(),
+        }],
+    }
 }
 
 #[tokio::test]
