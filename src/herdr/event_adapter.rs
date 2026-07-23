@@ -94,7 +94,13 @@ fn adapt_wire_event(
         | "pane_moved"
         | "pane_agent_detected"
         | "layout_updated" => vec![AdapterAction::RequestSnapshot],
-        "workspace_focused" | "tab_focused" | "pane_focused" => Vec::new(),
+        "workspace_focused"
+        | "tab_focused"
+        | "pane_focused"
+        | "pane.updated"
+        | "pane_updated"
+        | "workspace.metadata_updated"
+        | "workspace_metadata_updated" => Vec::new(),
         unknown => vec![AdapterAction::Diagnostic(format!(
             "ignored unknown Herdr event {unknown:?}"
         ))],

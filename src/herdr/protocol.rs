@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -103,6 +103,8 @@ pub struct WorkspaceInfo {
     pub agent_status: AgentStatus,
     #[serde(default)]
     pub worktree: Option<WorkspaceWorktreeInfo>,
+    #[serde(default)]
+    pub tokens: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -154,6 +156,8 @@ pub struct PaneInfo {
     pub state_labels: HashMap<String, String>,
     #[serde(default)]
     pub title: Option<String>,
+    #[serde(default)]
+    pub tokens: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -185,6 +189,8 @@ pub struct AgentInfo {
     pub state_labels: HashMap<String, String>,
     #[serde(default)]
     pub title: Option<String>,
+    #[serde(default)]
+    pub tokens: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -276,6 +282,22 @@ pub struct PaneReadParams {
     pub lines: Option<u32>,
     pub format: ReadFormat,
     pub strip_ansi: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PaneReportMetadataParams {
+    pub pane_id: String,
+    pub source: String,
+    pub tokens: BTreeMap<String, Option<String>>,
+    pub seq: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct WorkspaceReportMetadataParams {
+    pub workspace_id: String,
+    pub source: String,
+    pub tokens: BTreeMap<String, Option<String>>,
+    pub seq: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]

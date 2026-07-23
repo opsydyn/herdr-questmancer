@@ -84,6 +84,8 @@ Important boundaries:
 - `src/ui/scene_overlays.rs`: identity labels and contextual parchment only.
 - `src/portrait.rs`: optional native card portraits and capability-safe sprite
   fallbacks. Native portraits do not replace world sprites.
+- `src/sidebar.rs`: display-only Questmancer tokens for optional Herdr sidebar
+  marginalia. It derives role, omen and campaign strings from live domain facts.
 - `src/ledger.rs`: the small fixed handbook and stable page identifiers used by
   the Librarian's Ledger.
 - `src/storybook/`: feature-gated, terminal-free fixed production stories.
@@ -113,6 +115,21 @@ The two rooms deliberately have different small-viewport contracts:
   an explicit selection. Do not restore camera cropping for the Guild Hall.
 - The Delve retains an authored camera-crop model. Its station capacity and
   overflow behaviour are tested independently.
+
+## Sidebar marginalia
+
+Herdr owns the sidebar and the user's global sidebar configuration. Questmancer
+only reports its three namespaced display tokens through Herdr metadata:
+
+- `$quest_role`: derived ancestry and class;
+- `$quest_omen`: truthful presence in guild language;
+- `$quest_campaign`: live party and summons aggregate.
+
+The plugin uses source `plugin:opsydyn.questmancer`, never writes `title`,
+`display_agent`, `state_labels`, focus or task data, and never edits
+`ui.sidebar.*.rows`. Metadata refresh events are inert so reports cannot create
+a refresh loop. Reports are reissued after a socket reconnect and otherwise
+only when the derived projection changes.
 
 `pixtuoid-main/` is a local reference for density, responsive composition and
 terminal rendering techniques. Treat it as inspiration, not production source
@@ -288,8 +305,8 @@ Remaining release work is evidence and distribution:
 - retain real-agent resting/completion transitions as unverified until they are
   actually observed.
 
-Post-v0.1 ideas, including Herdr sidebar rows, belong in the backlog unless the
-user explicitly promotes them into the active slice.
+Post-v0.1 ideas belong in the backlog unless the user explicitly promotes them
+into the active slice. Sidebar marginalia is the current approved exception.
 
 ## Source-of-truth order
 

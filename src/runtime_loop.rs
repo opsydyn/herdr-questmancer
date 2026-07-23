@@ -10,6 +10,7 @@ use crate::{
     },
     interaction::ActionReduction,
     persistence::{PersistedStateV1, PersistenceClient, PersistenceError},
+    sidebar::SidebarProjection,
     ui::copy::COUNSEL_ISSUED,
     update::{AppEvent, Command, update},
 };
@@ -203,7 +204,9 @@ pub fn apply_connection_update(
     observed_at: Timestamp,
 ) -> RuntimeEffects {
     let discover_reviewr = matches!(connection_update, ConnectionUpdate::Connected(_));
+    let publish_marginalia = matches!(&connection_update, ConnectionUpdate::Connected(_));
     let diagnostic_is_connection = matches!(&connection_update, ConnectionUpdate::Disconnected(_));
+    let before_marginalia = SidebarProjection::from_domain(model.domain());
     let before = selected_revision(model);
     let actions = adapt_update_excluding(
         connection_update,
@@ -249,6 +252,12 @@ pub fn apply_connection_update(
         effects.agent_commands.push(AgentCommand::DiscoverReviewr {
             qualified_id: model.settings().reviewr_action.clone(),
         });
+    }
+    let after_marginalia = SidebarProjection::from_domain(model.domain());
+    if publish_marginalia || after_marginalia != before_marginalia {
+        effects
+            .agent_commands
+            .push(AgentCommand::PublishMarginalia(after_marginalia));
     }
     effects
 }
@@ -314,6 +323,10 @@ pub fn apply_command_result(
         }
         CommandResult::SpoilsOpened => {
             model.set_action_feedback("Spoils inspected.".to_owned());
+        }
+        CommandResult::MarginaliaPublished => {}
+        CommandResult::MarginaliaFailed { message } => {
+            model.set_integration_diagnostic(format!("sidebar marginalia failed: {message}"));
         }
         CommandResult::SnapshotLoaded(snapshot) => {
             apply_domain_event(

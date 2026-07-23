@@ -4,6 +4,10 @@ use questmancer::{
     command::{AgentCommand, CommandExecutor, CommandResult},
     domain::PaneId,
     herdr::client::HerdrClient,
+    sidebar::{
+        QUEST_CAMPAIGN, QUEST_OMEN, QUEST_ROLE, SidebarAgentTokens, SidebarCampaignTokens,
+        SidebarProjection,
+    },
 };
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -240,6 +244,57 @@ async fn snapshot_refresh_returns_a_domain_ready_snapshot() {
         result,
         CommandResult::SnapshotLoaded(snapshot) if snapshot.protocol == 16
     ));
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn marginalia_publishes_only_questmancer_owned_tokens() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        for _ in 0..2 {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let request = request(&mut stream).await;
+            assert_eq!(request["params"]["source"], "plugin:opsydyn.questmancer");
+            assert!(request["params"].get("title").is_none());
+            assert!(request["params"].get("display_agent").is_none());
+            assert!(request["params"].get("state_labels").is_none());
+            match request["method"].as_str() {
+                Some("pane.report_metadata") => {
+                    assert!(request["params"]["tokens"].get(QUEST_ROLE).is_some());
+                    assert!(request["params"]["tokens"].get(QUEST_OMEN).is_some());
+                }
+                Some("workspace.report_metadata") => {
+                    assert!(request["params"]["tokens"].get(QUEST_CAMPAIGN).is_some());
+                }
+                method => panic!("unexpected metadata method: {method:?}"),
+            }
+            respond(&mut stream, &request, json!({"type": "ok"})).await;
+        }
+    });
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
+    let projection = SidebarProjection {
+        agents: vec![SidebarAgentTokens {
+            pane_id: PaneId::new("w1:p1"),
+            tokens: [
+                (QUEST_ROLE.into(), "Gnome Paladin".into()),
+                (QUEST_OMEN.into(), "seeks counsel".into()),
+            ]
+            .into_iter()
+            .collect(),
+        }],
+        campaigns: vec![SidebarCampaignTokens {
+            workspace_id: questmancer::domain::WorkspaceId::new("w1"),
+            tokens: [(QUEST_CAMPAIGN.into(), "1 adventurer · 1 summons".into())]
+                .into_iter()
+                .collect(),
+        }],
+    };
+
+    let result = executor
+        .execute(AgentCommand::PublishMarginalia(projection))
+        .await;
+
+    assert_eq!(result, CommandResult::MarginaliaPublished);
     server.await.unwrap();
 }
 

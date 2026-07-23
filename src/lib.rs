@@ -13,6 +13,7 @@ pub mod portrait;
 pub mod runtime;
 pub mod runtime_loop;
 pub mod scene;
+pub mod sidebar;
 #[cfg(feature = "storybook")]
 pub mod storybook;
 pub mod terminal;

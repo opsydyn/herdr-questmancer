@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     path::{Path, PathBuf},
     sync::{
         Arc,
@@ -15,10 +16,11 @@ use super::{
     framing::{FramingError, read_json_line, write_json_line},
     protocol::{
         EmptyParams, ErrorResponse, OkResult, PaneInfo, PaneInfoResult, PaneReadParams,
-        PaneReadResult, PaneReadResultEnvelope, PaneSendTextParams, PaneTarget, PluginActionInfo,
-        PluginActionInvokeParams, PluginActionInvokedResult, PluginActionListParams,
-        PluginActionListResult, PluginInvocationContext, Pong, ReadFormat, ReadSource, Request,
-        SessionSnapshot, SessionSnapshotResult, SuccessResponse,
+        PaneReadResult, PaneReadResultEnvelope, PaneReportMetadataParams, PaneSendTextParams,
+        PaneTarget, PluginActionInfo, PluginActionInvokeParams, PluginActionInvokedResult,
+        PluginActionListParams, PluginActionListResult, PluginInvocationContext, Pong, ReadFormat,
+        ReadSource, Request, SessionSnapshot, SessionSnapshotResult, SuccessResponse,
+        WorkspaceReportMetadataParams,
     },
 };
 
@@ -135,6 +137,44 @@ impl HerdrClient {
         Ok(())
     }
 
+    pub async fn report_pane_tokens(
+        &self,
+        pane_id: impl Into<String>,
+        source: impl Into<String>,
+        tokens: BTreeMap<String, Option<String>>,
+        seq: u64,
+    ) -> Result<(), ClientError> {
+        self.request_acknowledged(
+            "pane.report_metadata",
+            PaneReportMetadataParams {
+                pane_id: pane_id.into(),
+                source: source.into(),
+                tokens,
+                seq,
+            },
+        )
+        .await
+    }
+
+    pub async fn report_workspace_tokens(
+        &self,
+        workspace_id: impl Into<String>,
+        source: impl Into<String>,
+        tokens: BTreeMap<String, Option<String>>,
+        seq: u64,
+    ) -> Result<(), ClientError> {
+        self.request_acknowledged(
+            "workspace.report_metadata",
+            WorkspaceReportMetadataParams {
+                workspace_id: workspace_id.into(),
+                source: source.into(),
+                tokens,
+                seq,
+            },
+        )
+        .await
+    }
+
     async fn request<P, T>(
         &self,
         method: &str,
@@ -144,6 +184,28 @@ impl HerdrClient {
     where
         P: Serialize,
         T: DeserializeOwned,
+    {
+        let response = self.request_value(method, params).await?;
+        let actual_kind = response.get("type").and_then(Value::as_str);
+        if actual_kind != Some(expected_kind) {
+            return Err(ClientError::UnexpectedResult {
+                expected: expected_kind,
+                actual: actual_kind.unwrap_or("<missing>").to_owned(),
+            });
+        }
+        serde_json::from_value(response).map_err(ClientError::Json)
+    }
+
+    async fn request_acknowledged<P>(&self, method: &str, params: P) -> Result<(), ClientError>
+    where
+        P: Serialize,
+    {
+        self.request_value(method, params).await.map(drop)
+    }
+
+    async fn request_value<P>(&self, method: &str, params: P) -> Result<Value, ClientError>
+    where
+        P: Serialize,
     {
         let request_id = format!(
             "questmancer-{}",
@@ -167,14 +229,7 @@ impl HerdrClient {
 
         let success: SuccessResponse<Value> = serde_json::from_value(response)?;
         ensure_response_id(&request_id, &success.id)?;
-        let actual_kind = success.result.get("type").and_then(Value::as_str);
-        if actual_kind != Some(expected_kind) {
-            return Err(ClientError::UnexpectedResult {
-                expected: expected_kind,
-                actual: actual_kind.unwrap_or("<missing>").to_owned(),
-            });
-        }
-        serde_json::from_value(success.result).map_err(ClientError::Json)
+        Ok(success.result)
     }
 
     #[must_use]

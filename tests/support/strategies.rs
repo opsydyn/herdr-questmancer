@@ -296,6 +296,7 @@ pub(crate) fn agent_identity() -> impl Strategy<Value = (AgentInfo, Option<Strin
                         screen_detection_skipped: false,
                         state_labels: HashMap::new(),
                         title: None,
+                        tokens: HashMap::new(),
                     },
                     workspace_root,
                 )
@@ -356,6 +357,7 @@ fn session_snapshot() -> impl Strategy<Value = SessionSnapshot> {
                     active_tab_id: agent.tab_id.clone(),
                     agent_status: agent.agent_status,
                     worktree: None,
+                    tokens: HashMap::new(),
                 })
                 .pane_count += 1;
         }

@@ -146,8 +146,10 @@ core Guild Hall, Delve, persistence, or Storybook milestones.
 - Make Storybook `j` / `k` and Up / Down traverse its visibly flat story list
   across category boundaries. Keep `h` / `l` and Left / Right as category jumps,
   and keep navigation clamped at the first and last story.
-- Add the opt-in Herdr `0.7.4` workspace and agent sidebar rows described in
-  `docs/superpowers/plans/2026-07-15-herdr-074-sidebar-integration.md`.
+- Verify the opt-in Herdr `0.7.4` workspace and agent sidebar marginalia in a
+  guarded live session after adding the user-owned configuration described in
+  the README. The implementation is display-only and does not modify Herdr
+  configuration itself.
 - Repeat the optional Reviewr integration smoke when
   `persiyanov.reviewr.open` is installed, without making Reviewr a dependency.
 - Capture a real-agent resting and returned-spoils transition when available;

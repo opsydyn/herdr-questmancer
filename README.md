@@ -134,6 +134,40 @@ Invalid configuration is reported visibly and safe defaults are used. Display
 compatibility settings remain accepted while the RGB scene is the sole
 production renderer.
 
+### Optional Herdr sidebar marginalia
+
+Questmancer can add a small, truthful marginal note to Herdr's own sidebar.
+This is opt-in: add rows to your existing user-owned Herdr `config.toml`; the
+plugin never rewrites global Herdr configuration or semantic agent state.
+
+```toml
+[ui.sidebar.agents]
+rows = [
+  ["state_icon", "workspace", "tab"],
+  [
+    { token = "agent", bold = true },
+    { token = "$quest_role", fg = "yellow" },
+    { token = "$quest_omen", fg = "cyan", dim = true },
+  ],
+]
+
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", "workspace"],
+  ["branch", "git_status", "$quest_campaign"],
+]
+```
+
+`$quest_role` is the adventurer's stable ancestry and class, `$quest_omen` is
+the current presence in guild language, and `$quest_campaign` is the live
+party and summons roll-up. The feature uses Herdr's display-only metadata
+channel, so it never changes an agent title, status label, focus or task.
+
+`rows` replaces the corresponding Herdr sidebar rows: merge this example with
+any existing sidebar customisation, then run `herdr config check` and reload
+the configuration by the method appropriate for your Herdr server. Questmancer
+does not use `rows_by_agent`; its dynamic personas remain presentation data.
+
 ## Local state and privacy
 
 Questmancer is local-only at runtime. It has no telemetry, cloud sync or network

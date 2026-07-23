@@ -53,6 +53,23 @@ reload a shared server when its owner has approved the operation. A compatible
 outer terminal without this Herdr setting must use the authored sprite fallback
 and must never leave the portrait region blank.
 
+### Optional sidebar marginalia
+
+In a user-owned Herdr `config.toml`, add the opt-in rows from
+[the README](../../README.md#optional-herdr-sidebar-marginalia). Run
+`herdr config check`, then reload the server configuration only with the
+owner's approval. Open or reconnect Questmancer and confirm:
+
+| Herdr sidebar target | Expected display-only token |
+|---|---|
+| Each agent row | `$quest_role` and a truthful `$quest_omen` |
+| Each workspace row | `$quest_campaign` with party and summons count |
+
+The rows must not change Herdr's title, state icon, focus, agent identity or
+task. Use a synthetic blocked report to confirm `seeks counsel` and an updated
+campaign summons count. Restore the user's original sidebar configuration after
+the test if it was changed solely for this procedure.
+
 ## Registration and singleton
 
 ```bash

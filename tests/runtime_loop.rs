@@ -128,6 +128,25 @@ fn snapshot_result_preserves_persistence_effect_after_durable_overlay() {
 }
 
 #[test]
+fn marginalia_failure_is_an_integration_diagnostic_not_an_action_error() {
+    let mut model = Model::new(View::Guild);
+
+    apply_command_result(
+        &mut model,
+        CommandResult::MarginaliaFailed {
+            message: "socket closed".to_owned(),
+        },
+        Timestamp::from_millis(2_000),
+    );
+
+    assert_eq!(
+        model.integration_diagnostic(),
+        Some("sidebar marginalia failed: socket closed")
+    );
+    assert_eq!(model.action_feedback(), None);
+}
+
+#[test]
 fn snapshot_result_excludes_the_managed_webmaster_pane() {
     let mut model = Model::new(View::Guild);
     let managed = PaneId::new("w2:p3");
@@ -176,6 +195,11 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
                 qualified_id: "acme.diff.inspect".to_owned(),
             })
     );
+    assert!(effects.agent_commands.iter().any(|command| matches!(
+        command,
+        AgentCommand::PublishMarginalia(projection)
+            if projection.agents.len() == 1 && projection.campaigns.len() == 1
+    )));
 }
 
 #[test]
@@ -216,11 +240,15 @@ fn selected_status_change_refreshes_only_that_output() {
         Timestamp::from_millis(2_000),
     );
 
-    assert_eq!(effects.agent_commands.len(), 1);
-    assert!(matches!(
-        &effects.agent_commands[0],
+    assert!(effects.agent_commands.iter().any(|command| matches!(
+        command,
         AgentCommand::LoadOutput { pane_id, .. } if pane_id.as_str() == "w1:p1"
-    ));
+    )));
+    assert!(effects.agent_commands.iter().any(|command| matches!(
+        command,
+        AgentCommand::PublishMarginalia(projection)
+            if projection.agents.len() == 1 && projection.campaigns.len() == 1
+    )));
 }
 
 #[test]

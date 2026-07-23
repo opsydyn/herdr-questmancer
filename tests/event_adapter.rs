@@ -205,6 +205,22 @@ fn unknown_event_is_a_non_blocking_diagnostic() {
 }
 
 #[test]
+fn metadata_updates_are_inert_display_refreshes() {
+    for event in ["pane.updated", "workspace.metadata_updated"] {
+        let actions = adapt_update(
+            ConnectionUpdate::Event(WireEvent {
+                event: event.into(),
+                data: json!({"source": "plugin:opsydyn.questmancer"}),
+            }),
+            &state(),
+            Timestamp::from_millis(2_000),
+        );
+
+        assert!(actions.is_empty(), "{event} should not perturb the model");
+    }
+}
+
+#[test]
 fn reconnect_updates_remain_app_state_not_domain_state() {
     let actions = adapt_update(
         ConnectionUpdate::Reconnecting {

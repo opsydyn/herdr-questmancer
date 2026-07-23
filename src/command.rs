@@ -1,6 +1,15 @@
+use std::sync::{
+    Arc,
+    atomic::{AtomicU64, Ordering},
+};
+
 use crate::{
     domain::PaneId,
-    herdr::{client::HerdrClient, protocol::SessionSnapshot},
+    herdr::{
+        client::{ClientError, HerdrClient},
+        protocol::SessionSnapshot,
+    },
+    sidebar::{SIDEBAR_SOURCE, SidebarProjection},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -22,6 +31,7 @@ pub enum AgentCommand {
         pane_id: PaneId,
         qualified_id: String,
     },
+    PublishMarginalia(SidebarProjection),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -40,6 +50,10 @@ pub enum CommandResult {
     },
     ReviewrAvailable(bool),
     SpoilsOpened,
+    MarginaliaPublished,
+    MarginaliaFailed {
+        message: String,
+    },
     SnapshotLoaded(Box<SessionSnapshot>),
     Failed {
         operation: &'static str,
@@ -51,14 +65,16 @@ pub enum CommandResult {
 pub struct CommandExecutor {
     client: HerdrClient,
     managed_pane_id: Option<PaneId>,
+    next_sidebar_sequence: Arc<AtomicU64>,
 }
 
 impl CommandExecutor {
     #[must_use]
-    pub const fn new(client: HerdrClient, managed_pane_id: Option<PaneId>) -> Self {
+    pub fn new(client: HerdrClient, managed_pane_id: Option<PaneId>) -> Self {
         Self {
             client,
             managed_pane_id,
+            next_sidebar_sequence: Arc::new(AtomicU64::new(1)),
         }
     }
 
@@ -161,8 +177,49 @@ impl CommandExecutor {
                     Err(error) => failed("open reviewr", error),
                 }
             }
+            AgentCommand::PublishMarginalia(projection) => {
+                match self.publish_marginalia(projection).await {
+                    Ok(()) => CommandResult::MarginaliaPublished,
+                    Err(error) => CommandResult::MarginaliaFailed {
+                        message: error.to_string(),
+                    },
+                }
+            }
         }
     }
+
+    async fn publish_marginalia(&self, projection: SidebarProjection) -> Result<(), ClientError> {
+        for agent in projection.agents {
+            self.client
+                .report_pane_tokens(
+                    agent.pane_id.as_str(),
+                    SIDEBAR_SOURCE,
+                    optional_tokens(agent.tokens),
+                    self.next_sidebar_sequence.fetch_add(1, Ordering::Relaxed),
+                )
+                .await?;
+        }
+        for campaign in projection.campaigns {
+            self.client
+                .report_workspace_tokens(
+                    campaign.workspace_id.as_str(),
+                    SIDEBAR_SOURCE,
+                    optional_tokens(campaign.tokens),
+                    self.next_sidebar_sequence.fetch_add(1, Ordering::Relaxed),
+                )
+                .await?;
+        }
+        Ok(())
+    }
+}
+
+fn optional_tokens(
+    tokens: std::collections::BTreeMap<String, String>,
+) -> std::collections::BTreeMap<String, Option<String>> {
+    tokens
+        .into_iter()
+        .map(|(token, value)| (token, Some(value)))
+        .collect()
 }
 
 fn split_qualified_action(qualified_id: &str) -> Option<(&str, &str)> {
