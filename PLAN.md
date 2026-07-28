@@ -143,6 +143,10 @@ core Guild Hall, Delve, persistence, or Storybook milestones.
 
 ### Post-v0.1 product backlog
 
+- Implement the approved Guild Hall readability and art-direction pass in
+  [`docs/design/guild-hall-art-direction.md`](docs/design/guild-hall-art-direction.md).
+  Preserve the scene-first renderer and current action flows; begin production
+  work only after the station, hierarchy and Storybook review gate are accepted.
 - Make Storybook `j` / `k` and Up / Down traverse its visibly flat story list
   across category boundaries. Keep `h` / `l` and Left / Right as category jumps,
   and keep navigation clamped at the first and last story.
