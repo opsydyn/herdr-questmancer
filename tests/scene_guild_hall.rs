@@ -193,6 +193,71 @@ fn actors_occupy_truthful_station_bounds_with_unique_final_anchors() {
 }
 
 #[test]
+fn canonical_hall_never_stacks_complete_adventurer_footprints() {
+    let mut snapshot = mixed_snapshot();
+    snapshot.agents.extend([
+        agent(
+            "second-counsel-seeker",
+            "amber-library",
+            Presence::Blocked,
+            AccentTone::Red,
+        ),
+        agent(
+            "second-spoils-returnee",
+            "amber-library",
+            Presence::Done,
+            AccentTone::Amber,
+        ),
+        agent(
+            "second-hearth-resting",
+            "moss-vault",
+            Presence::Idle,
+            AccentTone::Violet,
+        ),
+    ]);
+
+    let (_, frame) = render_with_frame(&snapshot, VIEWPORT);
+    for (index, left) in frame.actors.iter().enumerate() {
+        for right in frame.actors.iter().skip(index + 1) {
+            assert!(
+                !overlaps(left.bounds, right.bounds),
+                "{} overlaps {}: {:?} vs {:?}",
+                left.agent,
+                right.agent,
+                left.bounds,
+                right.bounds
+            );
+        }
+    }
+}
+
+#[test]
+fn a_full_canonical_hall_recomposes_before_hiding_adventurers() {
+    let mut snapshot = mixed_snapshot();
+    snapshot.agents = (0_u8..12)
+        .map(|index| {
+            agent(
+                &format!("party-{index}"),
+                if index.is_multiple_of(2) {
+                    "amber-library"
+                } else {
+                    "moss-vault"
+                },
+                Presence::Working,
+                AccentTone::Cyan,
+            )
+        })
+        .collect();
+
+    let (_, frame) = render_with_frame(&snapshot, VIEWPORT);
+    assert_eq!(
+        frame.actors.len(),
+        snapshot.agents.len(),
+        "the Hall must use its whole-party compact composition before omitting party members"
+    );
+}
+
+#[test]
 fn campaign_tables_show_full_adventurer_identity_instead_of_colour_tokens() {
     let snapshot = mixed_snapshot();
     let (_, frame) = render_with_frame(&snapshot, VIEWPORT);

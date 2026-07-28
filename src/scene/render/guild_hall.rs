@@ -19,7 +19,8 @@ use crate::{
         snapshot::{SceneConnection, SceneSnapshot},
         sprite::blit,
         stage::{
-            ActorPlacement, CameraAnchor, SceneCamera, SceneEffect, ScenePlan, TruthfulStation,
+            ActorPlacement, CameraAnchor, SceneCamera, SceneEffect, ScenePlan, ScenePose,
+            TruthfulStation,
         },
     },
 };
@@ -38,6 +39,7 @@ const COMPACT_MIN_WIDTH: u16 = 64;
 const COMPACT_MIN_HEIGHT: u16 = 40;
 const ADVENTURER_WIDTH: u16 = 16;
 const ADVENTURER_HEIGHT: u16 = 24;
+const CANONICAL_PARTY_CAPACITY: usize = 11;
 const LIBRARIAN_CANONICAL_ORIGIN: PixelPoint = PixelPoint::new(7, 64);
 
 const DOOR: PixelRect = PixelRect::new(5, 14, 25, 46);
@@ -47,6 +49,20 @@ const RIGHT_TABLE: PixelRect = PixelRect::new(77, 47, 38, 27);
 const BELL: PixelRect = PixelRect::new(116, 31, 18, 31);
 const HEARTH: PixelRect = PixelRect::new(132, 9, 28, 49);
 const SPOILS: PixelRect = PixelRect::new(111, 64, 49, 26);
+
+// These anchors reserve complete 16x24 masters. They are intentionally spaced
+// by at least one full master width or height so a busy station never turns
+// into a stack of overlapping sprites.
+const LEFT_TABLE_SLOTS: [PixelPoint; 2] = [PixelPoint::new(43, 60), PixelPoint::new(62, 60)];
+const RIGHT_TABLE_SLOTS: [PixelPoint; 2] = [PixelPoint::new(85, 60), PixelPoint::new(104, 60)];
+const COUNSEL_SLOTS: [PixelPoint; 1] = [PixelPoint::new(125, 50)];
+const HEARTH_SLOTS: [PixelPoint; 1] = [PixelPoint::new(148, 50)];
+const SPOILS_SLOTS: [PixelPoint; 2] = [PixelPoint::new(120, 76), PixelPoint::new(143, 76)];
+const OVERFLOW_ALCOVE_SLOTS: [PixelPoint; 3] = [
+    PixelPoint::new(25, 76),
+    PixelPoint::new(65, 36),
+    PixelPoint::new(105, 36),
+];
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum CampaignTable {
@@ -59,13 +75,6 @@ impl CampaignTable {
         match self {
             Self::Left => PixelPoint::new(54, 60),
             Self::Right => PixelPoint::new(96, 60),
-        }
-    }
-
-    const fn actor_base_x(self) -> i32 {
-        match self {
-            Self::Left => 40,
-            Self::Right => 82,
         }
     }
 }
@@ -126,7 +135,10 @@ enum GuildHallComposition {
 }
 
 fn composition_for(viewport: PixelSize, actor_count: usize) -> GuildHallComposition {
-    if viewport.width >= CANONICAL_WIDTH && viewport.height >= CANONICAL_HEIGHT {
+    if viewport.width >= CANONICAL_WIDTH
+        && viewport.height >= CANONICAL_HEIGHT
+        && actor_count <= CANONICAL_PARTY_CAPACITY
+    {
         GuildHallComposition::Canonical
     } else if viewport.width >= COMPACT_MIN_WIDTH
         && viewport.height >= COMPACT_MIN_HEIGHT
@@ -240,6 +252,7 @@ fn paint_priority_actor(
         sprite.size().width,
         sprite.size().height,
     );
+    paint_actor_grounding(target, bounds, placement.pose);
     blit(&sprite, origin, target);
     if placement.selected {
         paint_selection_marker(target, origin, sprite.size());
@@ -462,6 +475,8 @@ fn paint_compact_actors(
         {
             next_frame_in = Some(earliest_deadline(next_frame_in, delay));
         }
+        paint_actor_grounding(target, bounds, placement.pose);
+        paint_actor_grounding(target, bounds, placement.pose);
         blit(&sprite, actor_origin, target);
         if placement.selected {
             paint_selection_marker(target, actor_origin, sprite.size());
@@ -856,6 +871,7 @@ fn actor_anchors<'a>(
     plan: &'a ScenePlan,
 ) -> Vec<(&'a ActorPlacement, PixelPoint)> {
     let mut station_counts = HashMap::<String, usize>::new();
+    let mut overflow_count = 0;
     let mut result = Vec::with_capacity(plan.actors.len());
     for placement in &plan.actors {
         let key = station_key(snapshot, &placement.station);
@@ -863,34 +879,49 @@ fn actor_anchors<'a>(
             .entry(key)
             .and_modify(|n| *n += 1)
             .or_insert(0);
-        let anchor = match &placement.station {
+        let primary_slot = match &placement.station {
             TruthfulStation::CampaignToken(workspace) => {
-                let base_x = campaign_table(snapshot, workspace).actor_base_x();
-                PixelPoint::new(
-                    base_x + i32::try_from(slot % 2).unwrap_or(0) * 16,
-                    56 + i32::try_from(slot / 2).unwrap_or(0) * 14,
-                )
+                campaign_table_slots(campaign_table(snapshot, workspace)).get(slot)
             }
-            TruthfulStation::CounselBell => PixelPoint::new(
-                113 + i32::try_from(slot % 2).unwrap_or(0) * 9,
-                43 - i32::try_from(slot / 2).unwrap_or(0) * 3,
-            ),
-            TruthfulStation::SpoilsBench => PixelPoint::new(
-                112 + i32::try_from(slot % 5).unwrap_or(0) * 9,
-                69 - i32::try_from(slot / 5).unwrap_or(0) * 3,
-            ),
-            TruthfulStation::Hearth => PixelPoint::new(
-                132 + i32::try_from(slot % 3).unwrap_or(0) * 8,
-                47 - i32::try_from(slot / 3).unwrap_or(0) * 3,
-            ),
+            TruthfulStation::CounselBell => COUNSEL_SLOTS.get(slot),
+            TruthfulStation::SpoilsBench => SPOILS_SLOTS.get(slot),
+            TruthfulStation::Hearth => HEARTH_SLOTS.get(slot),
             TruthfulStation::DelveActive(_)
             | TruthfulStation::DelveGate(_)
             | TruthfulStation::DelveExit(_)
             | TruthfulStation::DelveCamp(_) => continue,
         };
-        result.push((placement, anchor));
+        let anchor = primary_slot.copied().or_else(|| {
+            let overflow = OVERFLOW_ALCOVE_SLOTS.get(overflow_count).copied();
+            overflow_count += usize::from(overflow.is_some());
+            overflow
+        });
+        if let Some(anchor) = anchor {
+            result.push((placement, anchor));
+        }
     }
     result
+}
+
+const fn campaign_table_slots(table: CampaignTable) -> &'static [PixelPoint] {
+    match table {
+        CampaignTable::Left => &LEFT_TABLE_SLOTS,
+        CampaignTable::Right => &RIGHT_TABLE_SLOTS,
+    }
+}
+
+fn paint_actor_grounding(target: &mut RgbBuffer, bounds: PixelRect, pose: ScenePose) {
+    let shadow_width = bounds.width.saturating_sub(4);
+    let shadow_x = bounds.x + 2;
+    let shadow_y = bounds.y + i32::from(bounds.height).saturating_sub(2);
+    target.fill_rect(PixelRect::new(shadow_x, shadow_y, shadow_width, 2), SHADOW);
+
+    if pose == ScenePose::SeekingCounsel {
+        let signal_x = bounds.x + i32::from(bounds.width / 2);
+        target.put(signal_x, bounds.y - 2, AMBER_LIGHT);
+        target.put(signal_x - 1, bounds.y - 1, EMBER);
+        target.put(signal_x + 1, bounds.y - 1, EMBER);
+    }
 }
 
 fn campaign_table(snapshot: &SceneSnapshot, workspace: &WorkspaceId) -> CampaignTable {

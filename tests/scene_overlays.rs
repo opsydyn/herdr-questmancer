@@ -199,6 +199,51 @@ fn every_visible_sprite_has_an_agent_state_nameplate() {
 }
 
 #[test]
+fn a_nameplate_never_paints_through_another_adventurer() {
+    let mut model = model();
+    let mut other = model.selected_agent().cloned().unwrap();
+    other.key = AgentKey::new("other");
+    other.name = "other".to_owned();
+    model.domain_mut().agents.insert(other.key.clone(), other);
+    model.set_now(Timestamp::from_millis(421_000));
+    let scene = SceneFrame {
+        world: WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: vec![
+            SceneActorRegion {
+                agent: AgentKey::new("codex"),
+                bounds: PixelRect::new(20, 20, 16, 24),
+            },
+            SceneActorRegion {
+                agent: AgentKey::new("other"),
+                bounds: PixelRect::new(20, 18, 16, 24),
+            },
+        ],
+        interactables: Vec::new(),
+    };
+    let backend = TestBackend::new(120, 36);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal
+        .draw(|frame| render_scene_identity_labels(frame, &model, &scene))
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    let row = |y| {
+        (0..120)
+            .map(|x| buffer.cell((x, y)).unwrap().symbol())
+            .collect::<String>()
+    };
+
+    assert!(
+        !row(9).contains("codex"),
+        "the preferred label row belongs to the neighbouring adventurer"
+    );
+    assert!(
+        row(22).contains("codex · WORKING 7m"),
+        "the selected nameplate should use the first clear lane below the actor"
+    );
+}
+
+#[test]
 fn command_ribbon_expires_after_three_seconds() {
     let mut model = model();
     let _ = reduce_action(&mut model, Action::Next);

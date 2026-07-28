@@ -14,7 +14,7 @@ use crate::{
     scene::{
         SceneFrame,
         assets::{adventurer::adventurer_portrait_frame, librarian},
-        pixel::{PixelPoint, Rgb, RgbBuffer},
+        pixel::{PixelPoint, PixelRect, Rgb, RgbBuffer},
         presentation::{SceneOverlay, ScenePresentation},
         sprite::blit,
     },
@@ -30,19 +30,28 @@ pub fn render_scene_identity_labels(frame: &mut Frame<'_>, model: &Model, scene:
         return;
     }
     let mut occupied = Vec::new();
+    let actor_areas = scene
+        .actors
+        .iter()
+        .filter_map(|region| actor_terminal_area(region.bounds, area))
+        .collect::<Vec<_>>();
     for region in &scene.actors {
         let Some(agent) = model.domain().agents.get(&region.agent) else {
             continue;
         };
         let elapsed = format_elapsed(agent.presence_since.elapsed_until(model.now()));
-        let label = compact_label(
-            &format!(
+        let selected = model.selected_agent_key() == Some(&region.agent);
+        let urgent = agent.presence == Presence::Blocked;
+        let raw_label = if selected || urgent {
+            format!(
                 "{} · {} {elapsed}",
                 agent.name,
                 presence_badge(agent.presence)
-            ),
-            36,
-        );
+            )
+        } else {
+            format!("{} · {}", agent.name, presence_badge(agent.presence))
+        };
+        let label = compact_label(&raw_label, if selected || urgent { 36 } else { 20 });
         let width = u16::try_from(label.chars().count())
             .unwrap_or(u16::MAX)
             .min(area.width);
@@ -64,13 +73,15 @@ pub fn render_scene_identity_labels(frame: &mut Frame<'_>, model: &Model, scene:
             let candidate = Rect::new(u16::try_from(x).ok()?, y, width, 1);
             (!occupied
                 .iter()
-                .any(|other| rects_intersect(candidate, *other)))
+                .any(|other| rects_intersect(candidate, *other))
+                && !actor_areas
+                    .iter()
+                    .any(|actor| rects_intersect(candidate, *actor)))
             .then_some(candidate)
         }) else {
             continue;
         };
         occupied.push(label_area);
-        let selected = model.selected_agent_key() == Some(&region.agent);
         let style = if selected {
             PARCHMENT
         } else {
@@ -78,6 +89,18 @@ pub fn render_scene_identity_labels(frame: &mut Frame<'_>, model: &Model, scene:
         };
         frame.render_widget(Paragraph::new(label).style(style), label_area);
     }
+}
+
+fn actor_terminal_area(bounds: PixelRect, frame_area: Rect) -> Option<Rect> {
+    let x = u16::try_from(bounds.x).ok()?;
+    let y = u16::try_from(bounds.y.div_euclid(2)).ok()?;
+    let width = bounds.width.min(frame_area.width.saturating_sub(x));
+    let height = bounds
+        .height
+        .div_ceil(2)
+        .min(frame_area.height.saturating_sub(y));
+    (width > 0 && height > 0 && x < frame_area.right() && y < frame_area.bottom())
+        .then_some(Rect::new(x, y, width, height))
 }
 
 fn rects_intersect(left: Rect, right: Rect) -> bool {
