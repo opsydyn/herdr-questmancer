@@ -79,8 +79,8 @@ impl SceneFirstAsset {
             Self::NativeRoguePortrait => "asset: native Rogue card portrait",
             Self::NativeTestmenderPortrait => "asset: native Testmender card portrait",
             Self::NativeWizardPortrait => "asset: native Wizard card portrait",
-            Self::NativeGoblinPortrait => "asset: native Goblin card portrait",
-            Self::NativeOrcPortrait => "asset: native Orc card portrait",
+            Self::NativeGoblinPortrait => "asset: reserved Goblin event portrait",
+            Self::NativeOrcPortrait => "asset: reserved Orc event portrait",
             Self::GoblinEasterEgg => "asset: Goblin Easter egg",
             Self::LibrarianAssets => "asset: Librarian world and ledger sprites",
         }

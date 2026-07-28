@@ -300,7 +300,7 @@ fn asset_stories() -> Vec<Story> {
 fn native_card_stories() -> Vec<Story> {
     let mut stories = native_foundation_card_stories().to_vec();
     stories.extend(native_adventurer_card_stories());
-    stories.extend(native_ancestry_card_stories());
+    stories.extend(reserved_event_art_stories());
     stories
 }
 
@@ -404,22 +404,22 @@ fn native_adventurer_card_stories() -> [Story; 5] {
     ]
 }
 
-fn native_ancestry_card_stories() -> [Story; 2] {
+fn reserved_event_art_stories() -> [Story; 2] {
     [
         story!(
             "asset.native-goblin-portrait",
-            "Asset / Native Goblin Card",
+            "Asset / Reserved Goblin Event Art",
             Category::Assets,
-            "Goblin ancestry takes priority over class when its embedded native portrait is available.",
+            "Reserved event/NPC art. It is not selected for ordinary adventurer cards.",
             ASSET_VIEWPORT,
             native_goblin_portrait,
             NativeGoblinPortrait
         ),
         story!(
             "asset.native-orc-portrait",
-            "Asset / Native Orc Card",
+            "Asset / Reserved Orc Event Art",
             Category::Assets,
-            "Orc ancestry takes priority over class when its embedded native portrait is available.",
+            "Reserved event/NPC art. It is not selected for ordinary adventurer cards.",
             ASSET_VIEWPORT,
             native_orc_portrait,
             NativeOrcPortrait

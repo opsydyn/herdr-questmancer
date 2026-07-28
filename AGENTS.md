@@ -139,8 +139,9 @@ explicit licensing and design decision.
 ## Portrait rendering
 
 Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender
-and Wizard cards have native PNG portraits. Goblin and Orc ancestry takes
-precedence over class. The
+and Wizard cards have native PNG portraits selected by class. Goblin and Orc
+art is reserved for future event/NPC storytelling and must not replace an
+ordinary adventurer's class portrait. The
 Librarian's Ledger has a separate native illustration. All paths must retain a
 non-empty authored RGB sprite fallback.
 

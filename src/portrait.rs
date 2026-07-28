@@ -4,13 +4,12 @@ use image::DynamicImage;
 use ratatui::layout::Size;
 use ratatui_image::{Resize, picker::Picker, picker::ProtocolType, protocol::Protocol};
 
-use crate::domain::{AdventurerClass, AdventurerPersona, Ancestry};
+use crate::domain::{AdventurerClass, AdventurerPersona};
 
 const CARD_PORTRAIT_SIZE: Size = Size::new(24, 16);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum PortraitKey {
-    Ancestry(Ancestry),
     Class(AdventurerClass),
 }
 
@@ -81,9 +80,7 @@ impl PortraitGallery {
 
     #[must_use]
     pub fn portrait_for(&self, persona: &AdventurerPersona) -> Option<&Protocol> {
-        self.portraits
-            .get(&PortraitKey::Ancestry(persona.ancestry))
-            .or_else(|| self.portraits.get(&PortraitKey::Class(persona.class)))
+        self.portraits.get(&PortraitKey::Class(persona.class))
     }
 
     #[must_use]
@@ -174,29 +171,8 @@ pub const fn portrait_asset(class: AdventurerClass) -> Option<&'static [u8]> {
     }
 }
 
-#[must_use]
-pub const fn ancestry_portrait_asset(ancestry: Ancestry) -> Option<&'static [u8]> {
-    match ancestry {
-        Ancestry::Goblin => Some(include_bytes!("assets/portraits/goblin-card.png")),
-        Ancestry::Orc => Some(include_bytes!("assets/portraits/orc-card.png")),
-        Ancestry::Human
-        | Ancestry::Dwarf
-        | Ancestry::Elf
-        | Ancestry::Halfling
-        | Ancestry::Gnome => None,
-    }
-}
-
-fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 12] {
+fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 10] {
     [
-        (
-            PortraitKey::Ancestry(Ancestry::Goblin),
-            ancestry_portrait_asset(Ancestry::Goblin).expect("Goblin portrait is embedded"),
-        ),
-        (
-            PortraitKey::Ancestry(Ancestry::Orc),
-            ancestry_portrait_asset(Ancestry::Orc).expect("Orc portrait is embedded"),
-        ),
         (
             PortraitKey::Class(AdventurerClass::Artificer),
             portrait_asset(AdventurerClass::Artificer).expect("Artificer portrait is embedded"),
@@ -255,9 +231,10 @@ fn decode_portrait(bytes: &[u8]) -> Result<DynamicImage, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::Ancestry;
 
     #[test]
-    fn approved_classes_and_ancestries_have_embedded_native_portraits() {
+    fn approved_classes_have_embedded_native_portraits() {
         for class in AdventurerClass::ALL {
             assert_eq!(
                 portrait_asset(*class).is_some(),
@@ -275,13 +252,6 @@ mod tests {
                         | AdventurerClass::Wizard
                 ),
                 "{class:?}"
-            );
-        }
-        for ancestry in Ancestry::ALL {
-            assert_eq!(
-                ancestry_portrait_asset(*ancestry).is_some(),
-                matches!(ancestry, Ancestry::Goblin | Ancestry::Orc),
-                "{ancestry:?}"
             );
         }
     }
@@ -335,10 +305,13 @@ mod tests {
         druid.class = AdventurerClass::Druid;
         let mut pathseeker = barbarian.clone();
         pathseeker.class = AdventurerClass::Pathseeker;
-        let mut goblin = pathseeker.clone();
-        goblin.ancestry = Ancestry::Goblin;
-        let mut orc = druid.clone();
-        orc.ancestry = Ancestry::Orc;
+        let mut goblin_wizard = wizard.clone();
+        goblin_wizard.ancestry = Ancestry::Goblin;
+        let mut orc_ranger = ranger.clone();
+        orc_ranger.ancestry = Ancestry::Orc;
+        let mut orc_runewright = pathseeker.clone();
+        orc_runewright.ancestry = Ancestry::Orc;
+        orc_runewright.class = AdventurerClass::Runewright;
 
         assert_eq!(gallery.capability(), PortraitCapability::Kitty);
         assert!(gallery.portrait_for(&artificer).is_some());
@@ -351,15 +324,16 @@ mod tests {
         assert!(gallery.portrait_for(&rogue).is_some());
         assert!(gallery.portrait_for(&wizard).is_some());
         assert!(gallery.portrait_for(&druid).is_some());
-        assert!(gallery.portrait_for(&goblin).is_some());
-        assert!(gallery.portrait_for(&orc).is_some());
+        assert!(gallery.portrait_for(&goblin_wizard).is_some());
+        assert!(gallery.portrait_for(&orc_ranger).is_some());
+        assert!(gallery.portrait_for(&orc_runewright).is_none());
         assert!(gallery.portrait_for(&pathseeker).is_none());
         assert!(gallery.librarian().is_some());
         assert!(gallery.diagnostic().is_none());
     }
 
     #[test]
-    fn native_ancestry_portraits_take_priority_over_class_portraits() {
+    fn native_class_portraits_take_priority_over_ancestry_portraits() {
         let mut picker = Picker::halfblocks();
         picker.set_protocol_type(ProtocolType::Kitty);
         let gallery = PortraitGallery::from_picker(&picker);
@@ -372,14 +346,27 @@ mod tests {
             persona.ancestry = ancestry;
             persona.class = class;
 
-            let selected = gallery.portrait_for(&persona).expect("ancestry portrait");
+            let selected = gallery.portrait_for(&persona).expect("class portrait");
             let portrait = gallery
                 .portraits
-                .get(&PortraitKey::Ancestry(ancestry))
-                .expect("ancestry protocol");
+                .get(&PortraitKey::Class(class))
+                .expect("class protocol");
 
-            assert!(std::ptr::eq(selected, portrait), "{ancestry:?}");
+            assert!(std::ptr::eq(selected, portrait), "{ancestry:?} {class:?}");
         }
+    }
+
+    #[test]
+    fn ancestry_portraits_are_reserved_and_never_selected_for_regular_adventurers() {
+        let mut picker = Picker::halfblocks();
+        picker.set_protocol_type(ProtocolType::Kitty);
+        let gallery = PortraitGallery::from_picker(&picker);
+        let mut persona =
+            AdventurerPersona::for_key(crate::domain::PersonaKey::new("ancestry-fallback"));
+        persona.ancestry = Ancestry::Orc;
+        persona.class = AdventurerClass::Runewright;
+
+        assert!(gallery.portrait_for(&persona).is_none());
     }
 
     #[test]

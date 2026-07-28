@@ -15,10 +15,14 @@ cards.
 
 The current profile card uses a native transparent PNG when an approved Kitty,
 Sixel or iTerm2 protocol is detected and an asset exists for that identity.
-Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender and Wizard currently have class portraits; Goblin and Orc
-have ancestry portraits that take priority over class. The registered 24x32 portrait
-master is the unconditional fallback. The RGB scene renderer and its half-block
-adapter remain the correct foundation for the world itself.
+Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender
+and Wizard currently have class portraits. Class is the primary visual identity
+for both ordinary world sprites and cards: an Orc Ranger reads as a Ranger and
+an Orc Wizard reads as a Wizard. Goblin and Orc illustration is reserved for
+future event/NPC storytelling rather than automatic persona routing. The
+registered 24x32 class master is the unconditional fallback. The RGB scene
+renderer and its half-block adapter remain the correct foundation for the world
+itself.
 
 Detection describes the complete pane transport, not merely the outer terminal.
 For Herdr-managed panes, native Kitty graphics require

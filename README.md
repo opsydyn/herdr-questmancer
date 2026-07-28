@@ -195,7 +195,7 @@ It contains twenty-five fixed production stories, each owned exactly once:
 - all eight classic world masters
 - the Barbarian v2 legacy comparison and complete semantic pose family
 - all eight classic portrait masters
-- native Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender, Wizard, Goblin and Orc card portraits with authored-sprite fallbacks
+- native class-led Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender and Wizard card portraits with authored-sprite fallbacks
 - Goblin world and portrait Easter egg
 - persistent Librarian world and Ledger fallback sprites
 - selected adventurer
