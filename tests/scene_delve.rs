@@ -349,10 +349,11 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // Pathseeker stopped borrowing another class's world master, and again
     // when returning and resting adventurers gained authored pose art, and
     // again when persona garb reached each master's trim band, and again when
-    // the Mage and Sorcerer classes shifted these fixtures' persona rolls.
+    // the Mage and Sorcerer classes shifted these fixtures' persona rolls, and
+    // again when station slots were re-spaced so delvers stopped overlapping.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "5510ece6e9d5928e206fd5b71e0d27193f951ee5a8d2480223ad793838342c8d"
+        "eed7264ebcb646ee25e934743e59769bbc9474158e26ea48d01d43821f313b54"
     );
 
     let non_clear = first
@@ -393,6 +394,48 @@ fn minimum_viewport_is_a_camera_crop_of_the_same_canonical_dungeon() {
 
     assert!(is_crop_of(&crop, &full));
     assert!(crop.pixels().iter().all(|pixel| *pixel != VOID));
+}
+
+/// A 16x24 master needs a full master of room. The Delve's station slots were
+/// nine pixels apart, so two delvers at one station were drawn on top of each
+/// other; the Guild Hall has always spaced its own stations correctly.
+#[test]
+fn delvers_at_one_station_never_overlap() {
+    let snapshot = SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns: vec![campaign("moss-vault", 0x47a1)],
+        agents: (0..6)
+            .map(|index| {
+                agent(
+                    &format!("worker-{index}"),
+                    "moss-vault",
+                    Presence::Working,
+                    AccentTone::Cyan,
+                )
+            })
+            .collect(),
+        motion: Motion::None,
+        now: Timestamp::from_millis(10_000),
+    };
+
+    let (_, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+
+    // A station holds what its chamber can honestly fit; the rest are
+    // reported by the overflow marker. Whatever is drawn must not be drawn on
+    // top of a neighbour.
+    assert!(
+        !frame.actors.is_empty(),
+        "a working party must place someone"
+    );
+    for (index, actor) in frame.actors.iter().enumerate() {
+        for other in frame.actors.iter().skip(index + 1) {
+            let overlaps = actor.bounds.x < other.bounds.x + i32::from(other.bounds.width)
+                && actor.bounds.x + i32::from(actor.bounds.width) > other.bounds.x
+                && actor.bounds.y < other.bounds.y + i32::from(other.bounds.height)
+                && actor.bounds.y + i32::from(actor.bounds.height) > other.bounds.y;
+            assert!(!overlaps, "{:?} overlaps {:?}", actor.bounds, other.bounds);
+        }
+    }
 }
 
 #[test]

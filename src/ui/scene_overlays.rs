@@ -42,38 +42,47 @@ pub fn render_scene_identity_labels(frame: &mut Frame<'_>, model: &Model, scene:
         let elapsed = format_elapsed(agent.presence_since.elapsed_until(model.now()));
         let selected = model.selected_agent_key() == Some(&region.agent);
         let urgent = agent.presence == Presence::Blocked;
-        let label = if selected || urgent {
-            fit_identity_label(&agent.name, agent.presence, Some(&elapsed), 36)
+        // Budgets from the roomy form down to the bare state glyph. The first
+        // that finds a free lane wins, so a crowded party degrades to short
+        // nameplates instead of silently losing them: a compact Hall used to
+        // show six adventurers and two labels.
+        let budgets: &[usize] = if selected || urgent {
+            &[36, 20, 12, 8, 4]
         } else {
-            fit_identity_label(&agent.name, agent.presence, None, 20)
+            &[20, 12, 8, 4]
         };
-        let width = u16::try_from(label.chars().count())
-            .unwrap_or(u16::MAX)
-            .min(area.width);
-        if width == 0 {
-            continue;
-        }
-        let actor_centre = region.bounds.x + i32::from(region.bounds.width) / 2;
-        let preferred_x = actor_centre - i32::from(width) / 2;
-        let maximum_x = i32::from(area.right().saturating_sub(width));
-        let x = preferred_x.clamp(i32::from(area.x), maximum_x.max(i32::from(area.x)));
-        let actor_row = region.bounds.y.div_euclid(2);
-        let below = (region.bounds.y + i32::from(region.bounds.height) + 1).div_euclid(2);
-        let candidates = [actor_row - 1, below];
-        let Some(label_area) = candidates.into_iter().find_map(|y| {
-            let y = u16::try_from(y).ok()?;
-            if y < area.y || y >= area.bottom().saturating_sub(1) {
+        let elapsed = (selected || urgent).then_some(elapsed.as_str());
+
+        let placed = budgets.iter().find_map(|budget| {
+            let label = fit_identity_label(&agent.name, agent.presence, elapsed, *budget);
+            let width = u16::try_from(label.chars().count())
+                .unwrap_or(u16::MAX)
+                .min(area.width);
+            if width == 0 {
                 return None;
             }
-            let candidate = Rect::new(u16::try_from(x).ok()?, y, width, 1);
-            (!occupied
-                .iter()
-                .any(|other| rects_intersect(candidate, *other))
-                && !actor_areas
+            let actor_centre = region.bounds.x + i32::from(region.bounds.width) / 2;
+            let preferred_x = actor_centre - i32::from(width) / 2;
+            let maximum_x = i32::from(area.right().saturating_sub(width));
+            let x = preferred_x.clamp(i32::from(area.x), maximum_x.max(i32::from(area.x)));
+            let actor_row = region.bounds.y.div_euclid(2);
+            let below = (region.bounds.y + i32::from(region.bounds.height) + 1).div_euclid(2);
+            [actor_row - 1, below].into_iter().find_map(|y| {
+                let y = u16::try_from(y).ok()?;
+                if y < area.y || y >= area.bottom().saturating_sub(1) {
+                    return None;
+                }
+                let candidate = Rect::new(u16::try_from(x).ok()?, y, width, 1);
+                (!occupied
                     .iter()
-                    .any(|actor| rects_intersect(candidate, *actor)))
-            .then_some(candidate)
-        }) else {
+                    .any(|other| rects_intersect(with_gutter(candidate, area), *other))
+                    && !actor_areas
+                        .iter()
+                        .any(|actor| rects_intersect(candidate, *actor)))
+                .then_some((candidate, label.clone()))
+            })
+        });
+        let Some((label_area, label)) = placed else {
             continue;
         };
         occupied.push(label_area);
@@ -96,6 +105,18 @@ fn actor_terminal_area(bounds: PixelRect, frame_area: Rect) -> Option<Rect> {
         .min(frame_area.height.saturating_sub(y));
     (width > 0 && height > 0 && x < frame_area.right() && y < frame_area.bottom())
         .then_some(Rect::new(x, y, width, height))
+}
+
+/// Widens a label by one column on each side for collision testing only.
+///
+/// `rects_intersect` is exclusive, so two nameplates whose edges merely meet
+/// are not considered to collide. They were placed flush and read as a single
+/// run of text — `codex · WORKING 2m` and `ember-car… · WORKING` became
+/// `codex · WORKING 2member-car… · WORKING`.
+fn with_gutter(label: Rect, area: Rect) -> Rect {
+    let left = label.x.saturating_sub(1).max(area.x);
+    let right = label.right().saturating_add(1).min(area.right());
+    Rect::new(left, label.y, right.saturating_sub(left), label.height)
 }
 
 fn rects_intersect(left: Rect, right: Rect) -> bool {

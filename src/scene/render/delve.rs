@@ -837,61 +837,51 @@ enum StationKind {
     Unknown,
 }
 
-const VISIBLE_ACTORS_PER_STATION: usize = 8;
+// A 16x24 master occupies `anchor.x - 4 .. anchor.x + 12` and
+// `anchor.y - 10 .. anchor.y + 14`. Station slots are therefore spaced at
+// least eighteen pixels apart horizontally and twenty-six vertically, the
+// same "one full master apart" rule the Guild Hall states for its own
+// stations. The previous nine-pixel spacing overlapped every neighbour by
+// seven pixels, so two delvers at one station were drawn on top of each other.
+//
+// The last entry in each array is the overflow marker's anchor, not a slot an
+// adventurer can stand in, so every array holds one more point than this.
+// A 16x24 master occupies `anchor.x - 4 .. anchor.x + 12` and
+// `anchor.y - 10 .. anchor.y + 14`, so slots must sit a full master apart —
+// the same rule the Guild Hall states for its own stations. The authored
+// chambers are 45-52 pixels wide, which honestly holds two masters and a
+// gutter, not the five the nine-pixel spacing pretended to fit. Anything
+// beyond that is reported by the overflow marker instead of being drawn on
+// top of a neighbour.
+//
+// The last entry in each array is the overflow marker's anchor, not a slot an
+// adventurer stands in, so every array holds one more point than this.
+const VISIBLE_ACTORS_PER_STATION: usize = 2;
+
 const ACTIVE_SLOTS: &[PixelPoint] = &[
-    PixelPoint::new(60, 26),
-    PixelPoint::new(69, 26),
-    PixelPoint::new(78, 26),
-    PixelPoint::new(87, 26),
-    PixelPoint::new(96, 26),
-    PixelPoint::new(60, 42),
-    PixelPoint::new(69, 42),
-    PixelPoint::new(78, 42),
-    PixelPoint::new(87, 42),
+    PixelPoint::new(66, 40),
+    PixelPoint::new(88, 40),
+    PixelPoint::new(58, 52),
 ];
 const GATE_SLOTS: &[PixelPoint] = &[
-    PixelPoint::new(107, 24),
-    PixelPoint::new(116, 24),
-    PixelPoint::new(125, 24),
-    PixelPoint::new(134, 24),
-    PixelPoint::new(143, 24),
-    PixelPoint::new(107, 39),
-    PixelPoint::new(116, 39),
-    PixelPoint::new(125, 39),
-    PixelPoint::new(134, 39),
+    PixelPoint::new(114, 24),
+    PixelPoint::new(136, 24),
+    PixelPoint::new(114, 10),
 ];
 const EXIT_SLOTS: &[PixelPoint] = &[
-    PixelPoint::new(108, 56),
-    PixelPoint::new(117, 56),
-    PixelPoint::new(126, 56),
-    PixelPoint::new(135, 56),
-    PixelPoint::new(143, 56),
-    PixelPoint::new(108, 71),
-    PixelPoint::new(117, 71),
-    PixelPoint::new(126, 71),
-    PixelPoint::new(135, 71),
+    PixelPoint::new(114, 72),
+    PixelPoint::new(136, 72),
+    PixelPoint::new(114, 58),
 ];
 const CAMP_SLOTS: &[PixelPoint] = &[
-    PixelPoint::new(11, 58),
-    PixelPoint::new(20, 58),
-    PixelPoint::new(29, 58),
-    PixelPoint::new(38, 58),
-    PixelPoint::new(47, 58),
-    PixelPoint::new(11, 72),
-    PixelPoint::new(20, 72),
-    PixelPoint::new(29, 72),
-    PixelPoint::new(38, 72),
+    PixelPoint::new(18, 72),
+    PixelPoint::new(40, 72),
+    PixelPoint::new(18, 58),
 ];
 const UNKNOWN_SLOTS: &[PixelPoint] = &[
-    PixelPoint::new(11, 7),
-    PixelPoint::new(20, 7),
-    PixelPoint::new(29, 7),
-    PixelPoint::new(38, 7),
-    PixelPoint::new(47, 7),
-    PixelPoint::new(11, 21),
-    PixelPoint::new(20, 21),
-    PixelPoint::new(29, 21),
-    PixelPoint::new(38, 21),
+    PixelPoint::new(18, 20),
+    PixelPoint::new(40, 20),
+    PixelPoint::new(18, 8),
 ];
 
 fn actor_anchors(plan: &ScenePlan) -> Vec<(&ActorPlacement, PixelPoint)> {
@@ -1230,16 +1220,22 @@ mod tests {
             .map(|(_, anchor)| (anchor.x, anchor.y))
             .collect::<HashSet<_>>();
 
-        assert_eq!(anchors.len(), 40);
+        // Five station kinds, each holding its visible capacity.
+        assert_eq!(anchors.len(), VISIBLE_ACTORS_PER_STATION * 5);
         assert_eq!(
             unique.len(),
             anchors.len(),
             "actor anchors must not overlap"
         );
+        // The footprint a master actually occupies, not the 8x14 station
+        // reference. Measuring the smaller box let nine-pixel slot spacing
+        // pass this guard for as long as it existed, while real 16x24
+        // adventurers overlapped their neighbours by seven pixels.
+        let footprint = |anchor: &PixelPoint| PixelRect::new(anchor.x - 4, anchor.y - 10, 16, 24);
         for (index, (_, anchor)) in anchors.iter().enumerate() {
-            let bounds = PixelRect::new(anchor.x, anchor.y, 8, 14);
+            let bounds = footprint(anchor);
             for (_, other) in anchors.iter().skip(index + 1) {
-                let other_bounds = PixelRect::new(other.x, other.y, 8, 14);
+                let other_bounds = footprint(other);
                 assert!(
                     !rectangles_intersect(bounds, other_bounds),
                     "actor sprite rectangles collide: {bounds:?} and {other_bounds:?}"
@@ -1281,7 +1277,7 @@ mod tests {
 
     #[test]
     fn station_population_above_visible_capacity_uses_an_in_region_overflow_marker() {
-        let actors = (0..9)
+        let actors = (0..=VISIBLE_ACTORS_PER_STATION)
             .map(|index| ActorPlacement {
                 agent: AgentKey::new(format!("active-{index}")),
                 station: TruthfulStation::DelveActive(WorkspaceId::new("shared")),
@@ -1299,8 +1295,11 @@ mod tests {
         };
 
         assert_eq!(actor_anchors(&plan).len(), VISIBLE_ACTORS_PER_STATION);
-        assert_eq!(overflow_markers(&plan), vec![(1, ACTIVE_SLOTS[8])]);
-        let marker = ACTIVE_SLOTS[8];
+        assert_eq!(
+            overflow_markers(&plan),
+            vec![(1, ACTIVE_SLOTS[VISIBLE_ACTORS_PER_STATION])]
+        );
+        let marker = ACTIVE_SLOTS[VISIBLE_ACTORS_PER_STATION];
         let region = station_region(
             &TruthfulStation::DelveActive(WorkspaceId::new("shared")),
             ScenePose::Working,

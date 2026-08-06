@@ -39,6 +39,10 @@ const COMPACT_MIN_WIDTH: u16 = 64;
 const COMPACT_MIN_HEIGHT: u16 = 40;
 const ADVENTURER_WIDTH: u16 = 16;
 const ADVENTURER_HEIGHT: u16 = 24;
+// Compact actors stride by one master plus a gutter, the same rule the roster
+// tier uses. Striding by the bare sprite width left neighbouring silhouettes
+// touching, so a packed party read as one continuous shape.
+const COMPACT_STRIDE_X: u16 = ADVENTURER_WIDTH + 2;
 const CANONICAL_PARTY_CAPACITY: usize = 11;
 const LIBRARIAN_CANONICAL_ORIGIN: PixelPoint = PixelPoint::new(7, 64);
 
@@ -168,7 +172,7 @@ fn composition_for(viewport: PixelSize, actor_count: usize) -> GuildHallComposit
 }
 
 fn compact_actor_capacity(viewport: PixelSize) -> usize {
-    let columns = viewport.width / ADVENTURER_WIDTH;
+    let columns = viewport.width / COMPACT_STRIDE_X;
     let rows = viewport.height / ADVENTURER_HEIGHT;
     usize::from(columns) * usize::from(rows)
 }
@@ -600,17 +604,18 @@ fn compact_actor_origin(
     sprite: PixelSize,
 ) -> PixelPoint {
     let sprite_width = usize::from(sprite.width.max(1));
-    let columns = (usize::from(viewport.width) / sprite_width).max(1);
+    let stride = sprite_width.saturating_add(2);
+    let columns = (usize::from(viewport.width) / stride).max(1);
     let rows = count.max(1).div_ceil(columns);
     let row = index / columns;
     let column = index % columns;
     let actors_in_row = count.saturating_sub(row * columns).min(columns).max(1);
-    let row_width = actors_in_row.saturating_mul(sprite_width);
+    let row_width = actors_in_row.saturating_mul(stride);
     let start_x = usize::from(viewport.width).saturating_sub(row_width) / 2;
     let required_height = rows.saturating_mul(usize::from(sprite.height));
     let start_y = usize::from(viewport.height).saturating_sub(required_height);
     PixelPoint::new(
-        i32::try_from(start_x + column * sprite_width).unwrap_or(i32::MAX),
+        i32::try_from(start_x + column * stride).unwrap_or(i32::MAX) + 1,
         i32::try_from(start_y + row * usize::from(sprite.height)).unwrap_or(i32::MAX),
     )
 }

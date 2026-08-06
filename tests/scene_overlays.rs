@@ -288,6 +288,99 @@ fn nameplate_truncation_shortens_the_name_and_keeps_the_state_word() {
     );
 }
 
+/// Two nameplates side by side used to be placed flush, because the collision
+/// test is exclusive and touching rectangles do not intersect. They read as one
+/// run of text: `codex - WORKING 2member-car... - WORKING`.
+#[test]
+fn neighbouring_nameplates_never_touch() {
+    let mut model = model();
+    let mut other = model.selected_agent().cloned().unwrap();
+    other.key = AgentKey::new("ember");
+    other.name = "ember".to_owned();
+    model.domain_mut().agents.insert(other.key.clone(), other);
+    model.set_now(Timestamp::from_millis(421_000));
+    let scene = SceneFrame {
+        world: WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: vec![
+            SceneActorRegion {
+                agent: AgentKey::new("codex"),
+                bounds: PixelRect::new(20, 20, 16, 24),
+            },
+            SceneActorRegion {
+                agent: AgentKey::new("ember"),
+                bounds: PixelRect::new(60, 20, 16, 24),
+            },
+        ],
+        interactables: Vec::new(),
+    };
+    let backend = TestBackend::new(120, 36);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal
+        .draw(|frame| render_scene_identity_labels(frame, &model, &scene))
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+
+    for y in 0..36 {
+        let row = (0..120)
+            .map(|x| buffer.cell((x, y)).unwrap().symbol())
+            .collect::<String>();
+        // Any two labels on one row must have blank between them.
+        assert!(
+            !row.contains("WORKINGember") && !row.contains("member"),
+            "nameplates ran together on row {y}: {row}"
+        );
+    }
+}
+
+/// A crowded party must degrade to shorter nameplates rather than losing them.
+/// Six adventurers in a compact Hall used to render two labels.
+#[test]
+fn a_crowded_party_keeps_a_nameplate_for_every_adventurer() {
+    let mut model = model();
+    let template = model.selected_agent().cloned().unwrap();
+    let mut actors = Vec::new();
+    for index in 0..6 {
+        let mut agent = template.clone();
+        agent.key = AgentKey::new(format!("agent-{index}"));
+        agent.name = format!("adventurer-number-{index}");
+        model.domain_mut().agents.insert(agent.key.clone(), agent);
+        actors.push(SceneActorRegion {
+            agent: AgentKey::new(format!("agent-{index}")),
+            bounds: PixelRect::new(2 + index * 18, 40, 16, 24),
+        });
+    }
+    model.set_now(Timestamp::from_millis(421_000));
+    let scene = SceneFrame {
+        world: WorldScene::GuildHall,
+        next_frame_in: None,
+        actors,
+        interactables: Vec::new(),
+    };
+    let backend = TestBackend::new(112, 40);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal
+        .draw(|frame| render_scene_identity_labels(frame, &model, &scene))
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    let screen = (0..40)
+        .map(|y| {
+            (0..112)
+                .map(|x| buffer.cell((x, y)).unwrap().symbol())
+                .collect::<String>()
+        })
+        .collect::<String>();
+
+    // Every adventurer is working, so each leaves either a full badge or,
+    // where there is no room for one, its bare state glyph.
+    let badges = screen.matches("WORKING").count();
+    let glyphs = screen.matches('\u{bb}').count();
+    assert!(
+        badges + glyphs >= 6,
+        "expected a nameplate for all six adventurers, found {badges} badges and {glyphs} glyphs"
+    );
+}
+
 #[test]
 fn command_ribbon_expires_after_three_seconds() {
     let mut model = model();

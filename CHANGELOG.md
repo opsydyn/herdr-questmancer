@@ -86,6 +86,15 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- Four spacing and legibility defects visible in real sessions. Nameplates no
+  longer sit flush against each other (`codex · WORKING 2member-car…` read as
+  one string, because the collision test treated touching rectangles as
+  clear). Delvers no longer stand on top of one another: station slots were
+  nine pixels apart for sixteen-pixel masters, and the guard that should have
+  caught it measured an 8x14 box instead of the real footprint. A crowded
+  party keeps a nameplate for every adventurer, degrading to the state glyph
+  instead of dropping labels entirely. Compact actors stride by a master plus
+  a gutter, so neighbouring silhouettes no longer touch.
 - The selection marker no longer loses half its corner runes when the selected
   adventurer stands at the edge of the room; corners are clamped inside the
   viewport so the hearth and spoils stations mark selection like every other.
