@@ -84,9 +84,17 @@ anchor. They are independently authored; the world sprite must not be a
 mechanical downscale of the portrait.
 
 World masters are personalised at render time: the persona's skin (`k`/`K`/`h`),
-hair (`r`/`R`) and accent (`a`) role clusters take the adventurer's palette,
-while cloth, metal, gear and focal colours stay authored so class identity
-never changes. The Barbarian v2 masters use their own key grammar (`S` skin,
+hair (`r`/`R`), garb (`l`, the trim band) and accent (`a`) role clusters take
+the adventurer's palette, while cloth, metal, gear and focal colours stay
+authored so class identity never changes.
+
+Garb deliberately lands on the trim rather than the cloth mass. Tinting the
+cloth itself was tried and abandoned: at every tint strength the blend
+collided with a world material somewhere different — a Bard in Vestments on
+Hall stone, a Cleric in Armour on dungeon floor, a Ranger in Armour on dungeon
+moss. Garb colours are already proven against both worlds on their own, so
+using them directly on the trim is safe where a blend was not, and the class's
+body mass stays the class's. The Barbarian v2 masters use their own key grammar (`S` skin,
 `H`/`h` hair) and personalise through the same substitution. Tests prove that
 role colours stay unique within each master palette, that substitution never
 alters a transparency mask, and that same-class personas render distinctly. The existing compact production spritlets

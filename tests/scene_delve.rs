@@ -347,10 +347,11 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // Cloak garb and Ranger cloth moved off the dungeon's own floor and moss
     // colours, and again when Artificer, Runewright, Testmender and
     // Pathseeker stopped borrowing another class's world master, and again
-    // when returning and resting adventurers gained authored pose art.
+    // when returning and resting adventurers gained authored pose art, and
+    // again when persona garb reached each master's trim band.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "51400d8ed059090c6392cb751072876b8543a61add4b4ee721e7a0b496d48974"
+        "3cc9f29945e98fc209556ade3353e06c8b50e28de29640dc50cbc03a4a227f82"
     );
 
     let non_clear = first

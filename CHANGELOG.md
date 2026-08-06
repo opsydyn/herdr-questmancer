@@ -6,6 +6,11 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Persona garb is now visible. It was persisted, palette-mapped and guarded by
+  the contrast test, then never drawn. It reads in each master's trim band, so
+  two adventurers alike in every other respect are distinguishable while the
+  class's own body mass stays untouched.
+
 - Poses are visible on every class. Eleven of the twelve rendered identically
   across Working, Seeking Counsel, Returning with Spoils, Resting, Settled and
   Unknown, so the sprite never showed what an agent was doing. Returning

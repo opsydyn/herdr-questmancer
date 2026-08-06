@@ -1,5 +1,7 @@
 use questmancer::{
-    domain::{AccentTone, AdventurerClass, AdventurerPersona, HairTone, PersonaKey, SkinTone},
+    domain::{
+        AccentTone, AdventurerClass, AdventurerPersona, Garb, HairTone, PersonaKey, SkinTone,
+    },
     scene::{
         assets::{
             adventurer::{
@@ -265,6 +267,43 @@ fn pose_decorations_leave_most_of_the_class_master_intact() {
                 "{class:?} {pose:?}: only {shared}/{total} pixels survived the pose"
             );
         }
+    }
+}
+
+/// Garb is part of the persisted persona, so it has to be visible somewhere.
+/// It reads in the trim band rather than the body mass, but two adventurers
+/// alike in every other respect must still not render identically.
+#[test]
+fn garb_changes_the_sprite_without_changing_the_class() {
+    for class in AdventurerClass::ALL {
+        let mut robed = AdventurerPersona::for_key(PersonaKey::new(format!("garb-{class:?}")));
+        robed.class = *class;
+        robed.appearance.garb = Garb::Robes;
+        let mut armoured = robed.clone();
+        armoured.appearance.garb = Garb::Armour;
+
+        let robed_frame = adventurer_animation_frame(&robed, ScenePose::Working, 0);
+        let armoured_frame = adventurer_animation_frame(&armoured, ScenePose::Working, 0);
+
+        // The Barbarian's masters carry no trim cluster, so garb has nowhere
+        // to show on it; every other class must respond.
+        if *class != AdventurerClass::Barbarian {
+            assert_ne!(
+                robed_frame, armoured_frame,
+                "{class:?}: garb is persisted but invisible"
+            );
+        }
+
+        let shared = robed_frame
+            .pixels()
+            .iter()
+            .zip(armoured_frame.pixels())
+            .filter(|(left, right)| left == right)
+            .count();
+        assert!(
+            shared * 100 >= robed_frame.pixels().len() * 80,
+            "{class:?}: garb repainted the class instead of trimming it"
+        );
     }
 }
 

@@ -185,6 +185,7 @@ enum PersonaRole {
     SkinHighlight,
     HairShadow,
     HairBase,
+    Garb,
     Accent,
 }
 
@@ -196,6 +197,7 @@ const fn standard_role(key: char) -> Option<PersonaRole> {
         'h' => Some(PersonaRole::SkinHighlight),
         'r' => Some(PersonaRole::HairShadow),
         'R' => Some(PersonaRole::HairBase),
+        'l' => Some(PersonaRole::Garb),
         'a' => Some(PersonaRole::Accent),
         _ => None,
     }
@@ -220,6 +222,13 @@ fn role_colour(role: PersonaRole, colours: &AdventurerPalette) -> Rgb {
         PersonaRole::SkinHighlight => mix(colours.skin, Rgb::new(255, 255, 255), 30),
         PersonaRole::HairShadow => mix(colours.hair, Rgb::BLACK, 30),
         PersonaRole::HairBase => colours.hair,
+        // Garb reads in the trim band rather than the body mass. Recolouring
+        // the cloth itself collided with world materials in a different place
+        // at every tint strength tried: a Bard in Vestments landed on Hall
+        // stone, a Cleric in Armour on dungeon floor, a Ranger in Armour on
+        // dungeon moss. Garb colours are already proven against both worlds on
+        // their own, so using them directly is safe where a blend was not.
+        PersonaRole::Garb => colours.cloth,
         PersonaRole::Accent => colours.accent,
     }
 }
@@ -253,6 +262,7 @@ fn personalise(
             Some((from, role_colour(role, colours)))
         })
         .collect::<Vec<_>>();
+
     SpriteFrame::from_pixels(
         frame.size().width,
         frame.size().height,
