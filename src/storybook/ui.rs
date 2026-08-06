@@ -296,6 +296,10 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
         return roster_family_entries();
     }
 
+    if gallery == ArchetypeGallery::CustomClassMasters {
+        return custom_class_entries();
+    }
+
     if gallery == ArchetypeGallery::BarbarianV2Poses {
         let legacy = crate::scene::assets::archetypes::world_frame(AdventurerClass::Barbarian)
             .expect("legacy Barbarian master remains available during review");
@@ -329,6 +333,7 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
                 ArchetypeGallery::BarbarianV2Poses
                 | ArchetypeGallery::PersonaPalettes
                 | ArchetypeGallery::RosterFamilies
+                | ArchetypeGallery::CustomClassMasters
                 | ArchetypeGallery::GoblinEasterEgg
                 | ArchetypeGallery::Librarian => {
                     unreachable!()
@@ -386,6 +391,31 @@ fn persona_palette_entries() -> Vec<(&'static str, SpriteFrame)> {
             )
         })
         .collect()
+}
+
+/// The four classes that used to borrow another class's authored body, shown
+/// at both production scales so the review covers world and portrait together.
+fn custom_class_entries() -> Vec<(&'static str, SpriteFrame)> {
+    const CUSTOM: [(&str, AdventurerClass); 4] = [
+        ("Artificer", AdventurerClass::Artificer),
+        ("Runewright", AdventurerClass::Runewright),
+        ("Testmender", AdventurerClass::Testmender),
+        ("Pathseeker", AdventurerClass::Pathseeker),
+    ];
+    let mut entries = Vec::with_capacity(8);
+    for (label, class) in CUSTOM {
+        let mut persona =
+            AdventurerPersona::for_key(PersonaKey::new(format!("storybook-custom-{label}")));
+        persona.class = class;
+        entries.push((
+            label,
+            adventurer_animation_frame(&persona, ScenePose::Working, 0),
+        ));
+        if let Some(portrait) = adventurer_portrait_frame(&persona) {
+            entries.push((label, portrait));
+        }
+    }
+    entries
 }
 
 /// One representative class per authored roster silhouette family.

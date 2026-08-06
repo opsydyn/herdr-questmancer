@@ -1,9 +1,10 @@
 # Questmancer sprite art direction
 
-Status: approved and integrated. Eight classic archetypes now use authored
-16x24 world masters and independent 24x32 portraits in production. Custom
-classes retain their domain identity while routing to the closest authored
-silhouette until bespoke masters are commissioned.
+Status: approved and integrated. All twelve production classes now use
+authored 16x24 world masters and independent 24x32 portraits. No class routes
+to another's silhouette: a borrowed master makes two different adventurers
+indistinguishable in the world, which is the same defect as a borrowed card.
+`no_two_classes_share_a_world_or_portrait_master` keeps it that way.
 
 ## Decision
 

@@ -36,6 +36,7 @@ pub enum ArchetypeGallery {
     BarbarianV2Poses,
     PersonaPalettes,
     RosterFamilies,
+    CustomClassMasters,
     PortraitMasters,
     GoblinEasterEgg,
     Librarian,

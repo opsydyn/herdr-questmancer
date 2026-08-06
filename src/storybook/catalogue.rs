@@ -284,6 +284,15 @@ fn asset_stories() -> Vec<Story> {
             RosterSilhouetteFamilies
         ),
         story!(
+            "asset.custom-class-masters",
+            "Assets / Custom Class Masters",
+            Category::Assets,
+            "Artificer, Runewright, Testmender and Pathseeker: the classes that used to borrow another class's body.",
+            ASSET_VIEWPORT,
+            custom_class_masters,
+            CustomClassMasters
+        ),
+        story!(
             "asset.portrait-masters",
             "Assets / Core Portrait Masters",
             Category::Assets,
@@ -508,6 +517,10 @@ fn persona_palettes(_: StoryContext) -> StoryFixture {
 
 fn roster_families(_: StoryContext) -> StoryFixture {
     StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::RosterFamilies)
+}
+
+fn custom_class_masters(_: StoryContext) -> StoryFixture {
+    StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::CustomClassMasters)
 }
 
 fn goblin_easter_egg(_: StoryContext) -> StoryFixture {

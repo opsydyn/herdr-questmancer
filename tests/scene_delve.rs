@@ -343,12 +343,13 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     assert_eq!(first.pixels(), second.pixels());
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
     // Golden bytes for the canonical dungeon. Re-pinned when the delving
-    // party gained contact shadows and the authored counsel marker, and again
-    // when the Cloak garb and Ranger cloth moved off the dungeon's own floor
-    // and moss colours.
+    // party gained contact shadows and the authored counsel marker, when the
+    // Cloak garb and Ranger cloth moved off the dungeon's own floor and moss
+    // colours, and again when Artificer, Runewright, Testmender and
+    // Pathseeker stopped borrowing another class's world master.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "81c097741c63744f12baa9b9f67f5444799321732ffc99a6d9046b871cf99742"
+        "dea528a7ebdee44f7ac6062b85ed42ff1af0396539bc86e6606a5f2ce382cdd4"
     );
 
     let non_clear = first

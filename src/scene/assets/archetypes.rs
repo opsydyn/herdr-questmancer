@@ -1187,6 +1187,523 @@ const PALADIN_PORTRAIT: &[&str] = &[
     "........................",
 ];
 
+// Four classes used to borrow another class's body: Artificer and Runewright
+// wore the Wizard, Testmender wore the Cleric and Pathseeker wore the Ranger.
+// Each now owns a silhouette built around its own gear, because at world scale
+// gear is the only thing a silhouette can carry.
+
+const ARTIFICER_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(24, 21, 30)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(139, 82, 52)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(232, 164, 103)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 224, 164)),
+    },
+    IndexedPaletteEntry {
+        key: 'r',
+        colour: Some(Rgb::new(48, 42, 58)),
+    },
+    IndexedPaletteEntry {
+        key: 'R',
+        colour: Some(Rgb::new(86, 76, 96)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(46, 42, 88)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(88, 80, 146)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(198, 152, 72)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(112, 120, 128)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(206, 214, 214)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(92, 55, 34)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(157, 93, 45)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(227, 150, 47)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(255, 196, 84)),
+    },
+];
+
+const RUNEWRIGHT_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(20, 26, 24)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(146, 92, 58)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(231, 163, 104)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 222, 160)),
+    },
+    IndexedPaletteEntry {
+        key: 'w',
+        colour: Some(Rgb::new(176, 178, 168)),
+    },
+    IndexedPaletteEntry {
+        key: 'W',
+        colour: Some(Rgb::new(238, 238, 228)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(62, 52, 28)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(126, 106, 58)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(214, 176, 86)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(118, 128, 132)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(206, 216, 214)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(86, 58, 36)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(150, 100, 54)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(48, 183, 190)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(112, 220, 255)),
+    },
+];
+
+const TESTMENDER_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(28, 24, 26)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(142, 86, 56)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(230, 160, 102)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 220, 158)),
+    },
+    IndexedPaletteEntry {
+        key: 'w',
+        colour: Some(Rgb::new(172, 160, 136)),
+    },
+    IndexedPaletteEntry {
+        key: 'W',
+        colour: Some(Rgb::new(240, 232, 208)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(120, 104, 78)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(198, 182, 146)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(236, 216, 168)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(126, 134, 140)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(214, 222, 222)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(88, 52, 40)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(152, 88, 60)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(158, 52, 62)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(120, 206, 148)),
+    },
+];
+
+const PATHSEEKER_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(22, 22, 20)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(134, 84, 54)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(228, 158, 100)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 218, 156)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(58, 48, 36)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(104, 88, 62)),
+    },
+    IndexedPaletteEntry {
+        key: 'v',
+        colour: Some(Rgb::new(74, 110, 72)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(206, 180, 110)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(120, 126, 118)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(206, 212, 200)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(84, 56, 34)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(148, 98, 52)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(137, 188, 73)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(126, 232, 150)),
+    },
+    IndexedPaletteEntry {
+        key: 'E',
+        colour: Some(Rgb::new(214, 255, 214)),
+    },
+];
+
+// Goggles pushed up on the brow, work apron, wrench held clear of the body.
+#[rustfmt::skip]
+const ARTIFICER_WORLD: &[&str] = &[
+    "................",
+    ".....oooooo.....",
+    "....orRRRRro....",
+    "....oMMMMMMo....",
+    "....oeMooMeo....",
+    "....okKKKKko....",
+    "....okKhhKko....",
+    "....okKKKKko....",
+    "mMm.oocCCCCcoo..",
+    "mMm..ocCCCCCCco.",
+    "mMm..ocClllCCco.",
+    ".m...ocCCaCCCco.",
+    ".m...ocClllCCco.",
+    ".m...ocCCCCCCco.",
+    ".....ocCCCCCCco.",
+    ".....odddddddo..",
+    ".....odDdMdDdo..",
+    ".....oddddddddo.",
+    ".....oddo..oddo.",
+    ".....odo....odo.",
+    "....ooo......ooo",
+    "................",
+    "................",
+    "................",
+];
+
+// A rune hammer breaking the left silhouette, long grey beard, carved runes.
+#[rustfmt::skip]
+const RUNEWRIGHT_WORLD: &[&str] = &[
+    "................",
+    "................",
+    "mMMm...oooo.....",
+    "mMMm..occCCco...",
+    "mMMm.ocCCCCCco..",
+    "mMMm.ocKKhhKco..",
+    ".mm..ocKKooKco..",
+    ".mm..ocKKKKKco..",
+    ".mm..owWWWWWwo..",
+    ".mm..owWwWWwWo..",
+    ".mm.oocCCCCCcoo.",
+    ".mm.ocCCeCCCCco.",
+    "....ocCCCCCCCco.",
+    "....ocCClCCCCco.",
+    "....ocCCCCCCCco.",
+    "....ocCCeCCCCco.",
+    "....ocCCCCCCCco.",
+    "....oddddddddo..",
+    "....odDddddDdo..",
+    "....oddddddddo..",
+    "....oddo..oddo..",
+    "....odo....odo..",
+    "...ooo......ooo.",
+    "................",
+];
+
+// Linen wraps, a wine mend-sash and a stitching kit at the hip. No shield.
+#[rustfmt::skip]
+const TESTMENDER_WORLD: &[&str] = &[
+    "................",
+    ".....oooooo.....",
+    "....owWWWWwo....",
+    "...owWWWWWWwo...",
+    "...owwKKhhKwo...",
+    "...owwKKooKwo...",
+    "...owwKKKKKwo...",
+    "....owWWWWwo....",
+    "...oowWWWWwoo...",
+    "..oocCCCCCCcoo..",
+    "..ocCaaaaaaCco..",
+    "..ocCCCCCCCCco..",
+    "..ocCCCCCCCCco..",
+    "..ocCCClCCCCco.o",
+    "..ocCCCCCCCCcodD",
+    "..ocCCCCCCCCcoDD",
+    "...odddddddo.oeD",
+    "...odDdddDdo.oDD",
+    "...oddddddo..ooo",
+    "...oddo.oddo....",
+    "...odo...odo....",
+    "..ooo.....ooo...",
+    "................",
+    "................",
+];
+
+// A hooked staff carrying a green lantern, and a compass on the chest.
+#[rustfmt::skip]
+const PATHSEEKER_WORLD: &[&str] = &[
+    "................",
+    "..dd............",
+    ".d..d..oooooo...",
+    ".d..d.occCCCco..",
+    ".d..d.ocCvvvCo..",
+    "..dd..ocKKhhKo..",
+    "..d...ocKKooKo..",
+    "..d...ocKKKKKo..",
+    ".oeo..occCCCco..",
+    "oeEeo.ocCCCCCco.",
+    ".oeo.oocCCCCCcoo",
+    "..d..ocCClCCCco.",
+    "..d..ocCeCCCCco.",
+    "..d..ocCCCCCCco.",
+    "..d..ocCCCCCCco.",
+    "..d..odddddddo..",
+    "..d..odDdddDdo..",
+    ".....odddddddo..",
+    ".....oddo.oddo..",
+    ".....odo...odo..",
+    "....ooo.....ooo.",
+    "................",
+    "................",
+    "................",
+];
+
+#[rustfmt::skip]
+const ARTIFICER_PORTRAIT: &[&str] = &[
+    "........................",
+    ".........oooooo.........",
+    "........orRRRRro........",
+    ".......orRRRRRRro.......",
+    "......oMMMMMMMMMMo......",
+    "......oMeeMooMeeMo......",
+    "......oMMMMMMMMMMo......",
+    "......okKKKKKKKKko......",
+    "......okKKhhhhKKko......",
+    "......okKKooooKKko......",
+    "......okKKKKKKKKko......",
+    "......ookKKKKKKkoo......",
+    "mMm..oocCCCCCCCCcoo.....",
+    "mMm..ocCCCCCCCCCCco.....",
+    "mMm..ocCClllllCCCco.....",
+    ".m...ocCCCCCCCCCCco.....",
+    ".m...ocCCCaaaaCCCco.....",
+    ".m...ocCClllllCCCco.....",
+    ".m...ocCCCCCCCCCCco.....",
+    ".....ocCCCCCCCCCCco.....",
+    ".....oddddddddddddo.....",
+    ".....odDdddddddddDo.....",
+    ".....odDddMMMMdddDo.....",
+    ".....odDdddddddddDo.....",
+    ".....oddddddddddddo.....",
+    "......oddddo.oddddo.....",
+    "......oddo....oddo......",
+    ".....oooo......oooo.....",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
+#[rustfmt::skip]
+const RUNEWRIGHT_PORTRAIT: &[&str] = &[
+    "........................",
+    "mMMMm.....oooo..........",
+    "mMMMm...occCCCco........",
+    "mMMMm..ocCCCCCCCco......",
+    "mMMMm..ocCKKhhKKco......",
+    "mMMMm..ocCKKooKKco......",
+    ".mmm...ocCKKKKKKco......",
+    ".mmm...ocwWWWWWwco......",
+    ".mmm...owWWwWWwWWo......",
+    ".mmm...owWWWWWWWWo......",
+    ".mmm...oowWWWWWwoo......",
+    ".mmm..oocCCCCCCCcoo.....",
+    ".mmm..ocCCCeCCCCCco.....",
+    ".mmm..ocCCCCCCCCCco.....",
+    "......ocCCClllCCCco.....",
+    "......ocCCCCCCCCCco.....",
+    "......ocCCCeCCCCCco.....",
+    "......ocCCCCCCCCCco.....",
+    "......ocCCCCCCCCCco.....",
+    "......oddddddddddo......",
+    "......odDdddddddDo......",
+    "......odDdddddddDo......",
+    "......oddddddddddo......",
+    "......oddddo.ddddo......",
+    "......oddo....oddo......",
+    ".....oooo......oooo.....",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
+#[rustfmt::skip]
+const TESTMENDER_PORTRAIT: &[&str] = &[
+    "........................",
+    ".........oooooo.........",
+    "........owWWWWwo........",
+    ".......owWWWWWWwo.......",
+    "......owwWWWWWWwwo......",
+    "......owwKKhhhhKwo......",
+    "......owwKKooooKwo......",
+    "......owwKKKKKKKwo......",
+    "......oowWWWWWWwoo......",
+    ".....oocCCCCCCCCcoo.....",
+    ".....ocCaaaaaaaaCco.....",
+    ".....ocCCCCCCCCCCco.....",
+    ".....ocCCCCCCCCCCco...oo",
+    ".....ocCCCClCCCCCco..odD",
+    ".....ocCCCCCCCCCCco..oDD",
+    ".....ocCCCCCCCCCCco..oeD",
+    ".....ocCCCCCCCCCCco..oDD",
+    ".....odddddddddddo...ooo",
+    ".....odDdddddddDo.......",
+    ".....odDdddddddDo.......",
+    ".....oddddddddddo.......",
+    ".....oddddo.ddddo.......",
+    ".....oddo....oddo.......",
+    "....oooo......oooo......",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
+#[rustfmt::skip]
+const PATHSEEKER_PORTRAIT: &[&str] = &[
+    "........................",
+    "...dd...................",
+    "..d..d.....oooo.........",
+    "..d..d...occCCCco.......",
+    "..d..d..ocCCvvvCCo......",
+    "...dd...ocCKKhhKCo......",
+    "...d....ocCKKooKCo......",
+    "...d....ocCKKKKKCo......",
+    "..oeo...occCCCCCco......",
+    ".oeEeo..ocCCCCCCCco.....",
+    "..oeo..oocCCCCCCCcoo....",
+    "...d...ocCCClllCCCco....",
+    "...d...ocCCCCCCCCCco....",
+    "...d...ocCCeCCCCCCco....",
+    "...d...ocCCCCCCCCCco....",
+    "...d...ocCCCCCCCCCco....",
+    "...d...odddddddddddo....",
+    "...d...odDdddddddDdo....",
+    ".......odddddddddddo....",
+    ".......oddddo.ddddo.....",
+    ".......oddo....oddo.....",
+    "......oooo......oooo....",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
 #[must_use]
 pub fn world_frame(class: AdventurerClass) -> Option<SpriteFrame> {
     world_master(class).map(|(frame, _)| frame)
@@ -1210,26 +1727,38 @@ type WorldRoute = (
 
 fn world_route(class: AdventurerClass) -> Option<WorldRoute> {
     match class {
-        AdventurerClass::Cleric | AdventurerClass::Testmender => {
-            Some((&CLERIC_WORLD_FRAME, CLERIC_WORLD, CLERIC_PALETTE))
-        }
+        AdventurerClass::Cleric => Some((&CLERIC_WORLD_FRAME, CLERIC_WORLD, CLERIC_PALETTE)),
+        AdventurerClass::Testmender => Some((
+            &TESTMENDER_WORLD_FRAME,
+            TESTMENDER_WORLD,
+            TESTMENDER_PALETTE,
+        )),
         AdventurerClass::Paladin => Some((&PALADIN_WORLD_FRAME, PALADIN_WORLD, PALADIN_PALETTE)),
-        AdventurerClass::Wizard | AdventurerClass::Artificer | AdventurerClass::Runewright => {
-            Some((
-                &WIZARD_WORLD_FRAME,
-                WIZARD_MATERIAL,
-                WIZARD_MATERIAL_PALETTE,
-            ))
+        AdventurerClass::Wizard => Some((
+            &WIZARD_WORLD_FRAME,
+            WIZARD_MATERIAL,
+            WIZARD_MATERIAL_PALETTE,
+        )),
+        AdventurerClass::Artificer => {
+            Some((&ARTIFICER_WORLD_FRAME, ARTIFICER_WORLD, ARTIFICER_PALETTE))
         }
+        AdventurerClass::Runewright => Some((
+            &RUNEWRIGHT_WORLD_FRAME,
+            RUNEWRIGHT_WORLD,
+            RUNEWRIGHT_PALETTE,
+        )),
         AdventurerClass::Barbarian => Some((
             &BARBARIAN_WORLD_FRAME,
             BARBARIAN_MATERIAL,
             BARBARIAN_MATERIAL_PALETTE,
         )),
         AdventurerClass::Bard => Some((&BARD_WORLD_FRAME, BARD_WORLD, BARD_PALETTE)),
-        AdventurerClass::Ranger | AdventurerClass::Pathseeker => {
-            Some((&RANGER_WORLD_FRAME, RANGER_WORLD, RANGER_PALETTE))
-        }
+        AdventurerClass::Ranger => Some((&RANGER_WORLD_FRAME, RANGER_WORLD, RANGER_PALETTE)),
+        AdventurerClass::Pathseeker => Some((
+            &PATHSEEKER_WORLD_FRAME,
+            PATHSEEKER_WORLD,
+            PATHSEEKER_PALETTE,
+        )),
         AdventurerClass::Rogue => Some((&ROGUE_WORLD_FRAME, ROGUE_WORLD, ROGUE_PALETTE)),
         AdventurerClass::Druid => None,
     }
@@ -1238,33 +1767,51 @@ fn world_route(class: AdventurerClass) -> Option<WorldRoute> {
 #[must_use]
 pub fn portrait_frame(class: AdventurerClass) -> Option<SpriteFrame> {
     match class {
-        AdventurerClass::Cleric | AdventurerClass::Testmender => Some(cached(
+        AdventurerClass::Cleric => Some(cached(
             &CLERIC_PORTRAIT_FRAME,
             CLERIC_PORTRAIT,
             CLERIC_PALETTE,
+        )),
+        AdventurerClass::Testmender => Some(cached(
+            &TESTMENDER_PORTRAIT_FRAME,
+            TESTMENDER_PORTRAIT,
+            TESTMENDER_PALETTE,
         )),
         AdventurerClass::Paladin => Some(cached(
             &PALADIN_PORTRAIT_FRAME,
             PALADIN_PORTRAIT,
             PALADIN_PALETTE,
         )),
-        AdventurerClass::Wizard | AdventurerClass::Artificer | AdventurerClass::Runewright => {
-            Some(cached(
-                &WIZARD_PORTRAIT_FRAME,
-                WIZARD_PORTRAIT,
-                WIZARD_PORTRAIT_PALETTE,
-            ))
-        }
+        AdventurerClass::Wizard => Some(cached(
+            &WIZARD_PORTRAIT_FRAME,
+            WIZARD_PORTRAIT,
+            WIZARD_PORTRAIT_PALETTE,
+        )),
+        AdventurerClass::Artificer => Some(cached(
+            &ARTIFICER_PORTRAIT_FRAME,
+            ARTIFICER_PORTRAIT,
+            ARTIFICER_PALETTE,
+        )),
+        AdventurerClass::Runewright => Some(cached(
+            &RUNEWRIGHT_PORTRAIT_FRAME,
+            RUNEWRIGHT_PORTRAIT,
+            RUNEWRIGHT_PALETTE,
+        )),
         AdventurerClass::Barbarian => Some(cached(
             &BARBARIAN_PORTRAIT_FRAME,
             BARBARIAN_PORTRAIT,
             BARBARIAN_PORTRAIT_PALETTE,
         )),
         AdventurerClass::Bard => Some(cached(&BARD_PORTRAIT_FRAME, BARD_PORTRAIT, BARD_PALETTE)),
-        AdventurerClass::Ranger | AdventurerClass::Pathseeker => Some(cached(
+        AdventurerClass::Ranger => Some(cached(
             &RANGER_PORTRAIT_FRAME,
             RANGER_PORTRAIT,
             RANGER_PALETTE,
+        )),
+        AdventurerClass::Pathseeker => Some(cached(
+            &PATHSEEKER_PORTRAIT_FRAME,
+            PATHSEEKER_PORTRAIT,
+            PATHSEEKER_PALETTE,
         )),
         AdventurerClass::Rogue => {
             Some(cached(&ROGUE_PORTRAIT_FRAME, ROGUE_PORTRAIT, ROGUE_PALETTE))
@@ -1307,6 +1854,14 @@ static BARBARIAN_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static BARD_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static RANGER_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static ROGUE_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static ARTIFICER_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static RUNEWRIGHT_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static TESTMENDER_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static PATHSEEKER_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static ARTIFICER_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static RUNEWRIGHT_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static TESTMENDER_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static PATHSEEKER_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static WIZARD_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static CLERIC_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static PALADIN_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();

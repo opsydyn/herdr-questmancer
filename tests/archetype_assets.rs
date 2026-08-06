@@ -166,6 +166,45 @@ fn persona_substitution_is_deterministic_for_a_fixed_persona() {
     }
 }
 
+/// Class is the primary visual identity, so no two classes may wear the same
+/// body. Six classes used to: Artificer and Runewright borrowed the Wizard,
+/// Testmender the Cleric, Pathseeker the Ranger. A borrowed master makes two
+/// different adventurers indistinguishable in the world.
+#[test]
+fn no_two_classes_share_a_world_or_portrait_master() {
+    let masters = AdventurerClass::ALL
+        .iter()
+        .map(|class| {
+            let mut persona =
+                AdventurerPersona::for_key(PersonaKey::new(format!("alias-{class:?}")));
+            persona.class = *class;
+            // A fixed appearance so palette variation cannot mask two classes
+            // sharing one authored master.
+            persona.appearance.skin_tone = SkinTone::Sand;
+            persona.appearance.hair_tone = HairTone::Chestnut;
+            persona.appearance.accent = AccentTone::Amber;
+            (
+                class,
+                adventurer_animation_frame(&persona, ScenePose::Working, 0),
+                adventurer_portrait_frame(&persona).expect("every class has a portrait"),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    for (index, (class, world, portrait)) in masters.iter().enumerate() {
+        for (other, other_world, other_portrait) in masters.iter().skip(index + 1) {
+            assert_ne!(
+                world, other_world,
+                "{class:?} wears {other:?}'s body at world scale"
+            );
+            assert_ne!(
+                portrait, other_portrait,
+                "{class:?} wears {other:?}'s face at portrait scale"
+            );
+        }
+    }
+}
+
 #[test]
 fn every_class_has_an_authored_roster_master_at_the_small_tier() {
     for class in AdventurerClass::ALL {

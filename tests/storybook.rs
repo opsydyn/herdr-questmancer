@@ -10,7 +10,7 @@ use ratatui::{Terminal, backend::TestBackend};
 
 #[test]
 fn catalogue_contains_every_production_scene_interaction_once() {
-    assert_eq!(catalogue().len(), 29);
+    assert_eq!(catalogue().len(), 30);
     let titles = catalogue()
         .iter()
         .map(|story| story.title)

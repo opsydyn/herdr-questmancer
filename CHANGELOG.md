@@ -6,6 +6,13 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Authored world and portrait masters for Artificer, Runewright, Testmender
+  and Pathseeker. Each borrowed another class's body: Artificer and Runewright
+  wore the Wizard, Testmender the Cleric, Pathseeker the Ranger, so six of the
+  twelve classes were visually indistinguishable from a sibling. Every class
+  now owns its silhouette, built around its own gear, and a test proves no two
+  classes share a world or portrait master.
+
 - The Delve adopted the Hall's actor-legibility rules. Delvers now ground with
   a contact shadow against the deepest stone value, blocked delvers carry the
   same authored counsel marker, and a pane too small to hold the party inside
