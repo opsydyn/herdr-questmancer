@@ -346,10 +346,11 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // party gained contact shadows and the authored counsel marker, when the
     // Cloak garb and Ranger cloth moved off the dungeon's own floor and moss
     // colours, and again when Artificer, Runewright, Testmender and
-    // Pathseeker stopped borrowing another class's world master.
+    // Pathseeker stopped borrowing another class's world master, and again
+    // when returning and resting adventurers gained authored pose art.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "dea528a7ebdee44f7ac6062b85ed42ff1af0396539bc86e6606a5f2ce382cdd4"
+        "51400d8ed059090c6392cb751072876b8543a61add4b4ee721e7a0b496d48974"
     );
 
     let non_clear = first

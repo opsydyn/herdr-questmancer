@@ -271,6 +271,112 @@ fn personalise(
     )
 }
 
+/// An authored pose decoration, drawn over a class's own master so the sprite
+/// itself carries state instead of leaving it all to labels and markers.
+///
+/// Glyphs resolve against the class's palette, so a Wizard's carried chest is
+/// wizard leather and a Ranger's is ranger leather, and class identity
+/// survives the pose. Decorations sit in the torso and leg zones: class gear
+/// lives on the left and right edges, so those are the only regions free on
+/// every master.
+struct PoseArt {
+    rows: &'static [&'static str],
+    x: i32,
+    y: i32,
+}
+
+// Spoils held in front of the chest. `ReturningWithSpoils` previously had only
+// a three-second effect flash, so an adventurer that had already returned
+// looked exactly like one still working.
+#[rustfmt::skip]
+const SPOILS_CHEST: PoseArt = PoseArt {
+    rows: &[
+        "oooooo",
+        "olDDlo",
+        "oDllDo",
+        "oooooo",
+    ],
+    x: 5,
+    y: 14,
+};
+
+// A wider, lower stance. The art direction forbids drifting feet, so resting
+// changes the legs rather than sliding the whole body down.
+#[rustfmt::skip]
+const RESTING_STANCE: PoseArt = PoseArt {
+    rows: &[
+        "oddddddddo",
+        "odDddddDdo",
+        "oddddddddo",
+        "ooo....ooo",
+        ".oo....oo.",
+    ],
+    x: 3,
+    y: 18,
+};
+
+const fn pose_decoration(pose: ScenePose) -> Option<&'static PoseArt> {
+    match pose {
+        ScenePose::ReturningWithSpoils => Some(&SPOILS_CHEST),
+        ScenePose::Resting => Some(&RESTING_STANCE),
+        // Working and Settled are the resting state of the art itself, and a
+        // blocked adventurer already carries the authored counsel marker, so
+        // adding a second signal there would only compete with it.
+        ScenePose::Working
+        | ScenePose::Settled
+        | ScenePose::SeekingCounsel
+        | ScenePose::Unknown => None,
+    }
+}
+
+fn palette_colour(palette: &[IndexedPaletteEntry], key: char) -> Option<Rgb> {
+    palette
+        .iter()
+        .find(|entry| entry.key == key)
+        .and_then(|entry| entry.colour)
+}
+
+/// Paints a pose decoration over a personalised master.
+fn apply_pose(
+    frame: &SpriteFrame,
+    pose: ScenePose,
+    palette: &[IndexedPaletteEntry],
+    colours: &AdventurerPalette,
+) -> SpriteFrame {
+    let Some(art) = pose_decoration(pose) else {
+        return frame.clone();
+    };
+    let width = i32::from(frame.size().width);
+    let height = i32::from(frame.size().height);
+    let mut pixels = frame.pixels().to_vec();
+
+    for (row, line) in art.rows.iter().enumerate() {
+        for (column, glyph) in line.chars().enumerate() {
+            if glyph == '.' {
+                continue;
+            }
+            let colour = match glyph {
+                'K' => Some(colours.skin),
+                key => palette_colour(palette, key)
+                    // A master without leather or trim falls back to its
+                    // outline rather than dropping the decoration.
+                    .or_else(|| palette_colour(palette, 'o')),
+            };
+            let Some(colour) = colour else {
+                continue;
+            };
+            let x = art.x + i32::try_from(column).unwrap_or(i32::MAX);
+            let y = art.y + i32::try_from(row).unwrap_or(i32::MAX);
+            if x < 0 || y < 0 || x >= width || y >= height {
+                continue;
+            }
+            let index = usize::try_from(y * width + x).expect("in-bounds index fits usize");
+            pixels[index] = Some(colour);
+        }
+    }
+    SpriteFrame::from_pixels(frame.size().width, frame.size().height, pixels)
+}
+
 /// Returns the authored scene master registered for the adventurer's class,
 /// with the persona's skin, hair and accent substituted into the master's
 /// role clusters.
@@ -295,11 +401,13 @@ pub fn adventurer_animation_frame(
             &colours,
         )
     } else if persona.class == AdventurerClass::Druid {
-        personalise(&druid_world_frame(), DRUID_PALETTE, standard_role, &colours)
+        let frame = personalise(&druid_world_frame(), DRUID_PALETTE, standard_role, &colours);
+        apply_pose(&frame, pose, DRUID_PALETTE, &colours)
     } else {
         let (frame, palette) = archetypes::world_master(persona.class)
             .expect("every non-Druid production class has an authored sprite route");
-        personalise(&frame, palette, standard_role, &colours)
+        let frame = personalise(&frame, palette, standard_role, &colours);
+        apply_pose(&frame, pose, palette, &colours)
     }
 }
 

@@ -6,6 +6,13 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Poses are visible on every class. Eleven of the twelve rendered identically
+  across Working, Seeking Counsel, Returning with Spoils, Resting, Settled and
+  Unknown, so the sprite never showed what an agent was doing. Returning
+  adventurers now carry a chest and resting ones take a wider seated stance,
+  drawn over each class's own master in that class's palette. The Barbarian
+  keeps its fully authored per-pose frames as the reference.
+
 - Authored world and portrait masters for Artificer, Runewright, Testmender
   and Pathseeker. Each borrowed another class's body: Artificer and Runewright
   wore the Wizard, Testmender the Cleric, Pathseeker the Ranger, so six of the

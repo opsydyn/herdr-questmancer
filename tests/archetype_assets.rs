@@ -205,6 +205,69 @@ fn no_two_classes_share_a_world_or_portrait_master() {
     }
 }
 
+/// The pose contract: a semantic state must change the sprite, not only the
+/// label beside it. Before this, eleven of twelve classes rendered identically
+/// across every pose, so the world never showed what an agent was doing.
+#[test]
+fn returning_and_resting_change_every_class_sprite() {
+    for class in AdventurerClass::ALL {
+        let mut persona = AdventurerPersona::for_key(PersonaKey::new(format!("pose-{class:?}")));
+        persona.class = *class;
+
+        let working = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+        let spoils = adventurer_animation_frame(&persona, ScenePose::ReturningWithSpoils, 0);
+        let resting = adventurer_animation_frame(&persona, ScenePose::Resting, 0);
+
+        assert_ne!(
+            working, spoils,
+            "{class:?}: returning with spoils looks identical to working"
+        );
+        assert_ne!(
+            working, resting,
+            "{class:?}: resting looks identical to working"
+        );
+        assert_ne!(
+            spoils, resting,
+            "{class:?}: returning with spoils looks identical to resting"
+        );
+        assert_eq!(working.size(), spoils.size(), "{class:?}");
+        assert_eq!(working.size(), resting.size(), "{class:?}");
+    }
+}
+
+/// A pose decoration must not repaint the whole adventurer: the class has to
+/// stay recognisable while its state changes.
+///
+/// The Barbarian is excluded because it does not use decorations at all — it
+/// has a fully authored frame per pose, the reference the contract is modelled
+/// on, and authored art is free to redraw as much as it likes.
+#[test]
+fn pose_decorations_leave_most_of_the_class_master_intact() {
+    for class in AdventurerClass::ALL {
+        if *class == AdventurerClass::Barbarian {
+            continue;
+        }
+        let mut persona = AdventurerPersona::for_key(PersonaKey::new(format!("intact-{class:?}")));
+        persona.class = *class;
+        let working = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+
+        for pose in [ScenePose::ReturningWithSpoils, ScenePose::Resting] {
+            let posed = adventurer_animation_frame(&persona, pose, 0);
+            let shared = working
+                .pixels()
+                .iter()
+                .zip(posed.pixels())
+                .filter(|(left, right)| left == right)
+                .count();
+            let total = working.pixels().len();
+            assert!(
+                shared * 100 >= total * 70,
+                "{class:?} {pose:?}: only {shared}/{total} pixels survived the pose"
+            );
+        }
+    }
+}
+
 #[test]
 fn every_class_has_an_authored_roster_master_at_the_small_tier() {
     for class in AdventurerClass::ALL {

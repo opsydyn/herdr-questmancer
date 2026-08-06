@@ -164,6 +164,16 @@ Initial target frame groups: idle 2, walk 4, signature 4, hurt/concern 2.
 Feet may not drift; a body bob is at most one logical pixel and never substitutes
 for an unchanged animation frame.
 
+Two routes satisfy this contract. The Barbarian authors a complete frame per
+pose and is the reference. Every other class keeps one authored master and
+takes an authored *pose decoration* over it: a carried chest for Returning
+with Spoils, a wider seated stance for Resting. Decorations resolve their
+glyphs against the class's own palette, so the pose changes without the class
+changing, and they occupy the torso and leg zones because class gear lives on
+the left and right edges of every master. Seeking Counsel deliberately has no
+decoration: that state already carries the authored counsel marker, and a
+second signal would only compete with it.
+
 ## Storybook sprite lab
 
 Extend the existing development-only Storybook instead of introducing a second
