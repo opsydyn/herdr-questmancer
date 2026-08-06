@@ -51,21 +51,27 @@ pub(crate) fn paint_selection_marker(target: &mut RgbBuffer, origin: PixelPoint,
     }
 }
 
-/// Grounds an actor and marks its state. Both worlds share this so an
-/// adventurer reads the same way whether it is at a Hall station or in the
-/// Delve: a contact shadow that separates it from the surface it stands on,
-/// and a shaped counsel signal when it is blocked.
+/// Grounds an actor: a contact shadow that separates it from the surface it
+/// stands on. Painted before the sprite so the adventurer stands on it.
 pub(crate) fn paint_actor_grounding(
     target: &mut RgbBuffer,
     bounds: PixelRect,
-    pose: ScenePose,
+    _pose: ScenePose,
     shadow: Rgb,
 ) {
     let shadow_width = bounds.width.saturating_sub(4);
     let shadow_x = bounds.x + 2;
     let shadow_y = bounds.y + i32::from(bounds.height).saturating_sub(2);
     target.fill_rect(PixelRect::new(shadow_x, shadow_y, shadow_width, 2), shadow);
+}
 
+/// Marks an actor's state *after* its sprite is drawn.
+///
+/// The counsel marker has to sit on top. An adventurer flush against the top
+/// of a compact pane has its marker clamped into its own footprint, and when
+/// the marker was painted first the sprite simply covered it — the highest
+/// priority state in the room silently disappeared.
+pub(crate) fn paint_actor_state_marker(target: &mut RgbBuffer, bounds: PixelRect, pose: ScenePose) {
     if pose == ScenePose::SeekingCounsel {
         paint_counsel_marker(target, bounds);
     }

@@ -119,6 +119,14 @@ pub fn native_pathseeker_portrait_fixture(context: StoryContext) -> Model {
     native_portrait_fixture(context, AdventurerClass::Pathseeker, Ancestry::Human)
 }
 
+pub fn native_mage_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Mage, Ancestry::Human)
+}
+
+pub fn native_sorcerer_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Sorcerer, Ancestry::Human)
+}
+
 pub fn native_goblin_portrait_fixture(context: StoryContext) -> Model {
     native_portrait_fixture(context, AdventurerClass::Druid, Ancestry::Goblin)
 }

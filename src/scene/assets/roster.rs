@@ -46,7 +46,9 @@ pub const fn family_for(class: AdventurerClass) -> RosterFamily {
         AdventurerClass::Wizard
         | AdventurerClass::Artificer
         | AdventurerClass::Runewright
-        | AdventurerClass::Druid => RosterFamily::Caster,
+        | AdventurerClass::Druid
+        | AdventurerClass::Mage
+        | AdventurerClass::Sorcerer => RosterFamily::Caster,
         AdventurerClass::Cleric | AdventurerClass::Paladin | AdventurerClass::Testmender => {
             RosterFamily::Armoured
         }

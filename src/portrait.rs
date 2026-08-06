@@ -169,10 +169,12 @@ pub const fn portrait_asset(class: AdventurerClass) -> Option<&'static [u8]> {
         AdventurerClass::Wizard => Some(include_bytes!("assets/portraits/wizard-card.png")),
         AdventurerClass::Runewright => Some(include_bytes!("assets/portraits/runewright-card.png")),
         AdventurerClass::Pathseeker => Some(include_bytes!("assets/portraits/pathseeker-card.png")),
+        AdventurerClass::Mage => Some(include_bytes!("assets/portraits/mage-card.png")),
+        AdventurerClass::Sorcerer => Some(include_bytes!("assets/portraits/sorcerer-card.png")),
     }
 }
 
-fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 12] {
+fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 14] {
     [
         (
             PortraitKey::Class(AdventurerClass::Artificer),
@@ -221,6 +223,14 @@ fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 12] {
         (
             PortraitKey::Class(AdventurerClass::Pathseeker),
             portrait_asset(AdventurerClass::Pathseeker).expect("Pathseeker portrait is embedded"),
+        ),
+        (
+            PortraitKey::Class(AdventurerClass::Mage),
+            portrait_asset(AdventurerClass::Mage).expect("Mage portrait is embedded"),
+        ),
+        (
+            PortraitKey::Class(AdventurerClass::Sorcerer),
+            portrait_asset(AdventurerClass::Sorcerer).expect("Sorcerer portrait is embedded"),
         ),
     ]
 }

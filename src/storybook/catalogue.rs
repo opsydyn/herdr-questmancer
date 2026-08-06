@@ -382,7 +382,7 @@ fn native_foundation_card_stories() -> [Story; 5] {
     ]
 }
 
-fn native_custom_class_card_stories() -> [Story; 2] {
+fn native_custom_class_card_stories() -> [Story; 4] {
     [
         story!(
             "asset.native-runewright-portrait",
@@ -401,6 +401,24 @@ fn native_custom_class_card_stories() -> [Story; 2] {
             ASSET_VIEWPORT,
             native_pathseeker_portrait,
             NativePathseekerPortrait
+        ),
+        story!(
+            "asset.native-mage-portrait",
+            "Asset / Native Mage Card",
+            Category::Assets,
+            "The production Mage card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_mage_portrait,
+            NativeMagePortrait
+        ),
+        story!(
+            "asset.native-sorcerer-portrait",
+            "Asset / Native Sorcerer Card",
+            Category::Assets,
+            "The production Sorcerer card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_sorcerer_portrait,
+            NativeSorcererPortrait
         ),
     ]
 }
@@ -581,6 +599,14 @@ fn native_runewright_portrait(context: StoryContext) -> StoryFixture {
 
 fn native_pathseeker_portrait(context: StoryContext) -> StoryFixture {
     scene(fixtures::native_pathseeker_portrait_fixture(context))
+}
+
+fn native_mage_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_mage_portrait_fixture(context))
+}
+
+fn native_sorcerer_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_sorcerer_portrait_fixture(context))
 }
 
 fn native_goblin_portrait(context: StoryContext) -> StoryFixture {

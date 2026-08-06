@@ -808,6 +808,7 @@ fn paint_depth_sorted(
                 } else {
                     blit(&sprite, actor_origin, target);
                 }
+                interaction::paint_actor_state_marker(target, bounds, placement.pose);
                 if placement.selected {
                     paint_selection_marker(target, actor_origin, sprite.size());
                 }

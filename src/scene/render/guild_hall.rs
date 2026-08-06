@@ -307,6 +307,7 @@ fn paint_priority_actor(
     );
     paint_actor_grounding(target, bounds, placement.pose);
     blit(&sprite, origin, target);
+    interaction::paint_actor_state_marker(target, bounds, placement.pose);
     if placement.selected {
         paint_selection_marker(target, origin, sprite.size());
     }
@@ -534,6 +535,7 @@ fn paint_compact_actors(
         }
         paint_actor_grounding(target, bounds, placement.pose);
         blit(&sprite, actor_origin, target);
+        interaction::paint_actor_state_marker(target, bounds, placement.pose);
         if placement.selected {
             paint_selection_marker(target, actor_origin, sprite.size());
         }
@@ -936,6 +938,7 @@ fn paint_actors(
         }
         paint_actor_grounding(target, bounds, placement.pose);
         blit(&sprite, actor_origin, target);
+        interaction::paint_actor_state_marker(target, bounds, placement.pose);
         if placement.selected {
             paint_selection_marker(target, actor_origin, sprite.size());
         }

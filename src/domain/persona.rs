@@ -70,8 +70,8 @@ impl AdventurerPersona {
                 BYNAMES[usize::from(digest[2]) % BYNAMES.len()],
             ),
             ancestry,
-            class: class_for_key(&key, PersonaGeneration::V2),
-            generation: PersonaGeneration::V2,
+            class: class_for_key(&key, PersonaGeneration::V3),
+            generation: PersonaGeneration::V3,
             epithet: Epithet(EPITHETS[usize::from(digest[4]) % EPITHETS.len()].to_owned()),
             appearance: Self::appearance_for_key(&key),
             key,
@@ -131,6 +131,25 @@ fn class_for_key(key: &PersonaKey, generation: PersonaGeneration) -> AdventurerC
         AdventurerClass::Pathseeker,
     ];
 
+    const V3_CLASSES: [AdventurerClass; 14] = [
+        AdventurerClass::Barbarian,
+        AdventurerClass::Bard,
+        AdventurerClass::Cleric,
+        AdventurerClass::Druid,
+        AdventurerClass::Paladin,
+        AdventurerClass::Ranger,
+        AdventurerClass::Rogue,
+        AdventurerClass::Wizard,
+        AdventurerClass::Artificer,
+        AdventurerClass::Runewright,
+        AdventurerClass::Testmender,
+        AdventurerClass::Pathseeker,
+        AdventurerClass::Mage,
+        AdventurerClass::Sorcerer,
+    ];
+
+    // Each generation keeps its own frozen list and its own hash label, so a
+    // saved persona never changes class when new classes are added.
     match generation {
         PersonaGeneration::V1 => {
             let digest = labelled_hash(key.as_str(), "adventurer");
@@ -139,6 +158,10 @@ fn class_for_key(key: &PersonaKey, generation: PersonaGeneration) -> AdventurerC
         PersonaGeneration::V2 => {
             let digest = labelled_hash(key.as_str(), "adventurer-class-v2");
             V2_CLASSES[usize::from(digest[0]) % V2_CLASSES.len()]
+        }
+        PersonaGeneration::V3 => {
+            let digest = labelled_hash(key.as_str(), "adventurer-class-v3");
+            V3_CLASSES[usize::from(digest[0]) % V3_CLASSES.len()]
         }
     }
 }
@@ -218,7 +241,7 @@ exhaustive_enum! {
     #[serde(rename_all = "snake_case")]
     pub enum AdventurerClass {
         Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Wizard, Artificer, Runewright,
-        Testmender, Pathseeker
+        Testmender, Pathseeker, Mage, Sorcerer
     }
 }
 
@@ -229,6 +252,8 @@ pub enum PersonaGeneration {
     V1,
     /// The twelve-class assignment that includes Druid.
     V2,
+    /// The fourteen-class assignment that adds Mage and Sorcerer.
+    V3,
 }
 
 impl Default for PersonaGeneration {
@@ -253,6 +278,8 @@ impl AdventurerClass {
             Self::Runewright => AdventuringGear::RuneChisel,
             Self::Testmender => AdventuringGear::TestKit,
             Self::Pathseeker => AdventuringGear::MapAndCompass,
+            Self::Mage => AdventuringGear::SkullStaff,
+            Self::Sorcerer => AdventuringGear::Orb,
         }
     }
 }
@@ -363,8 +390,10 @@ trait_enum!(AdventuringGear {
     LivingStaff,
     Lute,
     MapAndCompass,
+    Orb,
     RuneChisel,
     Shield,
+    SkullStaff,
     SpellbookAndStaff,
     TestKit,
     ThievesTools,

@@ -453,6 +453,8 @@ const fn class_label(class: crate::domain::AdventurerClass) -> &'static str {
         AdventurerClass::Runewright => "Runewright",
         AdventurerClass::Testmender => "Testmender",
         AdventurerClass::Pathseeker => "Pathseeker",
+        AdventurerClass::Mage => "Mage",
+        AdventurerClass::Sorcerer => "Sorcerer",
     }
 }
 

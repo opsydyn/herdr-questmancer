@@ -6,6 +6,13 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Two new adventurer classes, Mage and Sorcerer, with art at all three scales.
+  The Mage reads by a skull staff burning green and a hood deep enough to hide
+  its face; the Sorcerer by a halo standing clear above its head. Neither
+  leans on the Wizard's pointed hat. `PersonaGeneration::V3` carries the
+  fourteen-class roll under its own hash label, so saved personas keep the
+  class they were already assigned.
+
 - Persona garb is now visible. It was persisted, palette-mapped and guarded by
   the contrast test, then never drawn. It reads in each master's trim band, so
   two adventurers alike in every other respect are distinguishable while the

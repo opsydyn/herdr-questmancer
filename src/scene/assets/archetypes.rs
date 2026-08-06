@@ -1704,6 +1704,262 @@ const PATHSEEKER_PORTRAIT: &[&str] = &[
     "........................",
 ];
 
+// Two casters that are not the Wizard. The Mage is the dark half of the
+// discipline and the Sorcerer the bright one, so neither leans on the
+// Wizard's pointed hat: the Mage reads by its skull staff and deep hood, the
+// Sorcerer by the halo standing clear above its head.
+
+const MAGE_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(20, 16, 26)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(128, 74, 52)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(216, 148, 96)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(250, 210, 150)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(44, 30, 64)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(86, 64, 124)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(196, 160, 220)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(172, 166, 150)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(236, 232, 214)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(78, 52, 34)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(140, 92, 50)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(198, 60, 58)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(120, 240, 140)),
+    },
+];
+
+const SORCERER_PALETTE: &[IndexedPaletteEntry] = &[
+    IndexedPaletteEntry {
+        key: 'o',
+        colour: Some(Rgb::new(26, 24, 34)),
+    },
+    IndexedPaletteEntry {
+        key: 'k',
+        colour: Some(Rgb::new(150, 96, 62)),
+    },
+    IndexedPaletteEntry {
+        key: 'K',
+        colour: Some(Rgb::new(238, 174, 118)),
+    },
+    IndexedPaletteEntry {
+        key: 'h',
+        colour: Some(Rgb::new(255, 226, 170)),
+    },
+    IndexedPaletteEntry {
+        key: 'r',
+        colour: Some(Rgb::new(168, 122, 44)),
+    },
+    IndexedPaletteEntry {
+        key: 'R',
+        colour: Some(Rgb::new(240, 200, 96)),
+    },
+    IndexedPaletteEntry {
+        key: 'c',
+        colour: Some(Rgb::new(78, 68, 116)),
+    },
+    IndexedPaletteEntry {
+        key: 'C',
+        colour: Some(Rgb::new(150, 142, 196)),
+    },
+    IndexedPaletteEntry {
+        key: 'l',
+        colour: Some(Rgb::new(240, 216, 140)),
+    },
+    IndexedPaletteEntry {
+        key: 'm',
+        colour: Some(Rgb::new(198, 190, 210)),
+    },
+    IndexedPaletteEntry {
+        key: 'M',
+        colour: Some(Rgb::new(248, 246, 255)),
+    },
+    IndexedPaletteEntry {
+        key: 'd',
+        colour: Some(Rgb::new(90, 60, 38)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(156, 104, 56)),
+    },
+    IndexedPaletteEntry {
+        key: 'a',
+        colour: Some(Rgb::new(96, 168, 226)),
+    },
+    IndexedPaletteEntry {
+        key: 'e',
+        colour: Some(Rgb::new(255, 236, 150)),
+    },
+];
+
+// A skull staff burning green, and a hood deep enough to hide the face.
+#[rustfmt::skip]
+const MAGE_WORLD: &[&str] = &[
+    "..e.............",
+    ".oMo............",
+    "oMMMo...oooo....",
+    "oMoMo..occCCco..",
+    "oMMMo.ocCCCCCco.",
+    ".od...ocCoooCco.",
+    ".od...ocCaaaCco.",
+    ".od...ocCoooCco.",
+    ".od..oocCCCCCcoo",
+    ".od..ocCCCCCCCco",
+    ".od..ocCClCCCCco",
+    ".od..ocCCCCCCCco",
+    ".od..ocCCeCCCCco",
+    ".od..ocCCCCCCCco",
+    ".od..ocCClCCCCco",
+    ".od..ocCCCCCCCco",
+    ".od..ocCCCCCCCco",
+    "....ooddddddddoo",
+    "....odDddddddDo.",
+    "....oddddddddo..",
+    "....oddo..oddo..",
+    "....odo....odo..",
+    "...ooo......ooo.",
+    "................",
+];
+
+// A halo standing clear above the head: the one silhouette no other class
+// has. It is painted in the class focal colour rather than the trim, because
+// trim carries persona garb and a halo that changes colour with an
+// adventurer's clothes stops reading as a halo.
+#[rustfmt::skip]
+const SORCERER_WORLD: &[&str] = &[
+    "................",
+    "...oooooooo.....",
+    "...oeeeeeeo.....",
+    "...oooooooo.....",
+    ".....oooo.......",
+    "....orRRRro.....",
+    "....oKKhhKo.....",
+    "....oKKooKo...m.",
+    "....oKKKKKo..mMm",
+    "...oocCCCCcoo.m.",
+    "...ocCCCCCCco.m.",
+    "...ocClllCCco.m.",
+    "...ocCCCCCCco.m.",
+    "...ocCCeCCCco.m.",
+    "...ocCCCCCCco.m.",
+    "...ocClllCCco...",
+    "...ocCCCCCCco...",
+    "...oddddddddo...",
+    "...odDddddDdo...",
+    "...oddddddddo...",
+    "...oddo..oddo...",
+    "...odo....odo...",
+    "..ooo......ooo..",
+    "................",
+];
+
+#[rustfmt::skip]
+const MAGE_PORTRAIT: &[&str] = &[
+    "........................",
+    "...e....................",
+    "..oMo...................",
+    ".oMMMo.....oooo.........",
+    ".oMoMo...occCCCco.......",
+    ".oMMMo..ocCCCCCCCco.....",
+    "..od....ocCCoooCCco.....",
+    "..od....ocCCaaaCCco.....",
+    "..od....ocCCoooCCco.....",
+    "..od....ocCCCCCCCco.....",
+    "..od...oocCCCCCCCcoo....",
+    "..od...ocCCCClCCCCco....",
+    "..od...ocCCCCCCCCCco....",
+    "..od...ocCCCeCCCCCco....",
+    "..od...ocCCCCCCCCCco....",
+    "..od...ocCCCClCCCCco....",
+    "..od...ocCCCCCCCCCco....",
+    "..od...ocCCCCCCCCCco....",
+    "..od...ocCCCCCCCCCco....",
+    ".......oddddddddddddo...",
+    ".......odDddddddddDdo...",
+    ".......oddddddddddddo...",
+    ".......oddddo.oddddo....",
+    ".......oddo....oddo.....",
+    "......oooo......oooo....",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
+#[rustfmt::skip]
+const SORCERER_PORTRAIT: &[&str] = &[
+    "........................",
+    "....oooooooooooo........",
+    "....oeeeeeeeeeeo........",
+    "....oooooooooooo........",
+    ".........oooo...........",
+    "........orRRRRo.........",
+    ".......orRRRRRRo........",
+    ".......oKKKhhKKo........",
+    ".......oKKKooKKo........",
+    ".......oKKKKKKKo........",
+    ".......ooKKKKKoo........",
+    "......oocCCCCCCcoo...m..",
+    "......ocCCCCCCCCco..mMm.",
+    "......ocCClllCCCco...m..",
+    "......ocCCCCCCCCco...m..",
+    "......ocCCCeCCCCco...m..",
+    "......ocCCCCCCCCco...m..",
+    "......ocCClllCCCco...m..",
+    "......ocCCCCCCCCco......",
+    "......ocCCCCCCCCco......",
+    "......oddddddddddo......",
+    "......odDdddddddDo......",
+    "......oddddddddddo......",
+    "......oddddo.ddddo......",
+    "......oddo....oddo......",
+    ".....oooo......oooo.....",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
 #[must_use]
 pub fn world_frame(class: AdventurerClass) -> Option<SpriteFrame> {
     world_master(class).map(|(frame, _)| frame)
@@ -1760,6 +2016,10 @@ fn world_route(class: AdventurerClass) -> Option<WorldRoute> {
             PATHSEEKER_PALETTE,
         )),
         AdventurerClass::Rogue => Some((&ROGUE_WORLD_FRAME, ROGUE_WORLD, ROGUE_PALETTE)),
+        AdventurerClass::Mage => Some((&MAGE_WORLD_FRAME, MAGE_WORLD, MAGE_PALETTE)),
+        AdventurerClass::Sorcerer => {
+            Some((&SORCERER_WORLD_FRAME, SORCERER_WORLD, SORCERER_PALETTE))
+        }
         AdventurerClass::Druid => None,
     }
 }
@@ -1816,6 +2076,12 @@ pub fn portrait_frame(class: AdventurerClass) -> Option<SpriteFrame> {
         AdventurerClass::Rogue => {
             Some(cached(&ROGUE_PORTRAIT_FRAME, ROGUE_PORTRAIT, ROGUE_PALETTE))
         }
+        AdventurerClass::Mage => Some(cached(&MAGE_PORTRAIT_FRAME, MAGE_PORTRAIT, MAGE_PALETTE)),
+        AdventurerClass::Sorcerer => Some(cached(
+            &SORCERER_PORTRAIT_FRAME,
+            SORCERER_PORTRAIT,
+            SORCERER_PALETTE,
+        )),
         AdventurerClass::Druid => None,
     }
 }
@@ -1862,6 +2128,10 @@ static ARTIFICER_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static RUNEWRIGHT_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static TESTMENDER_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static PATHSEEKER_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static MAGE_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static SORCERER_WORLD_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static MAGE_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
+static SORCERER_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static WIZARD_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static CLERIC_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();
 static PALADIN_PORTRAIT_FRAME: OnceLock<SpriteFrame> = OnceLock::new();

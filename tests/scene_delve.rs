@@ -348,10 +348,11 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // colours, and again when Artificer, Runewright, Testmender and
     // Pathseeker stopped borrowing another class's world master, and again
     // when returning and resting adventurers gained authored pose art, and
-    // again when persona garb reached each master's trim band.
+    // again when persona garb reached each master's trim band, and again when
+    // the Mage and Sorcerer classes shifted these fixtures' persona rolls.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "3cc9f29945e98fc209556ade3353e06c8b50e28de29640dc50cbc03a4a227f82"
+        "5510ece6e9d5928e206fd5b71e0d27193f951ee5a8d2480223ad793838342c8d"
     );
 
     let non_clear = first
@@ -454,13 +455,24 @@ fn narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible() {
         motion: Motion::None,
         now: Timestamp::from_millis(10_000),
     };
-    let full = render(&snapshot, WorldScene::Delve, VIEWPORT);
     // Within the crop band the camera must frame the blocked adventurer and
-    // the sealed gate it is standing at.
-    let (crop, crop_frame) =
-        render_with_frame(&snapshot, WorldScene::Delve, PixelSize::new(120, 60));
-    let (offset_x, offset_y) = crop_offset(&crop, &full).expect("narrow Delve is a world crop");
-    let visible_world = PixelRect::new(offset_x, offset_y, 120, 60);
+    // the sealed gate it is standing at. The camera offset is derived from
+    // where the same adventurer lands in each render rather than by matching
+    // pixels: state markers clamp to their own viewport, so a narrow render
+    // is a window on the same world without being byte-identical to one.
+    let (_, full_frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+    let (_, crop_frame) = render_with_frame(&snapshot, WorldScene::Delve, PixelSize::new(120, 60));
+    let locate = |frame: &SceneFrame| {
+        frame
+            .actors
+            .iter()
+            .find(|actor| actor.agent == blocked.key)
+            .map(|actor| (actor.bounds.x, actor.bounds.y))
+            .expect("the blocked adventurer is rendered")
+    };
+    let (full_x, full_y) = locate(&full_frame);
+    let (crop_x, crop_y) = locate(&crop_frame);
+    let visible_world = PixelRect::new(full_x - crop_x, full_y - crop_y, 120, 60);
     let gate_asset = PixelRect::new(127, 28, 16, 10);
 
     assert!(rects_intersect(visible_world, gate_asset));

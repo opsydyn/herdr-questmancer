@@ -14,7 +14,7 @@ use crate::scene::{
     stage::ScenePlan,
 };
 
-use super::interaction::{paint_actor_grounding, paint_selection_marker};
+use super::interaction::{paint_actor_grounding, paint_actor_state_marker, paint_selection_marker};
 use super::is_visible;
 
 /// Each master keeps a one-pixel gutter beside it so neighbouring adventurers
@@ -94,6 +94,7 @@ pub(crate) fn paint_party(
         }
         paint_actor_grounding(target, bounds, placement.pose, shadow);
         blit(&sprite, actor_origin, target);
+        paint_actor_state_marker(target, bounds, placement.pose);
         if placement.selected {
             paint_selection_marker(target, actor_origin, sprite.size());
         }
