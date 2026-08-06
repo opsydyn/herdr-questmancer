@@ -335,9 +335,12 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     let second = render(&snapshot, WorldScene::Delve, VIEWPORT);
     assert_eq!(first.pixels(), second.pixels());
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
+    // Golden bytes for the canonical dungeon. Re-pinned after persona palette
+    // substitution reached world masters and the Barbarian torso leather moved
+    // off the oak-alike brown.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "a1d847670d4f890414dc224ad649c0cd64ce18ebbeea78fbd6dfaac16c832479"
+        "c3b6bd932e23636e89013c925f72a8c8fa3c6c8865433ccf0486aab5a1c8c118"
     );
 
     let non_clear = first

@@ -42,16 +42,11 @@ pub fn render_scene_identity_labels(frame: &mut Frame<'_>, model: &Model, scene:
         let elapsed = format_elapsed(agent.presence_since.elapsed_until(model.now()));
         let selected = model.selected_agent_key() == Some(&region.agent);
         let urgent = agent.presence == Presence::Blocked;
-        let raw_label = if selected || urgent {
-            format!(
-                "{} · {} {elapsed}",
-                agent.name,
-                presence_badge(agent.presence)
-            )
+        let label = if selected || urgent {
+            fit_identity_label(&agent.name, agent.presence, Some(&elapsed), 36)
         } else {
-            format!("{} · {}", agent.name, presence_badge(agent.presence))
+            fit_identity_label(&agent.name, agent.presence, None, 20)
         };
-        let label = compact_label(&raw_label, if selected || urgent { 36 } else { 20 });
         let width = u16::try_from(label.chars().count())
             .unwrap_or(u16::MAX)
             .min(area.width);
@@ -110,16 +105,36 @@ fn rects_intersect(left: Rect, right: Rect) -> bool {
         && left.bottom() > right.y
 }
 
-fn compact_label(label: &str, maximum: usize) -> String {
-    if label.chars().count() <= maximum {
-        return label.to_owned();
+/// Fits an identity label into `maximum` columns, degrading name-first so the
+/// presence state is never the part that gets truncated: full label, then a
+/// shortened name with the whole badge, then the state glyph and age alone.
+fn fit_identity_label(
+    name: &str,
+    presence: Presence,
+    elapsed: Option<&str>,
+    maximum: usize,
+) -> String {
+    let badge = presence_badge(presence);
+    let suffix = elapsed.map_or_else(
+        || format!(" · {badge}"),
+        |elapsed| format!(" · {badge} {elapsed}"),
+    );
+    let suffix_length = suffix.chars().count();
+    if name.chars().count() + suffix_length <= maximum {
+        return format!("{name}{suffix}");
     }
-    let mut compact = label
-        .chars()
-        .take(maximum.saturating_sub(1))
-        .collect::<String>();
-    compact.push('…');
-    compact
+    let name_budget = maximum.saturating_sub(suffix_length);
+    if name_budget >= 4 {
+        let kept = name.chars().take(name_budget - 1).collect::<String>();
+        return format!("{kept}…{suffix}");
+    }
+    let glyph = presence_glyph(presence);
+    let compact = elapsed.map_or_else(|| glyph.to_owned(), |elapsed| format!("{glyph} {elapsed}"));
+    if compact.chars().count() <= maximum {
+        compact
+    } else {
+        glyph.chars().take(maximum).collect()
+    }
 }
 
 fn presence_badge(presence: Presence) -> &'static str {
@@ -130,6 +145,18 @@ fn presence_badge(presence: Presence) -> &'static str {
         Presence::Idle => "RESTING",
         Presence::Exited => "× DEPARTED",
         Presence::Unknown => "? UNKNOWN",
+    }
+}
+
+/// Single-character state marker for lanes too narrow to carry any name.
+fn presence_glyph(presence: Presence) -> &'static str {
+    match presence {
+        Presence::Working => "»",
+        Presence::Blocked => "!",
+        Presence::Done => "✓",
+        Presence::Idle => "z",
+        Presence::Exited => "×",
+        Presence::Unknown => "?",
     }
 }
 
@@ -456,4 +483,49 @@ fn centered(area: Rect, maximum_width: u16, maximum_height: u16) -> Option<Rect>
         width,
         height,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn full_labels_pass_through_untouched() {
+        assert_eq!(
+            fit_identity_label("codex", Presence::Working, Some("7m"), 36),
+            "codex · WORKING 7m"
+        );
+        assert_eq!(
+            fit_identity_label("codex", Presence::Idle, None, 20),
+            "codex · RESTING"
+        );
+    }
+
+    #[test]
+    fn truncation_shortens_the_name_and_never_the_state() {
+        let label = fit_identity_label("archive-mender-of-the-vaults", Presence::Working, None, 20);
+        assert_eq!(label, "archive-m… · WORKING");
+        assert_eq!(label.chars().count(), 20);
+    }
+
+    #[test]
+    fn urgent_labels_keep_badge_and_elapsed_over_the_name() {
+        let label = fit_identity_label(
+            "archive-mender-of-the-vaults",
+            Presence::Blocked,
+            Some("3m"),
+            36,
+        );
+        assert!(label.ends_with(" · ! NEEDS COUNSEL 3m"), "{label}");
+        assert!(label.chars().count() <= 36);
+    }
+
+    #[test]
+    fn lanes_too_narrow_for_a_name_fall_back_to_the_state_glyph() {
+        assert_eq!(
+            fit_identity_label("codex", Presence::Blocked, Some("3m"), 8),
+            "! 3m"
+        );
+        assert_eq!(fit_identity_label("codex", Presence::Working, None, 6), "»");
+    }
 }

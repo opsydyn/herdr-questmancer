@@ -266,6 +266,24 @@ fn asset_stories() -> Vec<Story> {
             BarbarianV2PoseFamily
         ),
         story!(
+            "asset.persona-palettes",
+            "Assets / Persona Palette Family",
+            Category::Assets,
+            "One shared class master across the persona skin, hair and accent range.",
+            ASSET_VIEWPORT,
+            persona_palettes,
+            PersonaPaletteFamily
+        ),
+        story!(
+            "asset.roster-families",
+            "Assets / Roster Silhouette Families",
+            Category::Assets,
+            "The authored 8x12 masters a narrow pane recomposes the whole party into.",
+            ASSET_VIEWPORT,
+            roster_families,
+            RosterSilhouetteFamilies
+        ),
+        story!(
             "asset.portrait-masters",
             "Assets / Core Portrait Masters",
             Category::Assets,
@@ -300,6 +318,7 @@ fn asset_stories() -> Vec<Story> {
 fn native_card_stories() -> Vec<Story> {
     let mut stories = native_foundation_card_stories().to_vec();
     stories.extend(native_adventurer_card_stories());
+    stories.extend(native_custom_class_card_stories());
     stories.extend(reserved_event_art_stories());
     stories
 }
@@ -350,6 +369,29 @@ fn native_foundation_card_stories() -> [Story; 5] {
             ASSET_VIEWPORT,
             native_druid_portrait,
             NativeDruidPortrait
+        ),
+    ]
+}
+
+fn native_custom_class_card_stories() -> [Story; 2] {
+    [
+        story!(
+            "asset.native-runewright-portrait",
+            "Asset / Native Runewright Card",
+            Category::Assets,
+            "The production Runewright card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_runewright_portrait,
+            NativeRunewrightPortrait
+        ),
+        story!(
+            "asset.native-pathseeker-portrait",
+            "Asset / Native Pathseeker Card",
+            Category::Assets,
+            "The production Pathseeker card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
+            ASSET_VIEWPORT,
+            native_pathseeker_portrait,
+            NativePathseekerPortrait
         ),
     ]
 }
@@ -460,6 +502,14 @@ fn core_portrait_masters(_: StoryContext) -> StoryFixture {
     StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::PortraitMasters)
 }
 
+fn persona_palettes(_: StoryContext) -> StoryFixture {
+    StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::PersonaPalettes)
+}
+
+fn roster_families(_: StoryContext) -> StoryFixture {
+    StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::RosterFamilies)
+}
+
 fn goblin_easter_egg(_: StoryContext) -> StoryFixture {
     StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::GoblinEasterEgg)
 }
@@ -510,6 +560,14 @@ fn native_testmender_portrait(context: StoryContext) -> StoryFixture {
 
 fn native_wizard_portrait(context: StoryContext) -> StoryFixture {
     scene(fixtures::native_wizard_portrait_fixture(context))
+}
+
+fn native_runewright_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_runewright_portrait_fixture(context))
+}
+
+fn native_pathseeker_portrait(context: StoryContext) -> StoryFixture {
+    scene(fixtures::native_pathseeker_portrait_fixture(context))
 }
 
 fn native_goblin_portrait(context: StoryContext) -> StoryFixture {

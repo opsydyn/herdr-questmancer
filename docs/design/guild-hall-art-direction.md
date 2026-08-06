@@ -1,6 +1,9 @@
 # Guild Hall art direction
 
 Status: approved direction; renderer implementation awaits visual review.
+Landed so far: persona palette substitution in world masters, the compact and
+vignette quiet stage, state-first nameplate truncation, and the garb-versus-
+material contrast floor with its automated proof.
 
 Scope: Guild Hall first. The Delve keeps its darker dungeon direction and will
 adopt the same actor-legibility rules in a later, separate pass.
@@ -85,8 +88,10 @@ visible actor must retain its authored native-scale world sprite and have:
 - enough negative space to read primary gear and face at a glance; and
 - a visible selection treatment stronger than four detached corner pixels.
 
-Selection should feel like a modest rune, lamp or floor ring under the selected
-adventurer. It must clarify focus without turning the room into a dashboard.
+Selection is a modest rune ring on the floor beneath the selected adventurer,
+scaled to the master it marks. It must clarify focus without turning the room
+into a dashboard. Its colour is reserved: nothing else in either world may
+paint it, or the room grows false positives.
 Blocked adventurers gain the highest local contrast and a distinctive counsel
 signal. Working, resting, returned-with-spoils, unknown and exited states stay
 truthful and calmer. Completion effects remain short transition theatre, never
@@ -129,11 +134,19 @@ This is a visual hierarchy pass, not a change to Herdr truth or input controls.
 
 ## Responsive contract
 
-The existing small-viewport policy remains authoritative: canonical whole Hall,
-then a capacity-checked compact whole-party layout, then a priority-adventurer
-vignette, then status-only rendering when an authored actor cannot fit. The
-Hall must recompose; it must not crop a busy canonical scene and call that
-responsive.
+The small-viewport policy is a five-rung ladder: canonical whole Hall, then a
+capacity-checked compact whole-party layout, then a **roster** of authored
+`8x12` masters when the party no longer fits at world scale, then a
+priority-adventurer vignette, then status-only rendering. The Hall must
+recompose; it must not crop a busy canonical scene and call that responsive.
+
+The roster rung exists because a Questmancer pane is usually narrow: dropping
+straight from compact to a single adventurer answers "who needs counsel" only
+by accident, and answers "how large is my party" not at all. Roster masters
+are authored per silhouette family, never mechanically downscaled, and carry
+no pose — state is told by grounding, the counsel marker and the nameplate.
+A station becomes unavailable rather than shrinking a master into a token;
+the roster is a different authored size, not a squeezed one.
 
 At every size, the selected adventurer wins priority. Otherwise an adventurer
 needing counsel wins priority. The Librarian stays visible and selectable when
@@ -168,6 +181,7 @@ Storybook coverage for these truthful situations:
 | Hall / returning with spoils | one-shot completion treatment and spoils station read |
 | Hall / full party and overflow | no stacking, truthful overflow treatment and Librarian visibility |
 | Hall / compact and vignette | recomposition, native-scale sprites and priority selection |
+| Hall / roster | whole party visible at authored 8x12, no shared silhouette edges, counsel marker per blocked adventurer |
 
 Review the stories at the canonical `160x90` RGB world, a compact viewport and
 a small Ghostty window. Automated tests should enforce station/label

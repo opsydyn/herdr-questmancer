@@ -167,11 +167,12 @@ pub const fn portrait_asset(class: AdventurerClass) -> Option<&'static [u8]> {
         AdventurerClass::Rogue => Some(include_bytes!("assets/portraits/rogue-card.png")),
         AdventurerClass::Testmender => Some(include_bytes!("assets/portraits/testmender-card.png")),
         AdventurerClass::Wizard => Some(include_bytes!("assets/portraits/wizard-card.png")),
-        AdventurerClass::Runewright | AdventurerClass::Pathseeker => None,
+        AdventurerClass::Runewright => Some(include_bytes!("assets/portraits/runewright-card.png")),
+        AdventurerClass::Pathseeker => Some(include_bytes!("assets/portraits/pathseeker-card.png")),
     }
 }
 
-fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 10] {
+fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 12] {
     [
         (
             PortraitKey::Class(AdventurerClass::Artificer),
@@ -213,6 +214,14 @@ fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 10] {
             PortraitKey::Class(AdventurerClass::Wizard),
             portrait_asset(AdventurerClass::Wizard).expect("Wizard portrait is embedded"),
         ),
+        (
+            PortraitKey::Class(AdventurerClass::Runewright),
+            portrait_asset(AdventurerClass::Runewright).expect("Runewright portrait is embedded"),
+        ),
+        (
+            PortraitKey::Class(AdventurerClass::Pathseeker),
+            portrait_asset(AdventurerClass::Pathseeker).expect("Pathseeker portrait is embedded"),
+        ),
     ]
 }
 
@@ -233,26 +242,31 @@ mod tests {
     use super::*;
     use crate::domain::Ancestry;
 
+    /// Every production class now owns a card. A class without one silently
+    /// falls back to a sibling's authored sprite, which is how two different
+    /// adventurers ended up wearing the same face.
     #[test]
-    fn approved_classes_have_embedded_native_portraits() {
+    fn every_class_has_an_embedded_native_portrait() {
         for class in AdventurerClass::ALL {
-            assert_eq!(
-                portrait_asset(*class).is_some(),
-                matches!(
-                    class,
-                    AdventurerClass::Artificer
-                        | AdventurerClass::Barbarian
-                        | AdventurerClass::Bard
-                        | AdventurerClass::Cleric
-                        | AdventurerClass::Druid
-                        | AdventurerClass::Paladin
-                        | AdventurerClass::Ranger
-                        | AdventurerClass::Rogue
-                        | AdventurerClass::Testmender
-                        | AdventurerClass::Wizard
-                ),
-                "{class:?}"
-            );
+            assert!(portrait_asset(*class).is_some(), "{class:?}");
+        }
+    }
+
+    /// Class is the primary visual identity, so no two classes may resolve to
+    /// the same card bytes.
+    #[test]
+    fn no_two_classes_share_a_card_portrait() {
+        let cards = AdventurerClass::ALL
+            .iter()
+            .map(|class| (class, portrait_asset(*class).expect("class card")))
+            .collect::<Vec<_>>();
+        for (index, (class, bytes)) in cards.iter().enumerate() {
+            for (other_class, other_bytes) in cards.iter().skip(index + 1) {
+                assert_ne!(
+                    bytes, other_bytes,
+                    "{class:?} and {other_class:?} share one card portrait"
+                );
+            }
         }
     }
 
@@ -326,8 +340,8 @@ mod tests {
         assert!(gallery.portrait_for(&druid).is_some());
         assert!(gallery.portrait_for(&goblin_wizard).is_some());
         assert!(gallery.portrait_for(&orc_ranger).is_some());
-        assert!(gallery.portrait_for(&orc_runewright).is_none());
-        assert!(gallery.portrait_for(&pathseeker).is_none());
+        assert!(gallery.portrait_for(&orc_runewright).is_some());
+        assert!(gallery.portrait_for(&pathseeker).is_some());
         assert!(gallery.librarian().is_some());
         assert!(gallery.diagnostic().is_none());
     }
@@ -356,6 +370,8 @@ mod tests {
         }
     }
 
+    /// Goblin and Orc art stays reserved for event storytelling: an Orc
+    /// Runewright reads as a Runewright, never as the Orc illustration.
     #[test]
     fn ancestry_portraits_are_reserved_and_never_selected_for_regular_adventurers() {
         let mut picker = Picker::halfblocks();
@@ -366,7 +382,12 @@ mod tests {
         persona.ancestry = Ancestry::Orc;
         persona.class = AdventurerClass::Runewright;
 
-        assert!(gallery.portrait_for(&persona).is_none());
+        let selected = gallery.portrait_for(&persona).expect("class portrait");
+        let runewright = gallery
+            .portraits
+            .get(&PortraitKey::Class(AdventurerClass::Runewright))
+            .expect("Runewright protocol");
+        assert!(std::ptr::eq(selected, runewright));
     }
 
     #[test]

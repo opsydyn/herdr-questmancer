@@ -1,7 +1,12 @@
 use questmancer::{
-    domain::{AdventurerClass, AdventurerPersona, PersonaKey},
+    domain::{AccentTone, AdventurerClass, AdventurerPersona, HairTone, PersonaKey, SkinTone},
     scene::{
-        assets::adventurer::{adventurer_animation_frame, adventurer_portrait_frame},
+        assets::{
+            adventurer::{
+                adventurer_animation_frame, adventurer_portrait_frame, adventurer_roster_frame,
+            },
+            roster::{RosterFamily, master as roster_master},
+        },
         pixel::PixelSize,
         stage::ScenePose,
     },
@@ -90,6 +95,135 @@ fn every_domain_class_routes_to_authored_world_and_portrait_assets() {
         assert_eq!(world.size(), PixelSize::new(16, 24), "{class:?}");
         assert_eq!(portrait.size(), PixelSize::new(24, 32), "{class:?}");
     }
+}
+
+#[test]
+fn same_class_personas_with_different_appearance_render_distinct_world_masters() {
+    for class in AdventurerClass::ALL {
+        let mut left =
+            AdventurerPersona::for_key(PersonaKey::new(format!("persona-left-{class:?}")));
+        left.class = *class;
+        left.appearance.skin_tone = SkinTone::Porcelain;
+        left.appearance.hair_tone = HairTone::Black;
+        left.appearance.accent = AccentTone::Cyan;
+        let mut right = left.clone();
+        right.appearance.skin_tone = SkinTone::Ebony;
+        right.appearance.hair_tone = HairTone::Gold;
+        right.appearance.accent = AccentTone::Red;
+
+        let left_frame = adventurer_animation_frame(&left, ScenePose::Working, 0);
+        let right_frame = adventurer_animation_frame(&right, ScenePose::Working, 0);
+
+        assert_ne!(
+            left_frame, right_frame,
+            "{class:?}: personas with different appearance alias the same master"
+        );
+    }
+}
+
+#[test]
+fn persona_substitution_preserves_the_authored_silhouette() {
+    for class in AdventurerClass::ALL {
+        let mut left =
+            AdventurerPersona::for_key(PersonaKey::new(format!("silhouette-left-{class:?}")));
+        left.class = *class;
+        left.appearance.skin_tone = SkinTone::Porcelain;
+        left.appearance.hair_tone = HairTone::Black;
+        left.appearance.accent = AccentTone::Cyan;
+        let mut right = left.clone();
+        right.appearance.skin_tone = SkinTone::Ebony;
+        right.appearance.hair_tone = HairTone::Gold;
+        right.appearance.accent = AccentTone::Red;
+
+        let left_frame = adventurer_animation_frame(&left, ScenePose::Working, 0);
+        let right_frame = adventurer_animation_frame(&right, ScenePose::Working, 0);
+
+        assert_eq!(left_frame.size(), right_frame.size(), "{class:?}");
+        let masks_match = left_frame
+            .pixels()
+            .iter()
+            .zip(right_frame.pixels())
+            .all(|(left, right)| left.is_some() == right.is_some());
+        assert!(
+            masks_match,
+            "{class:?}: persona substitution altered the transparency mask"
+        );
+    }
+}
+
+#[test]
+fn persona_substitution_is_deterministic_for_a_fixed_persona() {
+    for class in AdventurerClass::ALL {
+        let mut persona =
+            AdventurerPersona::for_key(PersonaKey::new(format!("deterministic-{class:?}")));
+        persona.class = *class;
+
+        assert_eq!(
+            adventurer_animation_frame(&persona, ScenePose::Working, 0),
+            adventurer_animation_frame(&persona, ScenePose::Working, 0),
+            "{class:?}"
+        );
+    }
+}
+
+#[test]
+fn every_class_has_an_authored_roster_master_at_the_small_tier() {
+    for class in AdventurerClass::ALL {
+        let mut persona = AdventurerPersona::for_key(PersonaKey::new(format!("roster-{class:?}")));
+        persona.class = *class;
+
+        let frame = adventurer_roster_frame(&persona);
+
+        assert_eq!(frame.size(), PixelSize::new(8, 12), "{class:?}");
+        assert!(
+            frame.pixels().iter().any(Option::is_some),
+            "{class:?} roster master is empty"
+        );
+        let bottom_row_has_feet = frame.pixels()[8 * 11..].iter().any(Option::is_some)
+            || frame.pixels()[8 * 10..8 * 11].iter().any(Option::is_some);
+        assert!(
+            bottom_row_has_feet,
+            "{class:?} roster master has no foot row"
+        );
+    }
+}
+
+#[test]
+fn roster_silhouette_families_are_pairwise_distinct() {
+    let families = RosterFamily::ALL
+        .iter()
+        .map(|family| (family, roster_master(*family).0))
+        .collect::<Vec<_>>();
+
+    for (index, (family, frame)) in families.iter().enumerate() {
+        for (other_family, other_frame) in families.iter().skip(index + 1) {
+            assert_ne!(
+                frame, other_frame,
+                "roster {family:?} aliases roster {other_family:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn same_family_personas_stay_distinguishable_at_roster_scale() {
+    let mut left = AdventurerPersona::for_key(PersonaKey::new("roster-left"));
+    left.class = AdventurerClass::Wizard;
+    left.appearance.skin_tone = SkinTone::Porcelain;
+    left.appearance.hair_tone = HairTone::Black;
+    left.appearance.accent = AccentTone::Cyan;
+    let mut right = left.clone();
+    // Artificer shares the Caster family, so only the persona palette can
+    // separate these two adventurers in a narrow pane.
+    right.class = AdventurerClass::Artificer;
+    right.appearance.skin_tone = SkinTone::Ebony;
+    right.appearance.hair_tone = HairTone::Gold;
+    right.appearance.accent = AccentTone::Red;
+
+    assert_ne!(
+        adventurer_roster_frame(&left),
+        adventurer_roster_frame(&right)
+    );
 }
 
 #[test]

@@ -6,6 +6,50 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Persona palette substitution in every class world master: an adventurer's
+  skin, hair, and accent recolour the authored role clusters, so same-class
+  agents are visually distinct in the Guild Hall and Delve. A new
+  Persona Palette Family Storybook story reviews the spread on one shared
+  master, and proof tests pin silhouette, determinism, and role-colour
+  uniqueness.
+- A flat quiet stage behind the compact and vignette Guild Hall party, so
+  material seams never run through an actor's silhouette.
+- A roster rung in the Guild Hall's responsive ladder. When a party no longer
+  fits at world scale, a narrow pane now recomposes the *whole* party into
+  authored 8x12 masters — one per silhouette family, personalised by the same
+  palette substitution — instead of dropping to a single adventurer. Roster
+  actors keep their own hit regions, grounding and selection treatment, and a
+  Roster Silhouette Families Storybook story reviews the art.
+- An authored counsel marker: blocked adventurers now carry an outlined bell
+  above their head in the canonical, compact, roster and vignette Halls,
+  replacing three loose pixels that read as noise at terminal scale.
+- Native card portraits for Runewright and Pathseeker, the last two classes
+  without one. Every production class now owns a distinct card, proven by a
+  test that no two classes resolve to the same card bytes.
+
+### Changed
+
+- Identity nameplates now degrade name-first: truncation shortens the
+  adventurer's name and keeps the presence badge whole, falling back to a
+  state glyph and age in lanes too narrow for any name.
+- `Garb::Leathers`, `Garb::WorkApron`, and the Barbarian's torso leather moved
+  off oak-alike browns; a redmean colour-distance test now proves every
+  garb and cloth mass keeps contrast with the Hall's `OAK` and `STONE` fills.
+- Selection is now a rune ring on the floor beneath the selected adventurer
+  rather than four detached corner pixels, as the art direction asks. The
+  ring scales with the master, so it reads at world and roster sizes alike,
+  and the selection colour is reserved: a test proves no prop, adventurer or
+  dungeon fixture paints it.
+
+### Fixed
+
+- The selection marker no longer loses half its corner runes when the selected
+  adventurer stands at the edge of the room; corners are clamped inside the
+  viewport so the hearth and spoils stations mark selection like every other.
+- Canonical Guild Hall actors were the only ones rendered without a contact
+  shadow or state signal; they now ground and mark like the compact, roster
+  and vignette compositions.
+
 - Questmancer's Guild Hall and Delve projections over one typed Herdr session
   model, with responsive wide, compact, and tiny-terminal layouts.
 - Campaign, adventurer, presence, attention, persona, Summons, Chronicle, and

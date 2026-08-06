@@ -84,13 +84,25 @@ fn explicit_world_render_marks_only_the_selected_adventurer() {
     );
 
     assert_eq!(frame.world, WorldScene::GuildHall);
-    assert_eq!(
-        target
-            .pixels()
-            .iter()
-            .filter(|pixel| **pixel == SELECTION_RUNE)
-            .count(),
-        4
+    let rune_pixels = target
+        .pixels()
+        .iter()
+        .filter(|pixel| **pixel == SELECTION_RUNE)
+        .count();
+    // A floor ring, not four detached corner pixels: wide enough to read as
+    // focus but still one adventurer's worth of marking.
+    assert!(
+        (8..=32).contains(&rune_pixels),
+        "expected one adventurer's selection ring, found {rune_pixels} rune pixels"
+    );
+
+    let region = frame.actors.first().expect("the selected adventurer");
+    let ring_row = (0..i32::from(PixelSize::new(160, 90).height))
+        .find(|y| (0..160).any(|x| target.get(x, *y) == Some(SELECTION_RUNE)));
+    let ring_row = ring_row.expect("the ring is painted");
+    assert!(
+        ring_row >= region.bounds.y,
+        "the ring belongs under the adventurer, not above it"
     );
 }
 
