@@ -220,7 +220,11 @@ pub fn apply_connection_update(
     let discover_reviewr = matches!(connection_update, ConnectionUpdate::Connected(_));
     let publish_marginalia = matches!(&connection_update, ConnectionUpdate::Connected(_));
     let diagnostic_is_connection = matches!(&connection_update, ConnectionUpdate::Disconnected(_));
-    let before_marginalia = SidebarProjection::from_domain(model.domain());
+    let before_marginalia = SidebarProjection::from_domain(
+        model.domain(),
+        model.now(),
+        model.preferences().character_set,
+    );
     let before = selected_revision(model);
     let actions = adapt_update_excluding(
         connection_update,
@@ -267,7 +271,11 @@ pub fn apply_connection_update(
             qualified_id: model.settings().reviewr_action.clone(),
         });
     }
-    let after_marginalia = SidebarProjection::from_domain(model.domain());
+    let after_marginalia = SidebarProjection::from_domain(
+        model.domain(),
+        model.now(),
+        model.preferences().character_set,
+    );
     if publish_marginalia || after_marginalia != before_marginalia {
         effects
             .agent_commands

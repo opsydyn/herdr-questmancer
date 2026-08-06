@@ -6,6 +6,14 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- A character-sheet vocabulary for Herdr's custom sidebar rows. Questmancer now
+  publishes a class sigil, an epithet, a condition, a keepsake trinket, an
+  exhaustion-style vigil for summons nobody has answered, and a bag-of-holding
+  spoils count, plus a party sigil line per campaign. Every value is a fact
+  Questmancer already holds, and all of it degrades to ASCII. The sidebar stays
+  Herdr UI: `docs/design/questmancer-sidebar-character-sheet.md` carries
+  paste-ready `[ui.sidebar]` configurations.
+
 - Two new adventurer classes, Mage and Sorcerer, with art at all three scales.
   The Mage reads by a skull staff burning green and a hood deep enough to hide
   its face; the Sorcerer by a halo standing clear above its head. Neither
