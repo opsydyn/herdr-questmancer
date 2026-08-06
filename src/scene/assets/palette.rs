@@ -81,13 +81,16 @@ const fn hair_colour(value: HairTone) -> Rgb {
     }
 }
 
-// Garb colours must keep a clear colour distance from the Hall's dominant
-// floor and wall fills (`OAK`, `STONE`) or actors dissolve into the room;
-// the contrast is proven by `garb_and_cloth_masses_contrast_with_hall_materials`.
+// Garb colours must keep a clear colour distance from both worlds' dominant
+// surfaces — the Hall's `OAK` and `STONE`, and the Delve's floor, stone and
+// moss — or actors dissolve into the room they are standing in. The contrast
+// is proven by `garb_and_cloth_masses_contrast_with_world_materials`.
 const fn cloth_colour(value: Garb) -> Rgb {
     match value {
         Garb::Armour => Rgb::new(79, 93, 105),
-        Garb::Cloak => Rgb::new(48, 79, 80),
+        // Slate blue rather than teal-grey: the old value was within 25 of
+        // the Delve's floor and vanished on it.
+        Garb::Cloak => Rgb::new(44, 66, 96),
         Garb::Doublet => Rgb::new(101, 42, 57),
         Garb::Leathers => Rgb::new(124, 66, 58),
         Garb::Robes => Rgb::new(64, 51, 112),

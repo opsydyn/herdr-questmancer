@@ -5,8 +5,11 @@ Landed so far: persona palette substitution in world masters, the compact and
 vignette quiet stage, state-first nameplate truncation, and the garb-versus-
 material contrast floor with its automated proof.
 
-Scope: Guild Hall first. The Delve keeps its darker dungeon direction and will
-adopt the same actor-legibility rules in a later, separate pass.
+Scope: Guild Hall first. The Delve has since adopted the same actor-legibility
+rules while keeping its darker dungeon direction: its party grounds against the
+deepest stone value, blocked delvers carry the same authored counsel marker,
+and a pane too small to hold the party inside a camera crop recomposes at
+roster scale rather than leaving delvers off-camera.
 
 The visual north star is
 [`reference-art/questmancer-option-a-north-star.png`](../../reference-art/questmancer-option-a-north-star.png):
@@ -191,7 +194,8 @@ not visual quality: final art approval remains a manual product gate.
 
 ## Non-goals
 
-- No Delve redesign in this pass.
+- No Delve architecture redesign: the dungeon layout, lighting and camera are
+  unchanged. Only actor legibility and the responsive ladder were adopted.
 - No copied Pixtuoid assets or code.
 - No native-image sprites in the world scene; native portraits remain card-only.
 - No return of the legacy dashboard or old renderer.

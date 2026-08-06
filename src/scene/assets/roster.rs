@@ -165,8 +165,8 @@ const SKIRMISHER_PALETTE: &[IndexedPaletteEntry] = roster_palette!(
     Rgb::new(98, 65, 137)
 );
 const RANGER_PALETTE: &[IndexedPaletteEntry] = roster_palette!(
-    Rgb::new(22, 37, 20),
-    Rgb::new(42, 76, 39),
+    Rgb::new(16, 28, 15),
+    Rgb::new(26, 47, 26),
     Rgb::new(79, 125, 57)
 );
 

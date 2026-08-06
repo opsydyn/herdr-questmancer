@@ -150,7 +150,7 @@ mod tests {
     /// can fill an actor's body mass: persona garb colours, each archetype's
     /// cloth base clusters (`c`/`C`) and the Barbarian's leather torso.
     #[test]
-    fn garb_and_cloth_masses_contrast_with_hall_materials() {
+    fn garb_and_cloth_masses_contrast_with_world_materials() {
         let mut masses: Vec<(String, Rgb)> = Garb::ALL
             .iter()
             .map(|garb| {
@@ -194,8 +194,18 @@ mod tests {
             }
         }
 
+        // Both worlds: the Hall's oak and stone, and the dungeon surfaces a
+        // delving party actually stands on.
         for (label, colour) in masses {
-            for (material, fill) in [("OAK", OAK), ("STONE", STONE)] {
+            for (material, fill) in [
+                ("OAK", OAK),
+                ("STONE", STONE),
+                ("delve FLOOR_DARK", delve::FLOOR_DARK),
+                ("delve FLOOR_MID", delve::FLOOR_MID),
+                ("delve STONE_MID", delve::STONE_MID),
+                ("delve MOSS_DARK", delve::MOSS_DARK),
+                ("delve MOSS_LIGHT", delve::MOSS_LIGHT),
+            ] {
                 let distance = colour_distance(colour, fill);
                 assert!(
                     distance >= MINIMUM_MASS_CONTRAST,

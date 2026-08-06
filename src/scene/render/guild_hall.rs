@@ -6,9 +6,7 @@ use crate::{
     scene::{
         SceneActorRegion, SceneFrame, SceneInteractable, SceneInteractableRegion,
         assets::{
-            adventurer::{
-                adventurer_animation_frame, adventurer_pose_is_animated, adventurer_roster_frame,
-            },
+            adventurer::{adventurer_animation_frame, adventurer_pose_is_animated},
             guild_hall::{GuildHallAsset, frame},
             librarian,
             palette::{
@@ -16,7 +14,6 @@ use crate::{
                 PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_DARK, RUG_GOLD, SHADOW, STONE,
                 STONE_DARK, STONE_LIGHT, VOID, WINE_DARK,
             },
-            roster,
         },
         pixel::{PixelPoint, PixelRect, PixelSize, Rgb, RgbBuffer},
         snapshot::{SceneConnection, SceneSnapshot},
@@ -28,10 +25,10 @@ use crate::{
     },
 };
 
-use super::interaction::paint_selection_marker;
+use super::interaction::{self, paint_selection_marker};
 use super::{
     actor_animation_phase, actor_next_frame_delay, actor_origin, earliest_deadline,
-    effect_animation_phase, is_visible, lighting, next_frame_delay,
+    effect_animation_phase, is_visible, lighting, next_frame_delay, roster,
 };
 
 pub const WIDTH: i32 = 160;
@@ -49,18 +46,6 @@ const LIBRARIAN_CANONICAL_ORIGIN: PixelPoint = PixelPoint::new(7, 64);
 // The quiet-lane rule: material seams and speckle never run through an
 // actor's silhouette, so the stage carries no plank or stone pattern.
 const QUIET_STAGE: Rgb = Rgb::new(88, 53, 31);
-
-// The roster tier. Each authored 8x12 master keeps a one-pixel gutter beside
-// it and a two-pixel lane beneath it for grounding and the counsel marker, so
-// neighbouring adventurers never share a silhouette edge.
-const ROSTER_STRIDE_X: u16 = roster::WIDTH + 2;
-// The vertical lane carries the grounding shadow plus a full counsel marker
-// for the row below, so a blocked adventurer's marker never lands on the feet
-// of the adventurer above it.
-const ROSTER_STRIDE_Y: u16 = roster::HEIGHT + 8;
-const ROSTER_TOP_MARGIN: u16 = 7;
-const ROSTER_MIN_WIDTH: u16 = ROSTER_STRIDE_X * 2;
-const ROSTER_MIN_HEIGHT: u16 = ROSTER_TOP_MARGIN + ROSTER_STRIDE_Y;
 
 const DOOR: PixelRect = PixelRect::new(5, 14, 25, 46);
 const QUEST_WALL: PixelRect = PixelRect::new(34, 11, 43, 27);
@@ -167,9 +152,9 @@ fn composition_for(viewport: PixelSize, actor_count: usize) -> GuildHallComposit
         && compact_party_capacity(viewport) >= actor_count
     {
         GuildHallComposition::Compact
-    } else if viewport.width >= ROSTER_MIN_WIDTH
-        && viewport.height >= ROSTER_MIN_HEIGHT
-        && roster_capacity(viewport) >= actor_count
+    } else if viewport.width >= roster::MIN_WIDTH
+        && viewport.height >= roster::MIN_HEIGHT
+        && roster::capacity(viewport) >= actor_count
     {
         // The party no longer fits at world scale, but the whole party still
         // fits at the authored roster scale. Losing everyone except one
@@ -180,15 +165,6 @@ fn composition_for(viewport: PixelSize, actor_count: usize) -> GuildHallComposit
     } else {
         GuildHallComposition::StatusOnly
     }
-}
-
-fn roster_capacity(viewport: PixelSize) -> usize {
-    let columns = viewport.width / ROSTER_STRIDE_X;
-    let rows = viewport
-        .height
-        .saturating_sub(ROSTER_TOP_MARGIN)
-        .saturating_div(ROSTER_STRIDE_Y);
-    usize::from(columns) * usize::from(rows)
 }
 
 fn compact_actor_capacity(viewport: PixelSize) -> usize {
@@ -241,42 +217,13 @@ fn paint_roster(
 ) -> SceneFrame {
     target.ensure_size(viewport.width, viewport.height, VOID);
     paint_compact_materials(target, room_seed(snapshot));
-    let block_top = roster_block_top(viewport, plan.actors.len());
+    let block_top = roster::block_top(viewport, plan.actors.len());
     // The stage reaches above the party far enough that a counsel marker
     // lands on the floor rather than up in the stonework.
     paint_quiet_stage(target, block_top.saturating_sub(6));
     apply_compact_connection_light(snapshot, target);
 
-    let mut regions = Vec::with_capacity(plan.actors.len());
-    for (index, placement) in plan.actors.iter().enumerate() {
-        let Some(agent) = snapshot
-            .agents
-            .iter()
-            .find(|agent| agent.key == placement.agent)
-        else {
-            continue;
-        };
-        let sprite = adventurer_roster_frame(&agent.persona);
-        let origin = roster_origin(target.size(), index, block_top);
-        let bounds = PixelRect::new(
-            origin.x,
-            origin.y,
-            sprite.size().width,
-            sprite.size().height,
-        );
-        if !is_visible(PixelPoint::new(0, 0), bounds, target.size()) {
-            continue;
-        }
-        paint_actor_grounding(target, bounds, placement.pose);
-        blit(&sprite, origin, target);
-        if placement.selected {
-            paint_selection_marker(target, origin, sprite.size());
-        }
-        regions.push(SceneActorRegion {
-            agent: placement.agent.clone(),
-            bounds,
-        });
-    }
+    let regions = roster::paint_party(snapshot, plan, target, block_top, SHADOW);
     // Completion theatre is a truthful one-shot signal, not decoration: a
     // narrow pane must still show that an adventurer returned with spoils.
     let effect_deadline = paint_compact_effects(snapshot, plan, target, &regions);
@@ -288,34 +235,6 @@ fn paint_roster(
         actors: regions,
         interactables: Vec::new(),
     }
-}
-
-fn roster_columns(viewport: PixelSize) -> usize {
-    usize::from(viewport.width / ROSTER_STRIDE_X).max(1)
-}
-
-/// Centres the occupied roster rows in the room so the party stands on a
-/// floor with wall above it, rather than clinging to the top of the pane.
-fn roster_block_top(viewport: PixelSize, actor_count: usize) -> i32 {
-    let rows = actor_count.max(1).div_ceil(roster_columns(viewport));
-    let block_height = i32::try_from(rows).unwrap_or(i32::MAX) * i32::from(ROSTER_STRIDE_Y);
-    let centred = (i32::from(viewport.height) - block_height) / 2;
-    centred.max(i32::from(ROSTER_TOP_MARGIN))
-}
-
-/// Lays the roster out left-to-right, top-to-bottom in reading order so an
-/// adventurer keeps its place as the party changes around it.
-fn roster_origin(viewport: PixelSize, index: usize, block_top: i32) -> PixelPoint {
-    let columns = roster_columns(viewport);
-    let column = index % columns;
-    let row = index / columns;
-    let used = columns.saturating_mul(usize::from(ROSTER_STRIDE_X));
-    let left = usize::from(viewport.width).saturating_sub(used) / 2;
-    PixelPoint::new(
-        i32::try_from(left + column * usize::from(ROSTER_STRIDE_X)).unwrap_or(i32::MAX) + 1,
-        block_top
-            .saturating_add(i32::try_from(row).unwrap_or(i32::MAX) * i32::from(ROSTER_STRIDE_Y)),
-    )
 }
 
 fn paint_status_only(
@@ -1072,34 +991,9 @@ const fn campaign_table_slots(table: CampaignTable) -> &'static [PixelPoint] {
     }
 }
 
+/// The Hall is candlelit, so its actors ground with the warm room shadow.
 fn paint_actor_grounding(target: &mut RgbBuffer, bounds: PixelRect, pose: ScenePose) {
-    let shadow_width = bounds.width.saturating_sub(4);
-    let shadow_x = bounds.x + 2;
-    let shadow_y = bounds.y + i32::from(bounds.height).saturating_sub(2);
-    target.fill_rect(PixelRect::new(shadow_x, shadow_y, shadow_width, 2), SHADOW);
-
-    if pose == ScenePose::SeekingCounsel {
-        paint_counsel_marker(target, bounds);
-    }
-}
-
-/// Places the authored counsel marker above an adventurer's head, nudged into
-/// the viewport when the actor stands at an edge so the highest-priority state
-/// in the room is never the one that gets clipped.
-fn paint_counsel_marker(target: &mut RgbBuffer, bounds: PixelRect) {
-    let marker = frame(GuildHallAsset::CounselMarker);
-    let width = i32::from(marker.size().width);
-    let height = i32::from(marker.size().height);
-    let last_x = i32::from(target.size().width).saturating_sub(width);
-    let last_y = i32::from(target.size().height).saturating_sub(height);
-    if last_x < 0 || last_y < 0 {
-        return;
-    }
-    // Sits directly on the adventurer's head. A marker floating a few pixels
-    // clear reads as room decoration rather than as this adventurer's state.
-    let x = (bounds.x + i32::from(bounds.width) / 2 - width / 2).clamp(0, last_x);
-    let y = (bounds.y - height + 1).clamp(0, last_y);
-    blit(marker, PixelPoint::new(x, y), target);
+    interaction::paint_actor_grounding(target, bounds, pose, SHADOW);
 }
 
 fn campaign_table(snapshot: &SceneSnapshot, workspace: &WorkspaceId) -> CampaignTable {

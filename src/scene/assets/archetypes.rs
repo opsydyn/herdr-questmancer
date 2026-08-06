@@ -620,9 +620,11 @@ const RANGER_PALETTE: &[IndexedPaletteEntry] = &[
         key: 'R',
         colour: Some(Rgb::new(99, 79, 37)),
     },
+    // Deep forest shadow rather than mid green: the old value sat within 26
+    // of the Delve's moss and the Ranger vanished into it.
     IndexedPaletteEntry {
         key: 'c',
-        colour: Some(Rgb::new(42, 76, 39)),
+        colour: Some(Rgb::new(26, 47, 26)),
     },
     IndexedPaletteEntry {
         key: 'C',

@@ -1,7 +1,9 @@
 use crate::scene::{
-    pixel::{PixelPoint, PixelSize, RgbBuffer},
+    assets::guild_hall::{GuildHallAsset, frame},
+    pixel::{PixelPoint, PixelRect, PixelSize, Rgb, RgbBuffer},
     presentation::ScenePresentation,
-    stage::ScenePlan,
+    sprite::blit,
+    stage::{ScenePlan, ScenePose},
 };
 
 use crate::scene::assets::palette::SELECTION_RUNE;
@@ -47,4 +49,43 @@ pub(crate) fn paint_selection_marker(target: &mut RgbBuffer, origin: PixelPoint,
     for x in [origin.x + inset - 1, origin.x + width - inset] {
         target.put(x.clamp(0, last_x), top + 1, SELECTION_RUNE);
     }
+}
+
+/// Grounds an actor and marks its state. Both worlds share this so an
+/// adventurer reads the same way whether it is at a Hall station or in the
+/// Delve: a contact shadow that separates it from the surface it stands on,
+/// and a shaped counsel signal when it is blocked.
+pub(crate) fn paint_actor_grounding(
+    target: &mut RgbBuffer,
+    bounds: PixelRect,
+    pose: ScenePose,
+    shadow: Rgb,
+) {
+    let shadow_width = bounds.width.saturating_sub(4);
+    let shadow_x = bounds.x + 2;
+    let shadow_y = bounds.y + i32::from(bounds.height).saturating_sub(2);
+    target.fill_rect(PixelRect::new(shadow_x, shadow_y, shadow_width, 2), shadow);
+
+    if pose == ScenePose::SeekingCounsel {
+        paint_counsel_marker(target, bounds);
+    }
+}
+
+/// Places the authored counsel marker above an adventurer's head, nudged into
+/// the viewport when the actor stands at an edge so the highest-priority state
+/// in the room is never the one that gets clipped.
+pub(crate) fn paint_counsel_marker(target: &mut RgbBuffer, bounds: PixelRect) {
+    let marker = frame(GuildHallAsset::CounselMarker);
+    let width = i32::from(marker.size().width);
+    let height = i32::from(marker.size().height);
+    let last_x = i32::from(target.size().width).saturating_sub(width);
+    let last_y = i32::from(target.size().height).saturating_sub(height);
+    if last_x < 0 || last_y < 0 {
+        return;
+    }
+    // Sits directly on the adventurer's head. A marker floating a few pixels
+    // clear reads as room decoration rather than as this adventurer's state.
+    let x = (bounds.x + i32::from(bounds.width) / 2 - width / 2).clamp(0, last_x);
+    let y = (bounds.y - height + 1).clamp(0, last_y);
+    blit(marker, PixelPoint::new(x, y), target);
 }

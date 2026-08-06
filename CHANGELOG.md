@@ -6,6 +6,12 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- The Delve adopted the Hall's actor-legibility rules. Delvers now ground with
+  a contact shadow against the deepest stone value, blocked delvers carry the
+  same authored counsel marker, and a pane too small to hold the party inside
+  a camera crop recomposes the whole party at roster scale instead of leaving
+  delvers off-camera. The roster tier itself is now shared by both worlds.
+
 - Persona palette substitution in every class world master: an adventurer's
   skin, hair, and accent recolour the authored role clusters, so same-class
   agents are visually distinct in the Guild Hall and Delve. A new
@@ -35,6 +41,9 @@ All notable changes to this project will be documented here.
 - `Garb::Leathers`, `Garb::WorkApron`, and the Barbarian's torso leather moved
   off oak-alike browns; a redmean colour-distance test now proves every
   garb and cloth mass keeps contrast with the Hall's `OAK` and `STONE` fills.
+  The guard now covers the Delve's floor, stone and moss too, which caught two
+  more collisions: `Garb::Cloak` dissolved into the dungeon floor and the
+  Ranger's cloth into dungeon moss. Both moved.
 - Selection is now a rune ring on the floor beneath the selected adventurer
   rather than four detached corner pixels, as the art direction asks. The
   ring scales with the master, so it reads at world and roster sizes alike,
