@@ -14,7 +14,8 @@ use questmancer::{
     scene::{
         SceneFrame, SceneInteractable,
         assets::palette::{
-            EMBER, INK_BLUE, OAK, PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_GOLD, SHADOW, VOID,
+            EMBER, FLAME, INK_BLUE, OAK, PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_GOLD, SHADOW,
+            VOID,
         },
         pixel::{PixelRect, PixelSize, Rgb, RgbBuffer},
         render_scene_for_story,
@@ -361,6 +362,169 @@ fn librarian_yields_vignette_and_status_only_halls_to_live_status() {
     }
 }
 
+#[test]
+fn compact_and_vignette_halls_keep_a_seamless_quiet_stage_behind_the_party() {
+    let snapshot = SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns: vec![campaign("amber-library", 7)],
+        agents: vec![agent(
+            "solo-working",
+            "amber-library",
+            Presence::Working,
+            AccentTone::Amber,
+        )],
+        motion: Motion::None,
+        now: Timestamp::from_millis(2_000),
+    };
+
+    // A compact and a vignette viewport. The sampled corner sits beside the
+    // party on the floor, where the plank pattern used to run seams straight
+    // through the actor lane.
+    for viewport in [PixelSize::new(100, 48), PixelSize::new(40, 30)] {
+        let buffer = render(&snapshot, viewport);
+        let bottom = i32::from(viewport.height);
+        let mut colours = HashSet::new();
+        for x in 1..=6 {
+            for y in (bottom - 8)..(bottom - 1) {
+                colours.insert(buffer.get(x, y).expect("sampled pixel is inside the stage"));
+            }
+        }
+        assert_eq!(
+            colours.len(),
+            1,
+            "{viewport:?}: the stage behind the party must be a single flat value, found {colours:?}"
+        );
+    }
+}
+
+fn roster_snapshot(size: usize) -> SceneSnapshot {
+    SceneSnapshot {
+        connection: SceneConnection::Connected,
+        campaigns: vec![campaign("amber-library", 7)],
+        agents: (0..size)
+            .map(|index| {
+                let presence = if index == 1 {
+                    Presence::Blocked
+                } else {
+                    Presence::Working
+                };
+                agent(
+                    &format!("roster-{index}"),
+                    "amber-library",
+                    presence,
+                    AccentTone::Amber,
+                )
+            })
+            .collect(),
+        motion: Motion::None,
+        now: Timestamp::from_millis(2_000),
+    }
+}
+
+#[test]
+fn a_narrow_pane_keeps_the_whole_party_visible_instead_of_one_adventurer() {
+    // Too small for six 16x24 masters, comfortably large enough for the
+    // authored roster tier. Before the roster tier this fell to a vignette
+    // and hid five of the six adventurers.
+    let snapshot = roster_snapshot(6);
+    let viewport = PixelSize::new(60, 40);
+
+    let (buffer, frame) = render_with_frame(&snapshot, viewport);
+
+    assert_eq!(
+        frame.actors.len(),
+        6,
+        "every adventurer must keep a hit region in a narrow pane"
+    );
+    for actor in &frame.actors {
+        assert_eq!(
+            (actor.bounds.width, actor.bounds.height),
+            (8, 12),
+            "roster actors use the authored 8x12 master"
+        );
+        assert!(
+            actor.bounds.x >= 0
+                && actor.bounds.y >= 0
+                && actor.bounds.x + i32::from(actor.bounds.width) <= i32::from(viewport.width)
+                && actor.bounds.y + i32::from(actor.bounds.height) <= i32::from(viewport.height),
+            "{:?} escapes the viewport",
+            actor.bounds
+        );
+        let painted = (actor.bounds.y..actor.bounds.y + i32::from(actor.bounds.height)).any(|y| {
+            (actor.bounds.x..actor.bounds.x + i32::from(actor.bounds.width))
+                .any(|x| buffer.get(x, y).is_some())
+        });
+        assert!(painted, "a roster actor must actually be painted");
+    }
+}
+
+#[test]
+fn roster_actors_never_share_a_silhouette_edge() {
+    let snapshot = roster_snapshot(6);
+
+    let (_, frame) = render_with_frame(&snapshot, PixelSize::new(60, 40));
+
+    for (index, actor) in frame.actors.iter().enumerate() {
+        for other in frame.actors.iter().skip(index + 1) {
+            assert!(
+                !overlaps(actor.bounds, other.bounds),
+                "{:?} overlaps {:?}",
+                actor.bounds,
+                other.bounds
+            );
+        }
+    }
+}
+
+#[test]
+fn a_blocked_adventurer_carries_the_authored_counsel_marker_at_every_scale() {
+    let snapshot = roster_snapshot(6);
+
+    // Roster, compact and canonical all recompose the same party; a blocked
+    // adventurer must be the fastest answer in every one of them.
+    for viewport in [
+        PixelSize::new(60, 40),
+        PixelSize::new(100, 48),
+        PixelSize::new(160, 90),
+    ] {
+        let (buffer, frame) = render_with_frame(&snapshot, viewport);
+        let blocked = frame
+            .actors
+            .iter()
+            .find(|actor| actor.agent == AgentKey::new("roster-1"))
+            .expect("the blocked adventurer is visible");
+        // The marker sits in the reserved lane directly above the actor.
+        let lane = PixelRect::new(
+            blocked.bounds.x - 4,
+            (blocked.bounds.y - 8).max(0),
+            u16::try_from(i32::from(blocked.bounds.width) + 8).unwrap(),
+            8,
+        );
+        assert!(
+            rect_contains(&buffer, lane, FLAME),
+            "{viewport:?}: no authored counsel marker above the blocked adventurer"
+        );
+    }
+}
+
+#[test]
+fn a_party_too_large_for_the_roster_still_falls_back_to_the_priority_vignette() {
+    let snapshot = roster_snapshot(40);
+
+    let (_, frame) = render_with_frame(&snapshot, PixelSize::new(20, 26));
+
+    assert_eq!(
+        frame.actors.len(),
+        1,
+        "the vignette remains the truthful last resort"
+    );
+    assert_eq!(
+        (frame.actors[0].bounds.width, frame.actors[0].bounds.height),
+        (16, 24),
+        "the vignette keeps the full world master"
+    );
+}
+
 fn overlaps(left: PixelRect, right: PixelRect) -> bool {
     left.x < right.x + i32::from(right.width)
         && left.x + i32::from(left.width) > right.x
@@ -400,16 +564,34 @@ fn minimum_guild_hall_shows_one_complete_priority_adventurer() {
 }
 
 #[test]
-fn compact_guild_hall_degrades_to_vignette_when_party_exceeds_capacity() {
+fn compact_guild_hall_degrades_to_the_roster_before_hiding_adventurers() {
     let viewport = PixelSize::new(64, 40);
-    let (_, frame) = render_with_frame(&mixed_snapshot(), viewport);
+    let snapshot = mixed_snapshot();
+    let expected = snapshot
+        .agents
+        .iter()
+        .filter(|agent| agent.presence != Presence::Exited)
+        .count();
+    let (_, frame) = render_with_frame(&snapshot, viewport);
 
     assert_eq!(
         frame.actors.len(),
-        1,
-        "compact mode must not retain actors it cannot render completely"
+        expected,
+        "a party too large for compact must recompose at roster scale, not vanish"
     );
-    assert_eq!(frame.actors[0].agent, AgentKey::new("counsel-seeker"));
+    for actor in &frame.actors {
+        assert_eq!(
+            (actor.bounds.width, actor.bounds.height),
+            (8, 12),
+            "compact must not retain actors it cannot render completely"
+        );
+    }
+    assert!(
+        frame
+            .actors
+            .iter()
+            .any(|actor| actor.agent == AgentKey::new("counsel-seeker"))
+    );
     assert!(
         frame.actors[0].bounds.y + i32::from(frame.actors[0].bounds.height)
             <= i32::from(viewport.height)

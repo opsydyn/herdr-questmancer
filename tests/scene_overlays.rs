@@ -244,6 +244,51 @@ fn a_nameplate_never_paints_through_another_adventurer() {
 }
 
 #[test]
+fn nameplate_truncation_shortens_the_name_and_keeps_the_state_word() {
+    let mut model = model();
+    let mut archivist = model.selected_agent().cloned().unwrap();
+    archivist.key = AgentKey::new("archivist");
+    archivist.name = "archive-mender-of-the-vaults".to_owned();
+    model
+        .domain_mut()
+        .agents
+        .insert(archivist.key.clone(), archivist);
+    model.set_now(Timestamp::from_millis(421_000));
+    let scene = SceneFrame {
+        world: WorldScene::GuildHall,
+        next_frame_in: None,
+        actors: vec![SceneActorRegion {
+            agent: AgentKey::new("archivist"),
+            bounds: PixelRect::new(40, 20, 16, 24),
+        }],
+        interactables: Vec::new(),
+    };
+    let backend = TestBackend::new(120, 36);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal
+        .draw(|frame| render_scene_identity_labels(frame, &model, &scene))
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    let screen = (0..36)
+        .map(|y| {
+            (0..120)
+                .map(|x| buffer.cell((x, y)).unwrap().symbol())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    assert!(
+        screen.contains("archive-m… · WORKING"),
+        "quiet nameplates must give up name characters before the state word"
+    );
+    assert!(
+        !screen.contains("WO…"),
+        "the presence badge must never be the truncated token"
+    );
+}
+
+#[test]
 fn command_ribbon_expires_after_three_seconds() {
     let mut model = model();
     let _ = reduce_action(&mut model, Action::Next);

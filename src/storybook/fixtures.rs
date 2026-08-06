@@ -34,6 +34,8 @@ pub enum StoryFixture {
 pub enum ArchetypeGallery {
     WorldMasters,
     BarbarianV2Poses,
+    PersonaPalettes,
+    RosterFamilies,
     PortraitMasters,
     GoblinEasterEgg,
     Librarian,
@@ -106,6 +108,14 @@ pub fn native_testmender_portrait_fixture(context: StoryContext) -> Model {
 
 pub fn native_wizard_portrait_fixture(context: StoryContext) -> Model {
     native_portrait_fixture(context, AdventurerClass::Wizard, Ancestry::Human)
+}
+
+pub fn native_runewright_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Runewright, Ancestry::Human)
+}
+
+pub fn native_pathseeker_portrait_fixture(context: StoryContext) -> Model {
+    native_portrait_fixture(context, AdventurerClass::Pathseeker, Ancestry::Human)
 }
 
 pub fn native_goblin_portrait_fixture(context: StoryContext) -> Model {

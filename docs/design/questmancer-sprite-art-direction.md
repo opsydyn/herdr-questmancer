@@ -14,9 +14,12 @@ game. It is an original shared vocabulary for the Guild Hall, Delve and profile
 cards.
 
 The current profile card uses a native transparent PNG when an approved Kitty,
-Sixel or iTerm2 protocol is detected and an asset exists for that identity.
-Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender
-and Wizard currently have class portraits. Class is the primary visual identity
+Sixel or iTerm2 protocol is detected. Every production class now owns a
+distinct card: Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Pathseeker,
+Ranger, Rogue, Runewright, Testmender and Wizard. Cards are `384x512` with a
+transparent background, and no two classes may share one — a class without its
+own card silently borrows a sibling's, which is how two different adventurers
+end up wearing the same face. Class is the primary visual identity
 for both ordinary world sprites and cards: an Orc Ranger reads as a Ranger and
 an Orc Wizard reads as a Wizard. Goblin and Orc illustration is reserved for
 future event/NPC storytelling rather than automatic persona routing. The
@@ -66,10 +69,26 @@ shading.
 |---|---:|---:|---|
 | Profile portrait | 24x32 | 24 columns x 16 rows | Face, gear and material detail in the full Adventurer Card. |
 | World sprite | 16x24 | 16 columns x 12 rows | Readable Guild Hall and Delve actor with the same class identity. |
+| Roster master | 8x12 | 8 columns x 6 rows | Whole-party read in a narrow pane, authored per silhouette family. |
+
+Roster masters follow two rules the larger sizes can afford to relax. Their
+outline is *tinted* per family rather than near-black: at eight pixels wide a
+one-pixel border is roughly half the sprite, and a black one turns the party
+into a row of rectangles against the Hall floor. Their silhouette must taper —
+a head narrower than the shoulders and legs parted by negative space — because
+without it the outline closes into a box whatever colour it is.
 
 Both sizes share the same silhouette rules, material roles, class gear and foot
 anchor. They are independently authored; the world sprite must not be a
-mechanical downscale of the portrait. The existing compact production spritlets
+mechanical downscale of the portrait.
+
+World masters are personalised at render time: the persona's skin (`k`/`K`/`h`),
+hair (`r`/`R`) and accent (`a`) role clusters take the adventurer's palette,
+while cloth, metal, gear and focal colours stay authored so class identity
+never changes. The Barbarian v2 masters use their own key grammar (`S` skin,
+`H`/`h` hair) and personalise through the same substitution. Tests prove that
+role colours stay unique within each master palette, that substitution never
+alters a transparency mask, and that same-class personas render distinctly. The existing compact production spritlets
 remain unchanged during this review slice. Optional 2x display in a development
 view uses nearest-neighbour expansion in the RGB buffer only.
 
@@ -166,6 +185,10 @@ The current Storybook owns three stable asset-review views:
   authored 24x32 portraits. These are not scaled world sprites.
 - **Goblin Easter Egg** shows the authored Goblin ancestry callback at both
   production scales.
+- **Roster Silhouette Families** shows the five authored 8x12 masters a narrow
+  pane recomposes the party into.
+- **Persona Palette Family** shows one shared class master across the persona
+  skin, hair and accent range.
 
 The Guild Hall and Delve stories render these same registered production
 assets in context. Storybook does not retain the retired 8x14 generator.

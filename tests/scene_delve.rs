@@ -306,16 +306,23 @@ fn unknown_dimming_preserves_transparent_sprite_pixels() {
         .retain(|agent| agent.presence != Presence::Unknown);
     let without_unknown = render(&without_unknown_snapshot, WorldScene::Delve, VIEWPORT);
 
+    // The contact shadow deliberately paints the two rows under the actor's
+    // feet, so the invariant is about the sprite's own transparency: every
+    // transparent pixel above the grounding lane leaves the dungeon alone.
+    let grounding_lane_top = region.bounds.y + i32::from(region.bounds.height).saturating_sub(2);
     let mut transparent_pixels = 0;
     for (index, pixel) in sprite.pixels().iter().enumerate() {
         if pixel.is_some() {
             continue;
         }
-        transparent_pixels += 1;
         let x = region.bounds.x
             + i32::try_from(index % usize::from(sprite.size().width)).expect("sprite x fits i32");
         let y = region.bounds.y
             + i32::try_from(index / usize::from(sprite.size().width)).expect("sprite y fits i32");
+        if y >= grounding_lane_top {
+            continue;
+        }
+        transparent_pixels += 1;
         assert_eq!(
             with_unknown.get(x, y),
             without_unknown.get(x, y),
@@ -335,9 +342,13 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     let second = render(&snapshot, WorldScene::Delve, VIEWPORT);
     assert_eq!(first.pixels(), second.pixels());
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
+    // Golden bytes for the canonical dungeon. Re-pinned when the delving
+    // party gained contact shadows and the authored counsel marker, and again
+    // when the Cloak garb and Ranger cloth moved off the dungeon's own floor
+    // and moss colours.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "a1d847670d4f890414dc224ad649c0cd64ce18ebbeea78fbd6dfaac16c832479"
+        "81c097741c63744f12baa9b9f67f5444799321732ffc99a6d9046b871cf99742"
     );
 
     let non_clear = first
@@ -372,10 +383,50 @@ fn minimum_viewport_is_a_camera_crop_of_the_same_canonical_dungeon() {
         .retain(|agent| agent.presence == Presence::Working);
     snapshot.agents[0].focused = true;
     let full = render(&snapshot, WorldScene::Delve, VIEWPORT);
-    let crop = render(&snapshot, WorldScene::Delve, PixelSize::new(80, 48));
+    // Inside the crop band the dungeon stays one continuous world that the
+    // camera moves over; below it the Delve recomposes instead.
+    let crop = render(&snapshot, WorldScene::Delve, PixelSize::new(120, 60));
 
     assert!(is_crop_of(&crop, &full));
     assert!(crop.pixels().iter().all(|pixel| *pixel != VOID));
+}
+
+#[test]
+fn a_narrow_delve_recomposes_the_party_instead_of_cropping_it() {
+    let snapshot = mixed_snapshot();
+    let expected = snapshot
+        .agents
+        .iter()
+        .filter(|agent| agent.presence != Presence::Exited)
+        .count();
+    let viewport = PixelSize::new(80, 48);
+
+    let (buffer, frame) = render_with_frame(&snapshot, WorldScene::Delve, viewport);
+
+    assert_eq!(
+        frame.actors.len(),
+        expected,
+        "a crop would leave delvers off-camera with no way to tell they exist"
+    );
+    for actor in &frame.actors {
+        assert_eq!(
+            (actor.bounds.width, actor.bounds.height),
+            (8, 12),
+            "the narrow Delve uses the authored roster master"
+        );
+        assert!(
+            actor.bounds.x >= 0
+                && actor.bounds.y >= 0
+                && actor.bounds.x + i32::from(actor.bounds.width) <= i32::from(viewport.width)
+                && actor.bounds.y + i32::from(actor.bounds.height) <= i32::from(viewport.height),
+            "{:?} escapes the viewport",
+            actor.bounds
+        );
+    }
+    assert!(
+        buffer.pixels().iter().all(|pixel| *pixel != VOID),
+        "the recomposed Delve still fills its pane"
+    );
 }
 
 #[test]
@@ -401,10 +452,12 @@ fn narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible() {
         now: Timestamp::from_millis(10_000),
     };
     let full = render(&snapshot, WorldScene::Delve, VIEWPORT);
+    // Within the crop band the camera must frame the blocked adventurer and
+    // the sealed gate it is standing at.
     let (crop, crop_frame) =
-        render_with_frame(&snapshot, WorldScene::Delve, PixelSize::new(80, 48));
+        render_with_frame(&snapshot, WorldScene::Delve, PixelSize::new(120, 60));
     let (offset_x, offset_y) = crop_offset(&crop, &full).expect("narrow Delve is a world crop");
-    let visible_world = PixelRect::new(offset_x, offset_y, 80, 48);
+    let visible_world = PixelRect::new(offset_x, offset_y, 120, 60);
     let gate_asset = PixelRect::new(127, 28, 16, 10);
 
     assert!(rects_intersect(visible_world, gate_asset));
@@ -422,7 +475,7 @@ fn narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible() {
         .expect("priority blocked actor has a rendered region");
     assert!(rects_intersect(
         blocked_actor.bounds,
-        PixelRect::new(0, 0, 80, 48),
+        PixelRect::new(0, 0, 120, 60),
     ));
 }
 

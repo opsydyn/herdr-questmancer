@@ -27,12 +27,12 @@ use crate::{
     },
 };
 
-use super::interaction::paint_selection_marker;
+use super::interaction::{self, paint_selection_marker};
 #[cfg(test)]
 use super::painted_sprite_is_visible;
 use super::{
     actor_animation_phase, actor_origin, earliest_deadline, effect_animation_phase, is_visible,
-    lighting, next_frame_delay,
+    lighting, next_frame_delay, roster,
 };
 
 pub const WIDTH: i32 = 160;
@@ -304,7 +304,65 @@ pub fn paint(
     viewport: PixelSize,
     target: &mut RgbBuffer,
 ) -> SceneFrame {
+    // A camera crop of the canonical dungeon is only truthful while the whole
+    // party fits inside the crop. Below that, recompose at roster scale rather
+    // than leaving delvers off-camera with no way to tell they exist.
+    let below_crop_band = viewport.width < CROP_MIN_WIDTH || viewport.height < CROP_MIN_HEIGHT;
+    if below_crop_band
+        && viewport.width >= roster::MIN_WIDTH
+        && viewport.height >= roster::MIN_HEIGHT
+        && roster::capacity(viewport) >= plan.actors.len()
+    {
+        return paint_roster(snapshot, plan, viewport, target);
+    }
     DelvePainter::new(snapshot, plan, viewport, target).paint()
+}
+
+/// Below this the canonical crop can no longer be trusted to contain the
+/// party, so the Delve recomposes instead.
+const CROP_MIN_WIDTH: u16 = 100;
+const CROP_MIN_HEIGHT: u16 = 56;
+
+/// The delving party at authored roster scale, on dungeon stone under the
+/// Delve's cool ambient light.
+fn paint_roster(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    viewport: PixelSize,
+    target: &mut RgbBuffer,
+) -> SceneFrame {
+    target.ensure_size(viewport.width, viewport.height, DEEP_BLUE_BLACK);
+    let block_top = roster::block_top(viewport, plan.actors.len());
+    paint_roster_ground(target, block_top);
+    // No ambient wash here: the ground is already painted in dungeon stone,
+    // and tinting over the party would cost exactly the local contrast this
+    // tier exists to provide.
+    let regions = roster::paint_party(snapshot, plan, target, block_top, DEEP_BLUE_BLACK);
+    paint_connection_fact(snapshot, target, PixelPoint::new(0, 0));
+
+    SceneFrame {
+        world: plan.world,
+        next_frame_in: None,
+        actors: regions,
+        interactables: Vec::new(),
+    }
+}
+
+/// A flat dungeon floor under the party. The quiet-lane rule applies here too:
+/// no mossy speckle runs through a silhouette.
+fn paint_roster_ground(target: &mut RgbBuffer, block_top: i32) {
+    let width = target.size().width;
+    let height = target.size().height;
+    target.fill_rect(PixelRect::new(0, 0, width, height), STONE_DARK);
+    let floor_top = block_top.saturating_sub(6).max(0);
+    let Ok(floor_height) = u16::try_from(i32::from(height).saturating_sub(floor_top)) else {
+        return;
+    };
+    target.fill_rect(
+        PixelRect::new(0, floor_top, width, floor_height),
+        FLOOR_DARK,
+    );
+    target.fill_rect(PixelRect::new(0, floor_top, width, 1), DEEP_BLUE_BLACK);
 }
 
 struct DelvePainter<'a> {
@@ -734,6 +792,17 @@ fn paint_depth_sorted(
                 let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
                 let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
                 let actor_origin = actor_origin(origin, anchor, &sprite);
+                let bounds = PixelRect::new(
+                    actor_origin.x,
+                    actor_origin.y,
+                    sprite.size().width,
+                    sprite.size().height,
+                );
+                // The dungeon is cold and dark, so the delving party grounds
+                // against the deepest stone value rather than the Hall's warm
+                // shadow. Blocked adventurers carry the same authored marker
+                // in both worlds.
+                interaction::paint_actor_grounding(target, bounds, placement.pose, DEEP_BLUE_BLACK);
                 if placement.pose == ScenePose::Unknown {
                     blit_dimmed(&sprite, actor_origin, target);
                 } else {
@@ -744,12 +813,7 @@ fn paint_depth_sorted(
                 }
                 regions.push(SceneActorRegion {
                     agent: placement.agent.clone(),
-                    bounds: PixelRect::new(
-                        actor_origin.x,
-                        actor_origin.y,
-                        sprite.size().width,
-                        sprite.size().height,
-                    ),
+                    bounds,
                 });
             }
             DepthItem::Asset { asset, anchor } => {

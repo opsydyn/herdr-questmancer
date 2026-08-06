@@ -32,6 +32,7 @@ pub enum GuildHallAsset {
     WaxSeal,
     Scroll,
     Clutter,
+    CounselMarker,
 }
 
 impl GuildHallAsset {
@@ -55,6 +56,7 @@ impl GuildHallAsset {
         Self::WaxSeal,
         Self::Scroll,
         Self::Clutter,
+        Self::CounselMarker,
     ];
 }
 
@@ -286,5 +288,10 @@ const fn rows(asset: GuildHallAsset) -> &'static [&'static str] {
         GuildHallAsset::WaxSeal => &[".x.", "xWx", ".w."],
         GuildHallAsset::Scroll => &["pppppp", "PqPPqP", "PPPPPP", "pppppp"],
         GuildHallAsset::Clutter => &["B.t.g.M", ".i.t.M.", "g...B.t"],
+        // A raised counsel bell in a bubble. Blocked adventurers are the
+        // fastest visual answer in the room, so this marker is an outlined
+        // shape at a size that survives half-block conversion — not a colour
+        // change and not the three loose pixels it replaces.
+        GuildHallAsset::CounselMarker => &[".sss.", "safas", "safas", "saaas", ".sas.", "..s.."],
     }
 }

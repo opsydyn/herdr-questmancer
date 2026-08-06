@@ -25,10 +25,10 @@ use crate::{
     },
 };
 
-use super::interaction::paint_selection_marker;
+use super::interaction::{self, paint_selection_marker};
 use super::{
     actor_animation_phase, actor_next_frame_delay, actor_origin, earliest_deadline,
-    effect_animation_phase, is_visible, lighting, next_frame_delay,
+    effect_animation_phase, is_visible, lighting, next_frame_delay, roster,
 };
 
 pub const WIDTH: i32 = 160;
@@ -41,6 +41,11 @@ const ADVENTURER_WIDTH: u16 = 16;
 const ADVENTURER_HEIGHT: u16 = 24;
 const CANONICAL_PARTY_CAPACITY: usize = 11;
 const LIBRARIAN_CANONICAL_ORIGIN: PixelPoint = PixelPoint::new(7, 64);
+
+// Flat, slightly darkened oak behind the compact and vignette party rows.
+// The quiet-lane rule: material seams and speckle never run through an
+// actor's silhouette, so the stage carries no plank or stone pattern.
+const QUIET_STAGE: Rgb = Rgb::new(88, 53, 31);
 
 const DOOR: PixelRect = PixelRect::new(5, 14, 25, 46);
 const QUEST_WALL: PixelRect = PixelRect::new(34, 11, 43, 27);
@@ -88,6 +93,7 @@ pub fn paint(
     match composition_for(viewport, plan.actors.len()) {
         GuildHallComposition::Canonical => {}
         GuildHallComposition::Compact => return paint_compact(snapshot, plan, viewport, target),
+        GuildHallComposition::Roster => return paint_roster(snapshot, plan, viewport, target),
         GuildHallComposition::Vignette => {
             return paint_vignette(snapshot, plan, viewport, target);
         }
@@ -130,6 +136,7 @@ pub fn paint(
 enum GuildHallComposition {
     Canonical,
     Compact,
+    Roster,
     Vignette,
     StatusOnly,
 }
@@ -145,6 +152,14 @@ fn composition_for(viewport: PixelSize, actor_count: usize) -> GuildHallComposit
         && compact_party_capacity(viewport) >= actor_count
     {
         GuildHallComposition::Compact
+    } else if viewport.width >= roster::MIN_WIDTH
+        && viewport.height >= roster::MIN_HEIGHT
+        && roster::capacity(viewport) >= actor_count
+    {
+        // The party no longer fits at world scale, but the whole party still
+        // fits at the authored roster scale. Losing everyone except one
+        // adventurer is a worse answer than a smaller authored master.
+        GuildHallComposition::Roster
     } else if viewport.width >= ADVENTURER_WIDTH && viewport.height >= ADVENTURER_HEIGHT {
         GuildHallComposition::Vignette
     } else {
@@ -170,6 +185,12 @@ fn paint_vignette(
 ) -> SceneFrame {
     target.ensure_size(viewport.width, viewport.height, VOID);
     paint_compact_materials(target, room_seed(snapshot));
+    paint_quiet_stage(
+        target,
+        i32::from(viewport.height)
+            .saturating_sub(i32::from(ADVENTURER_HEIGHT))
+            .saturating_sub(2),
+    );
     paint_vignette_architecture(target);
     apply_compact_connection_light(snapshot, target);
     let (actor_deadline, actors) = paint_priority_actor(snapshot, plan, target);
@@ -180,6 +201,38 @@ fn paint_vignette(
         world: plan.world,
         next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
         actors,
+        interactables: Vec::new(),
+    }
+}
+
+/// The whole party at authored roster scale. This tier exists so a narrow
+/// Herdr pane still answers "who needs counsel, who is working, how many
+/// adventurers do I have" instead of showing one adventurer and hiding the
+/// rest.
+fn paint_roster(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    viewport: PixelSize,
+    target: &mut RgbBuffer,
+) -> SceneFrame {
+    target.ensure_size(viewport.width, viewport.height, VOID);
+    paint_compact_materials(target, room_seed(snapshot));
+    let block_top = roster::block_top(viewport, plan.actors.len());
+    // The stage reaches above the party far enough that a counsel marker
+    // lands on the floor rather than up in the stonework.
+    paint_quiet_stage(target, block_top.saturating_sub(6));
+    apply_compact_connection_light(snapshot, target);
+
+    let regions = roster::paint_party(snapshot, plan, target, block_top, SHADOW);
+    // Completion theatre is a truthful one-shot signal, not decoration: a
+    // narrow pane must still show that an adventurer returned with spoils.
+    let effect_deadline = paint_compact_effects(snapshot, plan, target, &regions);
+    paint_compact_connection_fact(snapshot, target);
+
+    SceneFrame {
+        world: plan.world,
+        next_frame_in: effect_deadline,
+        actors: regions,
         interactables: Vec::new(),
     }
 }
@@ -293,6 +346,10 @@ fn paint_compact(
     let seed = room_seed(snapshot);
     paint_compact_materials(target, seed);
     paint_compact_architecture(target);
+    paint_quiet_stage(
+        target,
+        compact_stage_top(target.size(), plan.actors.len().saturating_add(1)),
+    );
     paint_compact_furnishings(snapshot, target);
     apply_compact_connection_light(snapshot, target);
     let (actor_deadline, actors) = paint_compact_actors(snapshot, plan, target);
@@ -476,7 +533,6 @@ fn paint_compact_actors(
             next_frame_in = Some(earliest_deadline(next_frame_in, delay));
         }
         paint_actor_grounding(target, bounds, placement.pose);
-        paint_actor_grounding(target, bounds, placement.pose);
         blit(&sprite, actor_origin, target);
         if placement.selected {
             paint_selection_marker(target, actor_origin, sprite.size());
@@ -509,6 +565,30 @@ fn paint_librarian(target: &mut RgbBuffer, origin: PixelPoint) -> Option<SceneIn
         kind: SceneInteractable::Librarian,
         bounds,
     })
+}
+
+/// Paints the flat stage from `top` to the bottom of the viewport, with a
+/// one-pixel lip that grounds it against the patterned material above.
+fn paint_quiet_stage(target: &mut RgbBuffer, top: i32) {
+    let top = top.max(0);
+    let Ok(height) = u16::try_from(i32::from(target.size().height).saturating_sub(top)) else {
+        return;
+    };
+    target.fill_rect(
+        PixelRect::new(0, top, target.size().width, height),
+        QUIET_STAGE,
+    );
+    target.fill_rect(PixelRect::new(0, top, target.size().width, 1), OAK_DARK);
+}
+
+/// The topmost pixel row the compact party grid (including the Librarian's
+/// reservation) can occupy, for the stage that flattens texture behind it.
+fn compact_stage_top(viewport: PixelSize, total: usize) -> i32 {
+    let adventurer = PixelSize::new(ADVENTURER_WIDTH, ADVENTURER_HEIGHT);
+    compact_actor_origin(viewport, 0, total, adventurer)
+        .y
+        .min(compact_actor_origin(viewport, 0, total, librarian::world().size()).y)
+        .saturating_sub(2)
 }
 
 fn compact_actor_origin(
@@ -854,6 +934,7 @@ fn paint_actors(
         {
             next_frame_in = Some(earliest_deadline(next_frame_in, delay));
         }
+        paint_actor_grounding(target, bounds, placement.pose);
         blit(&sprite, actor_origin, target);
         if placement.selected {
             paint_selection_marker(target, actor_origin, sprite.size());
@@ -910,18 +991,9 @@ const fn campaign_table_slots(table: CampaignTable) -> &'static [PixelPoint] {
     }
 }
 
+/// The Hall is candlelit, so its actors ground with the warm room shadow.
 fn paint_actor_grounding(target: &mut RgbBuffer, bounds: PixelRect, pose: ScenePose) {
-    let shadow_width = bounds.width.saturating_sub(4);
-    let shadow_x = bounds.x + 2;
-    let shadow_y = bounds.y + i32::from(bounds.height).saturating_sub(2);
-    target.fill_rect(PixelRect::new(shadow_x, shadow_y, shadow_width, 2), SHADOW);
-
-    if pose == ScenePose::SeekingCounsel {
-        let signal_x = bounds.x + i32::from(bounds.width / 2);
-        target.put(signal_x, bounds.y - 2, AMBER_LIGHT);
-        target.put(signal_x - 1, bounds.y - 1, EMBER);
-        target.put(signal_x + 1, bounds.y - 1, EMBER);
-    }
+    interaction::paint_actor_grounding(target, bounds, pose, SHADOW);
 }
 
 fn campaign_table(snapshot: &SceneSnapshot, workspace: &WorkspaceId) -> CampaignTable {

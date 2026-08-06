@@ -620,9 +620,11 @@ const RANGER_PALETTE: &[IndexedPaletteEntry] = &[
         key: 'R',
         colour: Some(Rgb::new(99, 79, 37)),
     },
+    // Deep forest shadow rather than mid green: the old value sat within 26
+    // of the Delve's moss and the Ranger vanished into it.
     IndexedPaletteEntry {
         key: 'c',
-        colour: Some(Rgb::new(42, 76, 39)),
+        colour: Some(Rgb::new(26, 47, 26)),
     },
     IndexedPaletteEntry {
         key: 'C',
@@ -1187,30 +1189,48 @@ const PALADIN_PORTRAIT: &[&str] = &[
 
 #[must_use]
 pub fn world_frame(class: AdventurerClass) -> Option<SpriteFrame> {
+    world_master(class).map(|(frame, _)| frame)
+}
+
+/// Returns the class world master together with its authoring palette so
+/// persona substitution can map role colours without duplicating the routing.
+#[must_use]
+pub fn world_master(
+    class: AdventurerClass,
+) -> Option<(SpriteFrame, &'static [IndexedPaletteEntry])> {
+    let (cell, rows, palette) = world_route(class)?;
+    Some((cached(cell, rows, palette), palette))
+}
+
+type WorldRoute = (
+    &'static OnceLock<SpriteFrame>,
+    &'static [&'static str],
+    &'static [IndexedPaletteEntry],
+);
+
+fn world_route(class: AdventurerClass) -> Option<WorldRoute> {
     match class {
         AdventurerClass::Cleric | AdventurerClass::Testmender => {
-            Some(cached(&CLERIC_WORLD_FRAME, CLERIC_WORLD, CLERIC_PALETTE))
+            Some((&CLERIC_WORLD_FRAME, CLERIC_WORLD, CLERIC_PALETTE))
         }
-        AdventurerClass::Paladin => {
-            Some(cached(&PALADIN_WORLD_FRAME, PALADIN_WORLD, PALADIN_PALETTE))
-        }
+        AdventurerClass::Paladin => Some((&PALADIN_WORLD_FRAME, PALADIN_WORLD, PALADIN_PALETTE)),
         AdventurerClass::Wizard | AdventurerClass::Artificer | AdventurerClass::Runewright => {
-            Some(cached(
+            Some((
                 &WIZARD_WORLD_FRAME,
                 WIZARD_MATERIAL,
                 WIZARD_MATERIAL_PALETTE,
             ))
         }
-        AdventurerClass::Barbarian => Some(cached(
+        AdventurerClass::Barbarian => Some((
             &BARBARIAN_WORLD_FRAME,
             BARBARIAN_MATERIAL,
             BARBARIAN_MATERIAL_PALETTE,
         )),
-        AdventurerClass::Bard => Some(cached(&BARD_WORLD_FRAME, BARD_WORLD, BARD_PALETTE)),
+        AdventurerClass::Bard => Some((&BARD_WORLD_FRAME, BARD_WORLD, BARD_PALETTE)),
         AdventurerClass::Ranger | AdventurerClass::Pathseeker => {
-            Some(cached(&RANGER_WORLD_FRAME, RANGER_WORLD, RANGER_PALETTE))
+            Some((&RANGER_WORLD_FRAME, RANGER_WORLD, RANGER_PALETTE))
         }
-        AdventurerClass::Rogue => Some(cached(&ROGUE_WORLD_FRAME, ROGUE_WORLD, ROGUE_PALETTE)),
+        AdventurerClass::Rogue => Some((&ROGUE_WORLD_FRAME, ROGUE_WORLD, ROGUE_PALETTE)),
         AdventurerClass::Druid => None,
     }
 }

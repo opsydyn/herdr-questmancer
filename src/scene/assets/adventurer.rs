@@ -2,7 +2,11 @@ use std::sync::OnceLock;
 
 use crate::domain::AdventurerPersona;
 
-use super::{IndexedPaletteEntry, archetypes, indexed_sprite, palette::adventurer_palette};
+use super::{
+    IndexedPaletteEntry, archetypes, barbarian_v2, indexed_sprite,
+    palette::{AdventurerPalette, adventurer_palette},
+    roster,
+};
 use crate::{
     domain::AdventurerClass,
     scene::{pixel::Rgb, sprite::SpriteFrame, stage::ScenePose},
@@ -171,46 +175,148 @@ pub fn adventurer_portrait_frame(persona: &AdventurerPersona) -> Option<SpriteFr
     }
 }
 
-/// Returns the authored scene master registered for the adventurer's class.
+/// Roles a persona may recolour inside an authored master. Class-owned
+/// clusters (cloth, metal, gear, eyes and gems) stay authored so the class
+/// silhouette and material read never change.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PersonaRole {
+    SkinShadow,
+    SkinBase,
+    SkinHighlight,
+    HairShadow,
+    HairBase,
+    Accent,
+}
+
+/// The shared archetype grammar from the art-direction doc.
+const fn standard_role(key: char) -> Option<PersonaRole> {
+    match key {
+        'k' => Some(PersonaRole::SkinShadow),
+        'K' => Some(PersonaRole::SkinBase),
+        'h' => Some(PersonaRole::SkinHighlight),
+        'r' => Some(PersonaRole::HairShadow),
+        'R' => Some(PersonaRole::HairBase),
+        'a' => Some(PersonaRole::Accent),
+        _ => None,
+    }
+}
+
+/// The Barbarian v2 masters predate the shared grammar: `S` is skin,
+/// `H`/`h` are hair and `L`/`l` are class-owned leather.
+const fn barbarian_role(key: char) -> Option<PersonaRole> {
+    match key {
+        'S' => Some(PersonaRole::SkinBase),
+        'H' => Some(PersonaRole::HairShadow),
+        'h' => Some(PersonaRole::HairBase),
+        'a' => Some(PersonaRole::Accent),
+        _ => None,
+    }
+}
+
+fn role_colour(role: PersonaRole, colours: &AdventurerPalette) -> Rgb {
+    match role {
+        PersonaRole::SkinShadow => mix(colours.skin, Rgb::BLACK, 35),
+        PersonaRole::SkinBase => colours.skin,
+        PersonaRole::SkinHighlight => mix(colours.skin, Rgb::new(255, 255, 255), 30),
+        PersonaRole::HairShadow => mix(colours.hair, Rgb::BLACK, 30),
+        PersonaRole::HairBase => colours.hair,
+        PersonaRole::Accent => colours.accent,
+    }
+}
+
+fn mix(base: Rgb, tint: Rgb, amount: u16) -> Rgb {
+    let keep = 100 - amount.min(100);
+    let channel = |base: u8, tint: u8| {
+        u8::try_from((u16::from(base) * keep + u16::from(tint) * amount) / 100)
+            .expect("weighted channel remains within u8")
+    };
+    Rgb::new(
+        channel(base.r, tint.r),
+        channel(base.g, tint.g),
+        channel(base.b, tint.b),
+    )
+}
+
+/// Recolours a master's persona roles while leaving every class-owned colour
+/// and the transparency mask untouched.
+fn personalise(
+    frame: &SpriteFrame,
+    source_palette: &[IndexedPaletteEntry],
+    role_for: fn(char) -> Option<PersonaRole>,
+    colours: &AdventurerPalette,
+) -> SpriteFrame {
+    let substitutions = source_palette
+        .iter()
+        .filter_map(|entry| {
+            let role = role_for(entry.key)?;
+            let from = entry.colour?;
+            Some((from, role_colour(role, colours)))
+        })
+        .collect::<Vec<_>>();
+    SpriteFrame::from_pixels(
+        frame.size().width,
+        frame.size().height,
+        frame
+            .pixels()
+            .iter()
+            .map(|pixel| {
+                pixel.map(|colour| {
+                    substitutions
+                        .iter()
+                        .find(|(from, _)| *from == colour)
+                        .map_or(colour, |(_, to)| *to)
+                })
+            })
+            .collect(),
+    )
+}
+
+/// Returns the authored scene master registered for the adventurer's class,
+/// with the persona's skin, hair and accent substituted into the master's
+/// role clusters.
 #[must_use]
 pub fn adventurer_animation_frame(
     persona: &AdventurerPersona,
     pose: ScenePose,
     animation_frame: u8,
 ) -> SpriteFrame {
+    let colours = adventurer_palette(
+        persona.appearance.skin_tone,
+        persona.appearance.hair_tone,
+        persona.appearance.garb,
+        persona.class,
+        persona.appearance.accent,
+    );
     if persona.class == AdventurerClass::Barbarian {
-        super::barbarian_v2::frame(pose, animation_frame)
+        personalise(
+            &barbarian_v2::frame(pose, animation_frame),
+            barbarian_v2::palette(),
+            barbarian_role,
+            &colours,
+        )
     } else if persona.class == AdventurerClass::Druid {
-        let frame = druid_world_frame();
-        let accent = adventurer_palette(
-            persona.appearance.skin_tone,
-            persona.appearance.hair_tone,
-            persona.appearance.garb,
-            persona.class,
-            persona.appearance.accent,
-        )
-        .accent;
-        SpriteFrame::from_pixels(
-            frame.size().width,
-            frame.size().height,
-            frame
-                .pixels()
-                .iter()
-                .map(|pixel| {
-                    pixel.map(|colour| {
-                        if colour == DRUID_ACCENT {
-                            accent
-                        } else {
-                            colour
-                        }
-                    })
-                })
-                .collect(),
-        )
+        personalise(&druid_world_frame(), DRUID_PALETTE, standard_role, &colours)
     } else {
-        archetypes::world_frame(persona.class)
-            .expect("every non-Druid production class has an authored sprite route")
+        let (frame, palette) = archetypes::world_master(persona.class)
+            .expect("every non-Druid production class has an authored sprite route");
+        personalise(&frame, palette, standard_role, &colours)
     }
+}
+
+/// Returns the authored 8x12 roster master for the adventurer's silhouette
+/// family, personalised from the same palette as its world master. Roster
+/// masters carry no pose: state is told by grounding, markers and nameplates.
+#[must_use]
+pub fn adventurer_roster_frame(persona: &AdventurerPersona) -> SpriteFrame {
+    let colours = adventurer_palette(
+        persona.appearance.skin_tone,
+        persona.appearance.hair_tone,
+        persona.appearance.garb,
+        persona.class,
+        persona.appearance.accent,
+    );
+    let (frame, palette) = roster::master(roster::family_for(persona.class));
+    personalise(&frame, palette, standard_role, &colours)
 }
 
 /// Whether time can select different authored pixels for this adventurer pose.
@@ -218,4 +324,62 @@ pub fn adventurer_animation_frame(
 #[must_use]
 pub fn adventurer_pose_is_animated(persona: &AdventurerPersona, pose: ScenePose) -> bool {
     persona.class == AdventurerClass::Barbarian && matches!(pose, ScenePose::Working)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    type MasterPaletteFixture = (
+        String,
+        &'static [IndexedPaletteEntry],
+        fn(char) -> Option<PersonaRole>,
+    );
+
+    /// Persona substitution matches pixels by colour, so a role colour that
+    /// also appears under a class-owned key would silently recolour that
+    /// cluster too. Every master palette must keep role colours unique.
+    #[test]
+    fn persona_role_colours_are_unique_within_every_master_palette() {
+        let mut palettes: Vec<MasterPaletteFixture> = vec![
+            ("Druid".to_owned(), DRUID_PALETTE, standard_role),
+            (
+                "Barbarian v2".to_owned(),
+                barbarian_v2::palette(),
+                barbarian_role,
+            ),
+        ];
+        for class in AdventurerClass::ALL {
+            if let Some((_, palette)) = archetypes::world_master(*class) {
+                palettes.push((format!("{class:?}"), palette, standard_role));
+            }
+        }
+        for family in roster::RosterFamily::ALL {
+            let (_, palette) = roster::master(*family);
+            palettes.push((format!("roster {family:?}"), palette, standard_role));
+        }
+
+        for (label, palette, role_for) in palettes {
+            for entry in palette {
+                if role_for(entry.key).is_none() {
+                    continue;
+                }
+                let Some(colour) = entry.colour else {
+                    continue;
+                };
+                for other in palette {
+                    if other.key == entry.key {
+                        continue;
+                    }
+                    assert_ne!(
+                        other.colour,
+                        Some(colour),
+                        "{label}: role key '{}' shares a colour with key '{}'",
+                        entry.key,
+                        other.key
+                    );
+                }
+            }
+        }
+    }
 }

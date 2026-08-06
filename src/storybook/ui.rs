@@ -9,10 +9,12 @@ use ratatui::{
 };
 
 use crate::{
-    domain::{AdventurerClass, AdventurerPersona, PersonaKey},
+    domain::{AccentTone, AdventurerClass, AdventurerPersona, HairTone, PersonaKey, SkinTone},
     scene::{
         assets::{
-            adventurer::{adventurer_animation_frame, adventurer_portrait_frame},
+            adventurer::{
+                adventurer_animation_frame, adventurer_portrait_frame, adventurer_roster_frame,
+            },
             archetypes::{goblin_portrait_frame, goblin_world_frame},
             barbarian_v2, librarian,
         },
@@ -286,6 +288,14 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
         ];
     }
 
+    if gallery == ArchetypeGallery::PersonaPalettes {
+        return persona_palette_entries();
+    }
+
+    if gallery == ArchetypeGallery::RosterFamilies {
+        return roster_family_entries();
+    }
+
     if gallery == ArchetypeGallery::BarbarianV2Poses {
         let legacy = crate::scene::assets::archetypes::world_frame(AdventurerClass::Barbarian)
             .expect("legacy Barbarian master remains available during review");
@@ -317,12 +327,83 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
                 ArchetypeGallery::PortraitMasters => adventurer_portrait_frame(&persona)
                     .expect("every core archetype has a portrait master"),
                 ArchetypeGallery::BarbarianV2Poses
+                | ArchetypeGallery::PersonaPalettes
+                | ArchetypeGallery::RosterFamilies
                 | ArchetypeGallery::GoblinEasterEgg
                 | ArchetypeGallery::Librarian => {
                     unreachable!()
                 }
             };
             (class_label(*class), sprite)
+        })
+        .collect()
+}
+
+/// The Wizard master is shared by Wizard, Artificer and Runewright, so it is
+/// where persona palette variation matters most for telling same-class
+/// adventurers apart in the world.
+fn persona_palette_entries() -> Vec<(&'static str, SpriteFrame)> {
+    const VARIANTS: [(&str, SkinTone, HairTone, AccentTone); 6] = [
+        (
+            "Porcelain",
+            SkinTone::Porcelain,
+            HairTone::Black,
+            AccentTone::Cyan,
+        ),
+        (
+            "Rose",
+            SkinTone::Rose,
+            HairTone::Espresso,
+            AccentTone::Amber,
+        ),
+        ("Sand", SkinTone::Sand, HairTone::Chestnut, AccentTone::Lime),
+        (
+            "Umber",
+            SkinTone::Umber,
+            HairTone::Copper,
+            AccentTone::Magenta,
+        ),
+        (
+            "Sienna",
+            SkinTone::Sienna,
+            HairTone::Gold,
+            AccentTone::Violet,
+        ),
+        ("Ebony", SkinTone::Ebony, HairTone::Silver, AccentTone::Red),
+    ];
+    VARIANTS
+        .iter()
+        .map(|(label, skin, hair, accent)| {
+            let mut persona =
+                AdventurerPersona::for_key(PersonaKey::new(format!("storybook-palette-{label}")));
+            persona.class = AdventurerClass::Wizard;
+            persona.appearance.skin_tone = *skin;
+            persona.appearance.hair_tone = *hair;
+            persona.appearance.accent = *accent;
+            (
+                *label,
+                adventurer_animation_frame(&persona, ScenePose::Working, 0),
+            )
+        })
+        .collect()
+}
+
+/// One representative class per authored roster silhouette family.
+fn roster_family_entries() -> Vec<(&'static str, SpriteFrame)> {
+    const FAMILIES: [(&str, AdventurerClass); 5] = [
+        ("Caster", AdventurerClass::Wizard),
+        ("Armoured", AdventurerClass::Paladin),
+        ("Brute", AdventurerClass::Barbarian),
+        ("Skirmisher", AdventurerClass::Rogue),
+        ("Ranger", AdventurerClass::Ranger),
+    ];
+    FAMILIES
+        .iter()
+        .map(|(label, class)| {
+            let mut persona =
+                AdventurerPersona::for_key(PersonaKey::new(format!("storybook-roster-{label}")));
+            persona.class = *class;
+            (*label, adventurer_roster_frame(&persona))
         })
         .collect()
 }

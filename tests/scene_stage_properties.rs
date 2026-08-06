@@ -189,11 +189,15 @@ proptest! {
         }
     }
 
+    /// Only inside the crop band is the Delve a camera over one continuous
+    /// world. Below it the dungeon recomposes at roster scale so the party
+    /// stays visible, which `a_narrow_delve_recomposes_the_party_instead_of_
+    /// cropping_it` covers.
     #[test]
     fn arbitrary_delve_crops_match_authored_origins_within_reference_bounds(
         mut source in support::strategies::scene_snapshot(),
-        width in 1_u16..120,
-        height in 1_u16..72,
+        width in 100_u16..120,
+        height in 56_u16..72,
     ) {
         prop_assume!(!source.agents.is_empty());
         source.motion = Motion::None;

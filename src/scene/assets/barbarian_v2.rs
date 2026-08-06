@@ -29,9 +29,11 @@ const PALETTE: &[IndexedPaletteEntry] = &[
         key: 'S',
         colour: Some(Rgb::new(244, 163, 94)),
     },
+    // Oxblood rather than oak-brown: the torso is the sprite's largest fill
+    // and must keep colour distance from the Hall's oak floor.
     IndexedPaletteEntry {
         key: 'L',
-        colour: Some(Rgb::new(113, 55, 35)),
+        colour: Some(Rgb::new(92, 42, 44)),
     },
     IndexedPaletteEntry {
         key: 'l',
@@ -239,6 +241,14 @@ const UNKNOWN: &[&str] = &[
     "................",
     "................",
 ];
+
+/// The authoring palette for every Barbarian pose master. Exposed so persona
+/// substitution can locate role colours; the Barbarian grammar differs from
+/// the standard archetype roles (`S` skin, `H`/`h` hair, `L`/`l` leather).
+#[must_use]
+pub(crate) const fn palette() -> &'static [IndexedPaletteEntry] {
+    PALETTE
+}
 
 #[must_use]
 pub(crate) fn frame(pose: ScenePose, animation_frame: u8) -> SpriteFrame {

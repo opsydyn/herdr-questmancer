@@ -61,20 +61,25 @@ fn contains_environment_palette_pixel(world: WorldScene, target: &RgbBuffer) -> 
     target.pixels().iter().any(|pixel| palette.contains(pixel))
 }
 
+/// Inside the crop band the camera moves over one continuous authored world.
+/// Below that band a world may recompose instead, so callers pass a viewport
+/// the world still crops at.
 fn assert_authored_camera_crop(
     world: WorldScene,
     snapshot: &SceneSnapshot,
+    viewport: PixelSize,
     expected_world_origin: (i32, i32),
 ) {
-    let viewport = PixelSize::new(80, 48);
     let (_, crop) = render(snapshot, viewport);
     let (_, reference) = render(snapshot, PixelSize::new(160, 90));
     let reference_origin = expected_world_origin;
+    let width = i32::from(viewport.width);
+    let height = i32::from(viewport.height);
 
     assert!(reference_origin.0 >= 0 && reference_origin.1 >= 0);
-    assert!(reference_origin.0 + 80 <= 160 && reference_origin.1 + 48 <= 90);
-    for y in 0..48 {
-        for x in 0..80 {
+    assert!(reference_origin.0 + width <= 160 && reference_origin.1 + height <= 90);
+    for y in 0..height {
+        for x in 0..width {
             assert_eq!(
                 crop.get(x, y),
                 reference.get(x + reference_origin.0, y + reference_origin.1),
@@ -510,7 +515,7 @@ fn viewport_matrix_preserves_exact_targets_and_world_specific_viewport_contracts
             .all(|pixel| *pixel != Rgb::new(255, 0, 255)),
         "the responsive Guild Hall must paint its complete compact composition"
     );
-    assert_authored_camera_crop(WorldScene::Delve, &delve, (41, 23));
+    assert_authored_camera_crop(WorldScene::Delve, &delve, PixelSize::new(120, 60), (21, 17));
 
     for value in [&guild, &delve] {
         let (_, canonical) = render(value, PixelSize::new(160, 90));
