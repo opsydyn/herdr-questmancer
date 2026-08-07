@@ -139,6 +139,10 @@ Chronicle is a reading surface — no key acts on the party while it is open.
 `Tab` moves the selection into the next campaign's party and wraps. With the
 whole party on one campaign it stays put and says so.
 
+A command ribbon along the bottom shows the main keys. It stays up until you
+press something, then appears briefly whenever you act, so it helps a newcomer
+without cluttering the room for anyone else.
+
 A counsel draft is kept when you close the parchment with `Esc`, and `r`
 takes it up again. Drafts belong to the adventurer they were written for, so
 switching selection never puts somebody else's half-written counsel in front

@@ -835,9 +835,20 @@ impl Model {
         self.last_interaction_at = Some(self.now);
     }
 
+    /// Whether to show the command ribbon.
+    ///
+    /// The ribbon fades a few seconds after you touch anything, which is right
+    /// — the room is the point, and hints permanently across the bottom of it
+    /// are clutter for anyone who knows the keys.
+    ///
+    /// But it keyed solely off the last interaction, so somebody who opened
+    /// Questmancer and sat looking at it saw no hints at all: the one person
+    /// who needed them got nothing, and the people who did not need them got
+    /// them on every keypress. It now stays up until the first interaction and
+    /// fades normally from then on.
     pub fn command_ribbon_visible(&self) -> bool {
         self.last_interaction_at
-            .is_some_and(|started| started.elapsed_until(self.now) <= Duration::from_millis(3_000))
+            .is_none_or(|started| started.elapsed_until(self.now) <= Duration::from_millis(3_000))
     }
 
     pub fn take_counsel(&mut self) -> Option<String> {

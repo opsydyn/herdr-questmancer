@@ -163,6 +163,13 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- The command ribbon now greets somebody who has not pressed anything. It
+  keyed solely off the last interaction, so a user who opened Questmancer and
+  sat looking at it saw no hints at all: the one person who needed them got
+  nothing, while people who already knew the keys got them on every keypress.
+  It stays up until the first interaction and fades as before from then on, and
+  it now points at `?` — the one binding that leads to all the others.
+
 - `Esc` no longer bins a counsel draft. Dismissing the parchment discarded
   whatever had been typed, so a slip mid-sentence cost the whole message.
   Drafts are now kept per adventurer — restoring somebody else's half-written

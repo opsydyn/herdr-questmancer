@@ -619,8 +619,10 @@ fn render_command_ribbon(frame: &mut Frame<'_>, model: &Model) {
     } else {
         format!("  [!] {waiting} waiting")
     };
+    // `?` earns its place: it is the one binding that leads to all the others,
+    // and the ribbon is most often read by somebody who knows none of them.
     let text = format!(
-        "[1] Guild  [2] Delve  [j/k] Select  [Enter] Observe{counsel}{urgent}  [c] Chronicle  [/] Search"
+        "[1] Guild  [2] Delve  [j/k] Select  [Enter] Observe{counsel}{urgent}  [c] Chronicle  [/] Search  [?] Keys"
     );
     frame.render_widget(Clear, ribbon);
     frame.render_widget(Paragraph::new(text).style(PARCHMENT_BORDER), ribbon);

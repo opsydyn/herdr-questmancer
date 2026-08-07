@@ -384,6 +384,8 @@ fn a_crowded_party_keeps_a_nameplate_for_every_adventurer() {
 #[test]
 fn command_ribbon_expires_after_three_seconds() {
     let mut model = model();
+    // Visible from the start: see `the_ribbon_greets_someone_who_has_not_
+    // pressed_anything`. The fade only begins once you have touched something.
     let _ = reduce_action(&mut model, Action::Next);
     assert!(model.command_ribbon_visible());
     assert!(render(&model, 120, 36).contains("[1] Guild"));
@@ -597,4 +599,29 @@ fn a_reopened_parchment_starts_at_the_top() {
     let _ = reduce_action(&mut model, Action::Dismiss);
     let _ = reduce_action(&mut model, Action::Refresh);
     assert_eq!(model.reading_scroll(), 0);
+}
+
+/// The ribbon keyed solely off the last interaction, so somebody who opened
+/// Questmancer and sat looking at it saw no hints at all — the one person who
+/// needed them. It now stays up until the first keypress.
+#[test]
+fn the_ribbon_greets_someone_who_has_not_pressed_anything() {
+    let mut model = model();
+    model.set_now(Timestamp::from_millis(120_000));
+
+    assert!(
+        model.command_ribbon_visible(),
+        "a user who has pressed nothing must still be told where to start"
+    );
+    let rendered = render(&model, 120, 36);
+    assert!(rendered.contains("[1] Guild"), "{rendered}");
+    assert!(
+        rendered.contains("[?] Keys"),
+        "the ribbon must point at the full keyring:\n{rendered}"
+    );
+
+    // And it gets out of the way once the user is under way.
+    let _ = reduce_action(&mut model, Action::Next);
+    model.set_now(Timestamp::from_millis(124_001));
+    assert!(!model.command_ribbon_visible());
 }
