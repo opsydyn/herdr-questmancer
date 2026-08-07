@@ -101,11 +101,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             ControlFlow::Continue(())
         }
         Action::Dismiss => {
-            if model.modal() == &Modal::None {
-                model.dismiss_adventurer_card();
-            } else {
-                model.dismiss_modal();
-            }
+            dismiss(model);
             ControlFlow::Continue(())
         }
         Action::Submit => {
@@ -441,6 +437,19 @@ fn visible_presence_terms(agent: &Agent) -> &'static [&'static str] {
         Presence::Idle => &["resting"],
         Presence::Exited => &["departed"],
         Presence::Unknown => &["unknown"],
+    }
+}
+
+/// Closes whatever is open, keeping a counsel draft rather than binning it.
+fn dismiss(model: &mut Model) {
+    if model.modal() == &Modal::None {
+        model.dismiss_adventurer_card();
+        return;
+    }
+    let kept = model.keep_counsel_draft();
+    model.dismiss_modal();
+    if kept {
+        model.set_action_feedback("Draft kept. Press r to take it up again.".to_owned());
     }
 }
 

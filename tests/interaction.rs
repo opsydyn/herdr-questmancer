@@ -1556,3 +1556,97 @@ fn setting_aside_nothing_says_so() {
         Some("That adventurer has no summons to set aside.")
     );
 }
+
+/// `Esc` used to bin a counsel draft outright, so a slip mid-sentence cost the
+/// whole message.
+#[test]
+fn a_counsel_draft_survives_dismissing_the_parchment() {
+    let mut model = live_model_with_two_agents();
+    let _ = reduce_action(&mut model, Action::Counsel);
+    for character in "check the migration".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+
+    let _ = reduce_action(&mut model, Action::Dismiss);
+    assert_eq!(model.modal(), &Modal::None);
+    assert_eq!(
+        model.action_feedback(),
+        Some("Draft kept. Press r to take it up again."),
+        "keeping the draft is worth saying, or the user retypes it anyway"
+    );
+
+    let _ = reduce_action(&mut model, Action::Counsel);
+    assert_eq!(
+        model.modal(),
+        &Modal::Counsel {
+            draft: "check the migration".to_owned()
+        }
+    );
+}
+
+/// Drafts belong to the adventurer they were written for. Restoring somebody
+/// else's half-written counsel would be worse than losing it.
+#[test]
+fn counsel_drafts_do_not_follow_the_selection_to_another_adventurer() {
+    let mut model = live_model_with_two_distinct_personas();
+    let first = model.domain().agents.keys().next().unwrap().clone();
+    let second = model.domain().agents.keys().next_back().unwrap().clone();
+
+    model.select_agent(&first);
+    let _ = reduce_action(&mut model, Action::Counsel);
+    for character in "for the first".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let _ = reduce_action(&mut model, Action::Dismiss);
+
+    model.select_agent(&second);
+    let _ = reduce_action(&mut model, Action::Counsel);
+    assert_eq!(
+        model.modal(),
+        &Modal::Counsel {
+            draft: String::new()
+        },
+        "the second adventurer starts from a blank parchment"
+    );
+
+    let _ = reduce_action(&mut model, Action::Dismiss);
+    model.select_agent(&first);
+    let _ = reduce_action(&mut model, Action::Counsel);
+    assert_eq!(
+        model.modal(),
+        &Modal::Counsel {
+            draft: "for the first".to_owned()
+        },
+        "and the first adventurer's draft is still waiting"
+    );
+}
+
+/// Once sent there is nothing to resume.
+#[test]
+fn a_sent_counsel_leaves_no_draft_behind() {
+    let mut model = live_model_with_two_agents();
+    let _ = reduce_action(&mut model, Action::Counsel);
+    for character in "ship it".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let sent = reduce_action(&mut model, Action::Submit);
+    assert!(!sent.commands.is_empty(), "counsel must actually be sent");
+
+    let _ = reduce_action(&mut model, Action::Counsel);
+    assert_eq!(
+        model.modal(),
+        &Modal::Counsel {
+            draft: String::new()
+        }
+    );
+}
+
+/// An empty parchment is not a draft, and saying "draft kept" for nothing
+/// would train the user to ignore the message.
+#[test]
+fn dismissing_an_empty_parchment_says_nothing() {
+    let mut model = live_model_with_two_agents();
+    let _ = reduce_action(&mut model, Action::Counsel);
+    let _ = reduce_action(&mut model, Action::Dismiss);
+    assert_eq!(model.action_feedback(), None);
+}

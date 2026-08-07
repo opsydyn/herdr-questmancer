@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::BTreeMap, time::Duration};
 
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
@@ -282,6 +282,7 @@ pub struct Model {
     last_interaction_at: Option<Timestamp>,
     search: SearchResults,
     reading_scroll: u16,
+    counsel_drafts: BTreeMap<AgentKey, String>,
 }
 
 /// The party a search matched, kept so the matches after the first are
@@ -316,6 +317,7 @@ impl Model {
             last_interaction_at: None,
             search: SearchResults::default(),
             reading_scroll: 0,
+            counsel_drafts: BTreeMap::new(),
         }
     }
 
@@ -645,10 +647,42 @@ impl Model {
         self.adventurer_card_visible = false;
     }
 
+    /// Opens the counsel parchment, restoring whatever was last drafted for
+    /// this adventurer.
+    ///
+    /// `Esc` used to discard the draft outright, so a slip mid-sentence cost
+    /// the whole message. Drafts are kept per adventurer rather than in a
+    /// single slot: restoring someone else's half-written counsel would be a
+    /// worse failure than losing it.
     pub fn open_counsel(&mut self) {
-        self.modal = Modal::Counsel {
-            draft: String::new(),
+        let draft = self
+            .selected_agent()
+            .and_then(|agent| self.counsel_drafts.get(&agent.key).cloned())
+            .unwrap_or_default();
+        self.modal = Modal::Counsel { draft };
+    }
+
+    /// Sets the open counsel draft aside for the adventurer it was meant for.
+    /// Returns true when there was something worth keeping.
+    pub fn keep_counsel_draft(&mut self) -> bool {
+        let Modal::Counsel { draft } = &self.modal else {
+            return false;
         };
+        if draft.trim().is_empty() {
+            return false;
+        }
+        let Some(key) = self.domain.selected_agent.clone() else {
+            return false;
+        };
+        let draft = draft.clone();
+        self.counsel_drafts.insert(key, draft);
+        true
+    }
+
+    fn clear_counsel_draft(&mut self) {
+        if let Some(key) = self.domain.selected_agent.clone() {
+            self.counsel_drafts.remove(&key);
+        }
     }
 
     pub fn open_search(&mut self) {
@@ -808,7 +842,11 @@ impl Model {
 
     pub fn take_counsel(&mut self) -> Option<String> {
         match std::mem::take(&mut self.modal) {
-            Modal::Counsel { draft } => Some(draft),
+            Modal::Counsel { draft } => {
+                // Sent, so there is nothing left to resume.
+                self.clear_counsel_draft();
+                Some(draft)
+            }
             modal => {
                 self.modal = modal;
                 None

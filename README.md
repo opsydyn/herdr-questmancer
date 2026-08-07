@@ -139,6 +139,11 @@ Chronicle is a reading surface — no key acts on the party while it is open.
 `Tab` moves the selection into the next campaign's party and wraps. With the
 whole party on one campaign it stays put and says so.
 
+A counsel draft is kept when you close the parchment with `Esc`, and `r`
+takes it up again. Drafts belong to the adventurer they were written for, so
+switching selection never puts somebody else's half-written counsel in front
+of you. Sending clears the draft.
+
 Counsel and search accept ordinary text. `Enter` submits, `Ctrl-U` clears, and
 `Esc` cancels. Questmancer never selects, focuses, reads, or counsels its own
 managed pane.

@@ -163,6 +163,12 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- `Esc` no longer bins a counsel draft. Dismissing the parchment discarded
+  whatever had been typed, so a slip mid-sentence cost the whole message.
+  Drafts are now kept per adventurer — restoring somebody else's half-written
+  counsel would be a worse failure than losing it — and `r` takes the draft up
+  again. Sending clears it.
+
 - The Guild Hall's entrance is now built. The bay was a flat `SHADOW`
   rectangle 29 by 49 with the door floating in the middle of it — roughly a
   fifth of the room carrying no material, no structure and no light, while
