@@ -73,17 +73,17 @@ Add to your Herdr configuration. Each inner array is one rendered line.
 [ui.sidebar.agents]
 row_gap = 1
 rows = [
-  ["state_icon", "$quest_sigil", { token = "agent", bold = true }],
-  [{ token = "$quest_role", dim = true }, { token = "$quest_condition", fg = "#c9a227" }],
-  [{ token = "$quest_vigil", fg = "#c2413f" }],
-  [{ token = "$quest_hoard", dim = true }],
+  ["state_icon", "$quest_sigil", "agent"],
+  ["$quest_role", "$quest_condition"],
+  ["$quest_vigil"],
+  ["$quest_hoard"],
 ]
 
 [ui.sidebar.spaces]
 rows = [
-  ["state_icon", { token = "workspace", bold = true }, "$quest_party"],
-  [{ token = "$quest_campaign", dim = true }],
-  [{ token = "$quest_hoard", dim = true }],
+  ["state_icon", "workspace", "$quest_party"],
+  ["$quest_campaign"],
+  ["$quest_hoard"],
 ]
 ```
 
@@ -92,8 +92,8 @@ A tighter two-line variant for narrow sidebars:
 ```toml
 [ui.sidebar.agents]
 rows = [
-  ["$quest_sigil", { token = "agent", bold = true }, "$quest_vigil"],
-  [{ token = "$quest_condition", dim = true }],
+  ["$quest_sigil", "agent", "$quest_vigil"],
+  ["$quest_condition"],
 ]
 ```
 
@@ -103,35 +103,47 @@ A full character sheet, for a wide sidebar:
 [ui.sidebar.agents]
 row_gap = 1
 rows = [
-  ["$quest_sigil", { token = "agent", bold = true }],
-  [{ token = "$quest_role", dim = true }],
-  [{ token = "$quest_epithet", dim = true }],
+  ["$quest_sigil", "agent"],
+  ["$quest_role"],
+  ["$quest_epithet"],
   ["state_icon", "$quest_condition"],
-  [{ token = "$quest_omen", dim = true }],
-  [{ token = "$quest_trinket", dim = true }],
-  [{ token = "$quest_vigil", fg = "#c2413f" }],
-  [{ token = "$quest_hoard", fg = "#c9a227" }],
+  ["$quest_omen"],
+  ["$quest_trinket"],
+  ["$quest_vigil"],
+  ["$quest_hoard"],
 ]
 ```
 
-## Two rules Herdr's schema imposes
+## What Herdr 0.7.4 actually accepts
 
-Both were got wrong in the first version of this document, and a pasted
-example took a whole `config.toml` down with it:
+Every configuration above is verified against the binary we target, not
+against the published documentation. The two differ, and this document got it
+wrong twice before anyone ran `herdr config check`:
 
-- **A style is keyed `token`, not `value`.** `{ token = "$quest_role", dim =
-  true }`. Herdr rejects the file outright on an unknown key, falls back to
-  defaults, and reports `config.toml invalid; using defaults`.
-- **A row element is always a token name.** There is no literal-text element:
-  `" "` and `"Trinket: "` are read as the names of tokens that do not exist.
-  Herdr separates adjacent values with `·` itself and puts a single space after
-  `state_icon`, so spacers are unnecessary as well as invalid. Any label a
-  value needs must travel inside the token — which is why `$quest_hoard` reads
-  `◈ 3 spoils` and `$quest_trinket` reads `❖ Silver Compass`.
+- **A row element is a plain string, and it must name a token.** Herdr 0.7.4
+  rejects an inline table outright — `invalid type: map, expected a string` —
+  so the `{ token = "…", fg = "…", bold = true }` styling shown on
+  herdr.dev belongs to a later schema than the one we pin. There is no
+  styling mechanism in 0.7.4.
+- **There is no literal-text element.** `" "` and `"Trinket: "` are read as
+  token names and rejected: `unknown sidebar token; custom tokens must start
+  with $`. Herdr separates adjacent values with `·` itself and puts a single
+  space after `state_icon`, so spacers are unnecessary as well as invalid.
+
+Because a value cannot be styled or labelled by the configuration, anything it
+needs in order to explain itself has to travel inside the token. That is why
+`$quest_hoard` reads `◈ 3 spoils`, `$quest_omen` reads `seeks counsel`, and
+`$quest_trinket` reads `❖ Silver Compass` rather than relying on a prefix the
+row cannot supply.
+
+One trap worth knowing: Herdr 0.7.4 **ignores keys it does not recognise** but
+validates every token strictly. A misspelled key fails silently while a
+misspelled token takes the whole file down to defaults — losing every unrelated
+setting with it, which is how a broken sidebar row brought back the onboarding
+dialog.
 
 `tests/sidebar_documentation.rs` parses every example above and holds it to
-both rules, so a configuration published here cannot drift from the schema
-again. `herdr config check` remains the authority on the rest of the file.
+these rules. `herdr config check` remains the authority; run it after editing.
 
 ## Non-goals
 

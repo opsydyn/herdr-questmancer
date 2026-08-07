@@ -1,16 +1,21 @@
 //! Guards the paste-ready sidebar configurations we publish.
 //!
-//! We shipped four `[ui.sidebar]` examples that Herdr rejects outright. They
-//! used `value = "…"` where Herdr's schema requires `token = "…"`, and they
-//! used bare strings as literal text — `" "` and `"Trinket: "` — where a Herdr
-//! row element is always a token name. A user pasted one in verbatim and got
-//! `config.toml invalid; using defaults`.
+//! Every `[ui.sidebar]` example we shipped was rejected by Herdr, and the
+//! first attempt to fix them was rejected too. The rules below come from
+//! running `herdr config check` against the 0.7.4 binary we target, not from
+//! the published documentation, which describes a later schema:
 //!
-//! Nothing could have caught it: the examples were prose in a Markdown file,
-//! and the only thing that reads them is a person. These tests parse the TOML
-//! out of the document and hold it to the parts of Herdr's schema we can state
-//! precisely — the shape of a row element, and whether a `$quest_*` token is
-//! one Questmancer actually publishes.
+//! - a row element is a plain string; an inline table gives
+//!   `invalid type: map, expected a string`;
+//! - every string must name a builtin token or a `$`-prefixed custom one;
+//!   literal text like `" "` or `"Trinket: "` gives `unknown sidebar token`.
+//!
+//! Herdr ignores keys it does not recognise but validates tokens strictly, so
+//! a bad token takes the entire file down to defaults and silently discards
+//! every unrelated setting with it.
+//!
+//! Nothing could have caught this: the examples were prose in a Markdown file
+//! and the only thing that read them was a person.
 
 use std::collections::BTreeSet;
 
@@ -95,52 +100,36 @@ fn every_documented_config_is_valid_toml() {
     }
 }
 
-/// A Herdr row element is a token name or an inline table keyed by `token`.
-/// Ours used `value`, which Herdr rejects, taking the whole file down with it.
+/// Herdr 0.7.4 takes plain strings and nothing else. Our first correction
+/// reached for the inline-table styling documented on herdr.dev, which belongs
+/// to a later schema; the binary answers `invalid type: map, expected a
+/// string` and falls back to defaults.
 #[test]
-fn documented_rows_use_the_token_key_herdr_expects() {
+fn documented_rows_hold_plain_strings() {
     for block in toml_blocks() {
         for (panel, row) in rows_of(&block) {
             for element in row {
-                match element {
-                    Value::String(_) => {}
-                    Value::Table(table) => {
-                        assert!(
-                            table.contains_key("token"),
-                            "a {panel} row element is keyed {:?}; Herdr requires `token`",
-                            table.keys().collect::<Vec<_>>()
-                        );
-                        for key in table.keys() {
-                            assert!(
-                                ["token", "fg", "bold", "dim"].contains(&key.as_str()),
-                                "`{key}` is not a Herdr row-style key"
-                            );
-                        }
-                    }
-                    other => panic!("a {panel} row element must be a token or table, got {other}"),
-                }
+                assert!(
+                    element.is_str(),
+                    "a {panel} row element is {element}; Herdr 0.7.4 accepts only \
+                     plain strings, and rejects the whole file on anything else"
+                );
             }
         }
     }
 }
 
-/// Herdr rows hold tokens and nothing else — it inserts its own separators.
-/// Ours carried `" "` and `"Trinket: "` as if literal text were allowed, so
-/// every one of those was read as the name of a token that does not exist.
+/// Herdr rows hold token names and nothing else — it inserts its own
+/// separators. Ours carried `" "` and `"Trinket: "` as if literal text were
+/// allowed, and each was read as the name of a token that does not exist.
 #[test]
 fn documented_rows_name_only_tokens_that_exist() {
     let published = published_tokens();
     for block in toml_blocks() {
         for (panel, row) in rows_of(&block) {
             for element in row {
-                let name = match &element {
-                    Value::String(name) => name.clone(),
-                    Value::Table(table) => table
-                        .get("token")
-                        .and_then(Value::as_str)
-                        .unwrap_or_default()
-                        .to_owned(),
-                    _ => continue,
+                let Some(name) = element.as_str().map(str::to_owned) else {
+                    continue;
                 };
                 let known = HERDR_TOKENS.contains(&name.as_str()) || published.contains(&name);
                 assert!(
