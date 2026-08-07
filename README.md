@@ -93,6 +93,7 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `Tab` | Move to the next campaign's party |
 | `c` | Open the Chronicle |
 | `/` | Search the party and campaigns |
+| `n` / `N` | Walk to the next / previous search match |
 | `v` | Inspect spoils through Reviewr when available |
 | `?` | Open or close the Librarian's Ledger |
 | `Esc` | Dismiss the active parchment |
@@ -104,6 +105,10 @@ quieter summons, and within each rank whoever has waited longest. Deferred
 summons are skipped until their snooze expires. When nobody is waiting the
 selection stays put and Questmancer says so. While at least one adventurer is
 waiting, the command ribbon carries the count.
+
+Search reports how many adventurers matched and `n`/`N` walk them, wrapping.
+Matches for adventurers who have since left the party are dropped rather than
+selected.
 
 `c` opens the Chronicle: the guild's own record of who joined, set out, asked
 for counsel, returned with spoils, rested, departed, and which campaigns

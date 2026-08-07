@@ -26,6 +26,8 @@ pub enum Action {
     InspectSpoils,
     NextCampaign,
     OpenChronicle,
+    NextResult,
+    PreviousResult,
     NextUrgent,
     Search,
     TypeCharacter(char),
@@ -123,6 +125,8 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         // Deliberately not `n`: that is being kept for cycling search results.
         KeyCode::Char('!') => Action::NextUrgent,
         KeyCode::Char('c') => Action::OpenChronicle,
+        KeyCode::Char('n') => Action::NextResult,
+        KeyCode::Char('N') => Action::PreviousResult,
         KeyCode::Char('/') => Action::Search,
         _ => Action::None,
     }

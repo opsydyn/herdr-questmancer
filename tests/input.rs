@@ -157,8 +157,9 @@ fn guild_hall_navigation_and_actions_have_explicit_keys() {
     assert_eq!(action_for(key(KeyCode::Char('v'))), Action::InspectSpoils);
     assert_eq!(action_for(key(KeyCode::Tab)), Action::NextCampaign);
     assert_eq!(action_for(key(KeyCode::Char('!'))), Action::NextUrgent);
-    // `n` stays unbound: it is reserved for cycling search results.
-    assert_eq!(action_for(key(KeyCode::Char('n'))), Action::None);
+    assert_eq!(action_for(key(KeyCode::Char('c'))), Action::OpenChronicle);
+    assert_eq!(action_for(key(KeyCode::Char('n'))), Action::NextResult);
+    assert_eq!(action_for(key(KeyCode::Char('N'))), Action::PreviousResult);
     assert_eq!(action_for(key(KeyCode::Char('g'))), Action::First);
     assert_eq!(action_for(key(KeyCode::Char('G'))), Action::Last);
     assert_eq!(action_for(key(KeyCode::Char('/'))), Action::Search);

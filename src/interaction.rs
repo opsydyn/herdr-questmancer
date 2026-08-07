@@ -84,6 +84,10 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             model.open_search();
             ControlFlow::Continue(())
         }
+        Action::NextResult | Action::PreviousResult => {
+            cycle_search(model, action == Action::NextResult, &mut commands);
+            ControlFlow::Continue(())
+        }
         Action::OpenChronicle => {
             model.open_chronicle();
             ControlFlow::Continue(())
@@ -332,25 +336,65 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         model.set_action_feedback("Enter an adventurer or campaign to search.".to_owned());
         return;
     }
-    let matched = model.domain().agents.iter().find_map(|(key, agent)| {
-        let site_matches = model
-            .domain()
-            .campaigns
-            .get(&agent.workspace_id)
-            .is_some_and(|campaign| campaign.label.to_lowercase().contains(&query));
-        (agent_matches_search(agent, &query) || site_matches).then(|| key.clone())
-    });
+    // Every match, not just the first. A query hitting three adventurers used
+    // to pick one silently and never admit the other two existed.
+    let matched = model
+        .domain()
+        .agents
+        .iter()
+        .filter(|(_, agent)| {
+            let site_matches = model
+                .domain()
+                .campaigns
+                .get(&agent.workspace_id)
+                .is_some_and(|campaign| campaign.label.to_lowercase().contains(&query));
+            agent_matches_search(agent, &query) || site_matches
+        })
+        .map(|(key, _)| key.clone())
+        .collect::<Vec<_>>();
 
-    let Some(agent_key) = matched else {
+    if matched.is_empty() {
         model.set_action_feedback(no_match(&query));
         return;
-    };
+    }
+    let total = matched.len();
     let before = selected_pane(model);
-    model.domain_mut().selected_agent = Some(agent_key);
+    model.set_search_results(query.clone(), matched);
+    model.domain_mut().selected_agent = None;
+    model.cycle_search_result(true);
     model.show_adventurer_card();
     let after = selected_pane(model);
     model.dismiss_modal();
-    model.clear_action_feedback();
+    if total == 1 {
+        model.clear_action_feedback();
+    } else {
+        model.set_action_feedback(format!("1/{total} matching \"{query}\" · n/N for the rest"));
+    }
+    if after != before
+        && let Some(pane_id) = after
+    {
+        commands.push(load_output(model, pane_id));
+    }
+}
+
+/// Walks the matches a search found.
+fn cycle_search(model: &mut Model, forward: bool, commands: &mut Vec<AgentCommand>) {
+    let before = selected_pane(model);
+    let Some((position, total)) = model.cycle_search_result(forward) else {
+        model.set_action_feedback(if model.search_query().is_empty() {
+            "No search to walk. Press / to search.".to_owned()
+        } else {
+            format!(
+                "Nothing still matches \"{}\".",
+                model.search_query().to_owned()
+            )
+        });
+        return;
+    };
+    model.show_adventurer_card();
+    let query = model.search_query().to_owned();
+    model.set_action_feedback(format!("{position}/{total} matching \"{query}\""));
+    let after = selected_pane(model);
     if after != before
         && let Some(pane_id) = after
     {

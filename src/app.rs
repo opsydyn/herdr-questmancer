@@ -224,6 +224,19 @@ pub struct Model {
     managed_pane_id: Option<PaneId>,
     goblins: GoblinState,
     last_interaction_at: Option<Timestamp>,
+    search: SearchResults,
+}
+
+/// The party a search matched, kept so the matches after the first are
+/// reachable.
+///
+/// Search used to `find_map` the first hit and drop the rest on the floor: a
+/// query matching three adventurers silently picked one and never said the
+/// others existed.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+struct SearchResults {
+    query: String,
+    matched: Vec<AgentKey>,
 }
 
 impl Model {
@@ -244,6 +257,7 @@ impl Model {
             managed_pane_id: None,
             goblins: GoblinState::default(),
             last_interaction_at: None,
+            search: SearchResults::default(),
         }
     }
 
@@ -415,6 +429,53 @@ impl Model {
             current.saturating_sub(1)
         };
         self.domain.selected_agent = Some(keys[next].clone());
+    }
+
+    /// Records what a search matched, in the party's own order.
+    pub fn set_search_results(&mut self, query: String, matched: Vec<AgentKey>) {
+        self.search = SearchResults { query, matched };
+    }
+
+    #[must_use]
+    pub fn search_query(&self) -> &str {
+        &self.search.query
+    }
+
+    /// Live matches only: the party changes under a stale result set, and
+    /// cycling onto an adventurer who has left would be worse than saying the
+    /// search is spent.
+    #[must_use]
+    pub fn search_results(&self) -> Vec<AgentKey> {
+        self.search
+            .matched
+            .iter()
+            .filter(|key| self.domain.agents.contains_key(*key))
+            .cloned()
+            .collect()
+    }
+
+    /// Steps to the next or previous search match, wrapping.
+    ///
+    /// Returns the one-based position and the total, so the caller can say
+    /// which of how many you are looking at — the thing the old
+    /// first-match-only search could never tell you.
+    pub fn cycle_search_result(&mut self, forward: bool) -> Option<(usize, usize)> {
+        let matched = self.search_results();
+        if matched.is_empty() {
+            return None;
+        }
+        let current = self
+            .domain
+            .selected_agent
+            .as_ref()
+            .and_then(|selected| matched.iter().position(|key| key == selected));
+        let next = match current {
+            Some(position) if forward => (position + 1) % matched.len(),
+            Some(position) => (position + matched.len() - 1) % matched.len(),
+            None => 0,
+        };
+        self.domain.selected_agent = Some(matched[next].clone());
+        Some((next + 1, matched.len()))
     }
 
     pub fn open_chronicle(&mut self) {

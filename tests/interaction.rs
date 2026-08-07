@@ -1285,3 +1285,128 @@ fn the_chronicle_swallows_keys_that_would_move_the_party() {
     let _ = reduce_action(&mut model, Action::Dismiss);
     assert_eq!(model.modal(), &Modal::None);
 }
+
+/// Search used to `find_map` the first hit and drop the rest: a query matching
+/// three adventurers picked one silently and never admitted the others were
+/// there.
+#[test]
+fn search_keeps_every_match_and_n_walks_them() {
+    let mut model = searchable_model();
+    // Give all three the same searchable fragment.
+    {
+        let domain = model.domain_mut();
+        for (index, agent) in domain.agents.values_mut().enumerate() {
+            agent.name = format!("scout-{index}");
+        }
+        domain.selected_agent = None;
+    }
+    model.replace_domain(model.domain().clone());
+    let total = model.domain().agents.len();
+    assert!(total >= 2, "fixture needs several matches");
+
+    let _ = reduce_action(&mut model, Action::Search);
+    for character in "scout".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let _ = reduce_action(&mut model, Action::Submit);
+
+    assert_eq!(model.search_results().len(), total, "every match is kept");
+    assert!(
+        model
+            .action_feedback()
+            .is_some_and(|feedback| feedback.starts_with(&format!("1/{total}"))),
+        "the count of matches must be reported, got {:?}",
+        model.action_feedback()
+    );
+
+    let mut visited = vec![model.selected_agent_key().cloned().unwrap()];
+    for _ in 1..total {
+        let _ = reduce_action(&mut model, Action::NextResult);
+        visited.push(model.selected_agent_key().cloned().unwrap());
+    }
+    let unique = visited.iter().collect::<std::collections::HashSet<_>>();
+    assert_eq!(
+        unique.len(),
+        total,
+        "n must reach every match, not repeat one"
+    );
+
+    // And it wraps back to the first.
+    let _ = reduce_action(&mut model, Action::NextResult);
+    assert_eq!(model.selected_agent_key(), visited.first());
+}
+
+/// `N` walks the same set backwards.
+#[test]
+fn shift_n_walks_the_matches_in_reverse() {
+    let mut model = searchable_model();
+    {
+        let domain = model.domain_mut();
+        for (index, agent) in domain.agents.values_mut().enumerate() {
+            agent.name = format!("scout-{index}");
+        }
+        domain.selected_agent = None;
+    }
+    model.replace_domain(model.domain().clone());
+
+    let _ = reduce_action(&mut model, Action::Search);
+    for character in "scout".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let _ = reduce_action(&mut model, Action::Submit);
+    let first = model.selected_agent_key().cloned().unwrap();
+
+    let _ = reduce_action(&mut model, Action::NextResult);
+    let second = model.selected_agent_key().cloned().unwrap();
+    assert_ne!(first, second);
+
+    let _ = reduce_action(&mut model, Action::PreviousResult);
+    assert_eq!(model.selected_agent_key(), Some(&first));
+}
+
+/// Walking with no search behind it says so instead of moving the selection.
+#[test]
+fn cycling_without_a_search_explains_itself() {
+    let mut model = live_model_with_two_agents();
+    let selected = model.selected_agent_key().cloned();
+
+    let _ = reduce_action(&mut model, Action::NextResult);
+
+    assert_eq!(model.selected_agent_key(), selected.as_ref());
+    assert_eq!(
+        model.action_feedback(),
+        Some("No search to walk. Press / to search.")
+    );
+}
+
+/// A result set outlives the party it described. Cycling must not land on an
+/// adventurer who has left.
+#[test]
+fn search_results_drop_adventurers_who_have_gone() {
+    let mut model = searchable_model();
+    {
+        let domain = model.domain_mut();
+        for (index, agent) in domain.agents.values_mut().enumerate() {
+            agent.name = format!("scout-{index}");
+        }
+        domain.selected_agent = None;
+    }
+    model.replace_domain(model.domain().clone());
+
+    let _ = reduce_action(&mut model, Action::Search);
+    for character in "scout".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let _ = reduce_action(&mut model, Action::Submit);
+    let before = model.search_results().len();
+
+    let departed = model.domain().agents.keys().next_back().unwrap().clone();
+    model.domain_mut().agents.remove(&departed);
+
+    let after = model.search_results();
+    assert_eq!(after.len(), before - 1);
+    assert!(
+        !after.contains(&departed),
+        "a departed adventurer stays out"
+    );
+}

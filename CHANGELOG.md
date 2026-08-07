@@ -69,6 +69,13 @@ All notable changes to this project will be documented here.
 
 ### Changed
 
+- Search no longer throws away everything after the first match. It used to
+  `find_map` a single hit, so a query matching three adventurers picked one
+  silently and never admitted the others existed. Submitting now reports
+  `1/3 matching "…"` and `n`/`N` walk the set, wrapping. Matches are
+  re-checked against the live party on every step, so a result set that
+  outlived an adventurer's departure cannot select somebody who has gone.
+
 - The Chronicle is now readable. Seven event types were recorded, persisted to
   `chronicle.jsonl` and replayed on startup, and exactly one of them reached a
   human: returned spoils, as a count in a sidebar token. `c` opens the guild's
