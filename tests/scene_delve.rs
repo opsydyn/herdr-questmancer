@@ -487,10 +487,11 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // the Mage and Sorcerer classes shifted these fixtures' persona rolls, and
     // again when station slots were re-spaced so delvers stopped overlapping,
     // and again when Unknown delvers stopped being darkened toward black and
-    // started resolving toward a pale mist instead.
+    // started resolving toward a pale mist instead, and again when the floor's
+    // diagonal grid became isotropic patch mottling.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "2683a7d00fd2ec2e07ee451392b7695499d1709845b9a904395e70e571e6860c"
+        "4b1c62f28f57bba5f49eca667fee5c42eb4cd79b8ea3b4d03c1859e83878cc48"
     );
 
     let non_clear = first

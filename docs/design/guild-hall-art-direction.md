@@ -117,6 +117,26 @@ shields and label lanes. Avoid full-scene speckle, procedural noise beneath
 feet, large unbroken brown fields and decorative detail that reads as a state
 indicator.
 
+Two properties make that rule enforceable, and the Delve floor broke both
+while satisfying every test it had:
+
+- **Texture must scatter, not run.** Anything that repeats on a fixed stride —
+  `(x + y) % n` is the classic — draws continuous lines rather than grain, and
+  the eye follows a line straight across whatever is standing on it. Hashes
+  built from XORed multiplications correlate the same way and look like scatter
+  in the source. Measure it: count how often a textured pixel continues into
+  its neighbour in each of the four directions. Isotropic grain gives four
+  similar rates; the old dungeon floor gave 0.43 along one diagonal against
+  0.03 along the other.
+- **Texture must not share the actors' frequency.** Adventurers carry their
+  detail at single-pixel scale, so per-pixel background variation competes with
+  them head-on however well scattered it is. Background mottling is sampled per
+  patch — coarser than the party — leaving fine grain only as a low-contrast
+  band beneath it.
+
+Measure both on the bare material layer. Lighting gradients wash the signal
+out, which is why a finished screenshot is where these defects hide.
+
 ## Identity labels and overlays
 
 World labels are status instruments, not captions for every sprite.

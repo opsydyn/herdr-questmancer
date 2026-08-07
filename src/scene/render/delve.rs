@@ -492,19 +492,25 @@ fn paint_materials(
         for x in 0..target.size().width {
             let world_x = i32::from(x).saturating_sub(origin.x);
             let world_y = i32::from(y).saturating_sub(origin.y);
-            let variant = material_variant(world_x, world_y, seed);
+            let grain = material_variant(world_x, world_y, seed);
+            let patch = material_patch(world_x, world_y, seed);
             let walkable = architecture.map_or_else(
                 || base_walkable(world_x, world_y),
                 |architecture| architecture.is_walkable(world_x, world_y),
             );
             let colour = if walkable {
-                if variant.is_multiple_of(61) {
+                // Mottling reads at patch scale and grain reads at pixel
+                // scale, so neither sits at the adventurers' own frequency.
+                // The darkest band used to be an explicit `(x + y) % 9` rule,
+                // which drew unbroken diagonal lines across a tenth of the
+                // floor — the single loudest thing competing for the eye.
+                if patch.is_multiple_of(89) {
                     MINERAL_VIOLET
-                } else if variant.is_multiple_of(29) {
+                } else if patch.is_multiple_of(31) {
                     MOSS_LIGHT
-                } else if variant.is_multiple_of(11) {
+                } else if patch.is_multiple_of(11) {
                     MOSS_DARK
-                } else if (world_x + world_y).rem_euclid(9) == 0 {
+                } else if grain.is_multiple_of(13) {
                     FLOOR_DARK
                 } else {
                     FLOOR_MID
@@ -514,9 +520,9 @@ fn paint_materials(
                 let stagger = if course.rem_euclid(2) == 0 { 0 } else { 7 };
                 if world_y.rem_euclid(6) == 0 || (world_x + stagger).rem_euclid(14) == 0 {
                     STONE_DARK
-                } else if variant.is_multiple_of(43) {
+                } else if patch.is_multiple_of(43) {
                     MOSS_DARK
-                } else if variant.is_multiple_of(7) {
+                } else if patch.is_multiple_of(9) {
                     STONE_LIGHT
                 } else {
                     STONE_MID
@@ -1131,10 +1137,45 @@ fn paint_connection_fact(snapshot: &SceneSnapshot, target: &mut RgbBuffer, origi
     }
 }
 
+/// Scatters dungeon material across the floor and walls.
+///
+/// This used to XOR two 32-bit multiplications and stop, which correlates hard
+/// along the anti-diagonal: measured over the canonical floor, 39% of textured
+/// pixels continued along `/` against 4% along `\`. What was authored as
+/// speckle rendered as a directional grid, and long unbroken lines of it ran
+/// straight through the adventurers standing on top.
+///
+/// Running the mixed key through a splitmix64 finalizer makes the scatter
+/// isotropic — the same measurement gives 6.8 / 7.8 / 7.6 across the three
+/// directions — at the same texture density. The floor keeps its grain and
+/// stops drawing lines across the party.
+/// The size, in pixels, of one patch of dungeon mottling.
+///
+/// Adventurers carry their detail at single-pixel scale. A floor whose
+/// variation sits at that same scale competes with them directly, so the moss
+/// and mineral bands are sampled per patch instead — coarser than the party,
+/// and reading as damp stone rather than as static.
+const MATERIAL_PATCH: i32 = 2;
+
+fn material_patch(x: i32, y: i32, seed: u64) -> u64 {
+    material_variant(
+        x.div_euclid(MATERIAL_PATCH),
+        y.div_euclid(MATERIAL_PATCH),
+        seed ^ 0x5eed_0f3a_1c77_b105,
+    )
+}
+
 fn material_variant(x: i32, y: i32, seed: u64) -> u64 {
-    seed.rotate_left(13)
-        ^ u64::from(x.unsigned_abs()).wrapping_mul(0x9e37_79b9)
-        ^ u64::from(y.unsigned_abs()).wrapping_mul(0x85eb_ca6b)
+    let mut value = seed
+        ^ u64::from(x.unsigned_abs()).wrapping_mul(0x9e37_79b9_7f4a_7c15)
+        ^ u64::from(y.unsigned_abs())
+            .wrapping_mul(0xbf58_476d_1ce4_e5b9)
+            .rotate_left(32);
+    value ^= value >> 30;
+    value = value.wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    value ^= value >> 27;
+    value = value.wrapping_mul(0x94d0_49bb_1331_11eb);
+    value ^ (value >> 31)
 }
 
 fn dungeon_seed(snapshot: &SceneSnapshot) -> u64 {
@@ -1359,6 +1400,83 @@ mod tests {
         );
         assert!(contains(region, marker.x, marker.y));
         assert!(contains(region, marker.x + 7, marker.y + 13));
+    }
+
+    /// The floor's variation has to be scatter, not structure.
+    ///
+    /// The darkest band was once an explicit `(x + y) % 9` rule and the hash
+    /// behind the rest was two `XOR`ed multiplications, which correlates along
+    /// the same axis. Together they drew unbroken diagonal lines across a
+    /// tenth of the floor and ran them straight through the party. Measured
+    /// here, textured pixels continued along `/` nine times more often than
+    /// along `\` — a grid wearing speckle's clothes.
+    ///
+    /// This measures the bare material layer on purpose. Lighting gradients
+    /// wash the signal out, which is exactly why looking at the finished
+    /// picture had not settled the question.
+    #[test]
+    fn dungeon_material_scatters_evenly_instead_of_drawing_lines() {
+        let snapshot = SceneSnapshot {
+            connection: SceneConnection::Connected,
+            campaigns: Vec::new(),
+            agents: Vec::new(),
+            motion: Motion::None,
+            now: Timestamp::from_millis(0),
+        };
+        let origin = PixelPoint::new(0, 0);
+        let architecture = architecture_mask(&snapshot);
+        let width = u16::try_from(WIDTH).expect("Delve width fits u16");
+        let height = u16::try_from(HEIGHT).expect("Delve height fits u16");
+        let mut materials = RgbBuffer::filled(width, height, DEEP_BLUE_BLACK);
+        paint_materials(
+            &mut materials,
+            origin,
+            dungeon_seed(&snapshot),
+            Some(&architecture),
+            None,
+        )
+        .expect("unrecorded material painting cannot conflict");
+
+        let continuation = |dx: i32, dy: i32| {
+            let (mut continued, mut total) = (0_u32, 0_u32);
+            for y in 26..64 {
+                for x in 60..104 {
+                    if !architecture.is_walkable(x, y) || !architecture.is_walkable(x + dx, y + dy)
+                    {
+                        continue;
+                    }
+                    let Some(here) = materials.get(x, y) else {
+                        continue;
+                    };
+                    if here == FLOOR_MID {
+                        continue;
+                    }
+                    total += 1;
+                    if materials.get(x + dx, y + dy) == Some(here) {
+                        continued += 1;
+                    }
+                }
+            }
+            assert!(total > 200, "too little texture sampled to conclude");
+            f64::from(continued) / f64::from(total)
+        };
+
+        let rates = [
+            ("horizontal", continuation(1, 0)),
+            ("vertical", continuation(0, 1)),
+            ("backslash", continuation(1, 1)),
+            ("slash", continuation(1, -1)),
+        ];
+        let highest = rates.iter().map(|(_, rate)| *rate).fold(0.0_f64, f64::max);
+        let lowest = rates
+            .iter()
+            .map(|(_, rate)| *rate)
+            .fold(f64::INFINITY, f64::min);
+        assert!(
+            highest <= lowest * 2.0,
+            "dungeon texture runs {highest:.3} one way against {lowest:.3} another, \
+             so it reads as a grid rather than as scatter: {rates:?}"
+        );
     }
 
     #[test]

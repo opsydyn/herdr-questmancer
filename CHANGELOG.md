@@ -86,6 +86,19 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- Two defects visible in real Delve sessions. Unknown delvers were rendered
+  by halving every channel, which in an already near-black dungeon — at the one
+  station with no light pool by design — made them darker than the floor they
+  stood on; they now resolve toward a pale mist, draining the colour that
+  carries identity while staying legible. The dungeon floor's darkest band was
+  an explicit `(x + y) % 9` rule and the hash behind the rest correlated along
+  the same axis, so what was authored as speckle drew unbroken diagonal lines
+  across a tenth of the floor and ran them through the party; texture is now
+  isotropic, and mottling is sampled per patch so it no longer sits at the
+  adventurers' own frequency. Both are held by tests that measure the rendered
+  result — contrast against the dungeon behind the sprite, and directional
+  continuation on the bare material layer.
+
 - The goblin outbreak now actually appears. Typing `release the goblins` into
   the search prompt already set the state, and `GoblinState::is_visible` had no
   callers, so the easter egg changed nothing a player could see and the release
