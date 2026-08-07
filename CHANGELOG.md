@@ -86,6 +86,18 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- The Guild Hall's entrance is now built. The bay was a flat `SHADOW`
+  rectangle 29 by 49 with the door floating in the middle of it — roughly a
+  fifth of the room carrying no material, no structure and no light, while
+  every warm source in the Hall stood right of centre, so the composition
+  leaned hard right and the way in read as a hole in the wall. It is now an
+  ashlar arch with masonry courses and a keystone, a recessed door, worn
+  threshold steps descending toward the room, and a lit sconce on the jamb
+  throwing a warm pool into the corner. The station blueprint had specified a
+  "threshold light" for this bay from the start; it had simply never been
+  drawn. A test now holds that no single colour covers more than 40% of the
+  entrance panel and that the bay paints light of its own.
+
 - Two defects visible in real Delve sessions. Unknown delvers were rendered
   by halving every channel, which in an already near-black dungeon — at the one
   station with no light pool by design — made them darker than the floor they

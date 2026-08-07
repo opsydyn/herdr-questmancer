@@ -525,6 +525,58 @@ fn a_party_too_large_for_the_roster_still_falls_back_to_the_priority_vignette() 
     );
 }
 
+/// The entrance panel was a flat `SHADOW` rectangle with the door floating in
+/// it — around a fifth of the room carrying no material, no structure and no
+/// light, while every warm source sat right of centre. Landmark tests passed
+/// throughout: they only ever asked whether the door's own colour was present,
+/// never whether anything surrounded it.
+#[test]
+fn the_guild_entrance_is_built_rather_than_left_flat() {
+    let mut snapshot = mixed_snapshot();
+    snapshot.agents.clear();
+    let buffer = render(&snapshot, VIEWPORT);
+
+    let panel = PixelRect::new(3, 12, 29, 49);
+    let mut tally: HashMap<Rgb, usize> = HashMap::new();
+    for y in panel.y..panel.y + i32::from(panel.height) {
+        for x in panel.x..panel.x + i32::from(panel.width) {
+            if let Some(pixel) = buffer.get(x, y) {
+                *tally.entry(pixel).or_default() += 1;
+            }
+        }
+    }
+    let total: usize = tally.values().sum();
+    let dominant = *tally.values().max().expect("the entrance paints pixels");
+    assert!(
+        dominant * 100 / total <= 40,
+        "one colour covers {}% of the guild entrance; it reads as a hole rather \
+         than as the way in",
+        dominant * 100 / total
+    );
+    assert!(
+        tally.len() >= 8,
+        "the entrance carries only {} colours, too few to read as built \
+         architecture",
+        tally.len()
+    );
+
+    // The Hall's warm sources all stood right of centre, so nothing drew the
+    // eye left. The entrance now carries its own.
+    let warmest = |rect: PixelRect| {
+        (rect.y..rect.y + i32::from(rect.height))
+            .flat_map(|y| (rect.x..rect.x + i32::from(rect.width)).map(move |x| (x, y)))
+            .filter_map(|(x, y)| buffer.get(x, y))
+            .map(|pixel| i32::from(pixel.r) - i32::from(pixel.b))
+            .max()
+            .unwrap_or(0)
+    };
+    assert!(
+        warmest(panel) >= 100,
+        "the entrance has no warm light of its own, so the composition still \
+         leans entirely to the hearth side"
+    );
+}
+
 /// The outbreak had a working trigger and no visible effect: `is_visible`
 /// had zero call sites, so releasing goblins changed state nothing painted.
 #[test]

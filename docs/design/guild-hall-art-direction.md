@@ -80,6 +80,22 @@ its shadow/light pool, and a label lane. Reservations may not overlap. A
 station becomes unavailable rather than shrinking a `16x24` adventurer into a
 token.
 
+The guild door bay is built as an ashlar arch: masonry courses and a keystone,
+the door recessed so its frame casts onto itself, worn threshold steps
+descending toward the room, and a lit sconce on the jamb. That last item was
+in the table above from the start — "threshold light" — and went unbuilt for
+long enough that the bay shipped as a flat `SHADOW` rectangle with the door
+floating in the middle of it, roughly a fifth of the room carrying no
+material, no structure and no light while every warm source in the Hall stood
+right of centre.
+
+An empty bay is not a neutral background. It is a place the eye refuses to go,
+which unbalances the whole composition, and it survives landmark tests easily:
+those ask whether the door's own colour is present, never whether anything
+surrounds it. Two properties make the rule checkable — no single colour may
+cover more than 40% of a bay panel, and a bay specified to carry light must
+actually paint some.
+
 ## Actor legibility contract
 
 At the canonical Hall size and the compact whole-party composition, every

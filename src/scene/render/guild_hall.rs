@@ -10,9 +10,9 @@ use crate::{
             guild_hall::{GuildHallAsset, frame},
             librarian,
             palette::{
-                AMBER_LIGHT, EMBER, FLAME, INK_BLUE, OAK, OAK_DARK, OAK_LIGHT, PARCHMENT,
-                PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_DARK, RUG_GOLD, SHADOW, STONE,
-                STONE_DARK, STONE_LIGHT, VOID, WINE_DARK,
+                AMBER_LIGHT, BRASS, BRASS_DARK, BRASS_LIGHT, EMBER, FLAME, INK_BLUE, OAK, OAK_DARK,
+                OAK_LIGHT, PARCHMENT, PARCHMENT_DARK, PARCHMENT_LIGHT, RUG, RUG_DARK, RUG_GOLD,
+                SHADOW, STONE, STONE_DARK, STONE_LIGHT, VOID, WINE_DARK,
             },
         },
         pixel::{PixelPoint, PixelRect, PixelSize, Rgb, RgbBuffer},
@@ -807,10 +807,7 @@ fn paint_architecture(target: &mut RgbBuffer, origin: PixelPoint) {
         blit_asset(GuildHallAsset::TimberBeam, target, origin, x, 3);
     }
 
-    fill(target, origin, PixelRect::new(3, 12, 29, 49), SHADOW);
-    blit_asset(GuildHallAsset::GuildDoor, target, origin, 8, 16);
-    fill(target, origin, PixelRect::new(5, 59, 25, 3), STONE_LIGHT);
-    fill(target, origin, PixelRect::new(7, 60, 21, 2), STONE);
+    paint_guild_entrance(target, origin);
 
     fill(target, origin, PixelRect::new(32, 9, 47, 31), OAK_DARK);
     blit_asset(GuildHallAsset::QuestMapWall, target, origin, 39, 13);
@@ -839,6 +836,73 @@ fn paint_architecture(target: &mut RgbBuffer, origin: PixelPoint) {
     }
     fill(target, origin, PixelRect::new(132, 7, 28, 4), STONE_LIGHT);
     fill(target, origin, PixelRect::new(130, 54, 30, 5), STONE);
+}
+
+/// Builds the guild entrance: an ashlar arch, a recessed door, worn threshold
+/// steps and a lit sconce.
+///
+/// This was a flat `SHADOW` rectangle 29 wide and 49 tall with the door
+/// floating in the middle of it — around a fifth of the room carrying no
+/// material, no structure and no light, while every warm source in the Hall
+/// sat on the right-hand side. The composition leaned so hard right that the
+/// entrance read as a hole in the wall rather than as the way in.
+///
+/// Nothing here is a state signal. It is architecture and a second light, so
+/// the eye has a reason to travel left and something to find when it does.
+fn paint_guild_entrance(target: &mut RgbBuffer, origin: PixelPoint) {
+    // Ashlar surround. Courses run the full width so the arch reads as part
+    // of the same masonry as the hearth wall opposite it.
+    fill(target, origin, PixelRect::new(3, 12, 29, 49), STONE_DARK);
+    for (index, y) in (12..61).step_by(6).enumerate() {
+        fill(target, origin, PixelRect::new(3, y, 29, 2), STONE);
+        let stagger = if index.is_multiple_of(2) { 0 } else { 7 };
+        for joint in (3 + stagger..32).step_by(14) {
+            fill(target, origin, PixelRect::new(joint, y, 1, 6), STONE_DARK);
+        }
+    }
+
+    // Lintel and keystone, catching the light from above.
+    fill(target, origin, PixelRect::new(3, 12, 29, 4), STONE);
+    fill(target, origin, PixelRect::new(3, 12, 29, 1), STONE_LIGHT);
+    fill(target, origin, PixelRect::new(15, 12, 5, 4), STONE_LIGHT);
+    fill(target, origin, PixelRect::new(16, 13, 3, 3), STONE);
+
+    // The door sits in a recess, so the frame casts a shadow onto itself.
+    fill(target, origin, PixelRect::new(7, 15, 20, 30), SHADOW);
+    blit_asset(GuildHallAsset::GuildDoor, target, origin, 8, 16);
+
+    // Threshold steps, descending toward the room. Each tread below the last
+    // is wider and lighter: an entrance you walk down into, not a black gap.
+    for (y, inset, tread, riser) in [
+        (45, 4, STONE_DARK, SHADOW),
+        (50, 2, STONE, STONE_DARK),
+        (55, 0, STONE_LIGHT, STONE),
+    ] {
+        let x = 4 + inset;
+        let width = u16::try_from(24 - inset * 2).unwrap_or(0);
+        fill(target, origin, PixelRect::new(x, y, width, 4), tread);
+        fill(target, origin, PixelRect::new(x, y + 4, width, 1), riser);
+    }
+    fill(target, origin, PixelRect::new(4, 59, 26, 2), STONE_LIGHT);
+
+    paint_entrance_sconce(target, origin);
+}
+
+/// The Hall's second light. Everything warm — hearth, candles, counsel bell —
+/// stood to the right of centre, so the entrance had no reason to be looked at.
+fn paint_entrance_sconce(target: &mut RgbBuffer, origin: PixelPoint) {
+    // Mounted on the left jamb rather than the right: it keeps clear of the
+    // timber post beside the quest wall, and it throws its light into the far
+    // corner, which was the deadest part of the room.
+    fill(target, origin, PixelRect::new(5, 26, 1, 4), BRASS_DARK);
+    fill(target, origin, PixelRect::new(5, 29, 3, 1), BRASS_DARK);
+    // Cage and flame.
+    fill(target, origin, PixelRect::new(3, 21, 5, 5), BRASS);
+    fill(target, origin, PixelRect::new(4, 22, 3, 3), FLAME);
+    put(target, origin, 5, 22, AMBER_LIGHT);
+    put(target, origin, 5, 23, AMBER_LIGHT);
+    fill(target, origin, PixelRect::new(3, 20, 5, 1), BRASS_LIGHT);
+    put(target, origin, 5, 19, BRASS_LIGHT);
 }
 
 fn paint_furnishings(snapshot: &SceneSnapshot, target: &mut RgbBuffer, origin: PixelPoint) {
@@ -897,6 +961,9 @@ fn paint_rug(target: &mut RgbBuffer, origin: PixelPoint) {
 fn apply_connection_light(snapshot: &SceneSnapshot, target: &mut RgbBuffer, origin: PixelPoint) {
     lighting::apply_warm_pool(target, translate(origin, 146, 38), 35, 18);
     lighting::apply_warm_pool(target, translate(origin, 78, 47), 28, 10);
+    // The entrance sconce. Weaker than the hearth on purpose — the way in is
+    // worth looking at, not worth looking at first.
+    lighting::apply_warm_pool(target, translate(origin, 6, 24), 32, 15);
     match snapshot.connection {
         SceneConnection::Connected => {}
         SceneConnection::Connecting => {
