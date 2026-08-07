@@ -36,8 +36,8 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             model.switch_to(view);
             ControlFlow::Continue(())
         }
-        Action::CycleRegion => {
-            model.cycle_guild_focus();
+        Action::NextCampaign => {
+            select_next_campaign(model, &mut commands);
             ControlFlow::Continue(())
         }
         Action::First => {
@@ -384,6 +384,27 @@ fn visible_presence_terms(agent: &Agent) -> &'static [&'static str] {
         Presence::Idle => &["resting"],
         Presence::Exited => &["departed"],
         Presence::Unknown => &["unknown"],
+    }
+}
+
+/// Moves the selection into the next campaign's party.
+///
+/// Says so plainly when there is only one campaign, rather than appearing to
+/// cycle a list of one.
+fn select_next_campaign(model: &mut Model, commands: &mut Vec<AgentCommand>) {
+    let before = selected_pane(model);
+    if model.select_next_campaign() {
+        if selected_pane(model).is_some() {
+            model.show_adventurer_card();
+        }
+        let after = selected_pane(model);
+        if after != before
+            && let Some(pane_id) = after
+        {
+            commands.push(load_output(model, pane_id));
+        }
+    } else {
+        model.set_action_feedback("The party is all on one campaign.".to_owned());
     }
 }
 

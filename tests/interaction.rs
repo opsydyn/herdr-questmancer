@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use questmancer::{
-    app::{GuildFocus, Modal, Model, RuntimeSettings, View},
+    app::{Modal, Model, RuntimeSettings, View},
     command::AgentCommand,
     domain::{
         AdventurerPersona, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey,
@@ -98,17 +98,16 @@ fn ledger_opens_pages_toggles_and_blocks_normal_model_actions() {
     for action in [
         Action::Next,
         Action::Switch(View::Delve),
-        Action::CycleRegion,
+        Action::NextCampaign,
+        Action::NextUrgent,
         Action::Counsel,
         Action::Search,
     ] {
         let blocked = reduce_action(&mut model, action);
         assert_eq!(model.view(), View::Guild, "ledger leaked {action:?}");
-        assert_eq!(
-            model.guild_focus(),
-            GuildFocus::QuestWall,
-            "ledger leaked {action:?}"
-        );
+        // Both jumps set feedback when they cannot move, so silence proves the
+        // ledger swallowed the key rather than the key merely finding nothing.
+        assert_eq!(model.action_feedback(), None, "ledger leaked {action:?}");
         assert_eq!(
             model.selected_agent_key(),
             selected.as_ref(),
@@ -174,40 +173,60 @@ fn unchanged_idle_room_emits_no_output_load_or_persistence_effects() {
     assert!(redraw.persistence.is_empty());
 }
 
+/// `Tab` used to cycle eight "landmark" variants that no renderer, overlay or
+/// command ever read; the test it replaced asserted exactly that — a
+/// deterministic cycle producing no commands and no effects. It now moves the
+/// selection into the next campaign's party, which is a grouping the party
+/// actually has and previously had no way to traverse.
 #[test]
-fn narrow_landmark_cycle_is_deterministic_and_wraps_without_effects() {
-    let mut model = Model::new(View::Guild);
+fn tab_moves_the_selection_into_the_next_campaign() {
+    let mut model = searchable_model();
+    let first = model
+        .selected_agent()
+        .map(|agent| agent.workspace_id.clone());
 
-    for expected in [
-        GuildFocus::CampaignTables,
-        GuildFocus::CounselBell,
-        GuildFocus::Hearth,
-        GuildFocus::Chronicle,
-        GuildFocus::Scrying,
-        GuildFocus::Spoils,
-        GuildFocus::Door,
-        GuildFocus::QuestWall,
-    ] {
-        let reduction = reduce_action(&mut model, Action::CycleRegion);
-        assert_eq!(model.guild_focus(), expected);
-        assert_eq!(reduction.control, ControlFlow::Continue(()));
-        assert!(reduction.commands.is_empty());
-        assert!(reduction.persistence.is_empty());
-    }
+    let reduction = reduce_action(&mut model, Action::NextCampaign);
+    assert_eq!(reduction.control, ControlFlow::Continue(()));
+    let second = model
+        .selected_agent()
+        .map(|agent| agent.workspace_id.clone());
+    assert_ne!(first, second, "Tab must land in a different campaign");
+
+    // And it wraps rather than stopping at the last campaign.
+    let _ = reduce_action(&mut model, Action::NextCampaign);
+    assert_eq!(
+        model
+            .selected_agent()
+            .map(|agent| agent.workspace_id.clone()),
+        first
+    );
+}
+
+/// One campaign is not a cycle. Saying so beats pretending to move.
+#[test]
+fn tab_says_so_when_the_whole_party_is_on_one_campaign() {
+    let mut model = live_model_with_two_agents();
+    let selected = model.selected_agent_key().cloned();
+
+    let _ = reduce_action(&mut model, Action::NextCampaign);
+
+    assert_eq!(model.selected_agent_key(), selected.as_ref());
+    assert_eq!(
+        model.action_feedback(),
+        Some("The party is all on one campaign.")
+    );
 }
 
 #[test]
-fn guild_and_delve_switching_preserves_selection_and_landmark_focus() {
+fn guild_and_delve_switching_preserves_selection() {
     let mut model = live_model_with_two_agents();
     let _ = reduce_action(&mut model, Action::Next);
-    model.set_guild_focus(GuildFocus::Scrying);
     let selected = model.selected_agent_key().cloned();
 
     for view in [View::Delve, View::Guild] {
         let reduction = reduce_action(&mut model, Action::Switch(view));
         assert_eq!(model.view(), view);
         assert_eq!(model.selected_agent_key(), selected.as_ref());
-        assert_eq!(model.guild_focus(), GuildFocus::Scrying);
         assert!(reduction.commands.is_empty());
     }
 }

@@ -181,37 +181,6 @@ impl Notices {
     }
 }
 
-macro_rules! guild_focus {
-    ($default:ident; $($variant:ident),+ $(,)?) => {
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        pub enum GuildFocus {
-            $($variant),+
-        }
-
-        impl GuildFocus {
-            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
-        }
-
-        impl Default for GuildFocus {
-            fn default() -> Self {
-                Self::$default
-            }
-        }
-    };
-}
-
-guild_focus!(
-    QuestWall;
-    QuestWall,
-    CampaignTables,
-    CounselBell,
-    Hearth,
-    Chronicle,
-    Scrying,
-    Spoils,
-    Door,
-);
-
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Modal {
     #[default]
@@ -242,7 +211,6 @@ pub struct Model {
     view: View,
     domain: DomainState,
     connection: ConnectionState,
-    guild_focus: GuildFocus,
     modal: Modal,
     adventurer_card_visible: bool,
     output_preview: Option<OutputPreview>,
@@ -263,7 +231,6 @@ impl Model {
             view,
             domain: DomainState::default(),
             connection: ConnectionState::Offline,
-            guild_focus: GuildFocus::QuestWall,
             modal: Modal::None,
             adventurer_card_visible: false,
             output_preview: None,
@@ -449,25 +416,47 @@ impl Model {
         self.domain.selected_agent = Some(keys[next].clone());
     }
 
-    pub const fn guild_focus(&self) -> GuildFocus {
-        self.guild_focus
-    }
-
-    pub const fn set_guild_focus(&mut self, focus: GuildFocus) {
-        self.guild_focus = focus;
-    }
-
-    pub fn cycle_guild_focus(&mut self) {
-        self.guild_focus = match self.guild_focus {
-            GuildFocus::QuestWall => GuildFocus::CampaignTables,
-            GuildFocus::CampaignTables => GuildFocus::CounselBell,
-            GuildFocus::CounselBell => GuildFocus::Hearth,
-            GuildFocus::Hearth => GuildFocus::Chronicle,
-            GuildFocus::Chronicle => GuildFocus::Scrying,
-            GuildFocus::Scrying => GuildFocus::Spoils,
-            GuildFocus::Spoils => GuildFocus::Door,
-            GuildFocus::Door => GuildFocus::QuestWall,
+    /// Moves the selection to the first adventurer of the next campaign.
+    ///
+    /// Replaces `cycle_guild_focus`, which walked eight "landmark" variants
+    /// that no renderer, overlay or command ever read — `Tab` changed a field
+    /// and nothing else, and its test asserted precisely that: a deterministic
+    /// cycle producing no commands and no effects.
+    ///
+    /// Campaigns are the grouping the party actually has, and until now there
+    /// was no way to move between them. Returns false when there is nothing to
+    /// move to, so a single campaign does not pretend to cycle.
+    pub fn select_next_campaign(&mut self) -> bool {
+        let campaigns = self
+            .domain
+            .campaigns
+            .values()
+            .filter(|campaign| !campaign.party.is_empty())
+            .collect::<Vec<_>>();
+        if campaigns.len() < 2 {
+            return false;
+        }
+        let current = self
+            .selected_agent()
+            .map(|agent| agent.workspace_id.clone());
+        let position = current
+            .as_ref()
+            .and_then(|workspace| {
+                campaigns
+                    .iter()
+                    .position(|campaign| &campaign.workspace_id == workspace)
+            })
+            .map_or(0, |position| (position + 1) % campaigns.len());
+        let next = campaigns[position]
+            .party
+            .iter()
+            .find(|key| self.domain.agents.contains_key(key))
+            .cloned();
+        let Some(next) = next else {
+            return false;
         };
+        self.domain.selected_agent = Some(next);
+        true
     }
 
     pub const fn modal(&self) -> &Modal {

@@ -79,6 +79,16 @@ All notable changes to this project will be documented here.
   is waiting the command ribbon carries the count, so the Hall answers "does
   anyone need me?" before the key is ever pressed.
 
+- `Tab` now moves the selection into the next campaign's party, wrapping, and
+  says so plainly when the whole party is on one campaign. It previously
+  cycled a `GuildFocus` enum of eight "landmark" variants that no renderer,
+  overlay or command ever read: the key changed a field and nothing else, and
+  its test asserted exactly that — a deterministic cycle producing no commands
+  and no effects. The enum mixed three unrelated things (stations, a modal, and
+  a view that was never built), so it has been deleted rather than wired up.
+  Campaigns are a grouping the party genuinely has and previously had no way to
+  traverse.
+
 - Identity nameplates now degrade name-first: truncation shortens the
   adventurer's name and keeps the presence badge whole, falling back to a
   state glyph and age in lanes too narrow for any name.

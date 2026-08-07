@@ -90,6 +90,7 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `Space` | Acknowledge the selected unread summons locally |
 | `o` | Refresh the selected adventurer's recent output |
 | `!` | Jump to the next adventurer waiting on you |
+| `Tab` | Move to the next campaign's party |
 | `/` | Search the party and campaigns |
 | `v` | Inspect spoils through Reviewr when available |
 | `?` | Open or close the Librarian's Ledger |
@@ -102,6 +103,9 @@ quieter summons, and within each rank whoever has waited longest. Deferred
 summons are skipped until their snooze expires. When nobody is waiting the
 selection stays put and Questmancer says so. While at least one adventurer is
 waiting, the command ribbon carries the count.
+
+`Tab` moves the selection into the next campaign's party and wraps. With the
+whole party on one campaign it stays put and says so.
 
 Counsel and search accept ordinary text. `Enter` submits, `Ctrl-U` clears, and
 `Esc` cancels. Questmancer never selects, focuses, reads, or counsels its own

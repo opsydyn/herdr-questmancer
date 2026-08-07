@@ -4,7 +4,7 @@ use std::{
 };
 
 use questmancer::{
-    app::{ConnectionState, DisplayPreferences, GuildFocus, Model, Motion, OutputPreview, View},
+    app::{ConnectionState, DisplayPreferences, Model, Motion, OutputPreview, View},
     domain::{
         AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, DomainState, GuildAttention,
         GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp, WorkspaceId,
@@ -80,7 +80,6 @@ fn snapshot_ignores_legacy_ui_persistence_and_goblin_state() {
 
     changed.switch_to(View::Delve);
     changed.domain_mut().selected_agent = Some(AgentKey::new("beta"));
-    changed.set_guild_focus(GuildFocus::Door);
     changed.toggle_ledger();
     changed.set_output_preview(Some(OutputPreview {
         pane_id: PaneId::new("pane-alpha"),
