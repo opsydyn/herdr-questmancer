@@ -163,6 +163,15 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- The paste-ready sidebar configurations we published were rejected by Herdr.
+  They keyed styles `value = "…"` where the schema requires `token = "…"`, and
+  used bare strings as literal text where a Herdr row element is always a token
+  name, so pasting one in produced `config.toml invalid; using defaults` and
+  silently lost the rest of the user's settings. All four examples are
+  corrected, and `tests/sidebar_documentation.rs` now parses them out of the
+  document and holds them to both rules. `$quest_trinket` carries its own glyph
+  so it no longer needs the literal label that prompted the mistake.
+
 - The command ribbon now greets somebody who has not pressed anything. It
   keyed solely off the last interaction, so a user who opened Questmancer and
   sat looking at it saw no hints at all: the one person who needed them got

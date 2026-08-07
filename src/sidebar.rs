@@ -28,6 +28,22 @@ pub const QUEST_VIGIL: &str = "quest_vigil";
 pub const QUEST_HOARD: &str = "quest_hoard";
 pub const QUEST_CAMPAIGN: &str = "quest_campaign";
 pub const QUEST_PARTY: &str = "quest_party";
+
+/// Every token Questmancer publishes, for the guard over our documented
+/// sidebar configurations. A published example naming a token we do not
+/// report would be as broken as one Herdr cannot parse.
+pub const ALL_QUEST_TOKENS: &[&str] = &[
+    QUEST_SIGIL,
+    QUEST_ROLE,
+    QUEST_EPITHET,
+    QUEST_CONDITION,
+    QUEST_OMEN,
+    QUEST_TRINKET,
+    QUEST_VIGIL,
+    QUEST_HOARD,
+    QUEST_CAMPAIGN,
+    QUEST_PARTY,
+];
 pub const SIDEBAR_SOURCE: &str = "plugin:opsydyn.questmancer";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,7 +80,7 @@ impl SidebarProjection {
                     (QUEST_OMEN.to_owned(), omen(agent.presence).to_owned()),
                     (
                         QUEST_TRINKET.to_owned(),
-                        trinket(agent.persona.appearance.keepsake),
+                        trinket(agent.persona.appearance.keepsake, character_set),
                     ),
                     (
                         QUEST_VIGIL.to_owned(),
@@ -174,7 +190,17 @@ const fn omen(presence: Presence) -> &'static str {
     }
 }
 
-fn trinket(keepsake: crate::domain::Keepsake) -> String {
+/// The keepsake this adventurer carries, labelled by a glyph.
+///
+/// Herdr's sidebar rows hold tokens and nothing else — there is no literal
+/// text element — so a row cannot supply its own "Trinket:" label. Anything a
+/// value needs in order to be self-explanatory has to travel inside the token,
+/// the way `hoard` already carries its own count wording.
+fn trinket(keepsake: crate::domain::Keepsake, character_set: CharacterSet) -> String {
+    let glyph = match character_set {
+        CharacterSet::Unicode => "❖",
+        CharacterSet::Ascii => "~",
+    };
     // `PressedLeaf` reads better as two words on a character sheet.
     let raw = format!("{keepsake:?}");
     let mut spaced = String::with_capacity(raw.len() + 2);
@@ -184,7 +210,7 @@ fn trinket(keepsake: crate::domain::Keepsake) -> String {
         }
         spaced.push(character);
     }
-    spaced
+    format!("{glyph} {spaced}")
 }
 
 /// An exhaustion track for a summons nobody has answered yet.
