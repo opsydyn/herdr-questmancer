@@ -25,57 +25,57 @@ pub struct Binding {
 pub const BINDINGS: &[Binding] = &[
     Binding {
         keys: "1 / 2",
-        description: "Enter the Guild Hall or the Delve",
+        description: "Guild Hall / Delve",
         action: Action::Switch(View::Guild),
     },
     Binding {
         keys: "j / k",
-        description: "Select the next or previous adventurer",
+        description: "Select next / previous",
         action: Action::Next,
     },
     Binding {
         keys: "g / G",
-        description: "Select the first or last adventurer",
+        description: "Select first / last",
         action: Action::First,
     },
     Binding {
         keys: "Tab",
-        description: "Move to the next campaign's party",
+        description: "Next campaign's party",
         action: Action::NextCampaign,
     },
     Binding {
         keys: "!",
-        description: "Jump to the next adventurer waiting on you",
+        description: "Jump to who is waiting",
         action: Action::NextUrgent,
     },
     Binding {
         keys: "Enter",
-        description: "Observe the selected adventurer's Herdr pane",
+        description: "Observe the Herdr pane",
         action: Action::Observe,
     },
     Binding {
         keys: "r",
-        description: "Open the counsel parchment",
+        description: "Send counsel",
         action: Action::Counsel,
     },
     Binding {
         keys: "Space",
-        description: "Acknowledge the selected summons",
+        description: "Acknowledge the summons",
         action: Action::AcknowledgeSummons,
     },
     Binding {
         keys: "s",
-        description: "Set the summons aside for a while",
+        description: "Set the summons aside",
         action: Action::DeferSummons,
     },
     Binding {
         keys: "o",
-        description: "Scry the adventurer's recent output",
+        description: "Scry recent output",
         action: Action::Refresh,
     },
     Binding {
         keys: "v",
-        description: "Inspect spoils through Reviewr",
+        description: "Inspect spoils in Reviewr",
         action: Action::InspectSpoils,
     },
     Binding {
@@ -85,28 +85,33 @@ pub const BINDINGS: &[Binding] = &[
     },
     Binding {
         keys: "/",
-        description: "Search the party and campaigns",
+        description: "Search party and campaigns",
         action: Action::Search,
     },
     Binding {
         keys: "n / N",
-        description: "Walk to the next or previous search match",
+        description: "Next / previous match",
         action: Action::NextResult,
     },
     Binding {
         keys: "m",
-        description: "Cycle motion: full, reduced, still",
+        description: "Motion: full/reduced/still",
         action: Action::CycleMotion,
     },
     Binding {
         keys: "u",
-        description: "Switch between Unicode and ASCII glyphs",
+        description: "Unicode / ASCII glyphs",
         action: Action::CycleCharacterSet,
     },
     Binding {
         keys: "p",
-        description: "Switch between truecolour and 16 colours",
+        description: "Truecolour / 16 colours",
         action: Action::CycleColorMode,
+    },
+    Binding {
+        keys: "j / k, wheel",
+        description: "Scroll an open parchment",
+        action: Action::ScrollDown,
     },
     Binding {
         keys: "?",
@@ -115,7 +120,7 @@ pub const BINDINGS: &[Binding] = &[
     },
     Binding {
         keys: "Esc",
-        description: "Dismiss the open parchment",
+        description: "Dismiss the parchment",
         action: Action::Dismiss,
     },
     Binding {
@@ -140,6 +145,7 @@ pub const UNLISTED: &[Action] = &[
     Action::Previous,
     Action::Last,
     Action::PreviousResult,
+    Action::ScrollUp,
     // Parchment text editing.
     Action::TypeCharacter(' '),
     Action::Backspace,
@@ -164,6 +170,35 @@ pub fn lines() -> Vec<String> {
             let keys = binding.keys;
             let padding = " ".repeat(width - keys.chars().count());
             format!("{keys}{padding}   {}", binding.description)
+        })
+        .collect()
+}
+
+/// The keyring in two columns, for a Ledger wide enough to hold them.
+///
+/// The list outgrew a single column: at twenty-one bindings it needed more
+/// rows than a thirty-row terminal could give the page, and the entries at the
+/// bottom — `Esc` and `q` — fell off. A keyring that hides keys is the same
+/// failure as prose that omits them.
+#[must_use]
+pub fn paired_lines() -> Vec<String> {
+    let single = lines();
+    let width = single
+        .iter()
+        .map(|line| line.chars().count())
+        .max()
+        .unwrap_or(0);
+    let half = single.len().div_ceil(2);
+    (0..half)
+        .map(|index| {
+            let left = &single[index];
+            single.get(index + half).map_or_else(
+                || left.clone(),
+                |right| {
+                    let padding = " ".repeat(width - left.chars().count() + 3);
+                    format!("{left}{padding}{right}")
+                },
+            )
         })
         .collect()
 }

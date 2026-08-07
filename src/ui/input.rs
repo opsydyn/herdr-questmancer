@@ -29,6 +29,8 @@ pub enum Action {
     NextResult,
     PreviousResult,
     DeferSummons,
+    ScrollUp,
+    ScrollDown,
     CycleMotion,
     CycleCharacterSet,
     CycleColorMode,
@@ -63,6 +65,17 @@ pub fn action_for_event(event: &Event) -> Action {
 }
 
 pub fn action_for_event_in(event: &Event, modal: &Modal) -> Action {
+    // The wheel is the gesture people reach for on a wall of text, and it was
+    // the one mouse event Questmancer ignored entirely.
+    if let Event::Mouse(mouse) = event
+        && matches!(modal, Modal::Scrying | Modal::Chronicle)
+    {
+        return match mouse.kind {
+            MouseEventKind::ScrollDown => Action::ScrollDown,
+            MouseEventKind::ScrollUp => Action::ScrollUp,
+            _ => Action::None,
+        };
+    }
     match event {
         Event::Key(key) if matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) => {
             action_for_in(*key, modal)
@@ -81,6 +94,8 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         return match key.code {
             KeyCode::Esc => Action::Dismiss,
             KeyCode::Char('o') => Action::Refresh,
+            KeyCode::Char('j') | KeyCode::Down => Action::ScrollDown,
+            KeyCode::Char('k') | KeyCode::Up => Action::ScrollUp,
             _ => Action::None,
         };
     }
@@ -89,6 +104,8 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         // so no key leaks through to move a selection you cannot see.
         return match key.code {
             KeyCode::Esc | KeyCode::Char('c') => Action::Dismiss,
+            KeyCode::Char('j') | KeyCode::Down => Action::ScrollDown,
+            KeyCode::Char('k') | KeyCode::Up => Action::ScrollUp,
             _ => Action::None,
         };
     }

@@ -232,13 +232,8 @@ fn ledger_modal_accepts_only_navigation_and_dismissal_keys() {
 }
 
 #[test]
-fn scrying_modal_accepts_only_refresh_and_dismissal() {
-    for code in [
-        KeyCode::Char('q'),
-        KeyCode::Char('j'),
-        KeyCode::Enter,
-        KeyCode::Char('/'),
-    ] {
+fn scrying_modal_accepts_only_refresh_scrolling_and_dismissal() {
+    for code in [KeyCode::Char('q'), KeyCode::Enter, KeyCode::Char('/')] {
         assert_eq!(
             action_for_event_in(&Event::Key(key(code)), &Modal::Scrying),
             Action::None,
@@ -253,4 +248,18 @@ fn scrying_modal_accepts_only_refresh_and_dismissal() {
         action_for_event_in(&Event::Key(key(KeyCode::Esc)), &Modal::Scrying),
         Action::Dismiss
     );
+    // Scrying fetches far more output than the parchment can show, so reading
+    // it needs to be possible without leaking the party-moving keys.
+    for (code, expected) in [
+        (KeyCode::Char('j'), Action::ScrollDown),
+        (KeyCode::Down, Action::ScrollDown),
+        (KeyCode::Char('k'), Action::ScrollUp),
+        (KeyCode::Up, Action::ScrollUp),
+    ] {
+        assert_eq!(
+            action_for_event_in(&Event::Key(key(code)), &Modal::Scrying),
+            expected,
+            "{code:?} must scroll inside Scrying"
+        );
+    }
 }

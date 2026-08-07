@@ -1,13 +1,47 @@
 use std::mem::discriminant;
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use questmancer::{
+    app::Modal,
     ledger::{LedgerPageId, page_body},
     ui::{
-        input::action_for,
+        input::{Action, action_for_event_in},
         keymap::{BINDINGS, UNLISTED, lines},
     },
 };
+
+/// Every context a key can be pressed in.
+///
+/// Sweeping only the no-modal branch missed everything a parchment binds —
+/// the scroll keys live solely inside Scrying and the Chronicle, so a guard
+/// that ignored modals declared them unreachable.
+fn contexts() -> Vec<Modal> {
+    vec![
+        Modal::None,
+        Modal::Scrying,
+        Modal::Chronicle,
+        Modal::LibrarianLedger {
+            page: LedgerPageId::Welcome,
+        },
+        Modal::Counsel {
+            draft: String::new(),
+        },
+        Modal::Search {
+            query: String::new(),
+        },
+    ]
+}
+
+fn every_reachable_action() -> Vec<Action> {
+    contexts()
+        .iter()
+        .flat_map(|modal| {
+            candidate_keys()
+                .into_iter()
+                .map(move |key| action_for_event_in(&Event::Key(key), modal))
+        })
+        .collect()
+}
 
 /// Every key a user can press, as far as the keyring is concerned.
 ///
@@ -46,13 +80,11 @@ fn every_bound_key_is_documented() {
         .chain(UNLISTED.iter().map(discriminant))
         .collect::<Vec<_>>();
 
-    for key in candidate_keys() {
-        let action = action_for(key);
+    for action in every_reachable_action() {
         assert!(
             documented.contains(&discriminant(&action)),
-            "{:?} produces {action:?}, which no keyring entry describes. Add it \
-             to ui::keymap::BINDINGS, or to UNLISTED with a reason.",
-            key.code
+            "a key produces {action:?}, which no keyring entry describes. Add \
+             it to ui::keymap::BINDINGS, or to UNLISTED with a reason."
         );
     }
 }
@@ -60,9 +92,9 @@ fn every_bound_key_is_documented() {
 /// The reverse drift: an entry describing a key that no longer does anything.
 #[test]
 fn every_documented_binding_is_still_reachable() {
-    let reachable = candidate_keys()
-        .into_iter()
-        .map(|key| discriminant(&action_for(key)))
+    let reachable = every_reachable_action()
+        .iter()
+        .map(discriminant)
         .collect::<Vec<_>>();
 
     for binding in BINDINGS {

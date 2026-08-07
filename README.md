@@ -95,6 +95,7 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `c` | Open the Chronicle |
 | `/` | Search the party and campaigns |
 | `n` / `N` | Walk to the next / previous search match |
+| `j`/`k`, wheel | Scroll an open Scrying or Chronicle parchment |
 | `v` | Inspect spoils through Reviewr when available |
 | `m` | Cycle motion: full, reduced, still |
 | `u` | Switch between Unicode and ASCII glyphs |
@@ -109,6 +110,10 @@ quieter summons, and within each rank whoever has waited longest. Deferred
 summons are skipped until their snooze expires. When nobody is waiting the
 selection stays put and Questmancer says so. While at least one adventurer is
 waiting, the command ribbon carries the count.
+
+Scrying and the Chronicle scroll with `j`/`k`, the arrow keys or the mouse
+wheel. Scrying asks Herdr for `output_preview_lines` and the parchment shows
+what fits, so scrolling is how the rest is reached.
 
 `s` sets a summons aside for fifteen minutes. The summons and the moment it
 arrived both survive — the Hall still shows the adventurer needs counsel — but

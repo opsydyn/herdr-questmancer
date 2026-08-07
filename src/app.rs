@@ -281,6 +281,7 @@ pub struct Model {
     goblins: GoblinState,
     last_interaction_at: Option<Timestamp>,
     search: SearchResults,
+    reading_scroll: u16,
 }
 
 /// The party a search matched, kept so the matches after the first are
@@ -314,6 +315,7 @@ impl Model {
             goblins: GoblinState::default(),
             last_interaction_at: None,
             search: SearchResults::default(),
+            reading_scroll: 0,
         }
     }
 
@@ -561,6 +563,7 @@ impl Model {
 
     pub fn open_chronicle(&mut self) {
         self.modal = Modal::Chronicle;
+        self.reading_scroll = 0;
     }
 
     /// The Chronicle entries the view should show, newest first.
@@ -750,10 +753,48 @@ impl Model {
 
     pub fn dismiss_modal(&mut self) {
         self.modal = Modal::None;
+        self.reading_scroll = 0;
     }
 
     pub fn open_scrying(&mut self) {
         self.modal = Modal::Scrying;
+        self.reading_scroll = 0;
+    }
+
+    /// How far the open reading surface has been scrolled, in lines.
+    #[must_use]
+    pub const fn reading_scroll(&self) -> u16 {
+        self.reading_scroll
+    }
+
+    /// Scrolls the open parchment by one line.
+    ///
+    /// Scrying asks Herdr for `output_preview_lines` — eighty by default — and
+    /// the parchment could show about fourteen of them. The rest were fetched,
+    /// held in memory and unreachable. The Chronicle had the same shape: it
+    /// rendered one screenful of a record with no way to reach the rest.
+    ///
+    /// The clamp lives here rather than in the renderer so that scrolling past
+    /// the end cannot run the offset away and leave the user pressing `k`
+    /// twenty times to get back.
+    pub fn scroll_reading(&mut self, down: bool) {
+        let last = u16::try_from(self.reading_line_count().saturating_sub(1)).unwrap_or(u16::MAX);
+        self.reading_scroll = if down {
+            self.reading_scroll.saturating_add(1).min(last)
+        } else {
+            self.reading_scroll.saturating_sub(1)
+        };
+    }
+
+    fn reading_line_count(&self) -> usize {
+        match self.modal {
+            Modal::Scrying => self
+                .output_preview
+                .as_ref()
+                .map_or(1, |preview| preview.text.lines().count().max(1)),
+            Modal::Chronicle => self.chronicle_entries(usize::MAX).len().max(1),
+            _ => 1,
+        }
     }
 
     pub fn note_interaction(&mut self) {

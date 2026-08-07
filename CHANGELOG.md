@@ -15,6 +15,13 @@ All notable changes to this project will be documented here.
   could put an adventurer into the state. Setting aside is session-scoped on
   purpose, unlike acknowledgement, which persists.
 
+- Scrolling for Scrying and the Chronicle, with `j`/`k`, the arrows or the
+  mouse wheel. Scrying asked Herdr for `output_preview_lines` — eighty by
+  default — and the parchment could show about fourteen of them; the rest were
+  fetched, held in memory and unreachable by any key. The wheel was the one
+  mouse event Questmancer ignored entirely. Scrolling clamps at the last line
+  rather than running away, and reopening a parchment starts at the top.
+
 - A character-sheet vocabulary for Herdr's custom sidebar rows. Questmancer now
   publishes a class sigil, an epithet, a condition, a keepsake trinket, an
   exhaustion-style vigil for summons nobody has answered, and a bag-of-holding

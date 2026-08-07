@@ -372,15 +372,22 @@ fn render_librarian_ledger(
         return;
     }
     let wide = available.width >= 96 && available.height >= 22;
-    let width = available
-        .width
-        .saturating_sub(2)
-        .min(if wide { 88 } else { 64 });
+    // The keyring's two columns need more width than a prose page; every
+    // other page stays at its authored measure so paragraphs do not sprawl.
+    let measure = if page_id == ledger::LedgerPageId::QuestmancersTools {
+        112
+    } else if wide {
+        88
+    } else {
+        64
+    };
+    let width = available.width.saturating_sub(2).min(measure);
     // Sized to the page rather than to a fixed 20 rows. The generated keyring
     // is longer than any authored page, and a fixed height silently cut its
     // last two bindings and the footer off the bottom — the discoverability
     // page, hiding the least-known keys.
-    let body_rows = u16::try_from(ledger::page_body(page_id).len()).unwrap_or(u16::MAX);
+    let body = ledger_lines(page_id, wide);
+    let body_rows = u16::try_from(body.len()).unwrap_or(u16::MAX);
     // Title, blank, body, blank, footer, close, plus the frame's own padding.
     let needed = body_rows.saturating_add(9);
     let height = available
@@ -399,18 +406,16 @@ fn render_librarian_ledger(
     );
     let lines = std::iter::once(Line::from(page.title))
         .chain(std::iter::once(Line::from("")))
-        .chain(
-            ledger::page_body(page_id)
-                .into_iter()
-                .map(Line::from)
-                .collect::<Vec<_>>(),
-        )
+        .chain(body.into_iter().map(Line::from).collect::<Vec<_>>())
         .chain(std::iter::once(Line::from("")))
         .chain(std::iter::once(Line::from(footer)))
         .chain(std::iter::once(Line::from("Esc/? close")))
         .collect::<Vec<_>>();
 
-    if wide {
+    // The keyring is a reference table, not prose. It takes the whole page:
+    // the illustration costs it twenty-eight columns it needs for a second
+    // column, and without one the list is taller than most terminals.
+    if wide && page_id != ledger::LedgerPageId::QuestmancersTools {
         let portrait_area = Rect::new(area.x + 2, area.y + 2, 24, 16);
         render_librarian_illustration(
             frame,
@@ -443,6 +448,16 @@ fn render_librarian_ledger(
                 .wrap(Wrap { trim: false }),
             text_area,
         );
+    }
+}
+
+/// The keyring pairs into two columns when the Ledger is wide enough, because
+/// it has outgrown a single column. Every other page keeps its authored prose.
+fn ledger_lines(page_id: ledger::LedgerPageId, wide: bool) -> Vec<String> {
+    if wide && page_id == ledger::LedgerPageId::QuestmancersTools {
+        super::keymap::paired_lines()
+    } else {
+        ledger::page_body(page_id)
     }
 }
 
@@ -489,15 +504,35 @@ fn render_scrying_parchment(frame: &mut Frame<'_>, model: &Model) {
             })
         },
     );
+    // The fetched output is longer than the parchment by design, so the
+    // offset has to reach the widget or the scroll keys change a number
+    // nothing draws.
+    let offset = model.reading_scroll();
+    // Borders, the blank line and the footer. Take only what fits, or the
+    // footer telling you how to scroll is itself scrolled off the bottom.
+    let capacity = usize::from(area.height.saturating_sub(4)).max(1);
+    let visible = body
+        .lines()
+        .skip(usize::from(offset))
+        .take(capacity)
+        .map(|line| Line::from(line.to_owned()))
+        .collect::<Vec<_>>();
+    let scrollable = body.lines().count() > capacity;
+    let footer = if scrollable {
+        "Esc close · o refresh · j/k or wheel scroll"
+    } else {
+        "Esc close · o refresh"
+    };
     render_parchment(
         frame,
         area,
         " SCRYING ",
-        Text::from(vec![
-            Line::from(body),
-            Line::from(""),
-            Line::from("Esc close  o refresh"),
-        ]),
+        Text::from(
+            visible
+                .into_iter()
+                .chain([Line::from(""), Line::from(footer)])
+                .collect::<Vec<_>>(),
+        ),
     );
 }
 
@@ -514,7 +549,14 @@ fn render_chronicle_parchment(frame: &mut Frame<'_>, model: &Model) {
     // only as many entries as fit, then shrink the parchment to what it holds
     // — a fixed-height box around three entries is mostly empty paper.
     let capacity = usize::from(available.height.saturating_sub(6)).clamp(1, 14);
-    let entries = model.chronicle_entries(capacity);
+    let offset = usize::from(model.reading_scroll());
+    let all = model.chronicle_entries(usize::MAX);
+    let scrollable = all.len() > capacity;
+    let entries = all
+        .into_iter()
+        .skip(offset)
+        .take(capacity)
+        .collect::<Vec<_>>();
     let rows = u16::try_from(entries.len().max(1)).unwrap_or(1);
     let height = rows
         .saturating_add(4)
@@ -552,7 +594,11 @@ fn render_chronicle_parchment(frame: &mut Frame<'_>, model: &Model) {
         }
     }
     lines.push(Line::from(""));
-    lines.push(Line::from("Esc close"));
+    lines.push(Line::from(if scrollable {
+        "Esc close · j/k or wheel scroll"
+    } else {
+        "Esc close"
+    }));
     render_parchment(frame, area, title, Text::from(lines));
 }
 

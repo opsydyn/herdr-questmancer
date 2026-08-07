@@ -489,16 +489,112 @@ fn the_ledger_shows_the_whole_keyring() {
     let _ = reduce_action(&mut model, Action::ToggleLedger);
     let _ = reduce_action(&mut model, Action::Next);
     let _ = reduce_action(&mut model, Action::Next);
-    let rendered = render(&model, 110, 30);
+    let rendered = render(&model, 130, 30);
 
     assert!(
         rendered.contains("Keyring"),
         "the keyring page must be reachable in the Ledger:\n{rendered}"
     );
-    for keys in ["Tab", "!", "n / N", "c", "Esc", "q"] {
+    for keys in ["Tab", "!", "n / N", "c", "s", "wheel", "Esc", "q"] {
         assert!(
             rendered.contains(keys),
             "the keyring must show {keys:?}:\n{rendered}"
         );
     }
+}
+
+/// Scrying asks Herdr for `output_preview_lines` — eighty by default — and the
+/// parchment could show about fourteen. The rest were fetched, held in memory
+/// and unreachable by any key.
+#[test]
+fn scrying_can_be_scrolled_to_reach_output_below_the_fold() {
+    let mut model = model();
+    let text = (0..60)
+        .map(|index| format!("output line {index}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    model.set_output_preview(Some(OutputPreview {
+        pane_id: PaneId::new("w1:p1"),
+        revision: 1,
+        text,
+        loading: false,
+        error: None,
+    }));
+    let _ = reduce_action(&mut model, Action::Refresh);
+
+    let top = render(&model, 100, 26);
+    assert!(
+        top.contains("output line 0"),
+        "the top must start at the top"
+    );
+    assert!(
+        !top.contains("output line 40"),
+        "line 40 cannot already be visible, or the test proves nothing"
+    );
+    assert!(
+        top.contains("scroll"),
+        "a scrollable parchment must say it can be scrolled:\n{top}"
+    );
+
+    for _ in 0..40 {
+        let _ = reduce_action(&mut model, Action::ScrollDown);
+    }
+    let scrolled = render(&model, 100, 26);
+    assert!(
+        scrolled.contains("output line 40"),
+        "scrolling must reach output that was below the fold:\n{scrolled}"
+    );
+    assert!(!scrolled.contains("output line 0"));
+}
+
+/// Scrolling past the end must not run the offset away, or coming back costs
+/// as many presses as were wasted.
+#[test]
+fn scrolling_stops_at_the_end_of_the_text() {
+    let mut model = model();
+    model.set_output_preview(Some(OutputPreview {
+        pane_id: PaneId::new("w1:p1"),
+        revision: 1,
+        text: "one\ntwo\nthree".to_owned(),
+        loading: false,
+        error: None,
+    }));
+    let _ = reduce_action(&mut model, Action::Refresh);
+
+    for _ in 0..50 {
+        let _ = reduce_action(&mut model, Action::ScrollDown);
+    }
+    assert_eq!(
+        model.reading_scroll(),
+        2,
+        "three lines means a last index of 2"
+    );
+
+    let _ = reduce_action(&mut model, Action::ScrollUp);
+    assert_eq!(model.reading_scroll(), 1, "one press must undo one press");
+}
+
+/// Reopening a parchment starts at the top rather than wherever it was left.
+#[test]
+fn a_reopened_parchment_starts_at_the_top() {
+    let mut model = model();
+    model.set_output_preview(Some(OutputPreview {
+        pane_id: PaneId::new("w1:p1"),
+        revision: 1,
+        text: (0..30)
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join("\n"),
+        loading: false,
+        error: None,
+    }));
+    let _ = reduce_action(&mut model, Action::Refresh);
+    for _ in 0..5 {
+        let _ = reduce_action(&mut model, Action::ScrollDown);
+    }
+    assert_eq!(model.reading_scroll(), 5);
+
+    let _ = reduce_action(&mut model, Action::Dismiss);
+    let _ = reduce_action(&mut model, Action::Refresh);
+    assert_eq!(model.reading_scroll(), 0);
 }

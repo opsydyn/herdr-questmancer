@@ -68,6 +68,10 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             mark_read(model);
             ControlFlow::Continue(())
         }
+        Action::ScrollUp | Action::ScrollDown => {
+            model.scroll_reading(action == Action::ScrollDown);
+            ControlFlow::Continue(())
+        }
         Action::DeferSummons => {
             defer_summons(model);
             ControlFlow::Continue(())
@@ -182,8 +186,12 @@ fn refresh_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
 /// deliberately absent: `o` refreshes it, which is a documented binding.
 fn intercept_reading_modal(model: &mut Model, action: Action) -> bool {
     if matches!(model.modal(), Modal::Chronicle) {
-        if matches!(action, Action::Dismiss | Action::OpenChronicle) {
-            model.dismiss_modal();
+        match action {
+            Action::Dismiss | Action::OpenChronicle => model.dismiss_modal(),
+            Action::ScrollUp | Action::ScrollDown => {
+                model.scroll_reading(action == Action::ScrollDown);
+            }
+            _ => {}
         }
         return true;
     }
