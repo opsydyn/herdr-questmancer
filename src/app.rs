@@ -4,7 +4,9 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{Agent, AgentKey, DomainState, PaneId, Timestamp},
+    domain::{
+        Agent, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId, Presence, Timestamp,
+    },
     ledger::LedgerPageId,
     persistence::DurableIntent,
     update::{AppEvent, update},
@@ -373,6 +375,60 @@ impl Model {
         }
     }
 
+    /// The adventurers waiting on a human, most urgent first.
+    ///
+    /// Ordering is by what the party actually needs rather than by name. An
+    /// unanswered call for counsel outranks one somebody has already seen,
+    /// which outranks the quieter summons; within a rank the adventurer who
+    /// has waited longest comes first, because waiting is the whole cost being
+    /// measured. Deliberately deferred summons are excluded until their snooze
+    /// expires — that is what deferring meant.
+    #[must_use]
+    pub fn adventurers_awaiting_a_human(&self) -> Vec<AgentKey> {
+        let mut waiting = self
+            .domain
+            .agents
+            .values()
+            .filter_map(|agent| {
+                let rank = urgency_rank(agent, self.now)?;
+                let since = agent
+                    .attention
+                    .since()
+                    .unwrap_or(agent.presence_since)
+                    .as_millis();
+                Some((rank, since, agent.key.clone()))
+            })
+            .collect::<Vec<_>>();
+        waiting.sort_by(|left, right| {
+            left.0
+                .cmp(&right.0)
+                .then(left.1.cmp(&right.1))
+                .then_with(|| left.2.cmp(&right.2))
+        });
+        waiting.into_iter().map(|(_, _, key)| key).collect()
+    }
+
+    /// Moves the selection to the next adventurer waiting on a human, wrapping.
+    ///
+    /// Selection was sequential only: reaching the one adventurer that needed
+    /// something meant stepping past every adventurer that did not. Returns
+    /// false when nobody is waiting, so the caller can say so rather than
+    /// moving the selection somewhere arbitrary.
+    pub fn select_next_agent_awaiting_a_human(&mut self) -> bool {
+        let waiting = self.adventurers_awaiting_a_human();
+        let Some(first) = waiting.first() else {
+            return false;
+        };
+        let next = self
+            .domain
+            .selected_agent
+            .as_ref()
+            .and_then(|selected| waiting.iter().position(|key| key == selected))
+            .map_or(first, |position| &waiting[(position + 1) % waiting.len()]);
+        self.domain.selected_agent = Some(next.clone());
+        true
+    }
+
     fn move_agent_selection(&mut self, direction: i8) {
         let keys = self.domain.agents.keys().cloned().collect::<Vec<_>>();
         if keys.is_empty() {
@@ -687,5 +743,32 @@ impl Model {
 
     pub const fn goblins_mut(&mut self) -> &mut GoblinState {
         &mut self.goblins
+    }
+}
+
+/// How loudly an adventurer is asking for a human, lowest first.
+///
+/// `None` means nobody is waiting on you for this one. The three ranks are the
+/// only distinctions the Hall actually draws: an unanswered call for counsel,
+/// a call somebody has seen but not resolved, and the quieter summons that
+/// still deserve a look.
+fn urgency_rank(agent: &Agent, now: Timestamp) -> Option<u8> {
+    if let GuildAttention::Deferred { until, .. } = agent.attention
+        && until.as_millis() > now.as_millis()
+    {
+        // Deferring said "not now". Honour it until it expires.
+        return None;
+    }
+    match (&agent.attention, agent.presence) {
+        (
+            GuildAttention::Unread {
+                summons: GuildSummons::CounselRequested,
+                ..
+            },
+            _,
+        ) => Some(0),
+        (_, Presence::Blocked) => Some(1),
+        (GuildAttention::Unread { .. } | GuildAttention::Deferred { .. }, _) => Some(2),
+        _ => None,
     }
 }

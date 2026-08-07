@@ -25,6 +25,7 @@ pub enum Action {
     Refresh,
     InspectSpoils,
     CycleRegion,
+    NextUrgent,
     Search,
     TypeCharacter(char),
     Submit,
@@ -110,6 +111,8 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         KeyCode::Char('o') => Action::Refresh,
         KeyCode::Char('v') => Action::InspectSpoils,
         KeyCode::Tab => Action::CycleRegion,
+        // Deliberately not `n`: that is being kept for cycling search results.
+        KeyCode::Char('!') => Action::NextUrgent,
         KeyCode::Char('/') => Action::Search,
         _ => Action::None,
     }

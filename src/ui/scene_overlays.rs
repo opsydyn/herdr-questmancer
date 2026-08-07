@@ -470,7 +470,17 @@ fn render_command_ribbon(frame: &mut Frame<'_>, model: &Model) {
     let y = area.bottom().saturating_sub(1);
     let ribbon = Rect::new(area.x, y, area.width, 1);
     let counsel = model.selected_agent().map_or("", |_| "  [r] Counsel");
-    let text = format!("[1] Guild  [2] Delve  [j/k] Select  [Enter] Observe{counsel}  [/] Search");
+    // The urgency jump earns ribbon space only while somebody is actually
+    // waiting, and it carries the count — so the ribbon answers "does anyone
+    // need me?" before the key is ever pressed.
+    let waiting = model.adventurers_awaiting_a_human().len();
+    let urgent = if waiting == 0 {
+        String::new()
+    } else {
+        format!("  [!] {waiting} waiting")
+    };
+    let text =
+        format!("[1] Guild  [2] Delve  [j/k] Select  [Enter] Observe{counsel}{urgent}  [/] Search");
     frame.render_widget(Clear, ribbon);
     frame.render_widget(Paragraph::new(text).style(PARCHMENT_BORDER), ribbon);
 }

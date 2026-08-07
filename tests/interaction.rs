@@ -5,7 +5,7 @@ use questmancer::{
     command::AgentCommand,
     domain::{
         AdventurerPersona, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey,
-        Timestamp, WorkspaceId,
+        Presence, Timestamp, WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::{reduce_action, reduce_scene_action},
@@ -996,4 +996,167 @@ fn delve_search_reuses_selection_and_single_output_load_boundary() {
 
     assert_eq!(delve.selected_agent_key(), guild.selected_agent_key());
     assert_eq!(delve.modal(), &Modal::None);
+}
+
+/// A party where the adventurer needing counsel is deliberately *not* adjacent
+/// to the selection, so a test cannot pass by accidentally stepping one place.
+fn model_with_a_buried_call_for_counsel() -> Model {
+    let mut model = live_model_with_two_agents();
+    let template = model.domain().agents.values().next().unwrap().clone();
+    {
+        let domain = model.domain_mut();
+        domain.agents.clear();
+        for (index, name) in ["aa-calm", "bb-calm", "cc-blocked", "dd-calm"]
+            .into_iter()
+            .enumerate()
+        {
+            let mut agent = template.clone();
+            agent.key = AgentKey::new(name);
+            agent.pane_id = PaneId::new(format!("w1:p{index}"));
+            agent.presence = Presence::Working;
+            agent.attention = GuildAttention::Clear;
+            if name == "cc-blocked" {
+                agent.presence = Presence::Blocked;
+                agent.attention = GuildAttention::unread(
+                    GuildSummons::CounselRequested,
+                    Timestamp::from_millis(500),
+                );
+            }
+            domain.agents.insert(agent.key.clone(), agent);
+        }
+        domain.selected_agent = Some(AgentKey::new("aa-calm"));
+    }
+    model.replace_domain(model.domain().clone());
+    model.set_now(Timestamp::from_millis(10_000));
+    model
+}
+
+/// Selection was sequential only, so reaching the one adventurer that needed a
+/// human meant stepping past every adventurer that did not.
+#[test]
+fn the_urgency_jump_reaches_a_blocked_adventurer_in_one_press() {
+    let mut model = model_with_a_buried_call_for_counsel();
+    assert_eq!(
+        model.selected_agent().map(|agent| agent.key.clone()),
+        Some(AgentKey::new("aa-calm"))
+    );
+
+    let flow = reduce_action(&mut model, Action::NextUrgent);
+    assert!(matches!(flow.control, ControlFlow::Continue(())));
+    assert_eq!(
+        model.selected_agent().map(|agent| agent.key.clone()),
+        Some(AgentKey::new("cc-blocked")),
+        "one press must land on the adventurer asking for counsel"
+    );
+}
+
+/// An unanswered call for counsel outranks a summons somebody has already
+/// seen, and within a rank the adventurer who has waited longest comes first.
+#[test]
+fn urgency_order_puts_the_unanswered_and_longest_waiting_first() {
+    let mut model = model_with_a_buried_call_for_counsel();
+    let template = model.domain().agents.values().next().unwrap().clone();
+    {
+        let domain = model.domain_mut();
+        let mut seen = template.clone();
+        seen.key = AgentKey::new("ee-seen");
+        seen.pane_id = PaneId::new("w1:p9");
+        seen.presence = Presence::Blocked;
+        seen.attention = GuildAttention::Read {
+            summons: GuildSummons::CounselRequested,
+            since: Timestamp::from_millis(100),
+        };
+        domain.agents.insert(seen.key.clone(), seen);
+
+        let mut older = template.clone();
+        older.key = AgentKey::new("ff-older");
+        older.pane_id = PaneId::new("w1:p8");
+        older.presence = Presence::Blocked;
+        older.attention =
+            GuildAttention::unread(GuildSummons::CounselRequested, Timestamp::from_millis(50));
+        domain.agents.insert(older.key.clone(), older);
+    }
+    model.replace_domain(model.domain().clone());
+
+    let waiting = model.adventurers_awaiting_a_human();
+    assert_eq!(
+        waiting,
+        vec![
+            AgentKey::new("ff-older"),
+            AgentKey::new("cc-blocked"),
+            AgentKey::new("ee-seen"),
+        ],
+        "urgency must rank by what the party needs, not by name"
+    );
+}
+
+/// Deferring a summons said "not now". The jump has to honour that, or
+/// deferring means nothing.
+#[test]
+fn a_deferred_summons_is_skipped_until_it_expires() {
+    let mut model = model_with_a_buried_call_for_counsel();
+    {
+        let domain = model.domain_mut();
+        let blocked = domain.agents.get_mut(&AgentKey::new("cc-blocked")).unwrap();
+        blocked.presence = Presence::Working;
+        blocked.attention = GuildAttention::Deferred {
+            summons: GuildSummons::CounselRequested,
+            since: Timestamp::from_millis(500),
+            until: Timestamp::from_millis(60_000),
+        };
+    }
+    model.replace_domain(model.domain().clone());
+
+    assert!(model.adventurers_awaiting_a_human().is_empty());
+    let _ = reduce_action(&mut model, Action::NextUrgent);
+    assert_eq!(
+        model.selected_agent().map(|agent| agent.key.clone()),
+        Some(AgentKey::new("aa-calm")),
+        "with nobody waiting the selection must not wander"
+    );
+    assert_eq!(
+        model.action_feedback(),
+        Some("No adventurer is waiting on you.")
+    );
+
+    // Once the snooze expires the same adventurer is waiting again.
+    model.set_now(Timestamp::from_millis(90_000));
+    assert_eq!(
+        model.adventurers_awaiting_a_human(),
+        vec![AgentKey::new("cc-blocked")]
+    );
+}
+
+/// With several waiting, repeated presses walk them all and come back round.
+#[test]
+fn repeated_urgency_jumps_cycle_every_waiting_adventurer() {
+    let mut model = model_with_a_buried_call_for_counsel();
+    {
+        let domain = model.domain_mut();
+        let second = domain.agents.get_mut(&AgentKey::new("dd-calm")).unwrap();
+        second.presence = Presence::Blocked;
+        second.attention =
+            GuildAttention::unread(GuildSummons::CounselRequested, Timestamp::from_millis(900));
+    }
+    model.replace_domain(model.domain().clone());
+
+    let mut visited = Vec::new();
+    for _ in 0..3 {
+        let _ = reduce_action(&mut model, Action::NextUrgent);
+        visited.push(
+            model
+                .selected_agent()
+                .map(|agent| agent.key.clone())
+                .unwrap(),
+        );
+    }
+    assert_eq!(
+        visited,
+        vec![
+            AgentKey::new("cc-blocked"),
+            AgentKey::new("dd-calm"),
+            AgentKey::new("cc-blocked"),
+        ],
+        "the jump must cycle rather than stick on the first"
+    );
 }

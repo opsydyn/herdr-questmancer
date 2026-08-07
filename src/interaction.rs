@@ -56,6 +56,10 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             select_agent(model, Model::select_previous_agent, &mut commands);
             ControlFlow::Continue(())
         }
+        Action::NextUrgent => {
+            select_next_urgent(model, &mut commands);
+            ControlFlow::Continue(())
+        }
         Action::Observe => {
             observe_selected(model, &mut commands);
             ControlFlow::Continue(())
@@ -380,6 +384,27 @@ fn visible_presence_terms(agent: &Agent) -> &'static [&'static str] {
         Presence::Idle => &["resting"],
         Presence::Exited => &["departed"],
         Presence::Unknown => &["unknown"],
+    }
+}
+
+/// Jumps to the next adventurer waiting on a human, or says nobody is.
+///
+/// The silent case matters: moving the selection somewhere arbitrary when
+/// nothing is urgent would teach the key to be untrustworthy.
+fn select_next_urgent(model: &mut Model, commands: &mut Vec<AgentCommand>) {
+    let before = selected_pane(model);
+    if model.select_next_agent_awaiting_a_human() {
+        if selected_pane(model).is_some() {
+            model.show_adventurer_card();
+        }
+        let after = selected_pane(model);
+        if after != before
+            && let Some(pane_id) = after
+        {
+            commands.push(load_output(model, pane_id));
+        }
+    } else {
+        model.set_action_feedback("No adventurer is waiting on you.".to_owned());
     }
 }
 

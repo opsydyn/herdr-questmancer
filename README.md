@@ -89,11 +89,19 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `r` | Open the counsel parchment |
 | `Space` | Acknowledge the selected unread summons locally |
 | `o` | Refresh the selected adventurer's recent output |
+| `!` | Jump to the next adventurer waiting on you |
 | `/` | Search the party and campaigns |
 | `v` | Inspect spoils through Reviewr when available |
 | `?` | Open or close the Librarian's Ledger |
 | `Esc` | Dismiss the active parchment |
 | `q` / `Ctrl-C` | Close Questmancer when no text parchment is open |
+
+`!` cycles the adventurers who are waiting on a human, most urgent first: an
+unanswered call for counsel, then one already seen but unresolved, then the
+quieter summons, and within each rank whoever has waited longest. Deferred
+summons are skipped until their snooze expires. When nobody is waiting the
+selection stays put and Questmancer says so. While at least one adventurer is
+waiting, the command ribbon carries the count.
 
 Counsel and search accept ordinary text. `Enter` submits, `Ctrl-U` clears, and
 `Esc` cancels. Questmancer never selects, focuses, reads, or counsels its own

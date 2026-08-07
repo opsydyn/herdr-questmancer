@@ -69,6 +69,16 @@ All notable changes to this project will be documented here.
 
 ### Changed
 
+- Selection is no longer sequential-only. `!` jumps to the next adventurer
+  waiting on a human and cycles them, ranked by what the party needs rather
+  than by name: an unanswered call for counsel, then one already seen but
+  unresolved, then the quieter summons, and within a rank whoever has waited
+  longest. Deferred summons stay skipped until their snooze expires, because
+  that is what deferring meant. With nobody waiting the selection does not
+  move — a jump key that wanders is a jump key you stop trusting. While anyone
+  is waiting the command ribbon carries the count, so the Hall answers "does
+  anyone need me?" before the key is ever pressed.
+
 - Identity nameplates now degrade name-first: truncation shortens the
   adventurer's name and keeps the presence badge whole, falling back to a
   state glyph and age in lanes too narrow for any name.
