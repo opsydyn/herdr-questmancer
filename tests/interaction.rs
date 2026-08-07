@@ -1410,3 +1410,49 @@ fn search_results_drop_adventurers_who_have_gone() {
         "a departed adventurer stays out"
     );
 }
+
+/// Motion, glyphs and colour depth were configuration-file only: changing any
+/// of them meant editing a file and restarting. Reduced motion in particular
+/// is a poor thing to gate behind a restart.
+#[test]
+fn display_preferences_can_be_changed_while_running_and_persist() {
+    let mut model = live_model_with_two_agents();
+    let before = *model.preferences();
+
+    let motion = reduce_action(&mut model, Action::CycleMotion);
+    assert_ne!(model.preferences().motion, before.motion);
+    assert_eq!(model.action_feedback(), Some("Motion: reduced."));
+    assert!(
+        !motion.persistence.is_empty(),
+        "a runtime preference change must be written down, or it dies with \
+         the session"
+    );
+
+    let _ = reduce_action(&mut model, Action::CycleCharacterSet);
+    assert_ne!(model.preferences().character_set, before.character_set);
+    assert_eq!(model.action_feedback(), Some("Glyphs: ASCII."));
+
+    let _ = reduce_action(&mut model, Action::CycleColorMode);
+    assert_ne!(model.preferences().color_mode, before.color_mode);
+    assert_eq!(model.action_feedback(), Some("Colour: 16 colours."));
+}
+
+/// Motion has three settings and returns to where it started.
+#[test]
+fn motion_cycles_through_every_setting() {
+    let mut model = live_model_with_two_agents();
+    let start = model.preferences().motion;
+
+    let mut seen = Vec::new();
+    for _ in 0..3 {
+        let _ = reduce_action(&mut model, Action::CycleMotion);
+        seen.push(model.preferences().motion);
+    }
+
+    assert_eq!(seen.len(), 3);
+    assert!(
+        seen[0] != seen[1] && seen[1] != seen[2] && seen[0] != seen[2],
+        "each step must reach a different setting, got {seen:?}"
+    );
+    assert_eq!(model.preferences().motion, start, "and come back round");
+}

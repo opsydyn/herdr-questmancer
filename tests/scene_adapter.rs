@@ -1,4 +1,5 @@
 use questmancer::{
+    app::ColorMode,
     scene::pixel::{Rgb, RgbBuffer},
     ui::scene_adapter::flush_rgb,
 };
@@ -13,7 +14,13 @@ fn flushes_a_two_pixel_column_as_one_half_block_cell() {
     source.put(0, 1, blue);
     let mut target = Buffer::empty(Rect::new(0, 0, 1, 1));
 
-    flush_rgb(&mut target, Rect::new(0, 0, 1, 1), &source, Rgb::BLACK);
+    flush_rgb(
+        &mut target,
+        Rect::new(0, 0, 1, 1),
+        &source,
+        Rgb::BLACK,
+        ColorMode::Xterm256,
+    );
 
     let cell = target.cell((0, 0)).unwrap();
     assert_eq!(cell.symbol(), "▀");
@@ -30,7 +37,13 @@ fn flushes_relative_to_a_nonzero_destination_area_and_clips_to_target() {
     source.put(1, 3, blue);
     let mut target = Buffer::empty(Rect::new(10, 20, 2, 1));
 
-    flush_rgb(&mut target, Rect::new(9, 19, 3, 2), &source, Rgb::BLACK);
+    flush_rgb(
+        &mut target,
+        Rect::new(9, 19, 3, 2),
+        &source,
+        Rgb::BLACK,
+        ColorMode::Xterm256,
+    );
 
     let cell = target.cell((10, 20)).unwrap();
     assert_eq!(cell.symbol(), "▀");
@@ -46,7 +59,13 @@ fn flushes_an_odd_final_pixel_row_with_the_explicit_fallback_colour() {
     let source = RgbBuffer::filled(1, 3, amber);
     let mut target = Buffer::empty(Rect::new(0, 0, 1, 2));
 
-    flush_rgb(&mut target, Rect::new(0, 0, 1, 2), &source, fallback);
+    flush_rgb(
+        &mut target,
+        Rect::new(0, 0, 1, 2),
+        &source,
+        fallback,
+        ColorMode::Xterm256,
+    );
 
     let final_cell = target.cell((0, 1)).unwrap();
     assert_eq!(final_cell.symbol(), "▀");
@@ -63,12 +82,74 @@ fn flush_ignores_zero_sized_areas_and_source_pixels_outside_the_requested_width(
     source.put(2, 0, blue);
     let mut target = Buffer::empty(Rect::new(0, 0, 1, 1));
 
-    flush_rgb(&mut target, Rect::new(0, 0, 0, 1), &source, Rgb::BLACK);
+    flush_rgb(
+        &mut target,
+        Rect::new(0, 0, 0, 1),
+        &source,
+        Rgb::BLACK,
+        ColorMode::Xterm256,
+    );
     assert_eq!(target.cell((0, 0)).unwrap().symbol(), " ");
 
-    flush_rgb(&mut target, Rect::new(0, 0, 1, 1), &source, Rgb::BLACK);
+    flush_rgb(
+        &mut target,
+        Rect::new(0, 0, 1, 1),
+        &source,
+        Rgb::BLACK,
+        ColorMode::Xterm256,
+    );
     let cell = target.cell((0, 0)).unwrap();
     assert_eq!(cell.symbol(), "▀");
     assert_eq!(cell.fg, Color::Rgb(255, 0, 0));
     assert_eq!(cell.bg, Color::Rgb(255, 0, 0));
+}
+
+/// `ColorMode` was configurable, validated and persisted from the beginning,
+/// and read by nothing: every pixel went out as truecolour regardless, so the
+/// `ansi16` setting was a preference the renderer never heard about.
+#[test]
+fn ansi16_mode_emits_indexed_colours_instead_of_truecolour() {
+    let mut source = RgbBuffer::filled(2, 2, Rgb::new(0, 0, 0));
+    source.put(0, 0, Rgb::new(198, 32, 40));
+    source.put(1, 0, Rgb::new(40, 200, 60));
+
+    let area = Rect::new(0, 0, 2, 1);
+
+    let mut truecolour = Buffer::empty(area);
+    flush_rgb(
+        &mut truecolour,
+        area,
+        &source,
+        Rgb::new(0, 0, 0),
+        ColorMode::Xterm256,
+    );
+    assert!(
+        matches!(truecolour.cell((0, 0)).unwrap().fg, Color::Rgb(198, 32, 40)),
+        "truecolour must pass the authored pixel through unchanged"
+    );
+
+    let mut indexed = Buffer::empty(area);
+    flush_rgb(
+        &mut indexed,
+        area,
+        &source,
+        Rgb::new(0, 0, 0),
+        ColorMode::Ansi16,
+    );
+    // Which of the two reds wins is a near thing and not worth pinning; that
+    // an indexed colour of the right family is chosen at all is the point.
+    for (x, family, name) in [
+        (0_u16, [Color::Red, Color::LightRed], "red"),
+        (1, [Color::Green, Color::LightGreen], "green"),
+    ] {
+        let fg = indexed.cell((x, 0)).unwrap().fg;
+        assert!(
+            !matches!(fg, Color::Rgb(..)),
+            "a sixteen-colour terminal must not be sent truecolour, got {fg:?}"
+        );
+        assert!(
+            family.contains(&fg),
+            "a {name} pixel must quantise to a {name} ANSI colour, got {fg:?}"
+        );
+    }
 }

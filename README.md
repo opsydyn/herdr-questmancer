@@ -95,6 +95,9 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `/` | Search the party and campaigns |
 | `n` / `N` | Walk to the next / previous search match |
 | `v` | Inspect spoils through Reviewr when available |
+| `m` | Cycle motion: full, reduced, still |
+| `u` | Switch between Unicode and ASCII glyphs |
+| `p` | Switch between truecolour and 16 colours |
 | `?` | Open or close the Librarian's Ledger |
 | `Esc` | Dismiss the active parchment |
 | `q` / `Ctrl-C` | Close Questmancer when no text parchment is open |
@@ -105,6 +108,10 @@ quieter summons, and within each rank whoever has waited longest. Deferred
 summons are skipped until their snooze expires. When nobody is waiting the
 selection stays put and Questmancer says so. While at least one adventurer is
 waiting, the command ribbon carries the count.
+
+`m`, `u` and `p` change motion, glyphs and colour depth while running. Each
+reports the setting it landed on and is written to durable state, so a change
+made at runtime survives a restart without editing the configuration file.
 
 Search reports how many adventurers matched and `n`/`N` walk them, wrapping.
 Matches for adventurers who have since left the party are dropped rather than

@@ -89,6 +89,21 @@ pub const BINDINGS: &[Binding] = &[
         action: Action::NextResult,
     },
     Binding {
+        keys: "m",
+        description: "Cycle motion: full, reduced, still",
+        action: Action::CycleMotion,
+    },
+    Binding {
+        keys: "u",
+        description: "Switch between Unicode and ASCII glyphs",
+        action: Action::CycleCharacterSet,
+    },
+    Binding {
+        keys: "p",
+        description: "Switch between truecolour and 16 colours",
+        action: Action::CycleColorMode,
+    },
+    Binding {
         keys: "?",
         description: "Open or close this Ledger",
         action: Action::ToggleLedger,

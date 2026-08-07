@@ -193,7 +193,13 @@ fn render_fixture(
         PixelSize::new(area.width, area.height.saturating_mul(2)),
         &mut buffer,
     );
-    flush_rgb(frame.buffer_mut(), area, &buffer, Rgb::BLACK);
+    flush_rgb(
+        frame.buffer_mut(),
+        area,
+        &buffer,
+        Rgb::BLACK,
+        crate::app::ColorMode::Xterm256,
+    );
     crate::ui::scene_overlays::render_scene_identity_labels(frame, model, &scene_frame);
     render_scene_overlays(frame, model, &presentation, portraits);
 }
@@ -259,7 +265,13 @@ fn render_archetype_gallery(frame: &mut Frame<'_>, area: Rect, gallery: Archetyp
         );
         labels.push((*label, label_area));
     }
-    flush_rgb(frame.buffer_mut(), area, &buffer, BACKGROUND);
+    flush_rgb(
+        frame.buffer_mut(),
+        area,
+        &buffer,
+        BACKGROUND,
+        crate::app::ColorMode::Xterm256,
+    );
     for (label, label_area) in labels {
         frame.render_widget(
             Paragraph::new(label)

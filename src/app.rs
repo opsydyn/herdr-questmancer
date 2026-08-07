@@ -48,6 +48,26 @@ pub enum Motion {
     None,
 }
 
+impl Motion {
+    #[must_use]
+    pub const fn next(self) -> Self {
+        match self {
+            Self::Full => Self::Reduced,
+            Self::Reduced => Self::None,
+            Self::None => Self::Full,
+        }
+    }
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Full => "full",
+            Self::Reduced => "reduced",
+            Self::None => "still",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CharacterSet {
@@ -56,12 +76,48 @@ pub enum CharacterSet {
     Ascii,
 }
 
+impl CharacterSet {
+    #[must_use]
+    pub const fn next(self) -> Self {
+        match self {
+            Self::Unicode => Self::Ascii,
+            Self::Ascii => Self::Unicode,
+        }
+    }
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Unicode => "Unicode",
+            Self::Ascii => "ASCII",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ColorMode {
     #[default]
     Xterm256,
     Ansi16,
+}
+
+impl ColorMode {
+    #[must_use]
+    pub const fn next(self) -> Self {
+        match self {
+            Self::Xterm256 => Self::Ansi16,
+            Self::Ansi16 => Self::Xterm256,
+        }
+    }
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Xterm256 => "truecolour",
+            Self::Ansi16 => "16 colours",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -788,6 +844,28 @@ impl Model {
 
     pub const fn set_preferences(&mut self, preferences: DisplayPreferences) {
         self.preferences = preferences;
+    }
+
+    /// Cycles motion and reports the new setting.
+    ///
+    /// Motion, glyphs and colour depth were configuration-file only: changing
+    /// any of them meant editing a file and restarting, which is a poor answer
+    /// for reduced motion in particular. All three now persist through the
+    /// same durable state the file seeds, so a runtime change survives a
+    /// restart without the file needing to change.
+    pub fn cycle_motion(&mut self) -> &'static str {
+        self.preferences.motion = self.preferences.motion.next();
+        self.preferences.motion.label()
+    }
+
+    pub fn cycle_character_set(&mut self) -> &'static str {
+        self.preferences.character_set = self.preferences.character_set.next();
+        self.preferences.character_set.label()
+    }
+
+    pub fn cycle_color_mode(&mut self) -> &'static str {
+        self.preferences.color_mode = self.preferences.color_mode.next();
+        self.preferences.color_mode.label()
     }
 
     pub const fn settings(&self) -> &RuntimeSettings {

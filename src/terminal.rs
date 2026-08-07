@@ -410,7 +410,13 @@ fn draw_scene_application(
             PixelSize::new(area.width, area.height.saturating_mul(2)),
             buffer,
         );
-        flush_rgb(frame.buffer_mut(), area, buffer, Rgb::BLACK);
+        flush_rgb(
+            frame.buffer_mut(),
+            area,
+            buffer,
+            Rgb::BLACK,
+            model.preferences().color_mode,
+        );
         ui::scene_overlays::render_scene_identity_labels(frame, model, &scene_frame);
         ui::scene_overlays::render_scene_overlays(frame, model, &presentation, Some(portraits));
         rendered = Some(scene_frame);

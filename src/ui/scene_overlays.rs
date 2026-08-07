@@ -7,7 +7,7 @@ use ratatui::{
 use ratatui_image::Image;
 
 use crate::{
-    app::{Modal, Model},
+    app::{ColorMode, Modal, Model},
     domain::Presence,
     ledger,
     portrait::PortraitGallery,
@@ -249,7 +249,14 @@ fn render_adventurer_card(
         Line::from("Esc close · Enter observe · r counsel · o scry"),
     ];
     if detailed {
-        render_portrait_card(frame, card, &agent.persona, Text::from(lines), portraits);
+        render_portrait_card(
+            frame,
+            card,
+            &agent.persona,
+            Text::from(lines),
+            model.preferences().color_mode,
+            portraits,
+        );
     } else {
         render_parchment(frame, card, " ADVENTURER ", Text::from(lines));
     }
@@ -260,6 +267,7 @@ fn render_portrait_card(
     area: Rect,
     persona: &crate::domain::AdventurerPersona,
     text: Text<'_>,
+    colour_mode: ColorMode,
     portraits: Option<&PortraitGallery>,
 ) {
     const PARCHMENT_RGB: Rgb = Rgb::new(230, 207, 154);
@@ -283,7 +291,13 @@ fn render_portrait_card(
         if let Some(portrait) = adventurer_portrait_frame(persona) {
             blit(&portrait, PixelPoint::new(0, 0), &mut pixels);
         }
-        flush_rgb(frame.buffer_mut(), portrait_area, &pixels, PARCHMENT_RGB);
+        flush_rgb(
+            frame.buffer_mut(),
+            portrait_area,
+            &pixels,
+            PARCHMENT_RGB,
+            colour_mode,
+        );
     }
 
     let text_area = Rect::new(
@@ -398,7 +412,12 @@ fn render_librarian_ledger(
 
     if wide {
         let portrait_area = Rect::new(area.x + 2, area.y + 2, 24, 16);
-        render_librarian_illustration(frame, portrait_area, portraits);
+        render_librarian_illustration(
+            frame,
+            portrait_area,
+            portraits,
+            model.preferences().color_mode,
+        );
         let text_area = Rect::new(
             area.x + 28,
             area.y + 2,
@@ -431,6 +450,7 @@ fn render_librarian_illustration(
     frame: &mut Frame<'_>,
     area: Rect,
     portraits: Option<&PortraitGallery>,
+    colour_mode: ColorMode,
 ) {
     const PARCHMENT_RGB: Rgb = Rgb::new(230, 207, 154);
     frame.render_widget(Block::default().style(PARCHMENT), area);
@@ -443,7 +463,13 @@ fn render_librarian_illustration(
             PixelPoint::new(0, 0),
             &mut pixels,
         );
-        flush_rgb(frame.buffer_mut(), area, &pixels, PARCHMENT_RGB);
+        flush_rgb(
+            frame.buffer_mut(),
+            area,
+            &pixels,
+            PARCHMENT_RGB,
+            colour_mode,
+        );
     }
 }
 

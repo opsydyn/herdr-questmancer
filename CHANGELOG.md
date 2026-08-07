@@ -69,6 +69,19 @@ All notable changes to this project will be documented here.
 
 ### Changed
 
+- Motion, glyphs and colour depth can be changed while Questmancer is running,
+  with `m`, `u` and `p`. All three were configuration-file only, so adjusting
+  reduced motion meant editing a file and restarting. Each toggle reports the
+  setting it landed on and persists through the same durable state the file
+  seeds.
+
+- `color_mode` now reaches the renderer. It was configurable, validated and
+  persisted from the beginning and read by nothing: every pixel went out as
+  truecolour regardless, so `ansi16` was a preference the renderer never heard
+  about. Scene pixels are now quantised to the sixteen indexed ANSI colours in
+  that mode, using the same redmean distance as the art-direction contrast
+  guard.
+
 - The Librarian's Ledger now carries a real keyring instead of three sentences
   of prose about the controls. Those sentences were written once and never
   updated: `Tab`, `!`, `c` and `n`/`N` were all reachable and none of them

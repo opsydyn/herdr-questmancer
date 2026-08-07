@@ -40,20 +40,8 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             select_next_campaign(model, &mut commands);
             ControlFlow::Continue(())
         }
-        Action::First => {
-            select_agent(model, Model::select_first_agent, &mut commands);
-            ControlFlow::Continue(())
-        }
-        Action::Last => {
-            select_agent(model, Model::select_last_agent, &mut commands);
-            ControlFlow::Continue(())
-        }
-        Action::Next => {
-            select_agent(model, Model::select_next_agent, &mut commands);
-            ControlFlow::Continue(())
-        }
-        Action::Previous => {
-            select_agent(model, Model::select_previous_agent, &mut commands);
+        Action::First | Action::Last | Action::Next | Action::Previous => {
+            select_sequentially(model, action, &mut commands);
             ControlFlow::Continue(())
         }
         Action::NextUrgent => {
@@ -86,6 +74,10 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         }
         Action::NextResult | Action::PreviousResult => {
             cycle_search(model, action == Action::NextResult, &mut commands);
+            ControlFlow::Continue(())
+        }
+        Action::CycleMotion | Action::CycleCharacterSet | Action::CycleColorMode => {
+            cycle_display_preference(model, action);
             ControlFlow::Continue(())
         }
         Action::OpenChronicle => {
@@ -438,6 +430,33 @@ fn visible_presence_terms(agent: &Agent) -> &'static [&'static str] {
         Presence::Exited => &["departed"],
         Presence::Unknown => &["unknown"],
     }
+}
+
+/// The four plain selection moves, which differ only in where they land.
+fn select_sequentially(model: &mut Model, action: Action, commands: &mut Vec<AgentCommand>) {
+    let step: fn(&mut Model) = match action {
+        Action::First => Model::select_first_agent,
+        Action::Last => Model::select_last_agent,
+        Action::Next => Model::select_next_agent,
+        Action::Previous => Model::select_previous_agent,
+        _ => return,
+    };
+    select_agent(model, step, commands);
+}
+
+/// Cycles one display preference and reports where it landed.
+///
+/// Reporting matters more than usual here: the change to glyphs or colour
+/// depth may be subtle on a given terminal, and a toggle you cannot confirm is
+/// a toggle you press twice.
+fn cycle_display_preference(model: &mut Model, action: Action) {
+    let notice = match action {
+        Action::CycleMotion => format!("Motion: {}.", model.cycle_motion()),
+        Action::CycleCharacterSet => format!("Glyphs: {}.", model.cycle_character_set()),
+        Action::CycleColorMode => format!("Colour: {}.", model.cycle_color_mode()),
+        _ => return,
+    };
+    model.set_action_feedback(notice);
 }
 
 /// Applies the three text-editing actions a parchment accepts.
