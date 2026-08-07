@@ -818,7 +818,7 @@ fn paint_depth_sorted(
                 // in both worlds.
                 interaction::paint_actor_grounding(target, bounds, placement.pose, DEEP_BLUE_BLACK);
                 if placement.pose == ScenePose::Unknown {
-                    blit_dimmed(&sprite, actor_origin, target);
+                    blit_uncertain(&sprite, actor_origin, target);
                 } else {
                     blit(&sprite, actor_origin, target);
                 }
@@ -997,14 +997,51 @@ fn paint_overflow_marker(
     }
 }
 
-fn blit_dimmed(frame: &SpriteFrame, origin: PixelPoint, target: &mut RgbBuffer) {
+/// The colour an adventurer of unknown state resolves toward.
+///
+/// Deliberately lighter than every dungeon material: the Unknown station is
+/// the one station with no light pool, so a treatment that darkens has nothing
+/// left to darken against and the delver becomes a hole in the floor.
+const UNCERTAIN_MIST: Rgb = Rgb::new(78, 96, 107);
+
+/// How far toward the mist an unknown delver travels, out of 100.
+const UNCERTAIN_BLEND: u16 = 52;
+
+/// Renders an adventurer whose state Herdr cannot currently report.
+///
+/// Halving every channel was the obvious reading of "dim", and it was wrong.
+/// The dungeon is already near-black and this station is unlit by design, so
+/// multiplying toward black produced a silhouette darker than the floor behind
+/// it — unreadable, and semantically it said "night", not "unknown".
+///
+/// Uncertainty is loss of information, not loss of light. Blending toward a
+/// pale cool mist drains the colour that carries identity — class cloth,
+/// persona skin and hair all converge — while lifting the figure clear of the
+/// floor. The silhouette stays legible, and what it has lost is exactly what
+/// the state means it has lost. The `?` in the nameplate carries the literal
+/// reading; this carries the felt one.
+fn blit_uncertain(frame: &SpriteFrame, origin: PixelPoint, target: &mut RgbBuffer) {
     let pixels = frame
         .pixels()
         .iter()
-        .map(|pixel| pixel.map(|colour| Rgb::new(colour.r / 2, colour.g / 2, colour.b / 2)))
+        .map(|pixel| pixel.map(|colour| blend_toward(colour, UNCERTAIN_MIST, UNCERTAIN_BLEND)))
         .collect();
-    let dimmed = SpriteFrame::from_pixels(frame.size().width, frame.size().height, pixels);
-    blit(&dimmed, origin, target);
+    let uncertain = SpriteFrame::from_pixels(frame.size().width, frame.size().height, pixels);
+    blit(&uncertain, origin, target);
+}
+
+fn blend_toward(base: Rgb, tint: Rgb, amount: u16) -> Rgb {
+    let amount = amount.min(100);
+    let keep = 100 - amount;
+    let mix = |base: u8, tint: u8| {
+        u8::try_from((u16::from(base) * keep + u16::from(tint) * amount) / 100)
+            .expect("weighted channel remains within u8")
+    };
+    Rgb::new(
+        mix(base.r, tint.r),
+        mix(base.g, tint.g),
+        mix(base.b, tint.b),
+    )
 }
 
 fn paint_effects(

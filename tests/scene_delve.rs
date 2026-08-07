@@ -12,7 +12,7 @@ use questmancer::{
         SceneFrame,
         assets::{
             adventurer::adventurer_animation_frame,
-            delve::{DelveAsset, frame},
+            delve::{DelveAsset, FLOOR_DARK, FLOOR_MID, frame},
             palette::VOID,
         },
         pixel::{PixelRect, PixelSize, Rgb, RgbBuffer},
@@ -335,6 +335,141 @@ fn unknown_dimming_preserves_transparent_sprite_pixels() {
     );
 }
 
+fn count_as_f64(count: usize) -> f64 {
+    f64::from(u32::try_from(count).expect("pixel counts fit u32"))
+}
+
+/// Perceptual-ish colour distance, matching the guard in `scene::assets`.
+fn colour_distance(left: Rgb, right: Rgb) -> f64 {
+    let mean_red = f64::midpoint(f64::from(left.r), f64::from(right.r));
+    let dr = f64::from(left.r) - f64::from(right.r);
+    let dg = f64::from(left.g) - f64::from(right.g);
+    let db = f64::from(left.b) - f64::from(right.b);
+    let weight_r = 2.0 + mean_red / 256.0;
+    let weight_b = 2.0 + (255.0 - mean_red) / 256.0;
+    (weight_r * dr * dr + 4.0 * dg * dg + weight_b * db * db).sqrt()
+}
+
+/// Halving every channel made an Unknown delver darker than the unlit floor it
+/// stood on, so the state that most needs a legible figure had the least
+/// legible one. Nothing caught it, because the treatment was only ever
+/// asserted against the sprite's transparency, never against the dungeon.
+#[test]
+fn unknown_delvers_stay_legible_against_the_floor_they_stand_on() {
+    let snapshot = mixed_snapshot();
+    let unknown = snapshot
+        .agents
+        .iter()
+        .find(|agent| agent.presence == Presence::Unknown)
+        .expect("fixed unknown agent exists");
+    let sprite = adventurer_animation_frame(&unknown.persona, ScenePose::Unknown, 0);
+    let (with_unknown, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+    let region = frame
+        .actors
+        .iter()
+        .find(|actor| actor.agent == unknown.key)
+        .expect("unknown agent has an actor region");
+
+    let mut without_snapshot = snapshot.clone();
+    without_snapshot
+        .agents
+        .retain(|agent| agent.presence != Presence::Unknown);
+    let without_unknown = render(&without_snapshot, WorldScene::Delve, VIEWPORT);
+
+    // Compare each painted body pixel with the dungeon that would have been
+    // there instead. The body is what has to separate; the grounding lane is
+    // meant to be dark, so it stays out of the measurement.
+    let grounding_lane_top = region.bounds.y + i32::from(region.bounds.height).saturating_sub(2);
+    let mut separated = 0_usize;
+    let mut measured = 0_usize;
+    for (index, pixel) in sprite.pixels().iter().enumerate() {
+        if pixel.is_none() {
+            continue;
+        }
+        let x = region.bounds.x
+            + i32::try_from(index % usize::from(sprite.size().width)).expect("sprite x fits i32");
+        let y = region.bounds.y
+            + i32::try_from(index / usize::from(sprite.size().width)).expect("sprite y fits i32");
+        if y >= grounding_lane_top {
+            continue;
+        }
+        let (Some(painted), Some(floor)) = (with_unknown.get(x, y), without_unknown.get(x, y))
+        else {
+            continue;
+        };
+        measured += 1;
+        if colour_distance(painted, floor) >= 40.0 {
+            separated += 1;
+        }
+    }
+
+    assert!(measured > 40, "too few body pixels measured to conclude");
+    let ratio = count_as_f64(separated) / count_as_f64(measured);
+    assert!(
+        ratio >= 0.85,
+        "only {:.0}% of an Unknown delver's body separates from the dungeon behind it; \
+         the figure reads as a hole in the floor",
+        ratio * 100.0
+    );
+}
+
+/// Unknown means the identity is gone, not the adventurer. The treatment has
+/// to drain the colour that distinguishes personas while keeping the body
+/// brighter than the floor — the opposite of what darkening did.
+#[test]
+fn the_unknown_treatment_drains_identity_without_draining_light() {
+    let snapshot = mixed_snapshot();
+    let unknown = snapshot
+        .agents
+        .iter()
+        .find(|agent| agent.presence == Presence::Unknown)
+        .expect("fixed unknown agent exists");
+
+    let known = adventurer_animation_frame(&unknown.persona, ScenePose::Working, 0);
+    let (rendered, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+    let region = frame
+        .actors
+        .iter()
+        .find(|actor| actor.agent == unknown.key)
+        .expect("unknown agent has an actor region");
+
+    let spread = |colours: &[Rgb]| {
+        let channel = |pick: fn(&Rgb) -> u8| {
+            let values = colours.iter().map(pick).map(f64::from).collect::<Vec<_>>();
+            let count = count_as_f64(values.len());
+            let mean = values.iter().sum::<f64>() / count;
+            (values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / count).sqrt()
+        };
+        channel(|c| c.r) + channel(|c| c.g) + channel(|c| c.b)
+    };
+
+    let authored = known.pixels().iter().flatten().copied().collect::<Vec<_>>();
+    let painted = (region.bounds.y..region.bounds.y + i32::from(region.bounds.height) - 2)
+        .flat_map(|y| {
+            (region.bounds.x..region.bounds.x + i32::from(region.bounds.width)).map(move |x| (x, y))
+        })
+        .filter_map(|(x, y)| rendered.get(x, y))
+        .collect::<Vec<_>>();
+
+    assert!(
+        spread(&painted) < spread(&authored),
+        "the Unknown treatment must compress an adventurer's colour range"
+    );
+
+    let mean_luma = |colours: &[Rgb]| {
+        colours
+            .iter()
+            .map(|c| f64::from(c.r) + f64::from(c.g) + f64::from(c.b))
+            .sum::<f64>()
+            / count_as_f64(colours.len())
+    };
+    let floor = [FLOOR_MID, FLOOR_DARK];
+    assert!(
+        mean_luma(&painted) > mean_luma(&floor),
+        "an Unknown delver must sit above the floor in value, not below it"
+    );
+}
+
 #[test]
 fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     let snapshot = mixed_snapshot();
@@ -350,10 +485,12 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // when returning and resting adventurers gained authored pose art, and
     // again when persona garb reached each master's trim band, and again when
     // the Mage and Sorcerer classes shifted these fixtures' persona rolls, and
-    // again when station slots were re-spaced so delvers stopped overlapping.
+    // again when station slots were re-spaced so delvers stopped overlapping,
+    // and again when Unknown delvers stopped being darkened toward black and
+    // started resolving toward a pale mist instead.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "eed7264ebcb646ee25e934743e59769bbc9474158e26ea48d01d43821f313b54"
+        "2683a7d00fd2ec2e07ee451392b7695499d1709845b9a904395e70e571e6860c"
     );
 
     let non_clear = first
