@@ -362,10 +362,17 @@ fn render_librarian_ledger(
         .width
         .saturating_sub(2)
         .min(if wide { 88 } else { 64 });
+    // Sized to the page rather than to a fixed 20 rows. The generated keyring
+    // is longer than any authored page, and a fixed height silently cut its
+    // last two bindings and the footer off the bottom — the discoverability
+    // page, hiding the least-known keys.
+    let body_rows = u16::try_from(ledger::page_body(page_id).len()).unwrap_or(u16::MAX);
+    // Title, blank, body, blank, footer, close, plus the frame's own padding.
+    let needed = body_rows.saturating_add(9);
     let height = available
         .height
         .saturating_sub(2)
-        .min(if wide { 20 } else { 18 });
+        .min(needed.max(if wide { 20 } else { 18 }));
     let Some(area) = centered(available, width, height) else {
         return;
     };
@@ -378,7 +385,12 @@ fn render_librarian_ledger(
     );
     let lines = std::iter::once(Line::from(page.title))
         .chain(std::iter::once(Line::from("")))
-        .chain(page.body.iter().map(|line| Line::from(*line)))
+        .chain(
+            ledger::page_body(page_id)
+                .into_iter()
+                .map(Line::from)
+                .collect::<Vec<_>>(),
+        )
         .chain(std::iter::once(Line::from("")))
         .chain(std::iter::once(Line::from(footer)))
         .chain(std::iter::once(Line::from("Esc/? close")))

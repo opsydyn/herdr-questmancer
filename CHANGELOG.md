@@ -69,6 +69,16 @@ All notable changes to this project will be documented here.
 
 ### Changed
 
+- The Librarian's Ledger now carries a real keyring instead of three sentences
+  of prose about the controls. Those sentences were written once and never
+  updated: `Tab`, `!`, `c` and `n`/`N` were all reachable and none of them
+  appeared anywhere in the handbook. The page is generated from the binding
+  table, and a test sweeps every key the input handler accepts and fails on any
+  action the keyring does not describe — plus the reverse, an entry for a key
+  that no longer does anything. The Ledger also sizes itself to the page now;
+  at a fixed twenty rows the keyring lost its last two bindings and its footer
+  off the bottom edge.
+
 - Search no longer throws away everything after the first match. It used to
   `find_map` a single hit, so a query matching three adventurers picked one
   silently and never admitted the others existed. Submitting now reports

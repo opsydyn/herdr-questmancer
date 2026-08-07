@@ -480,3 +480,25 @@ fn an_empty_chronicle_says_so() {
         "an empty Chronicle must explain itself:\n{rendered}"
     );
 }
+
+/// The keyring page is the binding table rendered, so a binding cannot ship
+/// without appearing here.
+#[test]
+fn the_ledger_shows_the_whole_keyring() {
+    let mut model = model();
+    let _ = reduce_action(&mut model, Action::ToggleLedger);
+    let _ = reduce_action(&mut model, Action::Next);
+    let _ = reduce_action(&mut model, Action::Next);
+    let rendered = render(&model, 110, 30);
+
+    assert!(
+        rendered.contains("Keyring"),
+        "the keyring page must be reachable in the Ledger:\n{rendered}"
+    );
+    for keys in ["Tab", "!", "n / N", "c", "Esc", "q"] {
+        assert!(
+            rendered.contains(keys),
+            "the keyring must show {keys:?}:\n{rendered}"
+        );
+    }
+}

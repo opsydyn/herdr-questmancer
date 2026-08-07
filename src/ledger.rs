@@ -71,12 +71,11 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
         },
         LedgerPageId::QuestmancersTools => LedgerPage {
             id,
-            title: "Questmancer's Tools",
-            body: &[
-                "Use j/k, arrows or g/G to select; Enter observes the selected adventurer.",
-                "Use r for counsel, o for scrying, / to search, Space to acknowledge summons and v for optional Reviewr spoils.",
-                "Keys 1 and 2 move between the Guild Hall and Delve. Esc closes the current parchment.",
-            ],
+            title: "Questmancer's Keyring",
+            // Rendered from `ui::keymap::BINDINGS`; see `page_body`. The three
+            // sentences that used to live here were already missing four
+            // bindings by the time anyone noticed.
+            body: &[],
         },
         LedgerPageId::SafeChronicle => LedgerPage {
             id,
@@ -87,5 +86,21 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
                 "Guarded tests use disposable panes and fresh IDs. Herdr 0.7.4 cannot synthesize an explicit done transition.",
             ],
         },
+    }
+}
+
+/// The page's text, generated where the page is a view of something else.
+///
+/// The keyring is built from the real binding table rather than retyped, so a
+/// new key cannot ship undocumented.
+#[must_use]
+pub fn page_body(id: LedgerPageId) -> Vec<String> {
+    match id {
+        LedgerPageId::QuestmancersTools => crate::ui::keymap::lines(),
+        other => page(other)
+            .body
+            .iter()
+            .map(|line| (*line).to_owned())
+            .collect(),
     }
 }

@@ -125,8 +125,13 @@ managed pane.
 
 The persistent Librarian is a non-agent Guild Hall character. Click him—or
 press `?` anywhere—to open the same four-page handbook. Use left/right to page
-through Welcome, Reading the Party, Questmancer's Tools and Safe Chronicle;
+through Welcome, Reading the Party, Questmancer's Keyring and Safe Chronicle;
 `Esc` closes it. The Librarian cannot receive counsel, focus or output commands.
+
+The Keyring page is generated from the binding table itself rather than
+written by hand, and a test sweeps every key the input handler accepts and
+fails on any action the Keyring does not describe. The table above and the
+Keyring cannot drift apart from what the keys actually do.
 
 Herdr and the coding-agent CLI remain authoritative. Questmancer does not
 manually steer sprites: their identity, location, pose and attention effects
