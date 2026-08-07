@@ -21,7 +21,7 @@ Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
 
 ## Requirements
 
-- Herdr `0.7.4`, protocol `16`
+- Herdr `0.8.0`, protocol `19`
 - Rust `1.90.0` (selected by `rust-toolchain.toml`)
 - `jq` for the migration and guarded smoke-test recipes below
 - `just` only for contributor shortcuts

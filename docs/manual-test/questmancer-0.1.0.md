@@ -200,7 +200,7 @@ if test "$PLUGIN_MATCH_COUNT" = 1; then
 fi
 ```
 
-Verify version `0.1.0`, minimum Herdr `0.7.4`, local source, enabled status and
+Verify version `0.1.0`, minimum Herdr `0.8.0`, local source, enabled status and
 the five actions `open`, `close`, `toggle`, `guild`, and `delve`. Remember
 whether this test created the link so only that link may be removed later.
 
@@ -369,7 +369,7 @@ Skip directly to restoration after any disposable identity mismatch. Never set
 Confirm the snapshot contains only this test-owned synthetic source and that
 Questmancer renders its blocked Summons at the Counsel Bell.
 
-Herdr 0.7.4 cannot synthesize `done`: `report-agent` accepts `idle`, `working`,
+Herdr 0.8.0 cannot synthesize `done`: `report-agent` accepts `idle`, `working`,
 `blocked`, and `unknown`, but not a `done` literal. A real agent transition or
 the fixed Storybook/rendering fixtures are required for returned Spoils. Do not
 claim live `done`, Hearth/resting, or Spoils coverage from an ambiguous
@@ -635,7 +635,7 @@ so it was not used as evidence for the Great Room.
 | Persistence restart | BLOCKED | Managed pane `w2:pN` existed at baseline and could not be closed by this run. |
 | Wide Great Room screenshot | BLOCKED | The candidate was not linked and this PTY could not capture the user's interactive terminal. |
 | Exact 80x24 screenshot | BLOCKED | The candidate was not linked and this PTY could not resize/capture the user's interactive terminal. |
-| Explicit synthetic `done` | BLOCKED | Herdr 0.7.4 cannot synthesize `done`; no live completion is claimed. |
+| Explicit synthetic `done` | BLOCKED | Herdr 0.8.0 cannot synthesize `done`; no live completion is claimed. |
 | Cleanup/restoration | PASS | No pane, tab, report, link or server was created or mutated. Final panes/tabs/focus, plugin sources and running server matched the baseline exactly. |
 
 ### Automated release gate

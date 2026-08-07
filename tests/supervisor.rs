@@ -116,7 +116,7 @@ async fn bootstraps_in_order_and_forwards_events() {
 
     assert!(matches!(
         next_update(&mut update_rx).await,
-        ConnectionUpdate::Connected(snapshot) if snapshot.protocol == 16
+        ConnectionUpdate::Connected(snapshot) if snapshot.protocol == 19
     ));
     assert!(matches!(
         next_update(&mut update_rx).await,
@@ -133,7 +133,7 @@ async fn rejects_an_incompatible_protocol_without_subscribing() {
     let (_directory, path, listener) = listener();
     let server = tokio::spawn(async move {
         let mut pong = fixture("pong.json");
-        pong["result"]["protocol"] = json!(15);
+        pong["result"]["protocol"] = json!(18);
         accept_request(&listener, "ping", pong).await;
     });
     let (update_tx, mut update_rx) = mpsc::channel(4);
@@ -144,8 +144,8 @@ async fn rejects_an_incompatible_protocol_without_subscribing() {
     assert!(matches!(
         next_update(&mut update_rx).await,
         ConnectionUpdate::Incompatible {
-            expected: 16,
-            actual: 15
+            expected: 19,
+            actual: 18
         }
     ));
     assert!(update_rx.recv().await.is_none());

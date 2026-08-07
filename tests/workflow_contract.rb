@@ -260,7 +260,7 @@ plan = File.read("docs/superpowers/plans/2026-07-17-questmancer-great-room.md")
   "CURRENT_TAB_ID=\"$(jq -er '.result.pane.tab_id",
   "PANE_ID=\"$(jq -er '.result.pane.pane_id",
   "80x24",
-  "Herdr 0.7.4 cannot synthesize `done`",
+  "Herdr 0.8.0 cannot synthesize `done`",
   'herdr pane release-agent "$PANE_ID"',
   'herdr tab close "$TAB_ID"',
   "PRE_UNLINK_PLUGIN_LIST=",

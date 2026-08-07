@@ -66,7 +66,7 @@ async fn each_ordinary_request_uses_a_new_connection() {
     });
     let client = HerdrClient::new(path);
 
-    assert_eq!(client.ping().await.unwrap().protocol, 16);
+    assert_eq!(client.ping().await.unwrap().protocol, 19);
     assert_eq!(client.snapshot().await.unwrap().agents.len(), 1);
     server.await.unwrap();
 }

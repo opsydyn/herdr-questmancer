@@ -100,7 +100,7 @@ Questmancer pane after the repeated `open`.
 | View continuity | Selection remains coherent when switching with `1` and `2`. |
 | Goblin outbreak | `/`, then `release the goblins`, then `Enter` puts goblins on screen for about three seconds in both `1` and `2` — Guild Hall doorway and shelves, Delve entrance-left and centre-bottom. No adventurer moves or disappears while they are loose, the room returns to normal on its own without further input, and a close/reopen never brings them back. |
 
-Do not infer unobserved states. In particular, Herdr `0.7.4` cannot synthesize
+Do not infer unobserved states. In particular, Herdr `0.8.0` cannot synthesize
 `done`; fixture tests are not a substitute for live visual acceptance.
 
 ## Optional disposable agent

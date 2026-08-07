@@ -85,6 +85,14 @@ All notable changes to this project will be documented here.
 
 ### Changed
 
+- Questmancer now targets Herdr `0.8.0` and protocol `19`, up from `0.7.4` and
+  protocol `16`. Herdr refuses a client whose protocol differs, so this is a
+  hard cutover: `0.8.0` needs this release, and an older Herdr needs the
+  previous one. The plugin API itself required no adaptation — every method
+  Questmancer calls is unchanged, the session-snapshot schema is byte-identical
+  across the three protocol revisions, and the event and response additions are
+  optional fields Questmancer already tolerates.
+
 - Motion, glyphs and colour depth can be changed while Questmancer is running,
   with `m`, `u` and `p`. All three were configuration-file only, so adjusting
   reduced motion meant editing a file and restarting. Each toggle reports the

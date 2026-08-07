@@ -11,7 +11,7 @@ use super::{
     subscription::{HerdrSubscription, SubscriptionRequest},
 };
 
-pub const SUPPORTED_PROTOCOL: u32 = 16;
+pub const SUPPORTED_PROTOCOL: u32 = 19;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Backoff {

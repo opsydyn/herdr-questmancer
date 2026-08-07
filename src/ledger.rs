@@ -83,7 +83,7 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
             body: &[
                 "Questmancer stays local. Herdr owns topology and live agent facts; Questmancer stores only small durable intent and its Chronicle.",
                 "The managed Questmancer pane is never an adventurer and cannot receive focus, counsel, output or Reviewr commands.",
-                "Guarded tests use disposable panes and fresh IDs. Herdr 0.7.4 cannot synthesize an explicit done transition.",
+                "Guarded tests use disposable panes and fresh IDs. Herdr 0.8.0 cannot synthesize an explicit done transition.",
             ],
         },
     }

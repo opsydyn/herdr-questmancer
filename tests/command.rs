@@ -242,7 +242,7 @@ async fn snapshot_refresh_returns_a_domain_ready_snapshot() {
 
     assert!(matches!(
         result,
-        CommandResult::SnapshotLoaded(snapshot) if snapshot.protocol == 16
+        CommandResult::SnapshotLoaded(snapshot) if snapshot.protocol == 19
     ));
     server.await.unwrap();
 }
