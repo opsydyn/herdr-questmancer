@@ -15,12 +15,13 @@ use tokio::{io::BufReader, net::UnixStream};
 use super::{
     framing::{FramingError, read_json_line, write_json_line},
     protocol::{
-        EmptyParams, ErrorResponse, OkResult, PaneInfo, PaneInfoResult, PaneReadParams,
-        PaneReadResult, PaneReadResultEnvelope, PaneReportMetadataParams, PaneSendTextParams,
-        PaneTarget, PluginActionInfo, PluginActionInvokeParams, PluginActionInvokedResult,
-        PluginActionListParams, PluginActionListResult, PluginInvocationContext, Pong, ReadFormat,
-        ReadSource, Request, SessionSnapshot, SessionSnapshotResult, SuccessResponse,
-        WorkspaceReportMetadataParams,
+        AgentViewBuiltinSortField, AgentViewClearParams, AgentViewSetParams, AgentViewSort,
+        AgentViewSortField, AgentViewSortOrder, EmptyParams, ErrorResponse, OkResult, PaneInfo,
+        PaneInfoResult, PaneReadParams, PaneReadResult, PaneReadResultEnvelope,
+        PaneReportMetadataParams, PaneSendTextParams, PaneTarget, PluginActionInfo,
+        PluginActionInvokeParams, PluginActionInvokedResult, PluginActionListParams,
+        PluginActionListResult, PluginInvocationContext, Pong, ReadFormat, ReadSource, Request,
+        SessionSnapshot, SessionSnapshotResult, SuccessResponse, WorkspaceReportMetadataParams,
     },
 };
 
@@ -151,6 +152,50 @@ impl HerdrClient {
                 source: source.into(),
                 tokens,
                 seq,
+            },
+        )
+        .await
+    }
+
+    /// Asks Herdr to order its own agent list by Questmancer's urgency rank.
+    ///
+    /// Sort only, never filter. Hiding an agent from Herdr's sidebar because
+    /// Questmancer judged it uninteresting would take authority the plugin
+    /// does not have; reordering leaves every agent reachable.
+    pub async fn set_agent_view(
+        &self,
+        source: impl Into<String>,
+        label: impl Into<String>,
+    ) -> Result<(), ClientError> {
+        self.request_acknowledged(
+            "agent.view.set",
+            AgentViewSetParams {
+                source: source.into(),
+                label: Some(label.into()),
+                sort: vec![
+                    AgentViewSort {
+                        field: AgentViewSortField::Token {
+                            token: crate::sidebar::QUEST_RANK.to_owned(),
+                        },
+                        order: AgentViewSortOrder::Asc,
+                    },
+                    AgentViewSort {
+                        field: AgentViewSortField::Builtin(AgentViewBuiltinSortField::Attention),
+                        order: AgentViewSortOrder::Desc,
+                    },
+                ],
+            },
+        )
+        .await
+    }
+
+    /// Hands the ordering back to Herdr. Called on shutdown so Questmancer
+    /// never leaves the sidebar sorted by a plugin that is no longer running.
+    pub async fn clear_agent_view(&self, source: impl Into<String>) -> Result<(), ClientError> {
+        self.request_acknowledged(
+            "agent.view.clear",
+            AgentViewClearParams {
+                source: Some(source.into()),
             },
         )
         .await

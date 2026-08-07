@@ -170,6 +170,7 @@ fn snapshot_result_excludes_the_managed_webmaster_pane() {
 fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
     let mut model = Model::new(View::Guild);
     model.set_settings(RuntimeSettings {
+        sidebar_urgency_order: false,
         output_preview_lines: 123,
         reviewr_action: "acme.diff.inspect".to_owned(),
         show_elapsed_time: true,
@@ -555,4 +556,70 @@ async fn runtime_clock_advances_from_one_epoch_sample_using_tokio_time() {
     assert_eq!(clock.now(), Timestamp::from_millis(51_234));
     tokio::time::advance(std::time::Duration::from_millis(66)).await;
     assert_eq!(clock.now(), Timestamp::from_millis(51_300));
+}
+
+/// Reordering Herdr's own agent list is opt-in, because it changes shared
+/// Herdr UI rather than anything inside Questmancer's pane.
+#[test]
+fn the_urgency_view_is_only_requested_when_the_user_asked_for_it() {
+    for (asked_for, expected) in [(false, false), (true, true)] {
+        let mut model = Model::new(View::Guild);
+        model.set_settings(RuntimeSettings {
+            sidebar_urgency_order: asked_for,
+            ..RuntimeSettings::default()
+        });
+        let response: SuccessResponse<SessionSnapshotResult> =
+            serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
+
+        let effects = apply_connection_update(
+            &mut model,
+            ConnectionUpdate::Connected(response.result.snapshot),
+            Timestamp::from_millis(1_000),
+        );
+
+        assert_eq!(
+            effects
+                .agent_commands
+                .contains(&AgentCommand::SetUrgencyView),
+            expected,
+            "sidebar_urgency_order = {asked_for} must {} the view",
+            if expected { "request" } else { "leave alone" }
+        );
+    }
+}
+
+/// Herdr's agent view is transient, so a reconnect drops it. Asking again on
+/// every fresh connection is what keeps the order alive across a server
+/// restart.
+#[test]
+fn the_urgency_view_is_requested_again_after_reconnecting() {
+    let mut model = Model::new(View::Guild);
+    model.set_settings(RuntimeSettings {
+        sidebar_urgency_order: true,
+        ..RuntimeSettings::default()
+    });
+    let snapshot = || {
+        let response: SuccessResponse<SessionSnapshotResult> =
+            serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
+        response.result.snapshot
+    };
+
+    for round in 1..=2 {
+        let _ = apply_connection_update(
+            &mut model,
+            ConnectionUpdate::Disconnected("server restarted".to_owned()),
+            Timestamp::from_millis(round * 1_000),
+        );
+        let effects = apply_connection_update(
+            &mut model,
+            ConnectionUpdate::Connected(snapshot()),
+            Timestamp::from_millis(round * 1_000 + 1),
+        );
+        assert!(
+            effects
+                .agent_commands
+                .contains(&AgentCommand::SetUrgencyView),
+            "connection {round} must re-request the view"
+        );
+    }
 }

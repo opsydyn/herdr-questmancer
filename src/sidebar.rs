@@ -28,6 +28,7 @@ pub const QUEST_VIGIL: &str = "quest_vigil";
 pub const QUEST_HOARD: &str = "quest_hoard";
 pub const QUEST_CAMPAIGN: &str = "quest_campaign";
 pub const QUEST_PARTY: &str = "quest_party";
+pub const QUEST_RANK: &str = "quest_rank";
 
 /// Every token Questmancer publishes, for the guard over our documented
 /// sidebar configurations. A published example naming a token we do not
@@ -43,6 +44,7 @@ pub const ALL_QUEST_TOKENS: &[&str] = &[
     QUEST_HOARD,
     QUEST_CAMPAIGN,
     QUEST_PARTY,
+    QUEST_RANK,
 ];
 pub const SIDEBAR_SOURCE: &str = "plugin:opsydyn.questmancer";
 
@@ -90,6 +92,10 @@ impl SidebarProjection {
                         QUEST_HOARD.to_owned(),
                         hoard(&domain.chronicle, Some(&agent.key), character_set),
                     ),
+                    // Not for display. Herdr sorts its own agent list by this
+                    // when the urgency view is enabled, which is why it is a
+                    // bare digit rather than anything a person would read.
+                    (QUEST_RANK.to_owned(), agent.urgency_digit(now)),
                 ]),
             })
             .collect();

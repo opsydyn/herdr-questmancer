@@ -33,6 +33,7 @@ pub enum AgentCommand {
         qualified_id: String,
     },
     PublishMarginalia(SidebarProjection),
+    SetUrgencyView,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -51,6 +52,10 @@ pub enum CommandResult {
     },
     ReviewrAvailable(bool),
     SpoilsOpened,
+    UrgencyViewSet,
+    UrgencyViewFailed {
+        message: String,
+    },
     MarginaliaPublished,
     MarginaliaFailed {
         message: String,
@@ -178,13 +183,8 @@ impl CommandExecutor {
                     Err(error) => failed("open reviewr", error),
                 }
             }
-            AgentCommand::PublishMarginalia(projection) => {
-                match self.publish_marginalia(projection).await {
-                    Ok(()) => CommandResult::MarginaliaPublished,
-                    Err(error) => CommandResult::MarginaliaFailed {
-                        message: error.to_string(),
-                    },
-                }
+            AgentCommand::SetUrgencyView | AgentCommand::PublishMarginalia(_) => {
+                self.execute_sidebar(command).await
             }
         }
     }
@@ -211,6 +211,41 @@ impl CommandExecutor {
                 .await?;
         }
         Ok(())
+    }
+
+    /// The two commands that write to Herdr's own sidebar rather than to a
+    /// pane: publishing marginalia tokens, and asking for the urgency order.
+    async fn execute_sidebar(&self, command: AgentCommand) -> CommandResult {
+        match command {
+            AgentCommand::SetUrgencyView => match self.set_urgency_view().await {
+                Ok(()) => CommandResult::UrgencyViewSet,
+                Err(error) => CommandResult::UrgencyViewFailed {
+                    message: error.to_string(),
+                },
+            },
+            AgentCommand::PublishMarginalia(projection) => {
+                match self.publish_marginalia(projection).await {
+                    Ok(()) => CommandResult::MarginaliaPublished,
+                    Err(error) => CommandResult::MarginaliaFailed {
+                        message: error.to_string(),
+                    },
+                }
+            }
+            _ => CommandResult::MarginaliaPublished,
+        }
+    }
+
+    /// Asks Herdr to sort its agent list by Questmancer's urgency rank.
+    pub async fn set_urgency_view(&self) -> Result<(), ClientError> {
+        self.client
+            .set_agent_view(SIDEBAR_SOURCE, "Questmancer urgency")
+            .await
+    }
+
+    /// Hands the ordering back. Best-effort on shutdown: a Questmancer that
+    /// has stopped must not leave Herdr's sidebar sorted on its behalf.
+    pub async fn clear_urgency_view(&self) -> Result<(), ClientError> {
+        self.client.clear_agent_view(SIDEBAR_SOURCE).await
     }
 
     pub async fn clear_marginalia(

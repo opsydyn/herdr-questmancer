@@ -4,9 +4,7 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{
-        Agent, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId, Presence, Timestamp,
-    },
+    domain::{Agent, AgentKey, DomainState, PaneId, Timestamp},
     ledger::LedgerPageId,
     persistence::DurableIntent,
     update::{AppEvent, update},
@@ -133,6 +131,7 @@ pub struct RuntimeSettings {
     pub output_preview_lines: u32,
     pub reviewr_action: String,
     pub show_elapsed_time: bool,
+    pub sidebar_urgency_order: bool,
 }
 
 impl Default for RuntimeSettings {
@@ -141,6 +140,7 @@ impl Default for RuntimeSettings {
             output_preview_lines: 80,
             reviewr_action: "persiyanov.reviewr.open".to_owned(),
             show_elapsed_time: true,
+            sidebar_urgency_order: false,
         }
     }
 }
@@ -457,7 +457,7 @@ impl Model {
             .agents
             .values()
             .filter_map(|agent| {
-                let rank = urgency_rank(agent, self.now)?;
+                let rank = agent.urgency_rank(self.now)?;
                 let since = agent
                     .attention
                     .since()
@@ -1013,32 +1013,5 @@ impl Model {
 
     pub const fn goblins_mut(&mut self) -> &mut GoblinState {
         &mut self.goblins
-    }
-}
-
-/// How loudly an adventurer is asking for a human, lowest first.
-///
-/// `None` means nobody is waiting on you for this one. The three ranks are the
-/// only distinctions the Hall actually draws: an unanswered call for counsel,
-/// a call somebody has seen but not resolved, and the quieter summons that
-/// still deserve a look.
-fn urgency_rank(agent: &Agent, now: Timestamp) -> Option<u8> {
-    if let GuildAttention::Deferred { until, .. } = agent.attention
-        && until.as_millis() > now.as_millis()
-    {
-        // Deferring said "not now". Honour it until it expires.
-        return None;
-    }
-    match (&agent.attention, agent.presence) {
-        (
-            GuildAttention::Unread {
-                summons: GuildSummons::CounselRequested,
-                ..
-            },
-            _,
-        ) => Some(0),
-        (_, Presence::Blocked) => Some(1),
-        (GuildAttention::Unread { .. } | GuildAttention::Deferred { .. }, _) => Some(2),
-        _ => None,
     }
 }

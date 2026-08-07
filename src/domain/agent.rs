@@ -47,6 +47,49 @@ pub struct Agent {
 }
 
 impl Agent {
+    /// How loudly this adventurer is asking for a human, lowest first.
+    ///
+    /// `None` means nobody is waiting on you for this one. The three ranks are
+    /// the only distinctions the guild actually draws: an unanswered call for
+    /// counsel, a call somebody has seen but not resolved, and the quieter
+    /// summons that still deserve a look.
+    ///
+    /// This lives in the domain because two things order by it — the `!` jump
+    /// inside Questmancer and the rank token Herdr sorts its own sidebar by.
+    /// Two definitions of "urgent" would drift, and the sidebar would disagree
+    /// with the key.
+    #[must_use]
+    pub fn urgency_rank(&self, now: Timestamp) -> Option<u8> {
+        if let GuildAttention::Deferred { until, .. } = self.attention
+            && until.as_millis() > now.as_millis()
+        {
+            // Deferring said "not now". Honour it until it expires.
+            return None;
+        }
+        match (&self.attention, self.presence) {
+            (
+                GuildAttention::Unread {
+                    summons: GuildSummons::CounselRequested,
+                    ..
+                },
+                _,
+            ) => Some(0),
+            (_, Presence::Blocked) => Some(1),
+            (GuildAttention::Unread { .. } | GuildAttention::Deferred { .. }, _) => Some(2),
+            _ => None,
+        }
+    }
+
+    /// The rank as a single sortable digit, `3` meaning "nothing wanted".
+    ///
+    /// One digit on purpose: Herdr sorts custom tokens as the strings they are,
+    /// and a single digit orders identically whether the comparison is
+    /// lexicographic or numeric. Anything wider would depend on which.
+    #[must_use]
+    pub fn urgency_digit(&self, now: Timestamp) -> String {
+        self.urgency_rank(now).map_or(3, |rank| rank).to_string()
+    }
+
     #[must_use]
     pub fn from_snapshot(
         agent: &AgentInfo,

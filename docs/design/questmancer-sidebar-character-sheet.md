@@ -151,6 +151,42 @@ dialog.
 `tests/sidebar_documentation.rs` parses every example above and holds it to
 these rules. `herdr config check` remains the authority; run it after editing.
 
+## Letting Herdr order its own list by urgency
+
+Herdr 0.7.5 added `agent.view.set`, which takes a declarative sort and applies
+it to the sidebar, mobile, mouse and agent-keybind navigation order — and one
+of the fields it can sort by is a plugin's own metadata token.
+
+Questmancer publishes `$quest_rank` for exactly that: a single digit, `0` for
+an unanswered call for counsel, `1` for one already seen, `2` for the quieter
+summons, `3` for nothing wanted. Turn the view on and Herdr's own agent list
+leads with whoever needs a human, without Questmancer's pane being open.
+
+```toml
+# Questmancer's config.toml, not Herdr's
+sidebar_urgency_order = true
+```
+
+Four rules this follows:
+
+- **Off by default.** It changes shared Herdr UI rather than anything inside
+  Questmancer's pane. The sidebar belongs to the user.
+- **Sort, never filter.** `agent.view.set` can filter too. Hiding an agent from
+  Herdr's own sidebar because Questmancer judged it uninteresting would take
+  authority the plugin does not have; reordering leaves every agent reachable.
+- **Cleared on shutdown.** A Questmancer that has stopped must not leave
+  Herdr's list sorted on its behalf, so the view is released when the pane
+  closes and re-requested on every fresh connection — Herdr's view is
+  transient, so a server restart drops it.
+- **One definition of urgent.** The rank comes from `Agent::urgency_rank`, the
+  same function behind the `!` jump. Two definitions would drift and the
+  sidebar would start contradicting the key.
+
+`$quest_rank` is not for display. It is a bare digit because Herdr compares
+custom tokens as the strings they are, and a single digit sorts identically
+whether that comparison is lexicographic or numeric — which is not something
+the plugin can see from outside.
+
 ## Non-goals
 
 - No replacement of Herdr's `state_icon` or `state_text`. Questmancer adds a

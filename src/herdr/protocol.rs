@@ -292,6 +292,52 @@ pub struct PaneReportMetadataParams {
     pub seq: u64,
 }
 
+/// Parameters for `agent.view.set`, mirroring Herdr's schema.
+///
+/// Questmancer sends `sort` and never `filter`: reordering Herdr's agent list
+/// is a suggestion the user can undo, whereas filtering it would hide agents
+/// on the plugin's judgement.
+#[derive(Clone, Debug, Serialize)]
+pub struct AgentViewSetParams {
+    pub source: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub sort: Vec<AgentViewSort>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AgentViewClearParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AgentViewSort {
+    pub field: AgentViewSortField,
+    pub order: AgentViewSortOrder,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(untagged)]
+pub enum AgentViewSortField {
+    Builtin(AgentViewBuiltinSortField),
+    Token { token: String },
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentViewBuiltinSortField {
+    Attention,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentViewSortOrder {
+    Asc,
+    Desc,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct WorkspaceReportMetadataParams {
     pub workspace_id: String,

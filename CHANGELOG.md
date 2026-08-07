@@ -6,6 +6,18 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Herdr can now order its own agent list by Questmancer's urgency. Herdr 0.7.5
+  added `agent.view.set`, whose declarative sort accepts a plugin's metadata
+  token, so Questmancer publishes `$quest_rank` — a single digit for how loudly
+  an adventurer is asking for a human — and asks Herdr to lead with it. The
+  sidebar, mobile and keybind navigation order then answer "who needs me?"
+  without Questmancer's pane being open. Off by default under
+  `sidebar_urgency_order`, because it changes shared Herdr UI; it sorts and
+  never filters, so no agent is hidden on the plugin's judgement; and it is
+  released on shutdown and re-requested on each connection, since Herdr's view
+  is transient. The rank comes from the same `Agent::urgency_rank` behind the
+  `!` key, so the sidebar cannot start disagreeing with the keyboard.
+
 - A way to say "not now". `s` sets the selected adventurer's summons aside for
   fifteen minutes: the summons and its arrival time both survive, so the Hall
   still shows counsel is wanted, but the `!` urgency jump skips it until the

@@ -1,6 +1,6 @@
 use questmancer::{
     app::CharacterSet,
-    domain::{DomainState, GuildAttention, GuildSummons, Presence, Timestamp},
+    domain::{AgentKey, DomainState, GuildAttention, GuildSummons, PaneId, Presence, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     sidebar::{
         QUEST_CAMPAIGN, QUEST_CONDITION, QUEST_HOARD, QUEST_OMEN, QUEST_PARTY, QUEST_ROLE,
@@ -144,4 +144,124 @@ fn the_ascii_character_set_keeps_every_token_readable() {
             .get(QUEST_PARTY)
             .is_some_and(|party| party.is_ascii())
     );
+}
+
+/// The rank token Herdr sorts by and the `!` jump inside Questmancer must
+/// agree, or the sidebar order contradicts the key. Both read one definition
+/// in the domain; this proves they still line up end to end.
+#[test]
+fn the_rank_token_orders_agents_the_way_the_urgency_jump_does() {
+    use questmancer::{
+        app::{Model, View},
+        sidebar::QUEST_RANK,
+    };
+
+    let mut model = Model::new(View::Guild);
+    let mut domain = fixture_domain();
+    let template = domain.agents.values().next().unwrap().clone();
+    domain.agents.clear();
+    for (name, presence, attention) in [
+        ("aa-quiet", Presence::Working, GuildAttention::Clear),
+        (
+            "bb-unanswered",
+            Presence::Blocked,
+            GuildAttention::unread(GuildSummons::CounselRequested, Timestamp::from_millis(10)),
+        ),
+        (
+            "cc-seen",
+            Presence::Blocked,
+            GuildAttention::Read {
+                summons: GuildSummons::CounselRequested,
+                since: Timestamp::from_millis(20),
+            },
+        ),
+        (
+            "dd-quieter",
+            Presence::Done,
+            GuildAttention::unread(GuildSummons::SpoilsReturned, Timestamp::from_millis(30)),
+        ),
+    ] {
+        let mut agent = template.clone();
+        agent.key = AgentKey::new(name);
+        agent.pane_id = PaneId::new(format!("w1:{name}"));
+        agent.presence = presence;
+        agent.attention = attention;
+        domain.agents.insert(agent.key.clone(), agent);
+    }
+    model.replace_domain(domain.clone());
+    model.set_now(Timestamp::from_millis(1_000));
+
+    let projection = SidebarProjection::from_domain(
+        &domain,
+        Timestamp::from_millis(1_000),
+        CharacterSet::Unicode,
+    );
+    let rank_of = |name: &str| {
+        let key = AgentKey::new(name);
+        let pane = domain.agents[&key].pane_id.clone();
+        projection
+            .agents
+            .iter()
+            .find(|entry| entry.pane_id == pane)
+            .and_then(|entry| entry.tokens.get(QUEST_RANK))
+            .cloned()
+            .unwrap_or_default()
+    };
+
+    assert_eq!(rank_of("bb-unanswered"), "0");
+    assert_eq!(rank_of("cc-seen"), "1");
+    assert_eq!(rank_of("dd-quieter"), "2");
+    assert_eq!(rank_of("aa-quiet"), "3", "nothing wanted sorts last");
+
+    // Ascending string order over the ranks must reproduce the jump's order.
+    let waiting = model.adventurers_awaiting_a_human();
+    let mut by_rank = ["bb-unanswered", "cc-seen", "dd-quieter"]
+        .map(|name| (rank_of(name), name))
+        .to_vec();
+    by_rank.sort();
+    assert_eq!(
+        by_rank.iter().map(|(_, name)| *name).collect::<Vec<_>>(),
+        waiting.iter().map(AgentKey::as_str).collect::<Vec<_>>(),
+        "sorting by the published token must match the urgency jump"
+    );
+}
+
+/// One digit on purpose: Herdr compares custom tokens as strings, and a single
+/// digit orders identically whether that comparison is lexicographic or
+/// numeric. A wider value would depend on which, and we cannot see which.
+#[test]
+fn the_rank_token_is_always_one_digit() {
+    use questmancer::sidebar::QUEST_RANK;
+
+    let mut domain = fixture_domain();
+    let template = domain.agents.values().next().unwrap().clone();
+    domain.agents.clear();
+    for (index, presence) in [
+        Presence::Working,
+        Presence::Blocked,
+        Presence::Done,
+        Presence::Idle,
+        Presence::Exited,
+        Presence::Unknown,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut agent = template.clone();
+        agent.key = AgentKey::new(format!("agent-{index}"));
+        agent.pane_id = PaneId::new(format!("w1:p{index}"));
+        agent.presence = presence;
+        domain.agents.insert(agent.key.clone(), agent);
+    }
+
+    let projection = SidebarProjection::from_domain(
+        &domain,
+        Timestamp::from_millis(1_000),
+        CharacterSet::Unicode,
+    );
+    for entry in &projection.agents {
+        let rank = entry.tokens.get(QUEST_RANK).expect("every agent is ranked");
+        assert_eq!(rank.len(), 1, "rank {rank:?} is not a single digit");
+        assert!(rank.chars().all(|c| c.is_ascii_digit()));
+    }
 }

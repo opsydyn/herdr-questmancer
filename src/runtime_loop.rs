@@ -92,6 +92,9 @@ pub struct RuntimeConnection {
     supervisor_task: Option<JoinHandle<()>>,
     command_tasks: JoinSet<CommandResult>,
     last_sidebar_projection: Option<SidebarProjection>,
+    /// Whether Questmancer asked Herdr to order its agent list. Tracked so
+    /// shutdown clears exactly what was set and nothing else.
+    urgency_view_set: bool,
 }
 
 impl RuntimeConnection {
@@ -115,13 +118,18 @@ impl RuntimeConnection {
             supervisor_task: Some(supervisor_task),
             command_tasks: JoinSet::new(),
             last_sidebar_projection: None,
+            urgency_view_set: false,
         }
     }
 
     pub fn schedule(&mut self, commands: impl IntoIterator<Item = AgentCommand>) {
         for command in commands {
-            if let AgentCommand::PublishMarginalia(projection) = &command {
-                self.last_sidebar_projection = Some(projection.clone());
+            match &command {
+                AgentCommand::PublishMarginalia(projection) => {
+                    self.last_sidebar_projection = Some(projection.clone());
+                }
+                AgentCommand::SetUrgencyView => self.urgency_view_set = true,
+                _ => {}
             }
             let executor = self.executor.clone();
             self.command_tasks
@@ -183,6 +191,14 @@ impl RuntimeConnection {
             let _ = tokio::time::timeout(
                 Duration::from_millis(250),
                 self.executor.clear_marginalia(&projection),
+            )
+            .await;
+        }
+        if self.urgency_view_set {
+            self.urgency_view_set = false;
+            let _ = tokio::time::timeout(
+                Duration::from_millis(250),
+                self.executor.clear_urgency_view(),
             )
             .await;
         }
@@ -270,6 +286,11 @@ pub fn apply_connection_update(
         effects.agent_commands.push(AgentCommand::DiscoverReviewr {
             qualified_id: model.settings().reviewr_action.clone(),
         });
+        // Asked for on every fresh connection rather than once: Herdr's view
+        // is transient, so a server restart or reconnect drops it.
+        if model.settings().sidebar_urgency_order {
+            effects.agent_commands.push(AgentCommand::SetUrgencyView);
+        }
     }
     let after_marginalia = SidebarProjection::from_domain(
         model.domain(),
@@ -346,7 +367,12 @@ pub fn apply_command_result(
         CommandResult::SpoilsOpened => {
             model.set_action_feedback("Spoils inspected.".to_owned());
         }
-        CommandResult::MarginaliaPublished => {}
+        CommandResult::UrgencyViewFailed { message } => {
+            // Never fatal: an unsorted sidebar is Herdr's normal state, and
+            // Questmancer's own urgency jump is unaffected.
+            model.set_integration_diagnostic(format!("sidebar urgency order failed: {message}"));
+        }
+        CommandResult::UrgencyViewSet | CommandResult::MarginaliaPublished => {}
         CommandResult::MarginaliaFailed { message } => {
             model.set_integration_diagnostic(format!("sidebar marginalia failed: {message}"));
         }
@@ -436,6 +462,7 @@ mod tests {
             supervisor_task: Some(supervisor_task),
             command_tasks: JoinSet::new(),
             last_sidebar_projection: None,
+            urgency_view_set: false,
         };
         first_sent_rx.await.unwrap();
         tokio::task::yield_now().await;
@@ -485,6 +512,7 @@ mod tests {
             shutdown_tx,
             supervisor_task: Some(tokio::spawn(async {})),
             command_tasks: JoinSet::new(),
+            urgency_view_set: false,
             last_sidebar_projection: Some(SidebarProjection {
                 agents: vec![SidebarAgentTokens {
                     pane_id: PaneId::new("w1:p1"),

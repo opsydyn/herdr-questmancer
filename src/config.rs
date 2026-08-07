@@ -16,6 +16,7 @@ pub struct QuestmancerConfig {
     pub chronicle_max_entries: usize,
     pub reviewr_action: String,
     pub show_elapsed_time: bool,
+    pub sidebar_urgency_order: bool,
 }
 
 impl Default for QuestmancerConfig {
@@ -27,6 +28,7 @@ impl Default for QuestmancerConfig {
             chronicle_max_entries: 500,
             reviewr_action: "persiyanov.reviewr.open".to_owned(),
             show_elapsed_time: true,
+            sidebar_urgency_order: false,
         }
     }
 }
@@ -38,6 +40,7 @@ impl QuestmancerConfig {
 
     pub fn runtime_settings(&self) -> RuntimeSettings {
         RuntimeSettings {
+            sidebar_urgency_order: self.sidebar_urgency_order,
             output_preview_lines: self.output_preview_lines,
             reviewr_action: self.reviewr_action.clone(),
             show_elapsed_time: self.show_elapsed_time,
@@ -99,6 +102,11 @@ struct ConfigFile {
     chronicle_max_entries: usize,
     reviewr_action: String,
     show_elapsed_time: bool,
+    /// Opt-in: let Questmancer order Herdr's own agent list by urgency.
+    ///
+    /// Off by default because it changes shared Herdr UI rather than anything
+    /// inside Questmancer's pane. The sidebar belongs to the user.
+    sidebar_urgency_order: bool,
 }
 
 impl Default for ConfigFile {
@@ -113,6 +121,7 @@ impl Default for ConfigFile {
             chronicle_max_entries: config.chronicle_max_entries,
             reviewr_action: config.reviewr_action,
             show_elapsed_time: config.show_elapsed_time,
+            sidebar_urgency_order: config.sidebar_urgency_order,
         }
     }
 }
@@ -146,6 +155,7 @@ impl TryFrom<ConfigFile> for QuestmancerConfig {
             chronicle_max_entries: file.chronicle_max_entries,
             reviewr_action: file.reviewr_action,
             show_elapsed_time: file.show_elapsed_time,
+            sidebar_urgency_order: file.sidebar_urgency_order,
         })
     }
 }

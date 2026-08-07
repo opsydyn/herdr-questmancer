@@ -519,6 +519,7 @@ fn refresh_loads_only_the_selected_output() {
 fn configured_runtime_settings_drive_output_and_reviewr_commands() {
     let mut model = live_model_with_two_agents();
     model.set_settings(RuntimeSettings {
+        sidebar_urgency_order: false,
         output_preview_lines: 123,
         reviewr_action: "acme.diff.inspect".to_owned(),
         show_elapsed_time: true,

@@ -222,6 +222,16 @@ any existing sidebar customisation, then run `herdr config check` and reload
 the configuration by the method appropriate for your Herdr server. Questmancer
 does not use `rows_by_agent`; its dynamic personas remain presentation data.
 
+### Letting Herdr sort its own agent list by urgency
+
+Set `sidebar_urgency_order = true` in Questmancer's configuration and Herdr's
+sidebar, mobile and keybind navigation order lead with whichever adventurer
+needs a human — the same ranking `!` uses inside Questmancer. It is off by
+default because it changes shared Herdr UI, it sorts without ever filtering so
+no agent is hidden, and it is released when Questmancer closes.
+
+Requires Herdr `0.7.5` or newer.
+
 ## Local state and privacy
 
 Questmancer is local-only at runtime. It has no telemetry, cloud sync or network
