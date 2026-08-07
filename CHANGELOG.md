@@ -85,6 +85,15 @@ All notable changes to this project will be documented here.
 
 ### Changed
 
+- Sidebar styling is back. Herdr 0.7.5 added per-token foreground, bold and
+  dim styling, so the published configurations carry colour again: the vigil
+  reads in alarm red, the hoard and condition in gold, secondary lines dimmed.
+  The schema was re-derived by probing the 0.8.0 binary rather than reading the
+  documentation — only `token`, `fg`, `bold` and `dim` are accepted, `fg` takes
+  strict hex so a named colour is rejected, and there is still no literal-text
+  element. Every published example is fed to `herdr config check` and the guard
+  now encodes those rules.
+
 - Questmancer now targets Herdr `0.8.0` and protocol `19`, up from `0.7.4` and
   protocol `16`. Herdr refuses a client whose protocol differs, so this is a
   hard cutover: `0.8.0` needs this release, and an older Herdr needs the

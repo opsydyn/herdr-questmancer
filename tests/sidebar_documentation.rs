@@ -2,17 +2,22 @@
 //!
 //! Every `[ui.sidebar]` example we shipped was rejected by Herdr, and the
 //! first attempt to fix them was rejected too. The rules below come from
-//! running `herdr config check` against the 0.7.4 binary we target, not from
-//! the published documentation, which describes a later schema:
+//! feeding candidate rows to `herdr config check` on the 0.8.0 binary we
+//! target, not from reading the published documentation:
 //!
-//! - a row element is a plain string; an inline table gives
-//!   `invalid type: map, expected a string`;
-//! - every string must name a builtin token or a `$`-prefixed custom one;
-//!   literal text like `" "` or `"Trinket: "` gives `unknown sidebar token`.
+//! - a row element is a token name, or an inline table keyed `token`;
+//!   `value =` is rejected, and so is a table with styling but no token;
+//! - the only style keys are `token`, `fg`, `bold` and `dim` — `italic` is
+//!   rejected — and `fg` takes strict hex, so `"red"` is rejected;
+//! - there is still no literal text: `" "` and `"Trinket: "` are read as token
+//!   names and give `unknown sidebar token`.
 //!
-//! Herdr ignores keys it does not recognise but validates tokens strictly, so
-//! a bad token takes the entire file down to defaults and silently discards
-//! every unrelated setting with it.
+//! Styling itself arrived in Herdr 0.7.5; on 0.7.4 an inline table fails with
+//! `invalid type: map, expected a string`.
+//!
+//! Herdr ignores keys it does not recognise but validates tokens and styles
+//! strictly, so a bad token takes the entire file down to defaults and
+//! silently discards every unrelated setting with it.
 //!
 //! Nothing could have caught this: the examples were prose in a Markdown file
 //! and the only thing that read them was a person.
@@ -100,20 +105,50 @@ fn every_documented_config_is_valid_toml() {
     }
 }
 
-/// Herdr 0.7.4 takes plain strings and nothing else. Our first correction
-/// reached for the inline-table styling documented on herdr.dev, which belongs
-/// to a later schema; the binary answers `invalid type: map, expected a
-/// string` and falls back to defaults.
+/// A styled element is an inline table keyed `token`, carrying only `fg`,
+/// `bold` and `dim`. Our first version keyed it `value`, which Herdr rejects,
+/// taking the whole file down with it.
 #[test]
-fn documented_rows_hold_plain_strings() {
+fn documented_rows_use_the_styling_keys_herdr_accepts() {
     for block in toml_blocks() {
         for (panel, row) in rows_of(&block) {
             for element in row {
+                let Value::Table(table) = &element else {
+                    assert!(
+                        element.is_str(),
+                        "a {panel} row element is {element}; Herdr accepts a token \
+                         name or an inline table and nothing else"
+                    );
+                    continue;
+                };
                 assert!(
-                    element.is_str(),
-                    "a {panel} row element is {element}; Herdr 0.7.4 accepts only \
-                     plain strings, and rejects the whole file on anything else"
+                    table.contains_key("token"),
+                    "a {panel} row element is keyed {:?}; Herdr requires `token`",
+                    table.keys().collect::<Vec<_>>()
                 );
+                for key in table.keys() {
+                    assert!(
+                        ["token", "fg", "bold", "dim"].contains(&key.as_str()),
+                        "`{key}` is not a Herdr row-style key; only token, fg, \
+                         bold and dim are accepted"
+                    );
+                }
+                for flag in ["bold", "dim"] {
+                    if let Some(set) = table.get(flag) {
+                        assert!(set.is_bool(), "`{flag}` must be a boolean, got {set}");
+                    }
+                }
+                if let Some(colour) = table.get("fg") {
+                    let colour = colour
+                        .as_str()
+                        .unwrap_or_else(|| panic!("fg must be a string, got {colour}"));
+                    let digits = colour.strip_prefix('#').unwrap_or("");
+                    assert!(
+                        (digits.len() == 3 || digits.len() == 6)
+                            && digits.chars().all(|c| c.is_ascii_hexdigit()),
+                        "fg {colour:?} is not strict hex; Herdr rejects named colours"
+                    );
+                }
             }
         }
     }

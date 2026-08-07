@@ -73,17 +73,17 @@ Add to your Herdr configuration. Each inner array is one rendered line.
 [ui.sidebar.agents]
 row_gap = 1
 rows = [
-  ["state_icon", "$quest_sigil", "agent"],
-  ["$quest_role", "$quest_condition"],
-  ["$quest_vigil"],
-  ["$quest_hoard"],
+  ["state_icon", "$quest_sigil", { token = "agent", bold = true }],
+  [{ token = "$quest_role", dim = true }, { token = "$quest_condition", fg = "#c9a227" }],
+  [{ token = "$quest_vigil", fg = "#c2413f" }],
+  [{ token = "$quest_hoard", dim = true }],
 ]
 
 [ui.sidebar.spaces]
 rows = [
-  ["state_icon", "workspace", "$quest_party"],
-  ["$quest_campaign"],
-  ["$quest_hoard"],
+  ["state_icon", { token = "workspace", bold = true }, "$quest_party"],
+  [{ token = "$quest_campaign", dim = true }],
+  [{ token = "$quest_hoard", dim = true }],
 ]
 ```
 
@@ -92,8 +92,8 @@ A tighter two-line variant for narrow sidebars:
 ```toml
 [ui.sidebar.agents]
 rows = [
-  ["$quest_sigil", "agent", "$quest_vigil"],
-  ["$quest_condition"],
+  ["$quest_sigil", { token = "agent", bold = true }, { token = "$quest_vigil", fg = "#c2413f" }],
+  [{ token = "$quest_condition", dim = true }],
 ]
 ```
 
@@ -103,41 +103,47 @@ A full character sheet, for a wide sidebar:
 [ui.sidebar.agents]
 row_gap = 1
 rows = [
-  ["$quest_sigil", "agent"],
-  ["$quest_role"],
-  ["$quest_epithet"],
-  ["state_icon", "$quest_condition"],
-  ["$quest_omen"],
-  ["$quest_trinket"],
-  ["$quest_vigil"],
-  ["$quest_hoard"],
+  ["$quest_sigil", { token = "agent", bold = true }],
+  [{ token = "$quest_role", dim = true }],
+  [{ token = "$quest_epithet", dim = true }],
+  ["state_icon", { token = "$quest_condition", fg = "#c9a227" }],
+  [{ token = "$quest_omen", dim = true }],
+  [{ token = "$quest_trinket", dim = true }],
+  [{ token = "$quest_vigil", fg = "#c2413f" }],
+  [{ token = "$quest_hoard", fg = "#c9a227" }],
 ]
 ```
 
-## What Herdr 0.7.4 actually accepts
+## What Herdr 0.8.0 actually accepts
 
-Every configuration above is verified against the binary we target, not
-against the published documentation. The two differ, and this document got it
-wrong twice before anyone ran `herdr config check`:
+Every configuration above is verified by feeding it to `herdr config check`,
+not by reading the published documentation. This document got the schema wrong
+twice before anyone ran the binary, and each time a pasted example took a whole
+`config.toml` down to defaults:
 
-- **A row element is a plain string, and it must name a token.** Herdr 0.7.4
-  rejects an inline table outright — `invalid type: map, expected a string` —
-  so the `{ token = "…", fg = "…", bold = true }` styling shown on
-  herdr.dev belongs to a later schema than the one we pin. There is no
-  styling mechanism in 0.7.4.
-- **There is no literal-text element.** `" "` and `"Trinket: "` are read as
-  token names and rejected: `unknown sidebar token; custom tokens must start
+- **A row element is a token name, or an inline table keyed `token`.**
+  `{ token = "$quest_vigil", fg = "#c2413f" }`. `value =` is rejected. So is a
+  table with styling but no `token`.
+- **The only style keys are `token`, `fg`, `bold` and `dim`.** `italic` is
+  rejected, and `bold` must be a boolean rather than a string.
+- **`fg` takes strict hex only** — `#RGB` or `#RRGGBB`, either case. A named
+  colour such as `"red"` is rejected.
+- **There is still no literal-text element.** `" "` and `"Trinket: "` are read
+  as token names and rejected: `unknown sidebar token; custom tokens must start
   with $`. Herdr separates adjacent values with `·` itself and puts a single
   space after `state_icon`, so spacers are unnecessary as well as invalid.
 
-Because a value cannot be styled or labelled by the configuration, anything it
-needs in order to explain itself has to travel inside the token. That is why
-`$quest_hoard` reads `◈ 3 spoils`, `$quest_omen` reads `seeks counsel`, and
-`$quest_trinket` reads `❖ Silver Compass` rather than relying on a prefix the
-row cannot supply.
+Styling arrived in Herdr 0.7.5. On 0.7.4 an inline table fails with
+`invalid type: map, expected a string`, so these configurations require the
+0.8.0 the plugin now targets.
 
-One trap worth knowing: Herdr 0.7.4 **ignores keys it does not recognise** but
-validates every token strictly. A misspelled key fails silently while a
+Because a row cannot supply literal text, anything a value needs in order to
+explain itself has to travel inside the token. That is why `$quest_hoard`
+reads `◈ 3 spoils`, `$quest_omen` reads `seeks counsel`, and `$quest_trinket`
+reads `❖ Silver Compass` rather than relying on a prefix the row cannot give.
+
+One trap worth knowing: Herdr **ignores keys it does not recognise** but
+validates tokens and styles strictly. A misspelled key fails silently while a
 misspelled token takes the whole file down to defaults — losing every unrelated
 setting with it, which is how a broken sidebar row brought back the onboarding
 dialog.
