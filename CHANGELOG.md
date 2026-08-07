@@ -6,6 +6,15 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- A way to say "not now". `s` sets the selected adventurer's summons aside for
+  fifteen minutes: the summons and its arrival time both survive, so the Hall
+  still shows counsel is wanted, but the `!` urgency jump skips it until the
+  time is up. `GuildAttention::Deferred` had existed from the beginning with
+  nothing that could produce it — the reducer could mark a summons read, the
+  urgency ranking was already written to skip deferred ones, and no control
+  could put an adventurer into the state. Setting aside is session-scoped on
+  purpose, unlike acknowledgement, which persists.
+
 - A character-sheet vocabulary for Herdr's custom sidebar rows. Questmancer now
   publishes a class sigil, an epithet, a condition, a keepsake trinket, an
   exhaustion-style vigil for summons nobody has answered, and a bag-of-holding

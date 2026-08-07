@@ -37,6 +37,7 @@ pub fn update(mut state: DomainState, event: AppEvent) -> (DomainState, Vec<Comm
         } => exit_pane(&mut state, &pane_id, revision, occurred_at),
         AppEvent::WorkspaceClosed(workspace_id) => close_workspace(&mut state, &workspace_id),
         AppEvent::MarkRead(agent_key) => mark_read(&mut state, &agent_key),
+        AppEvent::DeferSummons { agent_key, until } => defer_summons(&mut state, &agent_key, until),
     };
     (state, commands)
 }
@@ -198,6 +199,26 @@ fn close_workspace(state: &mut DomainState, workspace_id: &WorkspaceId) -> Vec<C
     {
         state.selected_agent = state.agents.keys().next().cloned();
     }
+    vec![Command::PersistState]
+}
+
+/// Sets an adventurer's summons aside until a chosen moment.
+///
+/// Deferring is only meaningful where a summons exists; an adventurer with
+/// nothing to answer for cannot be snoozed, and saying so beats writing a
+/// deferral nobody asked for.
+fn defer_summons(
+    state: &mut DomainState,
+    agent_key: &crate::domain::AgentKey,
+    until: Timestamp,
+) -> Vec<Command> {
+    let Some(agent) = state.agents.get_mut(agent_key) else {
+        return Vec::new();
+    };
+    if agent.attention.summons().is_none() {
+        return Vec::new();
+    }
+    agent.attention = agent.attention.clone().defer_until(until);
     vec![Command::PersistState]
 }
 

@@ -68,6 +68,10 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             mark_read(model);
             ControlFlow::Continue(())
         }
+        Action::DeferSummons => {
+            defer_summons(model);
+            ControlFlow::Continue(())
+        }
         Action::Search => {
             model.open_search();
             ControlFlow::Continue(())
@@ -429,6 +433,16 @@ fn visible_presence_terms(agent: &Agent) -> &'static [&'static str] {
         Presence::Idle => &["resting"],
         Presence::Exited => &["departed"],
         Presence::Unknown => &["unknown"],
+    }
+}
+
+/// Sets the selected summons aside, or explains why it cannot.
+fn defer_summons(model: &mut Model) {
+    if model.defer_selected_summons() {
+        let minutes = Model::SNOOZE.as_secs() / 60;
+        model.set_action_feedback(format!("Set aside for {minutes} minutes."));
+    } else {
+        model.set_action_feedback("That adventurer has no summons to set aside.".to_owned());
     }
 }
 

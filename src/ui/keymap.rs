@@ -64,6 +64,11 @@ pub const BINDINGS: &[Binding] = &[
         action: Action::AcknowledgeSummons,
     },
     Binding {
+        keys: "s",
+        description: "Set the summons aside for a while",
+        action: Action::DeferSummons,
+    },
+    Binding {
         keys: "o",
         description: "Scry the adventurer's recent output",
         action: Action::Refresh,

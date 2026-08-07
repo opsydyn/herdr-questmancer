@@ -232,7 +232,9 @@ fn assert_topology_commands(
                 prop_assert!(commands.is_empty());
             }
         }
-        AppEvent::AgentStatusChanged { .. } | AppEvent::MarkRead(_) => {
+        AppEvent::AgentStatusChanged { .. }
+        | AppEvent::MarkRead(_)
+        | AppEvent::DeferSummons { .. } => {
             prop_assert!(false, "topology strategy emitted a non-topology event");
         }
     }

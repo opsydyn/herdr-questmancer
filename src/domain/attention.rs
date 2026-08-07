@@ -62,6 +62,34 @@ impl GuildAttention {
         }
     }
 
+    /// Sets a summons aside until `until`.
+    ///
+    /// This variant existed from the start and nothing ever built it: the
+    /// reducer could mark a summons read, the urgency jump was already written
+    /// to skip deferred ones, and no control could put an adventurer into the
+    /// state. Deferring keeps the summons and its original `since`, so the
+    /// Hall still shows the adventurer needs counsel — it says "not now",
+    /// not "handled".
+    #[must_use]
+    pub fn defer_until(self, until: Timestamp) -> Self {
+        match self {
+            Self::Unread { summons, since }
+            | Self::Read { summons, since }
+            | Self::Deferred { summons, since, .. } => Self::Deferred {
+                summons,
+                since,
+                until,
+            },
+            Self::Clear => Self::Clear,
+        }
+    }
+
+    /// Whether this summons is currently set aside.
+    #[must_use]
+    pub fn is_deferred_at(&self, now: Timestamp) -> bool {
+        matches!(self, Self::Deferred { until, .. } if until.as_millis() > now.as_millis())
+    }
+
     pub const fn is_unread(&self) -> bool {
         matches!(self, Self::Unread { .. })
     }

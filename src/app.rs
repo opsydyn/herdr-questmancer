@@ -375,6 +375,31 @@ impl Model {
         }
     }
 
+    /// How long `s` sets a summons aside for.
+    ///
+    /// Long enough to finish what you are doing, short enough that a snooze is
+    /// not a quiet dismissal. Deferring is deliberately not persisted across a
+    /// restart: a summons still genuinely needs answering, and reopening
+    /// Questmancer is a reasonable moment to be reminded of it.
+    pub const SNOOZE: Duration = Duration::from_secs(15 * 60);
+
+    /// Sets the selected adventurer's summons aside. Returns false when there
+    /// is nothing to set aside, so the caller can say so.
+    pub fn defer_selected_summons(&mut self) -> bool {
+        let Some(agent) = self.selected_agent() else {
+            return false;
+        };
+        if agent.attention.summons().is_none() {
+            return false;
+        }
+        let agent_key = agent.key.clone();
+        let until = self.now.plus(Self::SNOOZE);
+        let domain = self.take_domain();
+        let (domain, _commands) = update(domain, AppEvent::DeferSummons { agent_key, until });
+        self.replace_domain(domain);
+        true
+    }
+
     pub fn mark_selected_attention_read(&mut self) {
         let Some(agent_key) = self.selected_agent_key().cloned() else {
             return;

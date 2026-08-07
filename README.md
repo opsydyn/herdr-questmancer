@@ -88,6 +88,7 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `Enter` | Observe the selected adventurer's Herdr pane |
 | `r` | Open the counsel parchment |
 | `Space` | Acknowledge the selected unread summons locally |
+| `s` | Set the selected summons aside for a while |
 | `o` | Refresh the selected adventurer's recent output |
 | `!` | Jump to the next adventurer waiting on you |
 | `Tab` | Move to the next campaign's party |
@@ -108,6 +109,13 @@ quieter summons, and within each rank whoever has waited longest. Deferred
 summons are skipped until their snooze expires. When nobody is waiting the
 selection stays put and Questmancer says so. While at least one adventurer is
 waiting, the command ribbon carries the count.
+
+`s` sets a summons aside for fifteen minutes. The summons and the moment it
+arrived both survive — the Hall still shows the adventurer needs counsel — but
+`!` skips them until the time is up. Setting aside is session-scoped on
+purpose: acknowledging with `Space` is written to durable state and survives a
+restart, while a snooze is not, because the summons still needs answering and
+reopening Questmancer is a fair moment to be reminded.
 
 `m`, `u` and `p` change motion, glyphs and colour depth while running. Each
 reports the setting it landed on and is written to durable state, so a change

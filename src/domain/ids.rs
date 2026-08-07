@@ -52,6 +52,13 @@ impl Timestamp {
         self.0
     }
 
+    /// Moves forward by `ahead`, saturating rather than wrapping.
+    #[must_use]
+    pub fn plus(self, ahead: Duration) -> Self {
+        let milliseconds = i64::try_from(ahead.as_millis()).unwrap_or(i64::MAX);
+        Self(self.0.saturating_add(milliseconds))
+    }
+
     pub fn elapsed_until(self, now: Self) -> Duration {
         let milliseconds = now.0.saturating_sub(self.0).max(0).cast_unsigned();
         Duration::from_millis(milliseconds)

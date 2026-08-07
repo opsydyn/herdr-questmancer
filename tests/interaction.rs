@@ -1456,3 +1456,103 @@ fn motion_cycles_through_every_setting() {
     );
     assert_eq!(model.preferences().motion, start, "and come back round");
 }
+
+/// `GuildAttention::Deferred` shipped from the start with no way to reach it.
+/// The reducer could mark a summons read, the urgency jump was already written
+/// to skip deferred summons, and no control could put an adventurer into the
+/// state at all.
+#[test]
+fn setting_a_summons_aside_takes_it_out_of_the_urgency_cycle() {
+    let mut model = model_with_a_buried_call_for_counsel();
+    assert_eq!(
+        model.adventurers_awaiting_a_human(),
+        vec![AgentKey::new("cc-blocked")]
+    );
+
+    let _ = reduce_action(&mut model, Action::NextUrgent);
+    assert_eq!(
+        model.selected_agent_key(),
+        Some(&AgentKey::new("cc-blocked"))
+    );
+
+    let set_aside = reduce_action(&mut model, Action::DeferSummons);
+    assert!(
+        model.action_feedback().is_some_and(|f| f.contains("aside")),
+        "setting aside must say so, got {:?}",
+        model.action_feedback()
+    );
+    // Deliberately session-scoped. Acknowledging a summons is written to
+    // durable state and survives a restart; setting one aside is not, because
+    // the summons still genuinely needs answering and reopening Questmancer is
+    // a reasonable moment to be reminded. See `Model::SNOOZE`.
+    assert!(
+        set_aside.persistence.is_empty(),
+        "a snooze must not outlive the session"
+    );
+
+    assert!(
+        model.adventurers_awaiting_a_human().is_empty(),
+        "a set-aside summons must leave the urgency cycle"
+    );
+    let _ = reduce_action(&mut model, Action::NextUrgent);
+    assert_eq!(
+        model.action_feedback(),
+        Some("No adventurer is waiting on you."),
+    );
+}
+
+/// Setting aside says "not now", not "handled": the summons and the moment it
+/// arrived both survive, so the Hall still shows counsel is wanted.
+#[test]
+fn setting_aside_keeps_the_summons_rather_than_clearing_it() {
+    let mut model = model_with_a_buried_call_for_counsel();
+    let key = AgentKey::new("cc-blocked");
+    let before = model.domain().agents.get(&key).unwrap().attention.clone();
+
+    model.select_agent(&key);
+    let _ = reduce_action(&mut model, Action::DeferSummons);
+
+    let after = &model.domain().agents.get(&key).unwrap().attention;
+    assert_eq!(after.summons(), before.summons(), "the summons survives");
+    assert_eq!(after.since(), before.since(), "so does when it arrived");
+    assert!(after.is_deferred_at(model.now()));
+    assert_eq!(
+        model.domain().agents.get(&key).unwrap().presence,
+        Presence::Blocked,
+        "the adventurer still needs counsel; only the queue changed"
+    );
+}
+
+/// The snooze expires on its own.
+#[test]
+fn a_set_aside_summons_returns_when_its_time_is_up() {
+    let mut model = model_with_a_buried_call_for_counsel();
+    model.select_agent(&AgentKey::new("cc-blocked"));
+    let _ = reduce_action(&mut model, Action::DeferSummons);
+    assert!(model.adventurers_awaiting_a_human().is_empty());
+
+    let later = Timestamp::from_millis(
+        model.now().as_millis() + i64::try_from(Model::SNOOZE.as_millis()).unwrap() + 1,
+    );
+    model.set_now(later);
+
+    assert_eq!(
+        model.adventurers_awaiting_a_human(),
+        vec![AgentKey::new("cc-blocked")],
+        "the summons must come back when the snooze runs out"
+    );
+}
+
+/// An adventurer with nothing to answer for cannot be snoozed.
+#[test]
+fn setting_aside_nothing_says_so() {
+    let mut model = model_with_a_buried_call_for_counsel();
+    model.select_agent(&AgentKey::new("aa-calm"));
+
+    let _ = reduce_action(&mut model, Action::DeferSummons);
+
+    assert_eq!(
+        model.action_feedback(),
+        Some("That adventurer has no summons to set aside.")
+    );
+}

@@ -23,6 +23,10 @@ pub enum AppEvent {
         occurred_at: Timestamp,
     },
     WorkspaceClosed(WorkspaceId),
+    DeferSummons {
+        agent_key: crate::domain::AgentKey,
+        until: Timestamp,
+    },
     MarkRead(AgentKey),
 }
 
