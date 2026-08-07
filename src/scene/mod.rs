@@ -110,6 +110,7 @@ pub fn render_scene_for_world(
 ) -> SceneFrame {
     let mut plan = stage::project_for_world(snapshot, viewport, presentation.world);
     render::interaction::apply_selection(&mut plan, presentation);
+    plan.goblin_outbreak = presentation.goblin_outbreak;
     render::paint(snapshot, &plan, viewport, target)
 }
 

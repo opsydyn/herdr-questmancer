@@ -525,6 +525,85 @@ fn a_party_too_large_for_the_roster_still_falls_back_to_the_priority_vignette() 
     );
 }
 
+/// The outbreak had a working trigger and no visible effect: `is_visible`
+/// had zero call sites, so releasing goblins changed state nothing painted.
+#[test]
+fn releasing_goblins_actually_puts_goblins_in_the_room() {
+    let snapshot = mixed_snapshot();
+
+    let calm = render_with_presentation(&snapshot, WorldScene::GuildHall, VIEWPORT, false);
+    let (loose, frame) =
+        render_with_presentation_frame(&snapshot, WorldScene::GuildHall, VIEWPORT, true);
+
+    let goblin_skin = questmancer::scene::assets::archetypes::goblin_world_frame();
+    let goblin_colours = goblin_skin
+        .pixels()
+        .iter()
+        .flatten()
+        .copied()
+        .collect::<HashSet<_>>();
+    let count = |buffer: &RgbBuffer| {
+        buffer
+            .pixels()
+            .iter()
+            .filter(|pixel| goblin_colours.contains(pixel))
+            .count()
+    };
+
+    assert!(
+        count(&loose) > count(&calm),
+        "an outbreak must add goblin pixels to the room"
+    );
+    // And it must keep asking for frames, or the window never visibly closes.
+    assert!(
+        frame.next_frame_in.is_some(),
+        "an outbreak must schedule the frame that ends it"
+    );
+}
+
+/// Goblins are a sighting, not a takeover: they never displace an adventurer.
+#[test]
+fn goblins_never_stand_where_an_adventurer_stands() {
+    let snapshot = mixed_snapshot();
+
+    let (_, calm) =
+        render_with_presentation_frame(&snapshot, WorldScene::GuildHall, VIEWPORT, false);
+    let (_, loose) =
+        render_with_presentation_frame(&snapshot, WorldScene::GuildHall, VIEWPORT, true);
+
+    assert_eq!(
+        calm.actors, loose.actors,
+        "an outbreak must not move or drop a single adventurer"
+    );
+}
+
+fn render_with_presentation(
+    snapshot: &SceneSnapshot,
+    world: WorldScene,
+    viewport: PixelSize,
+    goblin_outbreak: bool,
+) -> RgbBuffer {
+    render_with_presentation_frame(snapshot, world, viewport, goblin_outbreak).0
+}
+
+fn render_with_presentation_frame(
+    snapshot: &SceneSnapshot,
+    world: WorldScene,
+    viewport: PixelSize,
+    goblin_outbreak: bool,
+) -> (RgbBuffer, SceneFrame) {
+    let presentation = questmancer::scene::presentation::ScenePresentation {
+        world,
+        selected_agent: None,
+        overlay: questmancer::scene::presentation::SceneOverlay::None,
+        goblin_outbreak,
+    };
+    let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
+    let frame =
+        questmancer::scene::render_scene_for_world(snapshot, &presentation, viewport, &mut target);
+    (target, frame)
+}
+
 fn overlaps(left: PixelRect, right: PixelRect) -> bool {
     left.x < right.x + i32::from(right.width)
         && left.x + i32::from(left.width) > right.x

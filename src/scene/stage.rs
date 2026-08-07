@@ -87,6 +87,8 @@ pub struct ScenePlan {
     pub actors: Vec<ActorPlacement>,
     pub effects: Vec<SceneEffect>,
     pub cadence: SceneCadence,
+    /// Presentation-only: set from `ScenePresentation`, never from a snapshot.
+    pub goblin_outbreak: bool,
 }
 
 impl ScenePlan {
@@ -120,6 +122,7 @@ pub(crate) fn project_for_world(
         actors,
         effects,
         cadence,
+        goblin_outbreak: false,
     }
 }
 

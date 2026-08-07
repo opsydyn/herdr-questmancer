@@ -178,6 +178,10 @@ impl CompositionRecorder {
     }
 }
 
+// Goblin hiding places in the dungeon: the entrance shadow and the descending
+// corridor. Both sit clear of every station reservation.
+const GOBLIN_DENS: [PixelPoint; 2] = [PixelPoint::new(10, 34), PixelPoint::new(78, 62)];
+
 const ENTRANCE: PixelRect = PixelRect::new(4, 31, 46, 25);
 const ENTRANCE_PASSAGE: PixelRect = PixelRect::new(44, 38, 18, 10);
 const WEST_CHAMBER: PixelRect = PixelRect::new(10, 7, 47, 28);
@@ -410,11 +414,21 @@ impl<'a> DelvePainter<'a> {
         let (actor_deadline, actors) =
             paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin);
         let effect_deadline = paint_effects(self.snapshot, self.plan, self.target, self.origin);
+        let goblin_deadline = if self.plan.goblin_outbreak {
+            interaction::paint_goblins(self.target, self.origin, &GOBLIN_DENS);
+            Some(interaction::GOBLIN_FRAME_INTERVAL)
+        } else {
+            None
+        };
         paint_connection_fact(self.snapshot, self.target, self.origin);
 
         SceneFrame {
             world: self.plan.world,
-            next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
+            next_frame_in: actor_deadline
+                .into_iter()
+                .chain(effect_deadline)
+                .chain(goblin_deadline)
+                .min(),
             actors,
             interactables: Vec::new(),
         }
@@ -1213,6 +1227,7 @@ mod tests {
             actors,
             effects: Vec::new(),
             cadence: SceneCadence::EventDriven,
+            goblin_outbreak: false,
         };
         let anchors = actor_anchors(&plan);
         let unique = anchors
@@ -1292,6 +1307,7 @@ mod tests {
             actors,
             effects: Vec::new(),
             cadence: SceneCadence::EventDriven,
+            goblin_outbreak: false,
         };
 
         assert_eq!(actor_anchors(&plan).len(), VISIBLE_ACTORS_PER_STATION);
@@ -1392,6 +1408,7 @@ mod tests {
             actors: Vec::new(),
             effects: Vec::new(),
             cadence: SceneCadence::EventDriven,
+            goblin_outbreak: false,
         };
         paint_depth_sorted(&snapshot, &empty_plan, &mut composed, origin);
 

@@ -86,6 +86,16 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- The goblin outbreak now actually appears. Typing `release the goblins` into
+  the search prompt already set the state, and `GoblinState::is_visible` had no
+  callers, so the easter egg changed nothing a player could see and the release
+  notes' "rare deterministic goblin sightings" was a claim about dead code.
+  Goblins now raid two hiding places in the Guild Hall and two in the Delve for
+  the three-second window, and the renderer asks for its own frames so the
+  window visibly closes. The outbreak rides on the presentation rather than the
+  scene snapshot on purpose: it must never alter the truth Questmancer reports
+  back to Herdr, and a test holds that line. Adventurer placement is untouched
+  while goblins are loose.
 - Four spacing and legibility defects visible in real sessions. Nameplates no
   longer sit flush against each other (`codex · WORKING 2member-car…` read as
   one string, because the collision test treated touching rectangles as

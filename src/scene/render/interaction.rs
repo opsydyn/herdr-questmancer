@@ -95,3 +95,24 @@ pub(crate) fn paint_counsel_marker(target: &mut RgbBuffer, bounds: PixelRect) {
     let y = (bounds.y - height + 1).clamp(0, last_y);
     blit(marker, PixelPoint::new(x, y), target);
 }
+
+/// How often the scene redraws while goblins are loose.
+///
+/// The outbreak is presentation state, so the snapshot-driven cadence knows
+/// nothing about it. A renderer that paints goblins asks for its own frames
+/// and stops when `GoblinState::is_visible` closes the window.
+pub(crate) const GOBLIN_FRAME_INTERVAL: std::time::Duration = std::time::Duration::from_millis(200);
+
+/// Blits the authored goblin master at each hiding place, in reading order,
+/// skipping any that would fall outside the viewport.
+pub(crate) fn paint_goblins(target: &mut RgbBuffer, origin: PixelPoint, dens: &[PixelPoint]) {
+    let goblin = crate::scene::assets::archetypes::goblin_world_frame();
+    for den in dens {
+        let at = PixelPoint::new(origin.x + den.x, origin.y + den.y);
+        let bounds = PixelRect::new(at.x, at.y, goblin.size().width, goblin.size().height);
+        if !super::is_visible(PixelPoint::new(0, 0), bounds, target.size()) {
+            continue;
+        }
+        blit(&goblin, at, target);
+    }
+}

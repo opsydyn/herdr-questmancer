@@ -51,6 +51,11 @@ const LIBRARIAN_CANONICAL_ORIGIN: PixelPoint = PixelPoint::new(7, 64);
 // actor's silhouette, so the stage carries no plank or stone pattern.
 const QUIET_STAGE: Rgb = Rgb::new(88, 53, 31);
 
+// Where goblins turn up during an outbreak: the open doorway and the dark
+// gap beside the quest wall. Both are deliberately clear of every station
+// reservation, so a sighting never hides an adventurer.
+const GOBLIN_DENS: [PixelPoint; 2] = [PixelPoint::new(9, 32), PixelPoint::new(80, 14)];
+
 const DOOR: PixelRect = PixelRect::new(5, 14, 25, 46);
 const QUEST_WALL: PixelRect = PixelRect::new(34, 11, 43, 27);
 const LEFT_TABLE: PixelRect = PixelRect::new(35, 47, 38, 27);
@@ -126,14 +131,33 @@ pub fn paint(
     .into_iter()
     .collect();
     let effect_deadline = paint_effects(snapshot, plan, target, origin);
+    let goblin_deadline = paint_goblin_outbreak(plan, target, origin);
     paint_connection_fact(snapshot, target, origin);
 
     SceneFrame {
         world: plan.world,
-        next_frame_in: actor_deadline.into_iter().chain(effect_deadline).min(),
+        next_frame_in: actor_deadline
+            .into_iter()
+            .chain(effect_deadline)
+            .chain(goblin_deadline)
+            .min(),
         actors,
         interactables,
     }
+}
+
+/// Paints goblins for as long as the outbreak window is open, and keeps asking
+/// for frames so the scene notices when it closes.
+fn paint_goblin_outbreak(
+    plan: &ScenePlan,
+    target: &mut RgbBuffer,
+    origin: PixelPoint,
+) -> Option<Duration> {
+    if !plan.goblin_outbreak {
+        return None;
+    }
+    interaction::paint_goblins(target, origin, &GOBLIN_DENS);
+    Some(interaction::GOBLIN_FRAME_INTERVAL)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
