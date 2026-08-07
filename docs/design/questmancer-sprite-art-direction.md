@@ -223,6 +223,35 @@ assets in context. Storybook does not retain the retired 8x14 generator.
 4. **Animation and card:** add authored frames, then review the real profile
    card beside its text. Art never earns space by making the card larger.
 
+## The goblin outbreak
+
+Typing `release the goblins` into the search parchment (`/`) and submitting it
+opens a three-second window in which goblins raid both worlds: the doorway and
+the shelves in the Guild Hall, the entrance-left and the centre-bottom of the
+Delve. The parchment answers `The goblins deny any involvement.` either way.
+
+Two rules govern it, and both are load-bearing:
+
+- **It is presentation, never truth.** The flag rides on `ScenePresentation`,
+  not `SceneSnapshot`. Releasing goblins must not alter anything Questmancer
+  reports back to Herdr, and nothing about the outbreak is persisted — reopening
+  the app never restores it. `snapshot_ignores_legacy_ui_persistence_and_goblin_state`
+  holds this line.
+- **It is a sighting, not a takeover.** Goblins occupy authored dens that no
+  adventurer station uses. Actor regions are byte-identical whether or not
+  goblins are loose, proven by `goblins_never_stand_where_an_adventurer_stands`.
+
+The painting renderer returns its own 200ms frame deadline, because the
+snapshot-driven cadence knows nothing about presentation state; without it the
+window would not visibly close until unrelated Herdr traffic arrived.
+
+This egg shipped inert for a long time. The trigger set the state and
+`GoblinState::is_visible` had no callers, so the feature existed in the release
+notes and nowhere on screen. It is the clearest instance of this codebase's
+recurring failure mode — **a test asserting that state changed while nothing
+asserts it reaches a pixel** — and the reason the goblin tests above assert
+against rendered buffers rather than against the flag.
+
 ## Automated safety checks
 
 Tests should prove frame dimensions, row widths, known palette tokens,

@@ -98,6 +98,7 @@ Questmancer pane after the repeated `open`.
 | Native portrait | Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender and Wizard classes use their transparent PNGs when the complete pane transport reports Kitty, Sixel or iTerm2 support. Class remains primary regardless of ancestry: an Orc Ranger uses the Ranger portrait. Goblin and Orc art is reserved for future event/NPC storytelling. The Librarian's Ledger uses its native Librarian illustration when available. Other identities and unsupported transports retain the authored class sprite. |
 | Narrow viewport | The Guild Hall recomposes from a compact whole-party room to a priority-adventurer vignette and finally status-only rendering; the Delve retains its authored camera crop. Neither switches to a text dashboard. |
 | View continuity | Selection remains coherent when switching with `1` and `2`. |
+| Goblin outbreak | `/`, then `release the goblins`, then `Enter` puts goblins on screen for about three seconds in both `1` and `2` — Guild Hall doorway and shelves, Delve entrance-left and centre-bottom. No adventurer moves or disappears while they are loose, the room returns to normal on its own without further input, and a close/reopen never brings them back. |
 
 Do not infer unobserved states. In particular, Herdr `0.7.4` cannot synthesize
 `done`; fixture tests are not a substitute for live visual acceptance.
