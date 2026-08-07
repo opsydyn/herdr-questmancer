@@ -3,8 +3,8 @@ use std::{collections::BTreeMap, path::PathBuf};
 use questmancer::{
     app::{ConnectionState, Model, OutputPreview, View},
     domain::{
-        AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, DomainState, GuildAttention,
-        PaneId, PersonaKey, Presence, TabId, Timestamp, WorkspaceId,
+        AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, ChronicleEntry, ChronicleEvent,
+        DomainState, GuildAttention, PaneId, PersonaKey, Presence, TabId, Timestamp, WorkspaceId,
     },
     interaction::reduce_action,
     scene::{
@@ -400,4 +400,83 @@ fn overlays_are_safe_at_zero_and_minimum_viewports() {
     for (width, height) in [(0, 0), (1, 1), (40, 18), (80, 24)] {
         let _ = render(&model, width, height);
     }
+}
+
+/// The Chronicle recorded seven event types, persisted them and replayed them
+/// on startup, and only one — returned spoils — ever reached a human, as a
+/// count in a sidebar token. This renders the record itself.
+#[test]
+fn the_chronicle_parchment_shows_recorded_events_over_the_world() {
+    let mut model = model();
+    let selected = model.selected_agent_key().cloned().unwrap();
+    {
+        let domain = model.domain_mut();
+        for (millis, event, summary) in [
+            (
+                1_000,
+                ChronicleEvent::AdventurerJoined,
+                "codex joined the guild",
+            ),
+            (
+                2_000,
+                ChronicleEvent::CounselRequested,
+                "codex requested counsel",
+            ),
+            (
+                3_000,
+                ChronicleEvent::SpoilsReturned,
+                "codex returned with spoils",
+            ),
+        ] {
+            domain.chronicle.append(ChronicleEntry::new(
+                Timestamp::from_millis(millis),
+                Some(selected.clone()),
+                None,
+                None,
+                0,
+                event,
+                summary,
+            ));
+        }
+    }
+    model.replace_domain(model.domain().clone());
+    model.set_now(Timestamp::from_millis(63_000));
+
+    let _ = reduce_action(&mut model, Action::OpenChronicle);
+    let rendered = render(&model, 100, 26);
+
+    assert!(
+        rendered.contains("CHRONICLE"),
+        "the Chronicle parchment must be titled:\n{rendered}"
+    );
+    for summary in [
+        "codex joined the guild",
+        "codex requested counsel",
+        "codex returned with spoils",
+    ] {
+        assert!(
+            rendered.contains(summary),
+            "the Chronicle must show {summary:?}:\n{rendered}"
+        );
+    }
+    assert!(
+        rendered.contains("WORLD REMAINS"),
+        "the Chronicle is a parchment over the world, not a replacement"
+    );
+    assert!(
+        rendered.contains("Esc close"),
+        "the way out must be visible"
+    );
+}
+
+/// An empty Chronicle says so rather than rendering a blank parchment.
+#[test]
+fn an_empty_chronicle_says_so() {
+    let mut model = model();
+    let _ = reduce_action(&mut model, Action::OpenChronicle);
+    let rendered = render(&model, 100, 26);
+    assert!(
+        rendered.contains("no Chronicle yet"),
+        "an empty Chronicle must explain itself:\n{rendered}"
+    );
 }

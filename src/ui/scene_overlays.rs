@@ -191,6 +191,7 @@ pub fn render_scene_overlays(
         SceneOverlay::Counsel | SceneOverlay::Search => render_input_parchment(frame, model),
         SceneOverlay::LibrarianLedger => render_librarian_ledger(frame, model, portraits),
         SceneOverlay::Scrying => render_scrying_parchment(frame, model),
+        SceneOverlay::Chronicle => render_chronicle_parchment(frame, model),
         SceneOverlay::None => {
             render_adventurer_card(frame, model, portraits);
             if model.command_ribbon_visible() {
@@ -462,6 +463,61 @@ fn render_scrying_parchment(frame: &mut Frame<'_>, model: &Model) {
     );
 }
 
+/// The guild's own record of what happened.
+///
+/// Seven event types were recorded, persisted to `chronicle.jsonl` and
+/// replayed on startup, and only one of them — returned spoils — reached a
+/// human, as a count in a sidebar token. The other six were written and never
+/// read by anything.
+fn render_chronicle_parchment(frame: &mut Frame<'_>, model: &Model) {
+    let available = frame.area();
+    let width = available.width.saturating_sub(4).min(76);
+    // Borders take two rows, the blank line and the footer two more. Ask for
+    // only as many entries as fit, then shrink the parchment to what it holds
+    // — a fixed-height box around three entries is mostly empty paper.
+    let capacity = usize::from(available.height.saturating_sub(6)).clamp(1, 14);
+    let entries = model.chronicle_entries(capacity);
+    let rows = u16::try_from(entries.len().max(1)).unwrap_or(1);
+    let height = rows
+        .saturating_add(4)
+        .min(available.height.saturating_sub(2));
+    let Some(area) = centered(available, width, height) else {
+        return;
+    };
+
+    let (title, empty) = model.selected_agent().map_or(
+        (
+            " THE GUILD CHRONICLE ",
+            "The Chronicle records nothing yet.",
+        ),
+        |_| {
+            (
+                " CHRONICLE OF THIS ADVENTURER ",
+                "This adventurer has no Chronicle yet.",
+            )
+        },
+    );
+
+    let mut lines = Vec::new();
+    if entries.is_empty() {
+        lines.push(Line::from(empty));
+    } else {
+        for entry in entries {
+            let ago = format_elapsed(entry.occurred_at.elapsed_until(model.now()));
+            let sigil = entry.event.sigil();
+            let summary = if entry.summary.is_empty() {
+                entry.event.label().to_owned()
+            } else {
+                entry.summary.clone()
+            };
+            lines.push(Line::from(format!("{sigil} {ago:>4} ago  {summary}")));
+        }
+    }
+    lines.push(Line::from(""));
+    lines.push(Line::from("Esc close"));
+    render_parchment(frame, area, title, Text::from(lines));
+}
+
 fn render_command_ribbon(frame: &mut Frame<'_>, model: &Model) {
     let area = frame.area();
     if area.width < 20 || area.height == 0 {
@@ -479,8 +535,9 @@ fn render_command_ribbon(frame: &mut Frame<'_>, model: &Model) {
     } else {
         format!("  [!] {waiting} waiting")
     };
-    let text =
-        format!("[1] Guild  [2] Delve  [j/k] Select  [Enter] Observe{counsel}{urgent}  [/] Search");
+    let text = format!(
+        "[1] Guild  [2] Delve  [j/k] Select  [Enter] Observe{counsel}{urgent}  [c] Chronicle  [/] Search"
+    );
     frame.render_widget(Clear, ribbon);
     frame.render_widget(Paragraph::new(text).style(PARCHMENT_BORDER), ribbon);
 }

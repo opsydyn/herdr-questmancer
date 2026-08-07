@@ -4,8 +4,8 @@ use questmancer::{
     app::{Modal, Model, RuntimeSettings, View},
     command::AgentCommand,
     domain::{
-        AdventurerPersona, AgentKey, DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey,
-        Presence, Timestamp, WorkspaceId,
+        AdventurerPersona, AgentKey, ChronicleEntry, ChronicleEvent, DomainState, GuildAttention,
+        GuildSummons, PaneId, PersonaKey, Presence, Timestamp, WorkspaceId,
     },
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::{reduce_action, reduce_scene_action},
@@ -1178,4 +1178,110 @@ fn repeated_urgency_jumps_cycle_every_waiting_adventurer() {
         ],
         "the jump must cycle rather than stick on the first"
     );
+}
+
+/// Seven Chronicle event types were recorded, persisted to `chronicle.jsonl`
+/// and replayed on startup. Exactly one of them reached a human — returned
+/// spoils, as a count in a sidebar token. The other six were written and read
+/// by nothing.
+#[test]
+fn the_chronicle_view_shows_what_the_guild_recorded() {
+    let mut model = live_model_with_two_agents();
+    let first = model.domain().agents.keys().next().unwrap().clone();
+    {
+        let domain = model.domain_mut();
+        domain.selected_agent = None;
+        for (millis, event, summary) in [
+            (1_000, ChronicleEvent::AdventurerJoined, "aria joined"),
+            (2_000, ChronicleEvent::CounselRequested, "aria asked"),
+            (3_000, ChronicleEvent::SpoilsReturned, "aria returned"),
+        ] {
+            domain.chronicle.append(ChronicleEntry::new(
+                Timestamp::from_millis(millis),
+                Some(first.clone()),
+                None,
+                None,
+                0,
+                event,
+                summary,
+            ));
+        }
+    }
+    model.replace_domain(model.domain().clone());
+    model.set_now(Timestamp::from_millis(10_000));
+
+    let _ = reduce_action(&mut model, Action::OpenChronicle);
+    assert_eq!(model.modal(), &Modal::Chronicle);
+
+    let shown = model.chronicle_entries(10);
+    assert_eq!(shown.len(), 3, "every recorded event must be reachable");
+    assert_eq!(
+        shown.first().map(|entry| entry.summary.as_str()),
+        Some("aria returned"),
+        "the Chronicle reads newest first"
+    );
+
+    // Every event type carries guild voice, so no entry renders as a bare
+    // enum name or an empty line.
+    for event in ChronicleEvent::ALL {
+        assert!(!event.label().is_empty(), "{event:?} has no label");
+    }
+}
+
+/// With an adventurer selected the Chronicle answers "what has this one been
+/// doing", which is the question the Hall is usually asked.
+#[test]
+fn the_chronicle_scopes_to_the_selected_adventurer() {
+    let mut model = live_model_with_two_agents();
+    let first = model.domain().agents.keys().next().unwrap().clone();
+    let second = model.domain().agents.keys().next_back().unwrap().clone();
+    {
+        let domain = model.domain_mut();
+        for (millis, who, summary) in [
+            (1_000, first.clone(), "first did a thing"),
+            (2_000, second.clone(), "second did a thing"),
+        ] {
+            domain.chronicle.append(ChronicleEntry::new(
+                Timestamp::from_millis(millis),
+                Some(who),
+                None,
+                None,
+                0,
+                ChronicleEvent::DelveBegan,
+                summary,
+            ));
+        }
+        domain.selected_agent = Some(second.clone());
+    }
+    model.replace_domain(model.domain().clone());
+
+    let scoped = model.chronicle_entries(10);
+    assert_eq!(scoped.len(), 1);
+    assert_eq!(scoped[0].summary, "second did a thing");
+
+    model.domain_mut().selected_agent = None;
+    assert_eq!(
+        model.chronicle_entries(10).len(),
+        2,
+        "with nothing selected the Chronicle covers the whole guild"
+    );
+}
+
+/// The Chronicle is a reading surface: keys must not act on a party you are
+/// not looking at.
+#[test]
+fn the_chronicle_swallows_keys_that_would_move_the_party() {
+    let mut model = live_model_with_two_agents();
+    let _ = reduce_action(&mut model, Action::OpenChronicle);
+    let selected = model.selected_agent_key().cloned();
+
+    for action in [Action::Next, Action::NextUrgent, Action::NextCampaign] {
+        let blocked = reduce_action(&mut model, action);
+        assert_eq!(model.selected_agent_key(), selected.as_ref());
+        assert!(blocked.commands.is_empty());
+    }
+    assert_eq!(model.modal(), &Modal::Chronicle);
+
+    let _ = reduce_action(&mut model, Action::Dismiss);
+    assert_eq!(model.modal(), &Modal::None);
 }

@@ -61,6 +61,45 @@ pub enum ChronicleEvent {
 }
 
 impl ChronicleEvent {
+    pub const ALL: &'static [Self] = &[
+        Self::AdventurerJoined,
+        Self::DelveBegan,
+        Self::CounselRequested,
+        Self::SpoilsReturned,
+        Self::AdventurerRested,
+        Self::AdventurerDeparted,
+        Self::CampaignClosed,
+    ];
+
+    /// Guild voice for the Chronicle view. Every event carries one, so an
+    /// entry never renders as a bare enum name or an empty line.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::AdventurerJoined => "joined the guild",
+            Self::DelveBegan => "set out on a delve",
+            Self::CounselRequested => "requested counsel",
+            Self::SpoilsReturned => "returned with spoils",
+            Self::AdventurerRested => "rested at the hearth",
+            Self::AdventurerDeparted => "departed",
+            Self::CampaignClosed => "closed a campaign",
+        }
+    }
+
+    /// A single-glyph mark, so a narrow Chronicle still distinguishes events.
+    #[must_use]
+    pub const fn sigil(self) -> char {
+        match self {
+            Self::AdventurerJoined => '+',
+            Self::DelveBegan => '>',
+            Self::CounselRequested => '!',
+            Self::SpoilsReturned => '*',
+            Self::AdventurerRested => 'z',
+            Self::AdventurerDeparted => '-',
+            Self::CampaignClosed => '#',
+        }
+    }
+
     const fn as_str(self) -> &'static str {
         match self {
             Self::AdventurerJoined => "adventurer_joined",

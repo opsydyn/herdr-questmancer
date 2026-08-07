@@ -27,7 +27,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
     if !matches!(action, Action::Redraw | Action::None) {
         model.note_interaction();
     }
-    if intercept_ledger_modal(model, action) {
+    if intercept_reading_modal(model, action) {
         return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
     }
     let control = match action {
@@ -84,20 +84,16 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             model.open_search();
             ControlFlow::Continue(())
         }
+        Action::OpenChronicle => {
+            model.open_chronicle();
+            ControlFlow::Continue(())
+        }
         Action::ToggleLedger => {
             model.toggle_ledger();
             ControlFlow::Continue(())
         }
-        Action::TypeCharacter(character) => {
-            model.push_modal_character(character);
-            ControlFlow::Continue(())
-        }
-        Action::Backspace => {
-            model.backspace_modal_input();
-            ControlFlow::Continue(())
-        }
-        Action::ClearInput => {
-            model.clear_modal_input();
+        Action::TypeCharacter(_) | Action::Backspace | Action::ClearInput => {
+            edit_modal_input(model, action);
             ControlFlow::Continue(())
         }
         Action::Dismiss => {
@@ -112,7 +108,8 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             match model.modal() {
                 Modal::Counsel { .. } => submit_counsel(model, &mut commands),
                 Modal::Search { .. } => submit_search(model, &mut commands),
-                Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying => {}
+                Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {
+                }
             }
             ControlFlow::Continue(())
         }
@@ -177,7 +174,19 @@ fn refresh_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     }
 }
 
-fn intercept_ledger_modal(model: &mut Model, action: Action) -> bool {
+/// Swallows actions aimed at the party while a reading surface is open.
+///
+/// The input layer already refuses to produce most of these from a key press,
+/// but actions also arrive from the scene (clicks) and from callers holding an
+/// `Action` directly, so the guard has to live here too. Scrying is
+/// deliberately absent: `o` refreshes it, which is a documented binding.
+fn intercept_reading_modal(model: &mut Model, action: Action) -> bool {
+    if matches!(model.modal(), Modal::Chronicle) {
+        if matches!(action, Action::Dismiss | Action::OpenChronicle) {
+            model.dismiss_modal();
+        }
+        return true;
+    }
     if !matches!(model.modal(), Modal::LibrarianLedger { .. }) {
         return false;
     }
@@ -384,6 +393,16 @@ fn visible_presence_terms(agent: &Agent) -> &'static [&'static str] {
         Presence::Idle => &["resting"],
         Presence::Exited => &["departed"],
         Presence::Unknown => &["unknown"],
+    }
+}
+
+/// Applies the three text-editing actions a parchment accepts.
+fn edit_modal_input(model: &mut Model, action: Action) {
+    match action {
+        Action::TypeCharacter(character) => model.push_modal_character(character),
+        Action::Backspace => model.backspace_modal_input(),
+        Action::ClearInput => model.clear_modal_input(),
+        _ => {}
     }
 }
 

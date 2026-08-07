@@ -69,6 +69,17 @@ All notable changes to this project will be documented here.
 
 ### Changed
 
+- The Chronicle is now readable. Seven event types were recorded, persisted to
+  `chronicle.jsonl` and replayed on startup, and exactly one of them reached a
+  human: returned spoils, as a count in a sidebar token. `c` opens the guild's
+  record — who joined, set out, asked for counsel, returned with spoils,
+  rested, departed, and which campaigns closed — scoped to the selected
+  adventurer, or the whole guild with nothing selected. Every event carries
+  guild voice and a sigil, so no entry renders as a bare enum name. It is a
+  reading surface: no key acts on a party you are not looking at, guarded in
+  the reducer as well as the input layer because actions also arrive from
+  clicks.
+
 - Selection is no longer sequential-only. `!` jumps to the next adventurer
   waiting on a human and cycles them, ranked by what the party needs rather
   than by name: an unanswered call for counsel, then one already seen but

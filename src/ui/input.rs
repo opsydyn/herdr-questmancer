@@ -25,6 +25,7 @@ pub enum Action {
     Refresh,
     InspectSpoils,
     NextCampaign,
+    OpenChronicle,
     NextUrgent,
     Search,
     TypeCharacter(char),
@@ -77,6 +78,14 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
             _ => Action::None,
         };
     }
+    if matches!(modal, Modal::Chronicle) {
+        // The Chronicle is a reading surface. Only closing it does anything,
+        // so no key leaks through to move a selection you cannot see.
+        return match key.code {
+            KeyCode::Esc | KeyCode::Char('c') => Action::Dismiss,
+            _ => Action::None,
+        };
+    }
     if matches!(modal, Modal::LibrarianLedger { .. }) {
         return match key.code {
             KeyCode::Esc => Action::Dismiss,
@@ -113,6 +122,7 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         KeyCode::Tab => Action::NextCampaign,
         // Deliberately not `n`: that is being kept for cycling search results.
         KeyCode::Char('!') => Action::NextUrgent,
+        KeyCode::Char('c') => Action::OpenChronicle,
         KeyCode::Char('/') => Action::Search,
         _ => Action::None,
     }

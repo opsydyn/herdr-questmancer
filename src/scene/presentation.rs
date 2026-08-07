@@ -11,6 +11,7 @@ pub enum SceneOverlay {
     Search,
     LibrarianLedger,
     Scrying,
+    Chronicle,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,6 +43,7 @@ impl ScenePresentation {
                 Modal::Counsel { .. } => SceneOverlay::Counsel,
                 Modal::Search { .. } => SceneOverlay::Search,
                 Modal::Scrying => SceneOverlay::Scrying,
+                Modal::Chronicle => SceneOverlay::Chronicle,
             },
         }
     }

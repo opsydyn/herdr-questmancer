@@ -195,6 +195,7 @@ pub enum Modal {
         query: String,
     },
     Scrying,
+    Chronicle,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -416,6 +417,30 @@ impl Model {
         self.domain.selected_agent = Some(keys[next].clone());
     }
 
+    pub fn open_chronicle(&mut self) {
+        self.modal = Modal::Chronicle;
+    }
+
+    /// The Chronicle entries the view should show, newest first.
+    ///
+    /// Scoped to the selected adventurer when there is one, because "what has
+    /// this agent been doing" is the question the Hall is usually asked; with
+    /// nothing selected it reads the whole guild's history.
+    #[must_use]
+    pub fn chronicle_entries(&self, limit: usize) -> Vec<&crate::domain::ChronicleEntry> {
+        let selected = self.domain.selected_agent.as_ref();
+        self.domain
+            .chronicle
+            .entries()
+            .iter()
+            .rev()
+            .filter(|entry| {
+                selected.is_none_or(|key| entry.adventurer.as_ref().is_some_and(|had| had == key))
+            })
+            .take(limit)
+            .collect()
+    }
+
     /// Moves the selection to the first adventurer of the next campaign.
     ///
     /// Replaces `cycle_guild_focus`, which walked eight "landmark" variants
@@ -537,9 +562,11 @@ impl Model {
     pub fn counsel_draft(&self) -> Option<&str> {
         match &self.modal {
             Modal::Counsel { draft } => Some(draft),
-            Modal::None | Modal::LibrarianLedger { .. } | Modal::Search { .. } | Modal::Scrying => {
-                None
-            }
+            Modal::None
+            | Modal::LibrarianLedger { .. }
+            | Modal::Search { .. }
+            | Modal::Scrying
+            | Modal::Chronicle => None,
         }
     }
 
@@ -551,7 +578,7 @@ impl Model {
         match &mut self.modal {
             Modal::Counsel { draft } => draft.push(character),
             Modal::Search { query } => query.push(character),
-            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying => {}
+            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {}
         }
     }
 
@@ -567,7 +594,7 @@ impl Model {
             Modal::Search { query } => {
                 query.pop();
             }
-            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying => {}
+            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {}
         }
     }
 
@@ -575,7 +602,7 @@ impl Model {
         match &mut self.modal {
             Modal::Counsel { draft } => draft.clear(),
             Modal::Search { query } => query.clear(),
-            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying => {}
+            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {}
         }
     }
 
