@@ -10,3 +10,6 @@
 !**/proptest-regressions/**
 !**/*.proptest-regressions
 /pixtuoid-main
+/site/node_modules/
+/site/dist/
+/site/.astro/

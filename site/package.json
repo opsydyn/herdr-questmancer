@@ -1,0 +1,20 @@
+{
+  "name": "site",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "check": "astro check",
+    "check:base": "node scripts/check-base-path.mjs",
+    "check:content": "node --test scripts/content-contract.test.mjs",
+    "verify": "bun run check && bun run build && bun run check:base && bun run check:content",
+    "preview": "astro preview"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "astro": "^7.2.0",
+    "pixelarticons": "^2.2.0",
+    "typescript": "^5.9.3"
+  }
+}
