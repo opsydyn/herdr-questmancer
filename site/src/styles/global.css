@@ -189,12 +189,22 @@ p {
 
 h1 {
   max-width: 960px;
-  margin: 1.5rem auto 1.25rem;
+  margin: 0 auto 0.85rem;
   color: var(--paper);
   font-size: clamp(2rem, 5vw, 4rem);
   font-weight: 780;
   letter-spacing: -0.03em;
   line-height: 1.05;
+  text-wrap: balance;
+}
+
+.hero-subtitle {
+  margin: 0 auto 1.7rem;
+  color: var(--gold);
+  font-family: "Press Start 2P", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(1rem, 2.7vw, 2rem);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
   text-wrap: balance;
 }
 
@@ -604,6 +614,10 @@ pre {
 
   h1 {
     font-size: clamp(1.8rem, 8.5vw, 3rem);
+  }
+
+  .hero-subtitle {
+    font-size: clamp(0.9rem, 4.2vw, 1.35rem);
   }
 
   .hero-tagline {

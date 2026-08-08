@@ -17,6 +17,10 @@ test('launch page preserves the approved content contract', async () => {
   assert.match(hero, /import\s+\{\s*Image\s*\}\s+from\s+['"]astro:assets['"]/);
   assert.equal((hero.match(/<Image\b/g) ?? []).length, 3);
   assert.doesNotMatch(hero, /src=\{(?:hero|guildHall|delve)\.src\}/);
+  assert.match(hero, /<h1 id="hero-title">Questmancer<\/h1>/);
+  assert.match(hero, /class="hero-subtitle">What is best in code\?<\/p>/);
+  assert.doesNotMatch(hero, /class="eyebrow"/);
+  assert.doesNotMatch(hero, /Herdr plugin\s*[·•]/);
   const mappings = await readFile(new URL('../src/components/MappingCards.astro', import.meta.url), 'utf8');
   for (const iconStem of ['sword', 'castle', 'bell', 'coins']) {
     assert.match(mappings, new RegExp(`assets/icons/${iconStem}\\.svg`));
@@ -24,6 +28,7 @@ test('launch page preserves the approved content contract', async () => {
   assert.match(mappings, /<mapping\.icon\b/);
   const css = await readFile(new URL('../src/styles/global.css', import.meta.url), 'utf8');
   assert.match(css, /cursor:\s*url\("\.\.\/assets\/cursor\.svg"\)/);
+  assert.match(css, /\.hero-subtitle[\s\S]*font-family:\s*"Press Start 2P"/);
   for (const phrase of [
     'What is best in code?',
     'To crush your bugs.',

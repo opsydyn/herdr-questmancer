@@ -87,8 +87,9 @@ fn urgency_digits_follow_the_same_order_as_the_enum() {
         digits.iter().all(|digit| *digit < Urgency::NOTHING_WANTED),
         "an adventurer nobody is waiting on must sort after every real urgency"
     );
-    assert!(
-        Urgency::NOTHING_WANTED < 10,
+    assert_eq!(
+        Urgency::NOTHING_WANTED.to_string().len(),
+        1,
         "the sort key is one character; Herdr compares these tokens as strings"
     );
 }
