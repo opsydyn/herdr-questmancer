@@ -31,6 +31,24 @@ Three things cut a release, and each owns one job.
    an empty `## [Unreleased]` at the top between releases, and releasing that
    would ship a blank body.
 
+## The tag has to come from a personal access token
+
+GitHub does not start workflows from events created with `GITHUB_TOKEN`; it
+blocks that to stop a workflow triggering itself. release-plz tags with exactly
+that token, so a merged release pull request creates the tag and `release.yml`
+— which triggers on tags — never runs. The first v0.1.0 tag was created and
+nothing built from it.
+
+Give the `release` job a personal access token with `contents: write` as
+`GITHUB_TOKEN` and tags start triggering the release properly.
+
+Until then, and for re-running a release whose build failed, `release.yml`
+accepts a manual dispatch with the tag to release:
+
+```bash
+gh workflow run release.yml -f tag=v0.1.0
+```
+
 ## Why the changelog is not generated
 
 release-plz prepends a generated section rather than respecting a curated one.

@@ -4,12 +4,26 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+  # A tag pushed by a workflow using GITHUB_TOKEN does not start other
+  # workflows — GitHub blocks that to stop workflows triggering themselves.
+  # release-plz tags with exactly that token, so a merged release pull request
+  # creates the tag and nothing builds from it. Giving release-plz a personal
+  # access token fixes it properly; this is the escape hatch for a tag that
+  # already exists, and for re-running a release whose build failed.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release, for example v0.1.0"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 env:
   CARGO_TERM_COLOR: always
+  # The tag being released, whichever way this workflow started.
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   verify:
@@ -18,6 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
 
       - name: Install pinned Rust toolchain
@@ -50,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo package --locked
-          crate="target/package/questmancer-${GITHUB_REF_NAME#v}.crate"
+          crate="target/package/questmancer-${RELEASE_TAG#v}.crate"
           [[ -f $crate ]] || {
             echo "cargo package produced no crate at $crate" >&2
             exit 1
@@ -68,7 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version=${GITHUB_REF_NAME#v}
+          version=${RELEASE_TAG#v}
           for file in Cargo.toml herdr-plugin.toml; do
             declared=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$file" | head -n 1)
             [[ $version == "$declared" ]] || {
@@ -99,6 +114,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@1.90.0
@@ -125,7 +142,7 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: |
           set -euo pipefail
-          version=${GITHUB_REF_NAME#v}
+          version=${RELEASE_TAG#v}
           manifest_version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' herdr-plugin.toml | head -n 1)
           [[ $version == "$manifest_version" ]] || {
             echo "tag version $version does not match manifest version $manifest_version" >&2
@@ -156,6 +173,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Download matrix archives
         uses: actions/download-artifact@v8
@@ -167,7 +186,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version=${GITHUB_REF_NAME#v}
+          version=${RELEASE_TAG#v}
           expected=(
             "questmancer-v${version}-x86_64-unknown-linux-gnu.tar.gz"
             "questmancer-v${version}-aarch64-unknown-linux-gnu.tar.gz"
@@ -221,6 +240,7 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           body_path: RELEASE_NOTES.md
           files: |
             questmancer-v*.tar.gz
@@ -259,7 +279,7 @@ jobs:
             echo "CARGO_REGISTRY_TOKEN is unset; add it to the crates-io environment" >&2
             exit 1
           }
-          version=${GITHUB_REF_NAME#v}
+          version=${RELEASE_TAG#v}
           # Publishing the same version twice is an error rather than a no-op,
           # so a re-run of this workflow would fail here. Say why plainly
           # instead of leaving a red job with a registry error in it.
