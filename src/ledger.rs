@@ -3,14 +3,16 @@ pub enum LedgerPageId {
     Welcome,
     ReadingTheParty,
     QuestmancersTools,
+    GuildStanding,
     SafeChronicle,
 }
 
 impl LedgerPageId {
-    pub const ALL: [Self; 4] = [
+    pub const ALL: [Self; 5] = [
         Self::Welcome,
         Self::ReadingTheParty,
         Self::QuestmancersTools,
+        Self::GuildStanding,
         Self::SafeChronicle,
     ];
 
@@ -77,6 +79,12 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
             // bindings by the time anyone noticed.
             body: &[],
         },
+        LedgerPageId::GuildStanding => LedgerPage {
+            id,
+            title: "The Guild's Standing",
+            // Filled from the live score by `page_body`.
+            body: &[],
+        },
         LedgerPageId::SafeChronicle => LedgerPage {
             id,
             title: "Keeping a Safe Chronicle",
@@ -97,10 +105,30 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
 pub fn page_body(id: LedgerPageId) -> Vec<String> {
     match id {
         LedgerPageId::QuestmancersTools => crate::ui::keymap::lines(),
+        // Standing needs the live score, so it is rendered by
+        // `standing_page_body` where the model is in reach.
+        LedgerPageId::GuildStanding => Vec::new(),
         other => page(other)
             .body
             .iter()
             .map(|line| (*line).to_owned())
             .collect(),
     }
+}
+
+/// The standing page, which needs the guild's live experience.
+///
+/// Kept beside the score rather than in the page table because it is the one
+/// page whose text changes with use.
+#[must_use]
+pub fn standing_page_body(experience: u64) -> Vec<String> {
+    let mut lines = crate::rank::ledger_lines(experience);
+    lines.push(String::new());
+    lines.push("Standing is earned by work the Chronicle recorded:".to_owned());
+    lines.push("spoils returned, and campaigns closed.".to_owned());
+    lines.push(String::new());
+    lines.push("It is one score for this Questmancer, not one per".to_owned());
+    lines.push("adventurer: parties change, the guild endures. It".to_owned());
+    lines.push("unlocks nothing and gates nothing.".to_owned());
+    lines
 }

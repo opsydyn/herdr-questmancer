@@ -22,6 +22,7 @@ fn paths(config_dir: Option<&Path>, state_dir: Option<&Path>) -> PersistencePath
 
 fn state(last_view: View, preferences: DisplayPreferences) -> PersistedStateV1 {
     PersistedStateV1 {
+        experience: 0,
         schema_version: 1,
         last_view,
         preferences,

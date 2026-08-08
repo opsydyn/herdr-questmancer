@@ -2,10 +2,12 @@
 mod support;
 
 use proptest::prelude::*;
+use std::collections::{BTreeMap, BTreeSet};
+
 use questmancer::{
-    app::{Model, View},
+    app::{DisplayPreferences, Model, View},
     domain::{AgentKey, GuildAttention, GuildSummons, PersonaGeneration, PersonaKey, Timestamp},
-    persistence::{AttentionEpisodeKey, DurableIntent, PersistedStateV1},
+    persistence::{AttentionEpisodeKey, DurableIntent, PersistedStateV1, STATE_SCHEMA_VERSION},
 };
 
 fn captured_state() -> PersistedStateV1 {
@@ -303,4 +305,69 @@ proptest! {
         prop_assert_eq!(support::live_facts(&domain), before);
         prop_assert!(domain.selected_agent.as_ref().is_none_or(|key| domain.agents.contains_key(key)));
     }
+}
+
+/// A state file written before standing existed must still load, keeping every
+/// persona, and simply start the guild at zero. A schema bump would have
+/// discarded them; `#[serde(default)]` at version 1 does not.
+#[test]
+fn a_state_file_without_standing_still_loads_with_its_personas() {
+    let older = serde_json::json!({
+        "schema_version": 1,
+        "last_view": "guild",
+        "preferences": { "motion": "full", "character_set": "unicode", "color_mode": "xterm256" },
+        "selected_persona": null,
+        "personas": {},
+        "seen_attention": []
+    });
+
+    let parsed: PersistedStateV1 =
+        serde_json::from_value(older).expect("a pre-standing state file must still parse");
+
+    assert_eq!(parsed.experience, 0, "an older guild starts at zero");
+    parsed.validate().expect("it must still be valid");
+}
+
+/// Standing only ever climbs. A score that can fall is not a record of what
+/// you have done.
+#[test]
+fn standing_is_monotonic_and_saturates() {
+    let mut intent = DurableIntent::default();
+    assert_eq!(intent.experience(), 0);
+
+    intent.earn(10);
+    intent.earn(25);
+    assert_eq!(intent.experience(), 35);
+
+    intent.earn(0);
+    assert_eq!(intent.experience(), 35, "a worthless event changes nothing");
+
+    intent.earn(u64::MAX);
+    intent.earn(u64::MAX);
+    assert_eq!(
+        intent.experience(),
+        u64::MAX,
+        "it saturates rather than wrapping"
+    );
+}
+
+/// Standing survives the round trip, because that is the whole point.
+#[test]
+fn standing_is_captured_and_seeded_back() {
+    let mut intent = DurableIntent::default();
+    intent.earn(120);
+
+    let captured = PersistedStateV1 {
+        experience: intent.experience(),
+        schema_version: STATE_SCHEMA_VERSION,
+        last_view: View::Guild,
+        preferences: DisplayPreferences::default(),
+        selected_persona: None,
+        personas: BTreeMap::new(),
+        seen_attention: BTreeSet::new(),
+    };
+
+    let mut restored = DurableIntent::default();
+    restored.seed(&captured).expect("valid state seeds");
+    assert_eq!(restored.experience(), 120);
 }

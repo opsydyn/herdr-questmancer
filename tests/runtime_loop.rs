@@ -623,3 +623,26 @@ fn the_urgency_view_is_requested_again_after_reconnecting() {
         );
     }
 }
+
+/// Events that record an adventurer getting stuck, arriving or resting earn
+/// nothing. Paying for a block would reward agents for blocking.
+#[test]
+fn only_finished_work_is_worth_standing() {
+    use questmancer::domain::ChronicleEvent;
+
+    assert_eq!(ChronicleEvent::SpoilsReturned.experience(), 10);
+    assert_eq!(ChronicleEvent::CampaignClosed.experience(), 25);
+    for quiet in [
+        ChronicleEvent::AdventurerJoined,
+        ChronicleEvent::DelveBegan,
+        ChronicleEvent::CounselRequested,
+        ChronicleEvent::AdventurerRested,
+        ChronicleEvent::AdventurerDeparted,
+    ] {
+        assert_eq!(
+            quiet.experience(),
+            0,
+            "{quiet:?} must not be worth standing"
+        );
+    }
+}

@@ -126,7 +126,7 @@ fn librarian_ledger_is_the_single_responsive_help_surface() {
     let wide = render(&model, 120, 36);
     assert!(wide.contains("LIBRARIAN'S LEDGER"));
     assert!(wide.contains("Welcome to the Guild"));
-    assert!(wide.contains("Page 1 / 4"));
+    assert!(wide.contains("Page 1 / 5"));
     assert!(wide.contains("Esc/? close"));
 
     let compact = render(&model, 64, 24);
@@ -624,4 +624,54 @@ fn the_ribbon_greets_someone_who_has_not_pressed_anything() {
     let _ = reduce_action(&mut model, Action::Next);
     model.set_now(Timestamp::from_millis(124_001));
     assert!(!model.command_ribbon_visible());
+}
+
+/// The standing badge is permanent chrome in the top-right corner.
+#[test]
+fn the_standing_badge_sits_in_the_top_right_corner() {
+    let model = model();
+    let rendered = render(&model, 120, 36);
+    let first_line = rendered.lines().next().unwrap_or_default();
+
+    assert!(
+        first_line.contains("Novice"),
+        "the badge must be on the top row:\n{rendered}"
+    );
+    assert!(
+        first_line.trim_end().ends_with("xp"),
+        "and hard against the right edge: {first_line:?}"
+    );
+    assert!(
+        rendered.contains("WORLD REMAINS"),
+        "the badge is a corner mark, not a replacement for the room"
+    );
+}
+
+/// The adventurer card owns the same corner, so it starts below the badge.
+/// Overlapping them would have hidden one behind the other.
+#[test]
+fn the_adventurer_card_does_not_cover_the_standing_badge() {
+    let mut model = model();
+    let _ = reduce_action(&mut model, Action::Next);
+    model.show_adventurer_card();
+
+    let rendered = render(&model, 120, 36);
+    let first_line = rendered.lines().next().unwrap_or_default();
+    assert!(
+        first_line.contains("Novice"),
+        "the card must not cover the badge:\n{rendered}"
+    );
+    assert!(
+        rendered.contains("ADVENTURER") || rendered.contains("codex"),
+        "and the card must still be drawn"
+    );
+}
+
+/// A room too narrow for the badge keeps the room: standing is a flourish and
+/// loses every contest for space.
+#[test]
+fn a_narrow_room_drops_the_badge_rather_than_the_scene() {
+    let model = model();
+    let rendered = render(&model, 12, 10);
+    assert!(!rendered.contains("Novice"), "{rendered}");
 }

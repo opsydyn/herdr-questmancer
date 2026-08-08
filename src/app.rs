@@ -563,6 +563,23 @@ impl Model {
         Some((next + 1, matched.len()))
     }
 
+    /// The guild's lifetime experience.
+    #[must_use]
+    pub const fn experience(&self) -> u64 {
+        self.durable_intent.experience()
+    }
+
+    /// Records the standing earned by a Chronicle event.
+    ///
+    /// Called where the reducer has already decided the event is new — the
+    /// Chronicle dedupes by `EventId`, so the same returned spoils cannot be
+    /// paid for twice. Startup replay assigns the Chronicle wholesale rather
+    /// than appending through the reducer, so a restart re-reads history
+    /// without re-earning it.
+    pub const fn earn_experience(&mut self, experience: u64) {
+        self.durable_intent.earn(experience);
+    }
+
     pub fn open_chronicle(&mut self) {
         self.modal = Modal::Chronicle;
         self.reading_scroll = 0;

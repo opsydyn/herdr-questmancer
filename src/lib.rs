@@ -10,6 +10,7 @@ pub mod interaction;
 pub mod ledger;
 pub mod persistence;
 pub mod portrait;
+pub mod rank;
 pub mod runtime;
 pub mod runtime_loop;
 pub mod scene;

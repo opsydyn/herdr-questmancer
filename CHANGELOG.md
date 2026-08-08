@@ -6,6 +6,20 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- A guild standing: one experience score for this Questmancer install, shown
+  as a badge in the top-right corner and in full on a new Guild's Standing page
+  of the Librarian's Ledger. Adventurers come and go with panes and sessions,
+  so a level attached to one would silently reset whenever an agent was
+  recreated; the guild is the thing with continuity. Earned only by work the
+  Chronicle recorded — spoils returned, campaigns closed. Counsel requested
+  earns nothing on purpose: it records an adventurer getting stuck rather than
+  anybody getting unstuck, and paying for it would reward agents for blocking.
+  The score is monotonic, stored rather than derived (the Chronicle is a
+  bounded ring, so a derived score would decay as history rolled off), and it
+  unlocks nothing. Existing state files load unchanged and start at zero —
+  the field carries `serde(default)` rather than bumping the schema, so no
+  saved persona is lost.
+
 - Herdr can now order its own agent list by Questmancer's urgency. Herdr 0.7.5
   added `agent.view.set`, whose declarative sort accepts a plugin's metadata
   token, so Questmancer publishes `$quest_rank` — a single digit for how loudly

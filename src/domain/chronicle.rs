@@ -61,6 +61,30 @@ pub enum ChronicleEvent {
 }
 
 impl ChronicleEvent {
+    /// What this event is worth to the guild's standing.
+    ///
+    /// Only work actually finished counts. An adventurer arriving, setting
+    /// out or resting earns nothing: a score for having the plugin open would
+    /// be a number invented to look like a game, which is what this vocabulary
+    /// exists not to do.
+    ///
+    /// `CounselRequested` deliberately earns nothing either, though it is the
+    /// event a guild master acts on most. It records an adventurer getting
+    /// stuck, not anybody getting unstuck — paying for it would reward agents
+    /// for blocking, which is precisely backwards.
+    #[must_use]
+    pub const fn experience(self) -> u64 {
+        match self {
+            Self::SpoilsReturned => 10,
+            Self::CampaignClosed => 25,
+            Self::AdventurerJoined
+            | Self::DelveBegan
+            | Self::CounselRequested
+            | Self::AdventurerRested
+            | Self::AdventurerDeparted => 0,
+        }
+    }
+
     pub const ALL: &'static [Self] = &[
         Self::AdventurerJoined,
         Self::DelveBegan,

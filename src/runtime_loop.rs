@@ -402,6 +402,12 @@ fn apply_domain_event(model: &mut Model, event: AppEvent, effects: &mut RuntimeE
         if command == Command::RequestSnapshot {
             push_unique_refresh(&mut effects.agent_commands);
         } else {
+            // `AppendChronicle` is emitted once per genuinely new event, so
+            // this is the one place standing can be earned without paying
+            // twice for the same piece of work.
+            if let Command::AppendChronicle(entry) = &command {
+                model.earn_experience(entry.event.experience());
+            }
             effects.persistence.push(command);
         }
     }

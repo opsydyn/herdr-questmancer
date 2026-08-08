@@ -193,12 +193,33 @@ pub fn render_scene_overlays(
         SceneOverlay::Scrying => render_scrying_parchment(frame, model),
         SceneOverlay::Chronicle => render_chronicle_parchment(frame, model),
         SceneOverlay::None => {
+            render_standing_badge(frame, model);
             render_adventurer_card(frame, model, portraits);
             if model.command_ribbon_visible() {
                 render_command_ribbon(frame, model);
             }
         }
     }
+}
+
+/// The guild's standing, top right, always.
+///
+/// Permanent chrome over a scene that is meant to be the point, so it earns
+/// one short line and no more. Returns the rows it occupied, because the
+/// adventurer card lives in the same corner and has to start below it.
+fn render_standing_badge(frame: &mut Frame<'_>, model: &Model) -> u16 {
+    let area = frame.area();
+    let badge = crate::rank::badge(model.experience(), model.preferences().character_set);
+    let width = u16::try_from(badge.chars().count()).unwrap_or(u16::MAX);
+    // A room too narrow for the badge keeps the room. The standing is a
+    // flourish and loses every contest for space.
+    if area.width < width + 2 || area.height < 4 {
+        return 0;
+    }
+    let badge_area = Rect::new(area.right() - width - 1, area.y, width, 1);
+    frame.render_widget(Clear, badge_area);
+    frame.render_widget(Paragraph::new(badge).style(PARCHMENT_BORDER), badge_area);
+    1
 }
 
 fn render_adventurer_card(
@@ -222,7 +243,8 @@ fn render_adventurer_card(
         .saturating_sub(4)
         .min(if detailed { 78 } else { 48 });
     let height = (if detailed { 18 } else { 13 }).min(area.height.saturating_sub(2));
-    let card = Rect::new(area.right() - width - 1, area.y + 1, width, height);
+    // One row below the standing badge, which owns the same corner.
+    let card = Rect::new(area.right() - width - 1, area.y + 2, width, height);
     let campaign = model
         .domain()
         .campaigns
@@ -386,7 +408,7 @@ fn render_librarian_ledger(
     // is longer than any authored page, and a fixed height silently cut its
     // last two bindings and the footer off the bottom — the discoverability
     // page, hiding the least-known keys.
-    let body = ledger_lines(page_id, wide);
+    let body = ledger_lines(page_id, wide, model.experience());
     let body_rows = u16::try_from(body.len()).unwrap_or(u16::MAX);
     // Title, blank, body, blank, footer, close, plus the frame's own padding.
     let needed = body_rows.saturating_add(9);
@@ -453,11 +475,11 @@ fn render_librarian_ledger(
 
 /// The keyring pairs into two columns when the Ledger is wide enough, because
 /// it has outgrown a single column. Every other page keeps its authored prose.
-fn ledger_lines(page_id: ledger::LedgerPageId, wide: bool) -> Vec<String> {
-    if wide && page_id == ledger::LedgerPageId::QuestmancersTools {
-        super::keymap::paired_lines()
-    } else {
-        ledger::page_body(page_id)
+fn ledger_lines(page_id: ledger::LedgerPageId, wide: bool, experience: u64) -> Vec<String> {
+    match page_id {
+        ledger::LedgerPageId::QuestmancersTools if wide => super::keymap::paired_lines(),
+        ledger::LedgerPageId::GuildStanding => ledger::standing_page_body(experience),
+        other => ledger::page_body(other),
     }
 }
 

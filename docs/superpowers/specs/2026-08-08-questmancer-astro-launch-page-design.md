@@ -65,19 +65,23 @@ not compete with the hero. The GitHub URL is the absolute repository URL:
 ### 2. Proof of the Delve hero
 
 The first section uses the supplied barbarian throne image as a wide, framed
-pixel-art stage. A small “Proof of the Delve” label and the overlaid “What is
-best in code?” line establish the hook. A two-image mosaic immediately below
-shows the Guild Hall and Delve screenshots, proving that the product has two
-distinct but related rooms.
+pixel-art stage. A small “Proof of the Delve” label establishes the hook. The
+hero image has one heading only: the large “What is best in code?” heading in
+the following copy block. The image itself carries no duplicate heading or
+marketing text. A two-image mosaic immediately below shows the Guild Hall and
+Delve screenshots, proving that the product has two distinct but related rooms.
 
-The hero is intentionally image-led. The image is not altered, smoothed or
-re-rendered; CSS uses `object-fit: cover` and responsive framing while retaining
-the original pixel-art source.
+The hero is intentionally image-led. The full image must remain visible: the
+stage uses a black background, responsive padding and contain-style fitting so
+the artwork has breathing room on every side. It is not cropped, altered,
+smoothed or re-rendered. The frame may become shorter or stack on narrow
+screens, but it must preserve the complete source composition.
 
 ### 3. Hero words and CTA
 
-Below the mosaic, a large text block repeats “What is best in code?” and sets
-the three approved Conan-inspired lines exactly as written. A short paragraph
+Below the mosaic, a single large `h1` reads “What is best in code?” and sets
+the three approved Conan-inspired lines exactly as written. There is no second
+heading for the same phrase elsewhere in the hero. A short paragraph
 grounds the metaphor in Herdr’s facts: campaigns are workspaces, agents are
 adventurers, and the scene remains honest about state. A filled **View on
 GitHub** button is the primary CTA. A secondary anchor may scroll to the
@@ -144,6 +148,10 @@ Questmancer tagline, identifies Herdr and provides the GitHub link.
   deliberate 24px-aligned icon sizes. No filters, smoothing or effects may
   blur the supplied pixel art; any tonal gradient is a separate overlay layer
   behind text, not a treatment applied to the image pixels.
+- Hero framing: the main artwork uses `object-fit: contain` (or an equivalent
+  imported-image layout) inside a padded black stage. `object-fit: cover` is
+  reserved for secondary screenshot thumbnails where a captioned crop is
+  acceptable.
 - Responsive behaviour: two-column hero and evidence layout at wide sizes;
   stacked hero, screenshots and install block below the narrow breakpoint;
   compact feature cards become one or two columns without horizontal scrolling.

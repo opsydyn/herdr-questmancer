@@ -24,6 +24,19 @@ pub struct PersistedStateV1 {
     pub selected_persona: Option<PersonaKey>,
     pub personas: BTreeMap<PersonaKey, AdventurerPersona>,
     pub seen_attention: BTreeSet<AttentionEpisodeKey>,
+    /// The guild's lifetime experience, one score for this Questmancer.
+    ///
+    /// `serde(default)` rather than a schema bump: a state file written before
+    /// this field existed loads cleanly at zero, so nobody loses the personas
+    /// they already have. `STATE_SCHEMA_VERSION` stays where it is, because
+    /// nothing about the existing shape changed.
+    ///
+    /// Monotonic, and never recomputed from the Chronicle. The Chronicle is a
+    /// bounded ring, so a score derived from it would *decay* as history
+    /// rolled off — the same trap `$quest_hoard` documents, except here the
+    /// number is supposed to be permanent.
+    #[serde(default)]
+    pub experience: u64,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -31,6 +44,7 @@ pub struct DurableIntent {
     selected_persona: Option<PersonaKey>,
     personas: BTreeMap<PersonaKey, AdventurerPersona>,
     seen_attention: BTreeSet<AttentionEpisodeKey>,
+    experience: u64,
 }
 
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
@@ -62,6 +76,7 @@ impl PersistedStateV1 {
                 .or_else(|| intent.selected_persona.clone()),
             personas: intent.personas.clone(),
             seen_attention: intent.seen_attention.clone(),
+            experience: intent.experience,
         }
     }
 
@@ -110,7 +125,19 @@ impl DurableIntent {
         self.selected_persona.clone_from(&state.selected_persona);
         self.personas.clone_from(&state.personas);
         self.seen_attention.clone_from(&state.seen_attention);
+        self.experience = state.experience;
         Ok(())
+    }
+
+    #[must_use]
+    pub const fn experience(&self) -> u64 {
+        self.experience
+    }
+
+    /// Adds to the guild's standing. Saturating and never subtracting: a score
+    /// that can go down is not a record of what you have done.
+    pub const fn earn(&mut self, experience: u64) {
+        self.experience = self.experience.saturating_add(experience);
     }
 
     pub fn overlay(&mut self, domain: &mut DomainState) {

@@ -153,8 +153,9 @@ Counsel and search accept ordinary text. `Enter` submits, `Ctrl-U` clears, and
 managed pane.
 
 The persistent Librarian is a non-agent Guild Hall character. Click him—or
-press `?` anywhere—to open the same four-page handbook. Use left/right to page
-through Welcome, Reading the Party, Questmancer's Keyring and Safe Chronicle;
+press `?` anywhere—to open the same five-page handbook. Use left/right to page
+through Welcome, Reading the Party, Questmancer's Keyring, The Guild's Standing
+and Safe Chronicle;
 `Esc` closes it. The Librarian cannot receive counsel, focus or output commands.
 
 The Keyring page is generated from the binding table itself rather than
@@ -231,6 +232,23 @@ default because it changes shared Herdr UI, it sorts without ever filtering so
 no agent is hidden, and it is released when Questmancer closes.
 
 Requires Herdr `0.7.5` or newer.
+
+## The guild's standing
+
+Questmancer keeps one experience score for this install — not one per
+adventurer. Parties change with every session; the guild is the thing with
+continuity, so the guild is what keeps the score.
+
+Standing is shown as a badge in the top-right corner of the room and in full on
+the Guild's Standing page of the Librarian's Ledger (`?`). It is earned by work
+the Chronicle recorded: spoils returned, and campaigns closed. Nothing else
+earns. An adventurer arriving, setting out or resting is worth nothing, and so
+is an adventurer asking for counsel — that records somebody getting stuck, and
+paying for it would reward agents for blocking.
+
+The score only ever climbs, is stored rather than recomputed from the
+Chronicle, and unlocks nothing. It is a flourish, not an instrument: a tool
+that withheld features until you had used it enough would be a worse tool.
 
 ## Local state and privacy
 
