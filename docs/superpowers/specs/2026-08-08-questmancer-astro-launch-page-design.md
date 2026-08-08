@@ -1,6 +1,6 @@
 # Questmancer Astro launch page
 
-Status: **Approved**
+Status: **Revised — pending user review**
 
 Date: 2026-08-08
 
