@@ -40,6 +40,43 @@ jobs:
           base_sha=$(git rev-parse HEAD^)
           git diff --check "${base_sha}"...HEAD
 
+      # `cargo package` builds the crate from the packaged tarball, so it is
+      # the only check that catches excluding a file the build needs. The size
+      # bound is not cosmetic: crates.io refuses uploads over 10 MiB, and this
+      # crate reached 32 MiB by carrying source illustrations and screenshots
+      # that `cargo install` has no use for.
+      - name: Verify the published crate surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo package --locked
+          crate="target/package/questmancer-${GITHUB_REF_NAME#v}.crate"
+          [[ -f $crate ]] || {
+            echo "cargo package produced no crate at $crate" >&2
+            exit 1
+          }
+          bytes=$(wc -c <"$crate")
+          limit=$((10 * 1024 * 1024))
+          printf 'packaged crate: %s bytes\n' "$bytes"
+          (( bytes < limit )) || {
+            echo "crate is ${bytes} bytes, over the ${limit} byte crates.io limit" >&2
+            echo 'add the offending paths to exclude in Cargo.toml' >&2
+            exit 1
+          }
+
+      - name: Verify the tag matches every version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=${GITHUB_REF_NAME#v}
+          for file in Cargo.toml herdr-plugin.toml; do
+            declared=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$file" | head -n 1)
+            [[ $version == "$declared" ]] || {
+              echo "tag $version does not match $file version $declared" >&2
+              exit 1
+            }
+          done
+
   build:
     name: Build ${{ matrix.target }}
     needs: verify
@@ -155,3 +192,39 @@ jobs:
           files: |
             questmancer-v*.tar.gz
             SHA256SUMS
+
+  crates-io:
+    name: Publish to crates.io
+    # Last, and only once the binaries are out. A crates.io publish is
+    # irreversible — a version can be yanked but never replaced — so nothing
+    # reaches the registry until the artefacts people actually install exist.
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: crates-io
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.90.0
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Publish
+        shell: bash
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          [[ -n ${CARGO_REGISTRY_TOKEN:-} ]] || {
+            echo "CARGO_REGISTRY_TOKEN is unset; add it to the crates-io environment" >&2
+            exit 1
+          }
+          version=${GITHUB_REF_NAME#v}
+          # Publishing the same version twice is an error rather than a no-op,
+          # so a re-run of this workflow would fail here. Say why plainly
+          # instead of leaving a red job with a registry error in it.
+          if cargo search questmancer --limit 1 | grep -q "^questmancer = \"${version}\""; then
+            echo "questmancer ${version} is already on crates.io; nothing to publish"
+            exit 0
+          fi
+          cargo publish --locked

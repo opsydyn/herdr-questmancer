@@ -6,6 +6,24 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Questmancer publishes to crates.io. The release workflow gained a
+  crates.io job that runs after the binaries are out — a publish is
+  irreversible, so nothing reaches the registry until the artefacts people
+  actually install exist — and re-running a completed release now says the
+  version is already published instead of failing on a registry error.
+
+### Fixed
+
+- The crate could not have been published at all. `cargo package` produced
+  32 MiB against a 10 MiB registry limit, because `src/assets` held sixteen
+  1536x1024 source illustrations totalling 26 MiB that nothing referenced, and
+  the package swept in root screenshots and reference art besides. The source
+  art moved to `reference-art/source-portraits/`, `Cargo.toml` gained an
+  `exclude`, and the packaged crate is now 4.7 MiB compressed. The release gate
+  runs `cargo package` and fails over the limit, so this cannot silently return.
+
+### Added
+
 - Documentation caught up with the session's controls. The guarded manual
   acceptance pass had no rows for `!`, `s`, `c`, `n`/`N`, `Tab`, `m`/`u`/`p`,
   parchment scrolling, counsel drafts, the standing badge or the urgency

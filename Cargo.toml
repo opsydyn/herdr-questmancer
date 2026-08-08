@@ -9,6 +9,17 @@ repository = "https://github.com/opsydyn/herdr-questmancer"
 readme = "README.md"
 keywords = ["herdr", "ratatui", "agents", "tui", "fantasy"]
 categories = ["command-line-utilities", "development-tools"]
+# The crate ships the plugin and the art it renders, and nothing else. Source
+# illustrations, screenshots and the launch site are repository material: they
+# are worth keeping in git and worth nothing to `cargo install`. Left in, they
+# took the package to 32 MiB against a 10 MiB registry limit.
+exclude = [
+  "/reference-art",
+  "/site",
+  "/docs/superpowers",
+  "/*.png",
+  "/.github",
+]
 
 [features]
 default = []

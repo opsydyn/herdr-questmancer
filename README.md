@@ -26,6 +26,17 @@ Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
 - `jq` for the migration and guarded smoke-test recipes below
 - `just` only for contributor shortcuts
 
+## Install from crates.io
+
+```bash
+cargo install questmancer
+herdr plugin link "$(dirname "$(command -v questmancer)")"
+```
+
+The crate carries the plugin and the pixel art it renders. Source
+illustrations, screenshots and the launch site stay in the repository: they are
+worth keeping in git and worth nothing to an install.
+
 ## Install from this checkout
 
 Questmancer currently supports source linking:

@@ -109,15 +109,16 @@ workflow_paths = if ARGV.empty?
                  end
 
 workflows = workflow_paths.map { |path| [path, load_workflow(path)] }
-release = workflows.find { |_path, jobs| %w[verify build publish].all? { |name| jobs.key?(name) } }
+release = workflows.find { |_path, jobs| %w[verify build publish crates-io].all? { |name| jobs.key?(name) } }
 ci = workflows.find { |_path, jobs| jobs.key?("check") }
 abort_contract("could not identify one release workflow and one CI workflow") unless release && ci
 
 _release_path, release_jobs = release
-require_exact_keys(release_jobs, "release jobs", %w[verify build publish])
+require_exact_keys(release_jobs, "release jobs", %w[verify build publish crates-io])
 verify = job(release_jobs, "verify")
 build = job(release_jobs, "build")
 publish = job(release_jobs, "publish")
+crates_io = job(release_jobs, "crates-io")
 
 require_checkout_depth(verify, "verify")
 [
@@ -132,6 +133,15 @@ require_checkout_depth(verify, "verify")
 
 abort_contract("build must need exactly verify") unless build["needs"] == "verify"
 abort_contract("publish must need exactly build") unless publish["needs"] == "build"
+# A crates.io publish cannot be undone — a version may be yanked but never
+# replaced — so the registry is the last thing a release touches, after the
+# archives people install already exist.
+unless crates_io["needs"] == "publish"
+  abort_contract("crates-io must need exactly publish, so the registry is written last")
+end
+unless crates_io["environment"] == "crates-io"
+  abort_contract("crates-io must run in the crates-io environment that holds the token")
+end
 
 require_exact_uses(
   verify,
