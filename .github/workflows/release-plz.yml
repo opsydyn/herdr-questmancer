@@ -71,3 +71,48 @@ jobs:
           else
             echo "no releasable change; no release pull request opened" >>"$GITHUB_STEP_SUMMARY"
           fi
+
+  release:
+    name: Tag the merged release
+    # The half that was missing. `release-pr` opens the version pull request;
+    # nothing tags it. Merging the first one bumped the version and stopped
+    # there, so `release.yml` — which triggers on the tag — never ran and no
+    # binaries were ever built.
+    #
+    # Publishing is off in release-plz.toml, so this creates the tag and
+    # nothing else. The tag is what hands over to release.yml.
+    needs: release-pr
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.90.0
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Tag any release commit on main
+        id: release-plz
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Record what happened
+        if: always()
+        shell: bash
+        env:
+          RELEASES_CREATED: ${{ steps.release-plz.outputs.releases_created }}
+          RELEASES: ${{ steps.release-plz.outputs.releases }}
+        run: |
+          set -euo pipefail
+          if [[ ${RELEASES_CREATED:-false} == "true" ]]; then
+            echo "tagged: ${RELEASES:-unknown}" >>"$GITHUB_STEP_SUMMARY"
+          else
+            echo "no release commit on main; nothing tagged" >>"$GITHUB_STEP_SUMMARY"
+          fi

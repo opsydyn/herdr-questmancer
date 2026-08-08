@@ -193,9 +193,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # The first section with content, not simply the first section: a
+          # changelog conventionally keeps an empty `## [Unreleased]` at the
+          # top between releases, and releasing that would ship a blank body.
           awk '
-            /^## / { if (seen) exit; seen = 1; next }
-            seen { print }
+            /^## / {
+              if (kept) exit
+              collecting = 1
+              delete buffer
+              count = 0
+              next
+            }
+            collecting {
+              buffer[count++] = $0
+              if (NF) kept = 1
+            }
+            END {
+              if (kept) for (i = 0; i < count; i++) print buffer[i]
+            }
           ' CHANGELOG.md >RELEASE_NOTES.md
           if [[ ! -s RELEASE_NOTES.md ]]; then
             echo "CHANGELOG.md has no leading section to release from" >&2

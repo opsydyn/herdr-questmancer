@@ -20,10 +20,16 @@ Three things cut a release, and each owns one job.
    bumps `Cargo.toml` and knows nothing about `herdr-plugin.toml`, which Herdr
    reads and `herdr/install.sh` uses to build the archive name. `tests/scripts.sh`
    fails while they disagree, so the pull request shows red until it is done.
-3. Merge the release pull request. release-plz creates the tag.
+3. Merge the release pull request. The `release` job tags the merged commit.
+   That job was missing at first: `release-pr` opens the version pull request
+   and nothing tags it, so the first merged one bumped the version and stopped,
+   and `release.yml` — which triggers on the tag — never ran.
 4. `release.yml` builds four targets, checks the packaged crate, verifies the
-   tag matches both manifests, takes the release body from the top section of
-   `CHANGELOG.md`, and publishes the GitHub release with checksums.
+   tag matches both manifests, takes the release body from the first section of
+   `CHANGELOG.md` that has content, and publishes the GitHub release with
+   checksums. The "with content" part matters: a changelog conventionally keeps
+   an empty `## [Unreleased]` at the top between releases, and releasing that
+   would ship a blank body.
 
 ## Why the changelog is not generated
 

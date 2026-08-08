@@ -154,9 +154,18 @@ end
 release_plz_path = ".github/workflows/release-plz.yml"
 abort_contract("a release-plz workflow must exist") unless File.exist?(release_plz_path)
 release_plz = load_workflow(release_plz_path)
-require_exact_keys(release_plz, "release-plz jobs", %w[release-pr])
+require_exact_keys(release_plz, "release-plz jobs", %w[release-pr release])
 release_pr = job(release_plz, "release-pr")
 require_checkout_depth(release_pr, "release-pr")
+# Opening the version pull request is only half of it. Without a `release`
+# command nothing ever tags the merged commit, so release.yml — which triggers
+# on the tag — never runs and no binaries are built. The first merged release
+# pull request did exactly that.
+release_job = job(release_plz, "release")
+require_checkout_depth(release_job, "release")
+unless release_job["needs"] == "release-pr"
+  abort_contract("release must need release-pr, so tagging follows the version bump")
+end
 # release-plz owns the version and the tag; release.yml owns the GitHub release,
 # because it is the only job holding the archives to attach to one.
 config = File.read(File.expand_path("../release-plz.toml", __dir__))
