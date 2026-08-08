@@ -34,26 +34,40 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # release-plz bumps Cargo.toml and knows nothing about the Herdr
-      # manifest. `herdr/install.sh` builds the release archive name from that
-      # manifest, so a drift here produces a plugin that downloads an archive
-      # no release published. `tests/scripts.sh` fails on the pull request when
-      # they disagree; this says so at the point the pull request is made.
-      - name: Warn when the Herdr manifest needs syncing
-        if: ${{ steps.release-plz.outputs.prs_created == 'true' }}
+      # manifest, which `herdr/install.sh` uses to build the release archive
+      # name. Drift there is not cosmetic: `herdr plugin install` downloads an
+      # archive no release published and fails with a 404 for every user.
+      #
+      # This was a documented manual step. It was missed twice — once fixed by
+      # hand, then broken again by the next bump — which is what a manual step
+      # in an automated pipeline does. Now the pipeline does it.
+      - name: Sync the Herdr manifest on the release branch
+        if: ${{ steps.release-plz.outputs.prs != '' && steps.release-plz.outputs.prs != '[]' }}
         shell: bash
+        env:
+          PRS: ${{ steps.release-plz.outputs.prs }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          cargo_version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)
-          plugin_version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' herdr-plugin.toml | head -n 1)
-          if [[ $cargo_version != "$plugin_version" ]]; then
-            {
-              echo "### Release pull request needs a manifest sync"
-              echo
-              echo "\`Cargo.toml\` is \`$cargo_version\`, \`herdr-plugin.toml\` is \`$plugin_version\`."
-              echo
-              echo 'Run `scripts/sync-plugin-version.sh` on the release branch and push.'
-            } >>"$GITHUB_STEP_SUMMARY"
+          branch=$(jq -r '.[0].head_branch // empty' <<<"$PRS")
+          if [[ -z $branch ]]; then
+            echo "release-plz reported a pull request with no branch; nothing to sync" \
+              >>"$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
+          git fetch --depth=1 origin "$branch"
+          git checkout -B "$branch" "origin/$branch"
+          bash scripts/sync-plugin-version.sh
+          if git diff --quiet -- herdr-plugin.toml; then
+            echo "manifest already matches Cargo.toml" >>"$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add herdr-plugin.toml
+          git commit -m "fix: sync the Herdr manifest to the released version"
+          git push origin "$branch"
+          echo "synced herdr-plugin.toml on $branch" >>"$GITHUB_STEP_SUMMARY"
 
       - name: Record what happened
         if: always()

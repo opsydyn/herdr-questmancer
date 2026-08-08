@@ -6,6 +6,12 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- The release pipeline syncs `herdr-plugin.toml` itself. It had been a
+  documented manual step, and it was missed twice — fixed by hand once, then
+  broken again by the very next version bump — leaving `herdr plugin install`
+  downloading an archive no release published. A manual step inside an
+  automated pipeline is a step that eventually does not happen.
+
 - The documented install was the contributor path. `herdr plugin install
   opsydyn/herdr-questmancer` is how a Herdr user installs a plugin — one
   command, no clone, no Rust toolchain, with Herdr running the plugin's own

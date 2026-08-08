@@ -16,10 +16,13 @@ Three things cut a release, and each owns one job.
    produced one covering all three hundred commits, reintroducing the
    project's pre-rename identity. `release-plz` opens or updates a release
    pull request with the version bump alone.
-2. **Run `scripts/sync-plugin-version.sh` on that branch and push.** release-plz
-   bumps `Cargo.toml` and knows nothing about `herdr-plugin.toml`, which Herdr
-   reads and `herdr/install.sh` uses to build the archive name. `tests/scripts.sh`
-   fails while they disagree, so the pull request shows red until it is done.
+2. Nothing. The workflow syncs `herdr-plugin.toml` onto the release branch
+   itself. release-plz bumps `Cargo.toml` and knows nothing about the Herdr
+   manifest, which `herdr/install.sh` uses to build the archive name, so drift
+   there 404s every `herdr plugin install`. This was a manual step and was
+   missed twice — fixed by hand once, broken again by the next bump. A manual
+   step inside an automated pipeline is a step that eventually does not happen.
+   `tests/scripts.sh` still fails when the two disagree, as a backstop.
 3. Merge the release pull request. The `release` job tags the merged commit.
    That job was missing at first: `release-pr` opens the version pull request
    and nothing tags it, so the first merged one bumped the version and stopped,
