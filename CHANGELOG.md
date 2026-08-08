@@ -6,6 +6,14 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Documentation caught up with the session's controls. The guarded manual
+  acceptance pass had no rows for `!`, `s`, `c`, `n`/`N`, `Tab`, `m`/`u`/`p`,
+  parchment scrolling, counsel drafts, the standing badge or the urgency
+  ordering, so a hand verification would have missed every control added.
+  `sidebar_urgency_order` joined the README's configuration sample rather than
+  living only in prose, and `docs/design/questmancer-guild-standing.md` records
+  why standing belongs to the guild rather than to each adventurer.
+
 - A guild standing: one experience score for this Questmancer install, shown
   as a badge in the top-right corner and in full on a new Guild's Standing page
   of the Librarian's Ledger. Adventurers come and go with panes and sessions,

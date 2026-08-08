@@ -70,6 +70,19 @@ task. Use a synthetic blocked report to confirm `seeks counsel` and an updated
 campaign summons count. Restore the user's original sidebar configuration after
 the test if it was changed solely for this procedure.
 
+Row styling requires Herdr `0.7.5` or newer; `herdr config check` must report
+`config: ok` before opening Questmancer, and an invalid row takes the whole
+file down to defaults rather than being skipped.
+
+### Optional urgency ordering
+
+With `sidebar_urgency_order = true` in Questmancer's own configuration, confirm
+that Herdr's agent list leads with an adventurer that is waiting on a human,
+matching the order `!` walks inside Questmancer. Confirm also that **no agent
+disappears** — the view sorts and must never filter — and that closing
+Questmancer returns Herdr's list to its own order. Reconnecting after a server
+restart must restore the ordering, since Herdr's view is transient.
+
 ## Registration and singleton
 
 ```bash
@@ -98,6 +111,18 @@ Questmancer pane after the repeated `open`.
 | Native portrait | Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender and Wizard classes use their transparent PNGs when the complete pane transport reports Kitty, Sixel or iTerm2 support. Class remains primary regardless of ancestry: an Orc Ranger uses the Ranger portrait. Goblin and Orc art is reserved for future event/NPC storytelling. The Librarian's Ledger uses its native Librarian illustration when available. Other identities and unsupported transports retain the authored class sprite. |
 | Narrow viewport | The Guild Hall recomposes from a compact whole-party room to a priority-adventurer vignette and finally status-only rendering; the Delve retains its authored camera crop. Neither switches to a text dashboard. |
 | View continuity | Selection remains coherent when switching with `1` and `2`. |
+| Urgency jump | `!` selects an adventurer that is waiting on you, in one press, and cycles them when several are. With nobody waiting the selection does not move and the notice reads `No adventurer is waiting on you.` |
+| Set aside | `s` on a summoned adventurer reports `Set aside for 15 minutes.`; `!` then skips that adventurer while the summons and its `NEEDS COUNSEL` state both remain visible. `s` on an adventurer with no summons says so instead. |
+| Campaign navigation | `Tab` moves the selection into another campaign's party and wraps. With the whole party on one campaign it stays put and says so. |
+| Chronicle | `c` opens the guild's record, newest first, scoped to the selected adventurer or the whole guild when none is selected. `j`/`k`, arrows and the wheel scroll it. No key moves the party while it is open. `Esc` or `c` closes it. |
+| Search cycling | `/` with a query matching several adventurers reports `1/N matching …`; `n` and `N` walk the matches in both directions and wrap. |
+| Scrying scroll | `o` on an adventurer with long output scrolls with `j`/`k`, arrows or the wheel, reaches text below the first screenful, and stops at the last line rather than scrolling into blank space. |
+| Counsel draft | Type into the `r` parchment, press `Esc`, and the notice reads `Draft kept.`; pressing `r` again restores the text. Selecting a different adventurer shows a blank parchment, and returning restores the first draft. Sending clears it. |
+| Display toggles | `m` cycles motion through full, reduced and still; `u` switches Unicode and ASCII glyphs; `p` switches truecolour and sixteen colours. Each reports the setting it landed on, and each survives closing and reopening Questmancer. |
+| Keyring | `?` reaches the Questmancer's Keyring page. Every binding used above appears there, including `!`, `s`, `c`, `n`/`N` and `Tab`. |
+| Guild standing | A badge sits in the top-right corner reading rank and experience. Opening an adventurer card does not cover it. The Ledger's Guild's Standing page shows the same figures with the amount owed to the next rank. |
+| Standing is earned | With a disposable agent, a `working` to `idle` transition that records returned spoils raises the score; a `blocked` report does not. The score never falls, and it survives closing and reopening Questmancer. |
+| Ribbon | Opening Questmancer without pressing anything shows the command ribbon, including `[?] Keys`. It fades a few seconds after the first keypress and returns on activity. |
 | Goblin outbreak | `/`, then `release the goblins`, then `Enter` puts goblins on screen for about three seconds in both `1` and `2` — Guild Hall doorway and shelves, Delve entrance-left and centre-bottom. No adventurer moves or disappears while they are loose, the room returns to normal on its own without further input, and a close/reopen never brings them back. |
 
 Do not infer unobserved states. In particular, Herdr `0.8.0` cannot synthesize

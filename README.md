@@ -187,6 +187,7 @@ output_preview_lines = 80          # 10..=500
 chronicle_max_entries = 500        # 50..=10000
 reviewr_action = "persiyanov.reviewr.open"
 show_elapsed_time = true
+sidebar_urgency_order = false      # let Herdr order its agent list by urgency
 ```
 
 Invalid configuration is reported visibly and safe defaults are used. Display
