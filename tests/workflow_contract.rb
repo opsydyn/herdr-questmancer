@@ -142,6 +142,32 @@ end
 unless crates_io["environment"] == "crates-io"
   abort_contract("crates-io must run in the crates-io environment that holds the token")
 end
+# Publishing stays behind an explicit repository variable. A release reaching
+# an ungated publish step with no token would go red *after* the GitHub release
+# had already succeeded, which reads as a failed release that in fact shipped.
+unless crates_io["if"].to_s.include?("PUBLISH_TO_CRATES")
+  abort_contract("crates-io must stay gated on the PUBLISH_TO_CRATES variable")
+end
+
+# Loaded by path rather than searched for: the pair above is the release and
+# CI workflows this contract compares, and release-plz is a third thing.
+release_plz_path = ".github/workflows/release-plz.yml"
+abort_contract("a release-plz workflow must exist") unless File.exist?(release_plz_path)
+release_plz = load_workflow(release_plz_path)
+require_exact_keys(release_plz, "release-plz jobs", %w[release-pr])
+release_pr = job(release_plz, "release-pr")
+require_checkout_depth(release_pr, "release-pr")
+# release-plz owns the version and the tag; release.yml owns the GitHub release,
+# because it is the only job holding the archives to attach to one.
+config = File.read(File.expand_path("../release-plz.toml", __dir__))
+[
+  ["publish = false", "crates.io publishing must stay off until it is decided"],
+  ["git_release_enable = false", "release.yml must own the GitHub release"],
+  ['git_tag_name = "v{{ version }}"', "tags must match the release workflow trigger"],
+  ["changelog_update = true", "a release with an empty body is not worth cutting"]
+].each do |needle, why|
+  abort_contract("release-plz.toml must set #{needle}: #{why}") unless config.include?(needle)
+end
 
 require_exact_uses(
   verify,

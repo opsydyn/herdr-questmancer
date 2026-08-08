@@ -1,0 +1,26 @@
+[workspace]
+# Versioning and changelog only. crates.io publishing is deliberately off
+# until the registry work is done and a token exists; `cargo publish` is
+# irreversible, so it stays behind an explicit decision rather than arriving
+# as a side effect of adopting release-plz.
+publish = false
+git_only = true
+
+# release-plz opens the version PR and creates the tag. The GitHub release
+# itself belongs to release.yml, which is the only thing that has the four
+# platform archives and their checksums to attach — a release created here
+# would be an empty one that the binaries then had to catch up with.
+git_release_enable = false
+git_tag_enable = true
+git_tag_name = "v{{ version }}"
+
+# Notes come from the commit history. Left off, a release ships with an empty
+# body regardless of how much went into it.
+changelog_update = true
+
+# The library target exists for tests and the Storybook, not as a public API,
+# so a semver check would block releases over changes no consumer can see.
+# Revisit if the crate is ever published for others to depend on.
+semver_check = false
+
+pr_labels = ["release"]

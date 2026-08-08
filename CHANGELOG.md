@@ -6,11 +6,20 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Release automation through `release-plz`: version bumps and changelog entries
+  now arrive as a pull request on `main`, and merging it creates the tag the
+  existing release workflow already builds from. Publishing stays with
+  `release.yml`, which is the only job holding the four platform archives, so a
+  release is never advertised before the binaries exist.
+
 - Questmancer publishes to crates.io. The release workflow gained a
   crates.io job that runs after the binaries are out — a publish is
   irreversible, so nothing reaches the registry until the artefacts people
   actually install exist — and re-running a completed release now says the
-  version is already published instead of failing on a registry error.
+  version is already published instead of failing on a registry error. The job
+  is gated off behind the `PUBLISH_TO_CRATES` repository variable until a
+  registry token exists, because an ungated publish step with no token would
+  turn a release red after it had already shipped correctly.
 
 ### Fixed
 

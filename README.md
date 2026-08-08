@@ -362,6 +362,14 @@ The full environment-preserving procedure is in the
 Visual decisions and unreviewed states are recorded separately in the
 [cutover evidence ledger](docs/superpowers/reviews/2026-07-17-scene-first-cutover.md).
 
+## Releasing
+
+Versions and changelog come from `release-plz`; binaries come from the tagged
+release workflow. See [docs/release-process.md](docs/release-process.md) for the
+sequence, including the one manual step — running
+`scripts/sync-plugin-version.sh` on the release branch, because release-plz
+bumps `Cargo.toml` and Herdr reads `herdr-plugin.toml`.
+
 ## Contributor checks
 
 ```bash

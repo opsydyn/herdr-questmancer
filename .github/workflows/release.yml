@@ -198,6 +198,13 @@ jobs:
     # Last, and only once the binaries are out. A crates.io publish is
     # irreversible — a version can be yanked but never replaced — so nothing
     # reaches the registry until the artefacts people actually install exist.
+    #
+    # Off until the registry work is finished. The job is written and tested,
+    # but a release today would reach this step with no token and go red after
+    # the GitHub release had already succeeded — a red release that shipped
+    # correctly is worse than one that never ran. Set the repository variable
+    # PUBLISH_TO_CRATES to `true` to turn it on.
+    if: ${{ vars.PUBLISH_TO_CRATES == 'true' }}
     needs: publish
     runs-on: ubuntu-latest
     environment: crates-io

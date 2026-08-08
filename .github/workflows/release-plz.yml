@@ -1,0 +1,73 @@
+name: Release plz
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  release-pr:
+    name: Open the release pull request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.90.0
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Open or update the release pull request
+        id: release-plz
+        uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # release-plz bumps Cargo.toml and knows nothing about the Herdr
+      # manifest. `herdr/install.sh` builds the release archive name from that
+      # manifest, so a drift here produces a plugin that downloads an archive
+      # no release published. `tests/scripts.sh` fails on the pull request when
+      # they disagree; this says so at the point the pull request is made.
+      - name: Warn when the Herdr manifest needs syncing
+        if: ${{ steps.release-plz.outputs.prs_created == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo_version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)
+          plugin_version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' herdr-plugin.toml | head -n 1)
+          if [[ $cargo_version != "$plugin_version" ]]; then
+            {
+              echo "### Release pull request needs a manifest sync"
+              echo
+              echo "\`Cargo.toml\` is \`$cargo_version\`, \`herdr-plugin.toml\` is \`$plugin_version\`."
+              echo
+              echo 'Run `scripts/sync-plugin-version.sh` on the release branch and push.'
+            } >>"$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Record what happened
+        if: always()
+        shell: bash
+        env:
+          PRS_CREATED: ${{ steps.release-plz.outputs.prs_created }}
+          PRS: ${{ steps.release-plz.outputs.prs }}
+        run: |
+          set -euo pipefail
+          # A release job that decides to do nothing has to say so. Silence
+          # here reads exactly like success, and a release that never opened
+          # is only noticed when somebody goes looking for it.
+          if [[ ${PRS_CREATED:-false} == "true" ]]; then
+            echo "opened or updated a release pull request: ${PRS:-unknown}" >>"$GITHUB_STEP_SUMMARY"
+          else
+            echo "no releasable change; no release pull request opened" >>"$GITHUB_STEP_SUMMARY"
+          fi

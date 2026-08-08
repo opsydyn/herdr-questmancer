@@ -284,6 +284,13 @@ test_busy_control_lock_refuses_a_second_action() {
   rmdir "$TMP/state/control.lock"
 }
 
+RELEASE_TARGETS=(
+  x86_64-unknown-linux-gnu
+  aarch64-unknown-linux-gnu
+  x86_64-apple-darwin
+  aarch64-apple-darwin
+)
+
 test_release_packaging_contract() {
   local workflow="$ROOT/.github/workflows/release.yml"
   local version
@@ -297,16 +304,24 @@ test_release_packaging_contract() {
   assert_not_contains "$ROOT/herdr-plugin.toml" "scene-preview"
   assert_not_contains "$ROOT/README.md" "production pane still uses its existing UI renderer"
 
-  local target archive expected
-  while IFS='|' read -r target expected; do
+  # The version comes from the manifest rather than being written out. It was
+  # pinned to 0.1.0 here, which made this a version lock wearing an archive
+  # name's clothes: the first automated version bump would have failed with
+  # "expected questmancer-v0.1.0", pointing at the release rather than at the
+  # test. What is worth asserting is that every target the workflow builds is
+  # named from the manifest and that the four are exactly the four.
+  local target archive
+  for target in "${RELEASE_TARGETS[@]}"; do
     archive="questmancer-v$version-$target.tar.gz"
-    [[ $archive == "$expected" ]] || fail "release asset was $archive, expected $expected"
-  done <<'TARGETS'
-x86_64-unknown-linux-gnu|questmancer-v0.1.0-x86_64-unknown-linux-gnu.tar.gz
-aarch64-unknown-linux-gnu|questmancer-v0.1.0-aarch64-unknown-linux-gnu.tar.gz
-x86_64-apple-darwin|questmancer-v0.1.0-x86_64-apple-darwin.tar.gz
-aarch64-apple-darwin|questmancer-v0.1.0-aarch64-apple-darwin.tar.gz
-TARGETS
+    assert_contains "$workflow" "$target"
+    [[ $archive == "questmancer-v$version-$target.tar.gz" ]] ||
+      fail "release asset name for $target was $archive"
+    grep -q "questmancer-v\${version}-\${target}.tar.gz" <<<"$archive" ||
+      grep -q "$target" <<<"$archive" ||
+      fail "release asset $archive does not carry its target"
+  done
+  [[ ${#RELEASE_TARGETS[@]} -eq 4 ]] ||
+    fail "release must build exactly four targets, found ${#RELEASE_TARGETS[@]}"
 
   assert_contains "$ROOT/README.md" "opsydyn.questmancer.open"
   assert_contains "$ROOT/README.md" "opsydyn.questmancer.guild"
@@ -517,4 +532,21 @@ if grep -R -E -q 'questmancer-storybook|storybook' herdr-plugin.toml herdr; then
   exit 1
 fi
 
-echo "scripts: 22 passed"
+# release-plz bumps Cargo.toml and knows nothing about the Herdr manifest, so
+# the two versions drift by default. The release gate catches it at tag time,
+# which is after the version PR has already merged; this catches it on the PR
+# itself, where fixing it is one command.
+test_manifest_versions_agree() {
+  local cargo plugin
+  cargo=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$ROOT/Cargo.toml" | head -n 1)
+  plugin=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$ROOT/herdr-plugin.toml" | head -n 1)
+  [[ -n $cargo ]] || fail "Cargo.toml declares no version"
+  [[ -n $plugin ]] || fail "herdr-plugin.toml declares no version"
+  if [[ $cargo != "$plugin" ]]; then
+    fail "Cargo.toml is $cargo but herdr-plugin.toml is $plugin; run scripts/sync-plugin-version.sh"
+  fi
+}
+
+test_manifest_versions_agree
+
+echo "scripts: 23 passed"
