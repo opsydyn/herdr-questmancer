@@ -30,13 +30,20 @@ body {
   background:
     radial-gradient(circle at 78% 12%, rgba(101, 55, 64, 0.18), transparent 30rem),
     linear-gradient(180deg, var(--night) 0%, var(--night-deep) 75%);
-  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "DotGothic16", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   line-height: 1.5;
+  cursor: url("../assets/cursor.svg") 3 3, auto;
 }
 
 a {
   color: inherit;
+  cursor: url("../assets/cursor.svg") 3 3, pointer;
   text-decoration: none;
+}
+
+button,
+[role="button"] {
+  cursor: url("../assets/cursor.svg") 3 3, pointer;
 }
 
 img {
@@ -152,7 +159,7 @@ nav a:focus-visible {
 .section-kicker {
   margin: 0;
   color: var(--gold);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: "DotGothic16", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.73rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -165,36 +172,12 @@ nav a:focus-visible {
   color: var(--ember);
 }
 
-.ascii-title {
-  width: 100%;
-  max-width: 100%;
-  margin: 0 auto 1.2rem;
-  padding: 0;
-  overflow: hidden;
-  color: var(--paper);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: clamp(0.25rem, 1.1vw, 0.75rem);
-  font-weight: 700;
-  line-height: 0.96;
-  letter-spacing: 0.02em;
-  text-align: center;
-  white-space: pre;
-}
-
-.ascii-title__row {
-  display: block;
-  min-height: 1em;
-}
-
-.ascii-title__row--4,
-.ascii-title__row--5 {
-  color: var(--muted);
-  opacity: 0.72;
-}
-
-.ascii-title__row--6 {
-  color: var(--line);
-  opacity: 0.62;
+h1,
+h2,
+h3,
+.wordmark,
+.footer-tagline {
+  font-family: "Press Start 2P", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 h1,
@@ -208,10 +191,10 @@ h1 {
   max-width: 960px;
   margin: 1.5rem auto 1.25rem;
   color: var(--paper);
-  font-size: clamp(3.35rem, 10.5vw, 8.7rem);
+  font-size: clamp(2rem, 5vw, 4rem);
   font-weight: 780;
-  letter-spacing: -0.085em;
-  line-height: 0.88;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
   text-wrap: balance;
 }
 
@@ -406,7 +389,7 @@ figcaption span {
   padding: 0.65rem 0.8rem;
   border-bottom: 1px solid #303038;
   color: #b8b6c0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: "DotGothic16", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.7rem;
 }
 
@@ -590,14 +573,8 @@ pre {
     padding-top: 3.8rem;
   }
 
-  .ascii-title {
-    margin-bottom: 0.9rem;
-    font-size: clamp(0.25rem, 1.1vw, 0.42rem);
-    letter-spacing: 0;
-  }
-
   h1 {
-    font-size: clamp(3.25rem, 17vw, 6rem);
+    font-size: clamp(1.8rem, 8.5vw, 3rem);
   }
 
   .hero-tagline {
