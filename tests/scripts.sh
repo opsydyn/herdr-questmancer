@@ -539,6 +539,19 @@ fi
 # the two versions drift by default. The release gate catches it at tag time,
 # which is after the version PR has already merged; this catches it on the PR
 # itself, where fixing it is one command.
+# `herdr plugin install owner/repo` is how a Herdr user installs a plugin: one
+# command, no clone, no toolchain. The README led with a clone and a cargo
+# build — the contributor path presented as the user path — and never mentioned
+# the native installer at all.
+test_install_documents_the_native_path() {
+  assert_contains "$ROOT/README.md" "herdr plugin install opsydyn/herdr-questmancer"
+  assert_contains "$ROOT/src/lib.rs" "herdr plugin install opsydyn/herdr-questmancer"
+  # `cargo install` gives a binary the plugin launcher never looks for, so
+  # neither document may present it as a way to install the plugin.
+  assert_not_contains "$ROOT/README.md" 'herdr plugin link "$(dirname'
+  assert_not_contains "$ROOT/src/lib.rs" 'herdr plugin link "$(dirname'
+}
+
 # release-plz refuses to compute versions while any file is both committed and
 # ignored, and says so only at release time. Fourteen `.superpowers/sdd`
 # reports were in that state and stopped the first automated release dead.
@@ -575,6 +588,7 @@ test_manifest_versions_agree() {
 
 test_manifest_versions_agree
 test_no_file_is_both_tracked_and_ignored
+test_install_documents_the_native_path
 test_scripts_use_only_tools_the_runner_has
 
-echo "scripts: 25 passed"
+echo "scripts: 26 passed"

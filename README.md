@@ -26,6 +26,20 @@ Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
 - `jq` for the migration and guarded smoke-test recipes below
 - `just` only for contributor shortcuts
 
+## Install
+
+```bash
+herdr plugin install opsydyn/herdr-questmancer
+herdr plugin action invoke opsydyn.questmancer.open
+```
+
+Herdr fetches the repository, reads `herdr-plugin.toml`, and runs the plugin's
+own build step, which downloads the prebuilt binary for your platform and
+verifies it against the release checksums. No clone, no Rust toolchain.
+
+This is the path Herdr users should take. Everything below is for working on
+Questmancer rather than using it.
+
 ## Install from crates.io
 
 ```bash

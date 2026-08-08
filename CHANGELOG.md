@@ -4,6 +4,16 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- The documented install was the contributor path. `herdr plugin install
+  opsydyn/herdr-questmancer` is how a Herdr user installs a plugin — one
+  command, no clone, no Rust toolchain, with Herdr running the plugin's own
+  build step to fetch a checksummed binary — and neither the README nor the
+  crate documentation mentioned it. Both now lead with it. The `cargo install`
+  instructions were also wrong: they placed a binary the plugin launcher never
+  looks for, and linked a directory with no manifest in it.
+
 ## [0.1.0](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.0) - 2026-08-08
 
 ### Added

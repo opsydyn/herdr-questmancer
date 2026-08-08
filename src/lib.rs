@@ -10,23 +10,33 @@
 //! # Installing
 //!
 //! Questmancer is a Herdr plugin rather than a standalone program, and Herdr
-//! links a plugin by *directory* — it needs the `herdr-plugin.toml` manifest
-//! and the `herdr/` scripts beside the binary:
+//! installs plugins itself:
+//!
+//! ```bash
+//! herdr plugin install opsydyn/herdr-questmancer
+//! herdr plugin action invoke opsydyn.questmancer.open
+//! ```
+//!
+//! Herdr fetches the repository, reads `herdr-plugin.toml` and runs the
+//! plugin's build step, which downloads the prebuilt binary for your platform
+//! and checks it against the release checksums. No clone, no Rust toolchain.
+//!
+//! To work on Questmancer instead, link a checkout — Herdr links a plugin by
+//! *directory*, needing the manifest and the `herdr/` scripts, not just an
+//! executable:
 //!
 //! ```bash
 //! git clone https://github.com/opsydyn/herdr-questmancer
 //! cd herdr-questmancer
 //! cargo build --release
 //! herdr plugin link .
-//! herdr plugin action invoke opsydyn.questmancer.open
 //! ```
 //!
-//! `cargo install questmancer` builds the same binary and puts it on your
-//! `PATH`, which is useful for running `questmancer ui` directly. It is not on
-//! its own an install of the plugin: `cargo install` places binaries and
-//! nothing else, so the manifest Herdr needs is not there, and the plugin's
-//! launcher looks for its binary inside the plugin directory rather than on
-//! `PATH`.
+//! `cargo install questmancer` builds the same binary onto your `PATH`, which
+//! is useful for running it directly. It is not an install of the plugin:
+//! `cargo install` places binaries and nothing else, so the manifest Herdr
+//! needs is absent, and the plugin's launcher resolves its binary from inside
+//! the plugin directory rather than from `PATH`.
 //!
 //! Requires Herdr `0.8.0`, which speaks protocol `19`. Herdr refuses a client
 //! whose protocol differs, so the plugin and the server move together.

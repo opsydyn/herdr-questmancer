@@ -31,6 +31,19 @@ Three things cut a release, and each owns one job.
    an empty `## [Unreleased]` at the top between releases, and releasing that
    would ship a blank body.
 
+## A tag without a release breaks installation
+
+`herdr plugin install opsydyn/herdr-questmancer` is how a Herdr user installs
+this plugin. Herdr fetches the repository and runs `herdr/install.sh`, which
+builds an archive name from `herdr-plugin.toml` and downloads it from the
+matching GitHub release. So a version in that manifest with no published
+release is not an untidy loose end — it is a broken install for every user,
+returning 404 from the download.
+
+That is the state v0.1.1 and v0.1.2 are in: release-plz tagged them, nothing
+built them, and the manifest points at a release that does not exist. It is
+also why the release job below matters more than it looks.
+
 ## The tag has to come from a personal access token
 
 GitHub does not start workflows from events created with `GITHUB_TOKEN`; it
@@ -87,7 +100,9 @@ lives in `reference-art/`, and `Cargo.toml` excludes repository material.
 
 ## What the guards cover
 
-- `tests/scripts.sh` — the two manifest versions agree, and release archive
+- `tests/scripts.sh` — both documents lead with `herdr plugin install` and
+  neither presents `cargo install` as a way to install the plugin; the two
+  manifest versions agree, and release archive
   names are derived from the manifest rather than pinned. That test used to
   hardcode `0.1.0`, so the first automated bump would have failed it with a
   message pointing at the release rather than at the test.
