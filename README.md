@@ -1,13 +1,21 @@
 # Questmancer
 
-> Your agents have entered the dungeon.
+> **What is best in code?**
 >
-> You are the Questmancer.
+> To crush your bugs.<br />
+> See your agents driven before you.<br />
+> Hear the lamentations of your token budget.
 
-Questmancer turns a Herdr session into a living, 16-bit adventurers' guild.
-Herdr workspaces become campaigns and coding agents become adventurers. Working
-agents travel through the Delve, blocked agents call for counsel, and completed
-work returns with spoils.
+![Questmancer hero: a pixel-art barbarian seated between red guild banners](site/src/assets/hero.png)
+
+Questmancer is the Herdr plugin that turns a live coding-agent session into a
+16-bit adventurers' guild. Herdr workspaces become **campaigns**, coding agents
+become **adventurers**, and the room tells the truth about what is happening
+now: working agents travel the Delve, blocked agents call for counsel, and
+completed work returns with spoils.
+
+[Open the live launch page](https://opsydyn.github.io/herdr-questmancer/) ·
+[View the source on GitHub](https://github.com/opsydyn/herdr-questmancer)
 
 The production interface is one RGB pixel world with two rooms:
 
@@ -19,14 +27,33 @@ marks the selected adventurer; contextual parchment overlays handle counsel,
 search and scrying without replacing the scene with a dashboard. A persistent
 Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
 
-## Requirements
+## Two rooms, one party
+
+| Guild Hall · the whole-party home | Delve · active work in connected chambers |
+| --- | --- |
+| ![Questmancer Guild Hall showing the whole party at workstations](site/src/assets/screenshots/guild-hall.png) | ![Questmancer Delve showing adventurers working in connected chambers](site/src/assets/screenshots/delve.png) |
+
+## Operational evidence
+
+The fantasy language is a map to real state. These are the overlays and compact
+compositions that keep the Guild Hall useful when the party gets busy.
+
+| Librarian's Ledger | Adventurer profile |
+| --- | --- |
+| ![Librarian's Ledger overlay with the fixed Questmancer handbook](site/src/assets/screenshots/ledger.png) | ![Questmancer adventurer profile overlay with current agent details](site/src/assets/screenshots/adventurer.png) |
+
+| Compact party | Warm compact composition |
+| --- | --- |
+| ![Compact Guild Hall composition showing a small party](site/src/assets/screenshots/compact-party.png) | ![Warm compact party composition in the Guild Hall](site/src/assets/screenshots/compact-party-warm.png) |
+
+## Before the first quest
 
 - Herdr `0.8.0`, protocol `19`
 - Rust `1.90.0` (selected by `rust-toolchain.toml`)
 - `jq` for the migration and guarded smoke-test recipes below
 - `just` only for contributor shortcuts
 
-## Install
+## Summon the guild
 
 ```bash
 herdr plugin install opsydyn/herdr-questmancer
@@ -40,7 +67,7 @@ verifies it against the release checksums. No clone, no Rust toolchain.
 This is the path Herdr users should take. Everything below is for working on
 Questmancer rather than using it.
 
-## Install from crates.io
+## Build the binary (optional)
 
 ```bash
 cargo install questmancer
@@ -57,7 +84,7 @@ The crate carries the plugin sources and the pixel art it renders. Source
 illustrations, screenshots and the launch site stay in the repository: they are
 worth keeping in git and worth nothing to an install.
 
-## Install from this checkout
+## Link a local guild
 
 Questmancer currently supports source linking:
 
