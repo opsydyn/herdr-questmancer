@@ -4,11 +4,21 @@ import guildHall from '../assets/screenshots/guild-hall.png';
 import delve from '../assets/screenshots/delve.png';
 
 const githubUrl = 'https://github.com/opsydyn/herdr-questmancer';
+const asciiRows = [
+  ' ███  █   █ █████  ████ █████ █   █  ███  █   █  ████ █████ ████ ',
+  '▓   ▓ ▓   ▓ ▓     ▓       ▓   ▓▓ ▓▓ ▓   ▓ ▓▓  ▓ ▓     ▓     ▓   ▓',
+  '▓   ▓ ▓   ▓ ▓     ▓       ▓   ▓ ▓ ▓ ▓   ▓ ▓ ▓ ▓ ▓     ▓     ▓   ▓',
+  '▓   ▓ ▓   ▓ ▓▓▓▓   ▓██    ▓   ▓ ▓ ▓ █████ ▓  ██ ▓     ▓███  ▓███ ',
+  '▒ ▒ ▒ ▒   ▒ ▒         ▒   ▒   ▒   ▒ ▒   ▒ ▒   ▒ ▒     ▒     ▒ ▒  ',
+  '▒  ▒  ▒   ▒ ▒         ▒   ▒   ▒   ▒ ▒   ▒ ▒   ▒ ▒     ▒     ▒  ▒ ',
+  '░░ ░  ░░░  ░░░░░ ░░░░    ░   ░   ░ ░   ░ ░   ░  ░░░░ ░░░░░ ░   ░ ',
+];
 ---
 
 <section class="hero" id="guild" aria-labelledby="hero-title">
   <div class="hero-copy">
     <p class="eyebrow"><span aria-hidden="true">//</span> Herdr plugin · Questmancer</p>
+    <pre class="ascii-title" data-title="QUESTMANCER" aria-hidden="true">{asciiRows.map((row, index) => <span class:list={["ascii-title__row", `ascii-title__row--${index}`]}>{row}</span>)}</pre>
     <h1 id="hero-title">What is best in code?</h1>
     <p class="hero-tagline">
       To crush your bugs.<br />

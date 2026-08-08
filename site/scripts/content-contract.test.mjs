@@ -5,6 +5,8 @@ import test from 'node:test';
 test('launch page preserves the approved content contract', async () => {
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
+  assert.match(html, /class="ascii-title"[^>]*aria-hidden="true"/);
+  assert.match(html, /data-title="QUESTMANCER"/);
   for (const phrase of [
     'What is best in code?',
     'To crush your bugs.',

@@ -165,6 +165,38 @@ nav a:focus-visible {
   color: var(--ember);
 }
 
+.ascii-title {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto 1.2rem;
+  padding: 0;
+  overflow: hidden;
+  color: var(--paper);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(0.25rem, 1.1vw, 0.75rem);
+  font-weight: 700;
+  line-height: 0.96;
+  letter-spacing: 0.02em;
+  text-align: center;
+  white-space: pre;
+}
+
+.ascii-title__row {
+  display: block;
+  min-height: 1em;
+}
+
+.ascii-title__row--4,
+.ascii-title__row--5 {
+  color: var(--muted);
+  opacity: 0.72;
+}
+
+.ascii-title__row--6 {
+  color: var(--line);
+  opacity: 0.62;
+}
+
 h1,
 h2,
 h3,
@@ -556,6 +588,12 @@ pre {
 
   .hero {
     padding-top: 3.8rem;
+  }
+
+  .ascii-title {
+    margin-bottom: 0.9rem;
+    font-size: clamp(0.25rem, 1.1vw, 0.42rem);
+    letter-spacing: 0;
   }
 
   h1 {
