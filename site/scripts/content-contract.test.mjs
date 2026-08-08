@@ -41,4 +41,10 @@ test('launch page preserves the approved content contract', async () => {
   assert.match(html, /Install Herdr first/);
   assert.match(html, /href="https:\/\/herdr\.dev\/docs\/install\/"[^>]*target="_blank"/);
   assert.doesNotMatch(html, /cargo install questmancer/i);
+  // `herdr plugin install` is how a Herdr user installs a plugin: one command,
+  // no clone, no toolchain. The page led with a git clone and a cargo build —
+  // the contributor path presented as the install — and claimed there was no
+  // release at all, which stopped being true when v0.1.3 shipped binaries.
+  assert.match(html, /herdr plugin install opsydyn\/herdr-questmancer/);
+  assert.doesNotMatch(html, /no Cargo release yet/i);
 });

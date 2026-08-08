@@ -1,10 +1,11 @@
 <section class="section install-section" id="install" aria-labelledby="install-title">
   <div class="section-heading">
-    <p class="section-kicker"><span aria-hidden="true">02</span> Source install · no Cargo release yet</p>
-    <h2 id="install-title">Run the guild from source.</h2>
+    <p class="section-kicker"><span aria-hidden="true">02</span> Install · one command</p>
+    <h2 id="install-title">Summon the guild.</h2>
     <p>
-      Questmancer is a Herdr plugin. Clone the repository, build the
-      release binary, link it into Herdr and open the Guild Hall.
+      Questmancer is a Herdr plugin, and Herdr installs it for you. It fetches
+      the repository, reads the plugin manifest and downloads a checksummed
+      binary for your platform. No clone, no Rust toolchain.
     </p>
   </div>
   <p class="install-prerequisite">
@@ -17,12 +18,26 @@
   <div class="terminal" aria-label="Questmancer source installation commands">
     <div class="terminal-bar" aria-hidden="true">
       <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
-      <span class="terminal-label">questmancer / source</span>
+      <span class="terminal-label">questmancer / install</span>
     </div>
-    <pre><code><span class="prompt">$</span> git clone https://github.com/opsydyn/herdr-questmancer
-<span class="prompt">$</span> cd herdr-questmancer
-<span class="prompt">$</span> cargo build --release
-<span class="prompt">$</span> herdr plugin link .
+    <pre><code><span class="prompt">$</span> herdr plugin install opsydyn/herdr-questmancer
 <span class="prompt">$</span> herdr plugin action invoke opsydyn.questmancer.open</code></pre>
   </div>
+  <details class="install-source">
+    <summary>Building from source</summary>
+    <p>
+      For working on Questmancer rather than using it. Herdr links a plugin by
+      directory, so it needs the manifest and scripts beside the binary.
+    </p>
+    <div class="terminal" aria-label="Questmancer source build commands">
+      <div class="terminal-bar" aria-hidden="true">
+        <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+        <span class="terminal-label">questmancer / source</span>
+      </div>
+      <pre><code><span class="prompt">$</span> git clone https://github.com/opsydyn/herdr-questmancer
+<span class="prompt">$</span> cd herdr-questmancer
+<span class="prompt">$</span> cargo build --release
+<span class="prompt">$</span> herdr plugin link .</code></pre>
+    </div>
+  </details>
 </section>
