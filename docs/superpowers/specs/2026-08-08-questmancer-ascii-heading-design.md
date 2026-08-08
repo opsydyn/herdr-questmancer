@@ -11,11 +11,15 @@ launch page without changing the approved product copy or adding a second
 semantic heading. The hero will open with an authored pixel wordmark that spells
 **QUESTMANCER**, followed by the existing `h1`, “What is best in code?”, and its
 Conan-inspired tagline. The wordmark is the hero's largest display element so
-the product name establishes the visual hierarchy before the slogan.
+the product name establishes the visual hierarchy before the slogan. Press Start
+2P is used for display headings, while DotGothic16 carries body and
+terminal-adjacent copy, each with a local fallback if the hosted font is
+unavailable.
 
 The banner is a visual brand mark, not a replacement for the page heading. It
-will remain static, dependency-free and base-path agnostic so the GitHub Pages
-build continues to emit the same asset contract.
+will remain static, package-free and base-path agnostic so the GitHub Pages
+build continues to emit the same asset contract. DotGothic16 is a progressive
+hosted display enhancement, not a build-time dependency.
 
 ## Goals
 
@@ -25,6 +29,8 @@ build continues to emit the same asset contract.
   face and discrete pixel falloff rows beneath it.
 - Make the wordmark visibly larger than the semantic h1 on desktop while
   preserving a contained, readable two-line treatment at narrow mobile widths.
+- Use Press Start 2P for display headings and DotGothic16 for body/terminal
+  copy without changing the copy or adding a package dependency.
 - Preserve exactly one semantic `h1` containing “What is best in code?”.
 - Keep the complete hero artwork, tagline, CTA and screenshot order unchanged.
 - Fit the banner within desktop, tablet and 375–390px mobile widths without
@@ -35,7 +41,7 @@ build continues to emit the same asset contract.
 ## Non-goals
 
 - Replacing the approved `What is best in code?` h1 or tagline.
-- Adding a second accessible heading, animated canvas, webfont, image asset or
+- Adding a second accessible heading, animated canvas, bundled font asset or
   client-side script.
 - Reproducing Varlock’s branding, copy or artwork.
 - Changing the hero artwork framing, screenshot gallery, Pages workflow or
@@ -70,7 +76,9 @@ that is intentionally wider/taller than the h1 at desktop. Its wrapper clips
 only the decorative banner's own overflow; the page itself must retain
 `scrollWidth === clientWidth` at the mobile QA viewport. At narrow widths the
 letters recompose into `QUEST` and `MANCER` rows so each pixel remains large
-enough to read.
+enough to read. Press Start 2P and DotGothic16 are loaded through the Google
+Fonts stylesheet with `display=swap`; selectors retain system fallbacks so the
+layout remains usable without the network fonts.
 
 ## Component and style changes
 
@@ -80,11 +88,15 @@ enough to read.
   - Keep `aria-hidden="true"` so screen readers announce the single h1 once.
   - Keep all existing hero copy, CTA links, artwork and screenshot markup in
     the same order after the new visual mark.
+- `site/src/layouts/BaseLayout.astro`
+  - Add the Google Fonts preconnect and Press Start 2P/DotGothic16 stylesheet
+    link in the document head.
 - `site/src/styles/global.css`
   - Add `.ascii-title` pixel-grid layout, color, fade and responsive sizing
     rules.
-  - Use the existing `--paper`, `--muted`, `--gold` and `--line` tokens; do not
-    introduce a new font request or visual dependency.
+  - Apply `"Press Start 2P", ...` to display headings and
+    `"DotGothic16", ...` to body/terminal copy while preserving code blocks.
+  - Use the existing `--paper`, `--muted`, `--gold` and `--line` tokens.
   - Add narrow-width rules that recompose the two wordmark rows while
     preserving the complete mark and preventing horizontal page overflow.
 - `site/scripts/content-contract.test.mjs`
@@ -102,14 +114,15 @@ At wide widths the banner is centered above the h1 with generous vertical
 breathing room and a larger display footprint than the h1. At 375–390px it
 recomposes to two contained wordmark rows and remains fully visible; no
 horizontal page scrolling, clipped product copy or cropped hero artwork is
-acceptable.
+acceptable. If the hosted font has not loaded, fallback metrics must preserve
+the same containment contract.
 
 ## Verification
 
 1. Run `cd site && bun run check` and confirm zero Astro diagnostics.
 2. Run `cd site && bun run build && bun run check:base && bun run check:content`.
-3. Confirm the content contract reports one `h1`, the `QUESTMANCER` banner and
-   all approved copy.
+3. Confirm the content contract reports one `h1`, the `QUESTMANCER` banner, the
+   Press Start 2P/DotGothic16 stylesheet link and all approved copy.
 4. Use the local base-prefixed preview at
    `/herdr-questmancer/` to review desktop and 375px mobile compositions.
 5. Confirm `document.documentElement.scrollWidth` equals
@@ -120,11 +133,13 @@ acceptable.
 
 ## Alternatives considered
 
-1. **Authored CSS pixel grid — selected.** Keeps the terminal-authored spirit,
-   makes each letter readable at every breakpoint and gives the fade explicit
-   pixel control without a dependency or asset.
-2. **Larger ASCII mask.** Faster, but remains font-dependent and cannot keep a
+1. **Authored CSS pixel grid plus hosted display/body fonts — selected.** Keeps
+   the terminal-authored spirit, makes each letter readable at every breakpoint
+   and gives the fade explicit pixel control without a package or bundled asset.
+2. **Authored CSS pixel grid with a bundled font.** More deterministic offline,
+   but adds a binary asset and license-notice maintenance to a launch page.
+3. **Larger ASCII mask.** Faster, but remains font-dependent and cannot keep a
    strong visual hierarchy without becoming too wide on mobile.
-3. **SVG pixel title.** Crisp at every scale, but adds a more polished logo
+4. **SVG pixel title.** Crisp at every scale, but adds a more polished logo
    treatment than the requested terminal heading and moves the art out of the
    HTML/CSS contract.
