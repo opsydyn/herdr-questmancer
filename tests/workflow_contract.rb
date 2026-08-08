@@ -164,7 +164,7 @@ config = File.read(File.expand_path("../release-plz.toml", __dir__))
   ["publish = false", "crates.io publishing must stay off until it is decided"],
   ["git_release_enable = false", "release.yml must own the GitHub release"],
   ['git_tag_name = "v{{ version }}"', "tags must match the release workflow trigger"],
-  ["changelog_update = true", "a release with an empty body is not worth cutting"]
+  ["changelog_update = false", "CHANGELOG.md is hand-written; release.yml supplies the body"]
 ].each do |needle, why|
   abort_contract("release-plz.toml must set #{needle}: #{why}") unless config.include?(needle)
 end

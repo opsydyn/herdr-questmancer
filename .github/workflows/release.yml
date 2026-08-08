@@ -186,9 +186,27 @@ jobs:
           }
           sha256sum "${expected[@]}" >SHA256SUMS
 
+      # The body is the top section of the hand-written changelog. release-plz
+      # does not generate one, because a list of commit subjects is worse than
+      # the prose already written; without this the release would ship empty.
+      - name: Take the release notes from the changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk '
+            /^## / { if (seen) exit; seen = 1; next }
+            seen { print }
+          ' CHANGELOG.md >RELEASE_NOTES.md
+          if [[ ! -s RELEASE_NOTES.md ]]; then
+            echo "CHANGELOG.md has no leading section to release from" >&2
+            exit 1
+          fi
+          printf 'release notes: %s lines\n' "$(wc -l <RELEASE_NOTES.md)"
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
+          body_path: RELEASE_NOTES.md
           files: |
             questmancer-v*.tar.gz
             SHA256SUMS

@@ -14,9 +14,17 @@ git_release_enable = false
 git_tag_enable = true
 git_tag_name = "v{{ version }}"
 
-# Notes come from the commit history. Left off, a release ships with an empty
-# body regardless of how much went into it.
-changelog_update = true
+# CHANGELOG.md is written by hand and carries the reasoning behind each
+# change, not a list of commit subjects. release-plz prepends a generated
+# section instead of respecting that, and with no tags in the repository the
+# first run generated one covering all three hundred commits — reintroducing
+# the project's pre-rename identity, which the release-surface guard forbids,
+# and duplicating in subject lines what the prose already explains better.
+#
+# The GitHub release body comes from the top section of that hand-written
+# changelog instead; see release.yml. An empty release body is the failure
+# this setting normally prevents, and that is covered.
+changelog_update = false
 
 # The library target exists for tests and the Storybook, not as a public API,
 # so a semver check would block releases over changes no consumer can see.

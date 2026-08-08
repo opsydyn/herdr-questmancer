@@ -305,11 +305,14 @@ All notable changes to this project will be documented here.
 
 ### Added
 
-- Release automation through `release-plz`: version bumps and changelog entries
-  now arrive as a pull request on `main`, and merging it creates the tag the
-  existing release workflow already builds from. Publishing stays with
-  `release.yml`, which is the only job holding the four platform archives, so a
-  release is never advertised before the binaries exist.
+- Release automation through `release-plz`: version bumps now arrive as a pull
+  request on `main`, and merging it creates the tag the existing release
+  workflow already builds from. Publishing stays with `release.yml`, which is
+  the only job holding the four platform archives, so a release is never
+  advertised before the binaries exist. This changelog stays hand-written —
+  release-plz's generated section listed commit subjects for all three hundred
+  commits, reintroducing the project's pre-rename identity — and the GitHub
+  release body is taken from its top section.
 
 - Questmancer publishes to crates.io. The release workflow gained a
   crates.io job that runs after the binaries are out — a publish is

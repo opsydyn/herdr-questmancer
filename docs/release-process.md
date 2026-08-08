@@ -4,21 +4,35 @@ Three things cut a release, and each owns one job.
 
 | Stage | Owner | Produces |
 | --- | --- | --- |
-| Version and notes | `release-plz` on `main` | a release pull request, then the `vX.Y.Z` tag |
+| Version | `release-plz` on `main` | a release pull request, then the `vX.Y.Z` tag |
 | Binaries | `release.yml` on the tag | four archives and `SHA256SUMS` on a GitHub release |
 | Registry | `release.yml`, gated | a crates.io publish — **currently off** |
 
 ## Cutting one
 
-1. Merge work to `main`. `release-plz` opens or updates a release pull request
-   with the version bump and the changelog.
+1. Write the change into `CHANGELOG.md` under `## [Unreleased]` as part of the
+   work itself. Notes are hand-written here: release-plz's generated section is
+   a list of commit subjects, and with no tags in the repository the first run
+   produced one covering all three hundred commits, reintroducing the
+   project's pre-rename identity. `release-plz` opens or updates a release
+   pull request with the version bump alone.
 2. **Run `scripts/sync-plugin-version.sh` on that branch and push.** release-plz
    bumps `Cargo.toml` and knows nothing about `herdr-plugin.toml`, which Herdr
    reads and `herdr/install.sh` uses to build the archive name. `tests/scripts.sh`
    fails while they disagree, so the pull request shows red until it is done.
 3. Merge the release pull request. release-plz creates the tag.
 4. `release.yml` builds four targets, checks the packaged crate, verifies the
-   tag matches both manifests, and publishes the GitHub release with checksums.
+   tag matches both manifests, takes the release body from the top section of
+   `CHANGELOG.md`, and publishes the GitHub release with checksums.
+
+## Why the changelog is not generated
+
+release-plz prepends a generated section rather than respecting a curated one.
+The commit messages in this repository carry the reasoning behind each change;
+reducing them to subject lines loses exactly the part worth keeping. The
+release body is therefore taken from `CHANGELOG.md` itself, which is also what
+stops a release shipping with an empty body — the failure that generation
+normally exists to prevent.
 
 ## Why the split
 
