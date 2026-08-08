@@ -3,6 +3,7 @@ use std::ops::ControlFlow;
 use questmancer::{
     app::{Modal, Model, RuntimeSettings, View},
     command::AgentCommand,
+    config::OutputPreviewLines,
     domain::{
         AdventurerPersona, AgentKey, ChronicleEntry, ChronicleEvent, DomainState, GuildAttention,
         GuildSummons, PaneId, PersonaKey, Presence, Timestamp, WorkspaceId,
@@ -520,7 +521,7 @@ fn configured_runtime_settings_drive_output_and_reviewr_commands() {
     let mut model = live_model_with_two_agents();
     model.set_settings(RuntimeSettings {
         sidebar_urgency_order: false,
-        output_preview_lines: 123,
+        output_preview_lines: OutputPreviewLines::new(123).unwrap(),
         reviewr_action: "acme.diff.inspect".to_owned(),
         show_elapsed_time: true,
     });

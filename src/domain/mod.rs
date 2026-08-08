@@ -6,7 +6,7 @@ mod ids;
 mod persona;
 mod state;
 
-pub use agent::{Agent, Presence};
+pub use agent::{Agent, Presence, Urgency};
 pub use attention::{GuildAttention, GuildSummons};
 pub use campaign::{Campaign, CampaignStatus};
 pub use chronicle::{Chronicle, ChronicleEntry, ChronicleEvent};

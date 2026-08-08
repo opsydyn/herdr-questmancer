@@ -1,6 +1,7 @@
 use questmancer::{
     app::{ConnectionState, DisplayPreferences, Model, Motion, Notice, RuntimeSettings, View},
     command::{AgentCommand, CommandResult},
+    config::OutputPreviewLines,
     domain::{
         AdventurerPersona, AgentKey, DomainState, GuildAttention, PaneId, PersonaKey, Presence,
         Timestamp,
@@ -171,7 +172,7 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
     let mut model = Model::new(View::Guild);
     model.set_settings(RuntimeSettings {
         sidebar_urgency_order: false,
-        output_preview_lines: 123,
+        output_preview_lines: OutputPreviewLines::new(123).unwrap(),
         reviewr_action: "acme.diff.inspect".to_owned(),
         show_elapsed_time: true,
     });

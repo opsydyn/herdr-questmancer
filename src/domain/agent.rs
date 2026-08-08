@@ -47,19 +47,16 @@ pub struct Agent {
 }
 
 impl Agent {
-    /// How loudly this adventurer is asking for a human, lowest first.
+    /// How loudly this adventurer is asking for a human.
     ///
-    /// `None` means nobody is waiting on you for this one. The three ranks are
-    /// the only distinctions the guild actually draws: an unanswered call for
-    /// counsel, a call somebody has seen but not resolved, and the quieter
-    /// summons that still deserve a look.
+    /// `None` means nobody is waiting on you for this one.
     ///
     /// This lives in the domain because two things order by it — the `!` jump
     /// inside Questmancer and the rank token Herdr sorts its own sidebar by.
     /// Two definitions of "urgent" would drift, and the sidebar would disagree
     /// with the key.
     #[must_use]
-    pub fn urgency_rank(&self, now: Timestamp) -> Option<u8> {
+    pub fn urgency(&self, now: Timestamp) -> Option<Urgency> {
         if let GuildAttention::Deferred { until, .. } = self.attention
             && until.as_millis() > now.as_millis()
         {
@@ -73,21 +70,25 @@ impl Agent {
                     ..
                 },
                 _,
-            ) => Some(0),
-            (_, Presence::Blocked) => Some(1),
-            (GuildAttention::Unread { .. } | GuildAttention::Deferred { .. }, _) => Some(2),
+            ) => Some(Urgency::UnansweredCounsel),
+            (_, Presence::Blocked) => Some(Urgency::SeenCounsel),
+            (GuildAttention::Unread { .. } | GuildAttention::Deferred { .. }, _) => {
+                Some(Urgency::QuieterSummons)
+            }
             _ => None,
         }
     }
 
-    /// The rank as a single sortable digit, `3` meaning "nothing wanted".
+    /// The urgency as the single sortable digit Herdr orders its list by.
     ///
     /// One digit on purpose: Herdr sorts custom tokens as the strings they are,
     /// and a single digit orders identically whether the comparison is
     /// lexicographic or numeric. Anything wider would depend on which.
     #[must_use]
     pub fn urgency_digit(&self, now: Timestamp) -> String {
-        self.urgency_rank(now).map_or(3, |rank| rank).to_string()
+        self.urgency(now)
+            .map_or(Urgency::NOTHING_WANTED, Urgency::digit)
+            .to_string()
     }
 
     #[must_use]
@@ -140,4 +141,49 @@ fn display_name(agent: &AgentInfo) -> String {
         .or(agent.title.as_deref())
         .unwrap_or("unknown agent")
         .to_owned()
+}
+
+/// How loudly an adventurer is asking for a human.
+///
+/// This was `Option<u8>` with `Some(0)`, `Some(1)`, `Some(2)` and a bare `3`
+/// written into the one place that needed "nobody is waiting". The type
+/// admitted `Some(47)`, the ordering lived in the numbers rather than in
+/// anything named, and the meaning of `3` was recorded in prose in a different
+/// file. Three states the guild actually draws deserve three names.
+///
+/// Declaration order is priority order and `Ord` follows it, so the urgency
+/// jump and Herdr's sidebar sort agree without either restating the ranking.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum Urgency {
+    /// A call for counsel nobody has answered yet.
+    UnansweredCounsel,
+    /// A call somebody has seen and not yet resolved.
+    SeenCounsel,
+    /// A quieter summons that still deserves a look.
+    QuieterSummons,
+}
+
+impl Urgency {
+    /// Every urgency, most pressing first.
+    pub const ALL: &'static [Self] = &[
+        Self::UnansweredCounsel,
+        Self::SeenCounsel,
+        Self::QuieterSummons,
+    ];
+
+    /// The digit for an adventurer nobody is waiting on.
+    ///
+    /// Higher than every real urgency so it sorts last, and named here beside
+    /// them rather than written into the one call site that needed it.
+    pub const NOTHING_WANTED: u8 = 3;
+
+    /// The sortable digit Herdr orders its own agent list by.
+    #[must_use]
+    pub const fn digit(self) -> u8 {
+        match self {
+            Self::UnansweredCounsel => 0,
+            Self::SeenCounsel => 1,
+            Self::QuieterSummons => 2,
+        }
+    }
 }

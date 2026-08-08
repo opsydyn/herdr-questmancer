@@ -279,7 +279,7 @@ pub fn apply_connection_update(
     {
         effects.agent_commands.push(AgentCommand::LoadOutput {
             pane_id,
-            lines: model.settings().output_preview_lines,
+            lines: model.settings().output_preview_lines.get(),
         });
     }
     if discover_reviewr {

@@ -4,6 +4,7 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    config::OutputPreviewLines,
     domain::{Agent, AgentKey, DomainState, PaneId, Timestamp},
     ledger::LedgerPageId,
     persistence::DurableIntent,
@@ -128,7 +129,7 @@ pub struct DisplayPreferences {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RuntimeSettings {
-    pub output_preview_lines: u32,
+    pub output_preview_lines: OutputPreviewLines,
     pub reviewr_action: String,
     pub show_elapsed_time: bool,
     pub sidebar_urgency_order: bool,
@@ -137,7 +138,7 @@ pub struct RuntimeSettings {
 impl Default for RuntimeSettings {
     fn default() -> Self {
         Self {
-            output_preview_lines: 80,
+            output_preview_lines: OutputPreviewLines::default(),
             reviewr_action: "persiyanov.reviewr.open".to_owned(),
             show_elapsed_time: true,
             sidebar_urgency_order: false,
@@ -457,7 +458,7 @@ impl Model {
             .agents
             .values()
             .filter_map(|agent| {
-                let rank = agent.urgency_rank(self.now)?;
+                let rank = agent.urgency(self.now)?;
                 let since = agent
                     .attention
                     .since()

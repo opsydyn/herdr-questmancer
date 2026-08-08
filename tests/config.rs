@@ -27,8 +27,8 @@ fn parses_a_complete_configuration() {
     assert_eq!(config.preferences.motion, Motion::Reduced);
     assert_eq!(config.preferences.character_set, CharacterSet::Ascii);
     assert_eq!(config.preferences.color_mode, ColorMode::Ansi16);
-    assert_eq!(config.output_preview_lines, 120);
-    assert_eq!(config.chronicle_max_entries, 750);
+    assert_eq!(config.output_preview_lines.get(), 120);
+    assert_eq!(config.chronicle_max_entries.get(), 750);
     assert_eq!(config.reviewr_action, "persiyanov.reviewr.open");
     assert!(!config.show_elapsed_time);
 }
@@ -41,8 +41,8 @@ fn empty_configuration_uses_complete_defaults() {
     assert_eq!(config.preferences.motion, Motion::Full);
     assert_eq!(config.preferences.character_set, CharacterSet::Unicode);
     assert_eq!(config.preferences.color_mode, ColorMode::Xterm256);
-    assert_eq!(config.output_preview_lines, 80);
-    assert_eq!(config.chronicle_max_entries, 500);
+    assert_eq!(config.output_preview_lines.get(), 80);
+    assert_eq!(config.chronicle_max_entries.get(), 500);
     assert_eq!(config.reviewr_action, "persiyanov.reviewr.open");
     assert!(config.show_elapsed_time);
 }
@@ -98,7 +98,7 @@ fn accepts_output_preview_line_bounds() {
     for value in [10, 500] {
         let config = QuestmancerConfig::parse(format!("output_preview_lines = {value}").as_bytes())
             .expect("value at the bound");
-        assert_eq!(config.output_preview_lines, value);
+        assert_eq!(config.output_preview_lines.get(), value);
     }
 }
 
@@ -117,7 +117,7 @@ fn accepts_chronicle_entry_bounds() {
         let config =
             QuestmancerConfig::parse(format!("chronicle_max_entries = {value}").as_bytes())
                 .expect("value at the bound");
-        assert_eq!(config.chronicle_max_entries, value);
+        assert_eq!(config.chronicle_max_entries.get(), value);
     }
 }
 

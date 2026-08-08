@@ -40,7 +40,7 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
     let worker_paths = WorkerPaths::new(worker_state_path, chronicle_path);
     let replay = interpret_chronicle(
         chronicle_read,
-        config.chronicle_max_entries,
+        config.chronicle_max_entries.get(),
         &mut diagnostics,
     );
 

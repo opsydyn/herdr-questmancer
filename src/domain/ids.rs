@@ -24,6 +24,24 @@ macro_rules! string_id {
             }
         }
 
+        impl AsRef<str> for $name {
+            fn as_ref(&self) -> &str {
+                &self.0
+            }
+        }
+
+        // Infallible: these identifiers come from Herdr, which is the
+        // authority on what one looks like. Parsing exists so callers can use
+        // `str::parse` and the `FromStr` bounds that generic code asks for,
+        // not to second-guess the server.
+        impl std::str::FromStr for $name {
+            type Err = std::convert::Infallible;
+
+            fn from_str(value: &str) -> Result<Self, Self::Err> {
+                Ok(Self::new(value))
+            }
+        }
+
         impl fmt::Display for $name {
             fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str(&self.0)

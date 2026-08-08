@@ -574,6 +574,6 @@ fn select_agent_key(
 fn load_output(model: &Model, pane_id: crate::domain::PaneId) -> AgentCommand {
     AgentCommand::LoadOutput {
         pane_id,
-        lines: model.settings().output_preview_lines,
+        lines: model.settings().output_preview_lines.get(),
     }
 }

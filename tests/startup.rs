@@ -6,7 +6,7 @@ use std::{
 use proptest::prelude::*;
 use questmancer::{
     app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View},
-    config::PersistencePaths,
+    config::{OutputPreviewLines, PersistencePaths},
     domain::{AdventurerPersona, ChronicleEntry, ChronicleEvent, PersonaKey, Timestamp},
     persistence::{PersistedStateV1, StartupData, effective_view, load_startup},
 };
@@ -91,7 +91,7 @@ async fn absent_files_use_defaults_without_diagnostics() {
 
     assert_eq!(startup.model.view(), View::Guild);
     assert_eq!(startup.model.preferences(), &DisplayPreferences::default());
-    assert_eq!(startup.model.settings().output_preview_lines, 80);
+    assert_eq!(startup.model.settings().output_preview_lines.get(), 80);
     assert_eq!(
         startup.model.settings().reviewr_action,
         "persiyanov.reviewr.open"
@@ -152,7 +152,7 @@ show_elapsed_time = false
     assert_eq!(startup.model.preferences(), &persisted_preferences);
     let captured = PersistedStateV1::capture(&startup.model);
     assert_eq!(captured.personas[&persona_key].name, "Restored Name");
-    assert_eq!(startup.model.settings().output_preview_lines, 123);
+    assert_eq!(startup.model.settings().output_preview_lines.get(), 123);
     assert_eq!(startup.model.settings().reviewr_action, "acme.diff.inspect");
     assert!(!startup.model.settings().show_elapsed_time);
     let entries = startup.model.domain().chronicle.entries();
@@ -193,7 +193,7 @@ async fn invalid_config_uses_safe_runtime_defaults_but_keeps_valid_state() {
 
     assert_eq!(startup.model.view(), View::Delve);
     assert_eq!(startup.model.preferences(), &persisted_preferences);
-    assert_eq!(startup.model.settings().output_preview_lines, 80);
+    assert_eq!(startup.model.settings().output_preview_lines.get(), 80);
     assert_eq!(startup.diagnostics.len(), 1);
     assert_eq!(startup.diagnostics[0].operation, "parse config");
     assert_eq!(
@@ -316,7 +316,7 @@ async fn startup_data_has_no_settings_owner_outside_the_model() {
         diagnostics,
     } = startup;
 
-    assert_eq!(model.settings().output_preview_lines, 80);
+    assert_eq!(model.settings().output_preview_lines.get(), 80);
     assert_eq!(paths.state, None);
     assert!(diagnostics.is_empty());
 }
@@ -350,7 +350,13 @@ proptest! {
             let startup = load_startup(paths(Some(config.path()), Some(state.path())), None).await;
 
             prop_assert!(matches!(startup.model.view(), View::Guild | View::Delve));
-            prop_assert!((10..=500).contains(&startup.model.settings().output_preview_lines));
+            // The bound comes from the type rather than a literal repeated
+            // here. Startup can only produce a value the type admits, so this
+            // now checks the parse path rather than restating the range.
+            prop_assert!(
+                OutputPreviewLines::RANGE
+                    .contains(&startup.model.settings().output_preview_lines.get())
+            );
             prop_assert!(!startup.model.settings().reviewr_action.trim().is_empty());
             let selection_is_live = startup.model.selected_agent_key().is_none_or(|key| {
                 startup.model.domain().agents.contains_key(key)
