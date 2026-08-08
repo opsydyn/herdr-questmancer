@@ -52,11 +52,39 @@ also why the release job below matters more than it looks.
 GitHub does not start workflows from events created with `GITHUB_TOKEN`; it
 blocks that to stop a workflow triggering itself. release-plz tags with exactly
 that token, so a merged release pull request creates the tag and `release.yml`
-— which triggers on tags — never runs. The first v0.1.0 tag was created and
-nothing built from it.
+— which triggers on tags — never runs. v0.1.0, v0.1.1 and v0.1.2 were all
+tagged this way; only v0.1.0 was ever built, because it was dispatched by hand.
 
-Give the `release` job a personal access token with `contents: write` as
-`GITHUB_TOKEN` and tags start triggering the release properly.
+That is not cosmetic. `herdr/install.sh` builds its download URL from
+`herdr-plugin.toml`, so a version with no release means every
+`herdr plugin install` 404s.
+
+### Creating the token
+
+The workflow reads an optional `RELEASE_PLZ_TOKEN` secret and falls back to
+`GITHUB_TOKEN`, so nothing breaks while it is absent — tags are still created,
+they simply have to be dispatched by hand.
+
+1. **Create a fine-grained personal access token.**
+   GitHub → Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens → **Generate new token**.
+   - Resource owner: `opsydyn`
+   - Repository access: **Only select repositories** → `herdr-questmancer`
+   - Repository permissions: **Contents → Read and write**. Nothing else.
+   - Expiration: set one, and put a reminder in the calendar. A release
+     pipeline that stops working on a date nobody wrote down is worse than one
+     that never worked.
+2. **Copy the token.** It is shown once.
+3. **Add it as a repository secret.**
+   Repository → Settings → Secrets and variables → Actions → **New repository
+   secret**, named `RELEASE_PLZ_TOKEN`.
+4. **Check it works** on the next release: the `release` job's summary stops
+   printing the "will not build on its own" warning, and a `Release` run
+   appears against the new tag without anyone dispatching it.
+
+The token is a repository secret rather than an environment secret because the
+`release` job is not gated behind an environment; `CARGO_REGISTRY_TOKEN` is the
+one that lives in the `crates-io` environment.
 
 Until then, and for re-running a release whose build failed, `release.yml`
 accepts a manual dispatch with the tag to release:

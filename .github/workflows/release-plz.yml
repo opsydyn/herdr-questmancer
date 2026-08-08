@@ -102,6 +102,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          # The same token the tag is created with, so the push carries an
+          # identity GitHub will start workflows for.
+          token: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Install pinned Rust toolchain
@@ -115,7 +118,15 @@ jobs:
         with:
           command: release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GitHub refuses to start workflows from events created with
+          # GITHUB_TOKEN, so a tag pushed with it never reaches release.yml —
+          # the tag exists and no binaries are ever built. A personal access
+          # token with `contents: write` is the only thing that fixes it.
+          #
+          # The fallback keeps this job working without the secret: it still
+          # tags, the release simply needs dispatching by hand. See
+          # docs/release-process.md.
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Record what happened
         if: always()
@@ -127,6 +138,20 @@ jobs:
           set -euo pipefail
           if [[ ${RELEASES_CREATED:-false} == "true" ]]; then
             echo "tagged: ${RELEASES:-unknown}" >>"$GITHUB_STEP_SUMMARY"
+            if [[ -z "${{ secrets.RELEASE_PLZ_TOKEN }}" ]]; then
+              {
+                echo
+                echo '> **The tag will not build on its own.** It was created with'
+                echo '> `GITHUB_TOKEN`, and GitHub does not start workflows from'
+                echo '> events that token creates. Dispatch it:'
+                echo '>'
+                echo '> ```'
+                echo "> gh workflow run release.yml -f tag=<the tag above>"
+                echo '> ```'
+                echo '>'
+                echo '> Add a `RELEASE_PLZ_TOKEN` secret to stop this recurring.'
+              } >>"$GITHUB_STEP_SUMMARY"
+            fi
           else
             echo "no release commit on main; nothing tagged" >>"$GITHUB_STEP_SUMMARY"
           fi
