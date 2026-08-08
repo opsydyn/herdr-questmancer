@@ -1,9 +1,21 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import EvidenceGallery from '../components/EvidenceGallery.astro';
+import HeroProof from '../components/HeroProof.astro';
+import InstallWorkbench from '../components/InstallWorkbench.astro';
+import MappingCards from '../components/MappingCards.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
 ---
 
-<BaseLayout title="Questmancer" description="Questmancer launch page">
-  <main>
-    <h1>Questmancer</h1>
-  </main>
+<BaseLayout
+  title="Questmancer — What is best in code?"
+  description="A pixel-art adventurers' guild for coordinating coding agents with Herdr."
+>
+  <SiteHeader />
+  <HeroProof />
+  <InstallWorkbench />
+  <EvidenceGallery />
+  <MappingCards />
+  <SiteFooter />
 </BaseLayout>

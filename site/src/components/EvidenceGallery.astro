@@ -1,0 +1,64 @@
+---
+import ledger from '../assets/screenshots/ledger.png';
+import adventurer from '../assets/screenshots/adventurer.png';
+import compactParty from '../assets/screenshots/compact-party.png';
+import compactPartyWarm from '../assets/screenshots/compact-party-warm.png';
+
+const evidence = [
+  {
+    src: ledger,
+    alt: 'Librarian’s Ledger overlay with the fixed Questmancer handbook',
+    title: 'Librarian’s Ledger',
+    body: 'Counsel and handbook pages stay close at hand.',
+    className: 'evidence-card--ledger',
+  },
+  {
+    src: adventurer,
+    alt: 'Questmancer adventurer profile overlay with current agent details',
+    title: 'Adventurer profile',
+    body: 'Select an adventurer to inspect the facts behind the scene.',
+    className: 'evidence-card--adventurer',
+  },
+  {
+    src: compactParty,
+    alt: 'Compact Guild Hall composition showing a small party',
+    title: 'Compact party',
+    body: 'The Guild Hall recomposes when the viewport gets tight.',
+    className: 'evidence-card--compact',
+  },
+  {
+    src: compactPartyWarm,
+    alt: 'Warm compact party composition in the Guild Hall',
+    title: 'Warm compact composition',
+    body: 'A smaller room keeps the party readable and present.',
+    className: 'evidence-card--compact',
+  },
+];
+---
+
+<section class="section evidence-section" id="screens" aria-labelledby="evidence-title">
+  <div class="section-heading section-heading--split">
+    <div>
+      <p class="section-kicker"><span aria-hidden="true">03</span> Operational evidence</p>
+      <h2 id="evidence-title">See the party at work.</h2>
+    </div>
+    <p>
+      Two rooms, one truthful state: the Guild Hall is the home of the whole
+      party and the Delve is where active work gets done.
+    </p>
+  </div>
+
+  <div class="evidence-grid">
+    {evidence.map((item) => (
+      <figure class:list={['evidence-card', item.className]}>
+        <div class="evidence-image">
+          <img src={item.src.src} width={item.src.width} height={item.src.height} alt={item.alt} loading="lazy" />
+        </div>
+        <figcaption>
+          <span>{item.title}</span>
+          {item.body}
+        </figcaption>
+      </figure>
+    ))}
+  </div>
+</section>

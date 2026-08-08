@@ -1,0 +1,65 @@
+---
+import hero from '../assets/hero.png';
+import guildHall from '../assets/screenshots/guild-hall.png';
+import delve from '../assets/screenshots/delve.png';
+
+const githubUrl = 'https://github.com/opsydyn/herdr-questmancer';
+---
+
+<section class="hero" id="guild" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <p class="eyebrow"><span aria-hidden="true">//</span> Herdr plugin · Questmancer</p>
+    <h1 id="hero-title">What is best in code?</h1>
+    <p class="hero-tagline">
+      To crush your bugs.<br />
+      See your agents driven before you.<br />
+      Hear the lamentations of your token budget.
+    </p>
+    <p class="hero-grounding">
+      A pixel-art adventurers’ guild for coding agents. Campaigns are your
+      workspaces, adventurers are your agents, and every scene stays honest
+      about what is happening now.
+    </p>
+    <div class="hero-actions">
+      <a class="button button-primary" href={githubUrl} target="_blank" rel="noreferrer">
+        View on GitHub <span aria-hidden="true">↗</span>
+      </a>
+      <a class="button button-secondary" href="#install">Source install</a>
+    </div>
+  </div>
+
+  <div class="hero-proof" aria-label="Proof of the Delve">
+    <p class="section-kicker"><span aria-hidden="true">01</span> Proof of the Delve</p>
+    <figure class="hero-stage">
+      <img
+        src={hero.src}
+        width={hero.width}
+        height={hero.height}
+        alt="Pixel-art barbarian seated on a throne between red guild banners"
+        decoding="sync"
+      />
+    </figure>
+    <div class="hero-mosaic">
+      <figure class="mosaic-card">
+        <img
+          src={guildHall.src}
+          width={guildHall.width}
+          height={guildHall.height}
+          alt="Questmancer Guild Hall showing a whole party at workstations"
+          loading="eager"
+        />
+        <figcaption><span>Guild Hall</span> whole-party operational home</figcaption>
+      </figure>
+      <figure class="mosaic-card">
+        <img
+          src={delve.src}
+          width={delve.width}
+          height={delve.height}
+          alt="Questmancer Delve showing adventurers working in connected chambers"
+          loading="eager"
+        />
+        <figcaption><span>Delve</span> active work in connected chambers</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>

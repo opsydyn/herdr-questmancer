@@ -1,0 +1,31 @@
+---
+import bell from '../assets/icons/bell.svg';
+import heart from '../assets/icons/heart.svg';
+import home from '../assets/icons/home.svg';
+import lock from '../assets/icons/lock.svg';
+
+const mappings = [
+  { icon: home, title: 'Guild Hall', body: 'Whole-party operational home.' },
+  { icon: lock, title: 'Delve', body: 'Active work in connected chambers.' },
+  { icon: bell, title: 'Summons', body: 'Blocked agents call for counsel.' },
+  { icon: heart, title: 'Spoils', body: 'Completed work returns for inspection.' },
+];
+---
+
+<section class="section mapping-section" aria-labelledby="mapping-title">
+  <div class="section-heading">
+    <p class="section-kicker"><span aria-hidden="true">04</span> The Questmancer vocabulary</p>
+    <h2 id="mapping-title">Fantasy language. Operational facts.</h2>
+  </div>
+  <div class="mapping-grid">
+    {mappings.map((mapping) => (
+      <article class="mapping-card">
+        <div class="mapping-icon" aria-hidden="true"><img src={mapping.icon.src} alt="" width="24" height="24" /></div>
+        <div>
+          <h3>{mapping.title}</h3>
+          <p>{mapping.body}</p>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>

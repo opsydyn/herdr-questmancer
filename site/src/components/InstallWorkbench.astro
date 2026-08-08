@@ -1,0 +1,21 @@
+<section class="section install-section" id="install" aria-labelledby="install-title">
+  <div class="section-heading">
+    <p class="section-kicker"><span aria-hidden="true">02</span> Source install · no Cargo release yet</p>
+    <h2 id="install-title">Run the guild from source.</h2>
+    <p>
+      Questmancer is an Opsydyn Herdr plugin. Clone the repository, build the
+      release binary, link it into Herdr and open the Guild Hall.
+    </p>
+  </div>
+  <div class="terminal" aria-label="Questmancer source installation commands">
+    <div class="terminal-bar" aria-hidden="true">
+      <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+      <span class="terminal-label">questmancer / source</span>
+    </div>
+    <pre><code><span class="prompt">$</span> git clone https://github.com/opsydyn/herdr-questmancer
+<span class="prompt">$</span> cd herdr-questmancer
+<span class="prompt">$</span> cargo build --release
+<span class="prompt">$</span> herdr plugin link .
+<span class="prompt">$</span> herdr plugin action invoke opsydyn.questmancer.open</code></pre>
+  </div>
+</section>
