@@ -338,7 +338,7 @@ test_release_packaging_contract() {
   assert_contains "$ROOT/justfile" "--test scene_delve"
   assert_contains "$ROOT/justfile" 'run view="guild":'
   assert_contains "$ROOT/justfile" "target/release/questmancer"
-  if rg -n 'guestbook|desk-test|cafe-test|view="desk"' "$ROOT/justfile" >"$TMP/stale-recipes"; then
+  if grep -nE 'guestbook|desk-test|cafe-test|view="desk"' "$ROOT/justfile" >"$TMP/stale-recipes"; then
     cat "$TMP/stale-recipes" >&2
     fail "contributor recipes retain superseded test or view names"
   fi
@@ -403,7 +403,7 @@ test_contributor_test_recipes_reference_real_targets() {
   while IFS= read -r name; do
     [[ -f "$ROOT/tests/$name.rs" ]] || fail "justfile references missing integration test: tests/$name.rs"
     count=$((count + 1))
-  done < <(rg -o -- '--test[[:space:]]+[[:alnum:]_-]+' "$ROOT/justfile" | awk '{print $2}' | sort -u)
+  done < <(grep -oE -- '--test[[:space:]]+[[:alnum:]_-]+' "$ROOT/justfile" | awk '{print $2}' | sort -u)
 
   (( count > 0 )) || fail "justfile did not contain any focused --test targets"
 }
@@ -493,7 +493,10 @@ test_current_release_surfaces_have_no_legacy_identity_or_vocabulary() {
     "$ROOT/docs/manual-test"
   )
 
-  rg -n -i 'webmaster|Site: |\[r\] reply|send reply|replying to|, reply,|animated cafe|unchanged desk|no-motion cafe|\[enter\] visit|\[space\] seen|\[v\] reviewr|Action::(Visit|MarkSeen|Reviewr)|pub desk:|effects\.desk|"visited ' "${surfaces[@]}" \
+  # -r because four of the surfaces are directories: ripgrep recursed into
+  # them, plain grep skips them with an error on stderr and passes anyway.
+  # -I because src/ carries PNG assets that are not worth scanning.
+  grep -rn -i -I -E 'webmaster|Site: |\[r\] reply|send reply|replying to|, reply,|animated cafe|unchanged desk|no-motion cafe|\[enter\] visit|\[space\] seen|\[v\] reviewr|Action::(Visit|MarkSeen|Reviewr)|pub desk:|effects\.desk|"visited ' "${surfaces[@]}" \
     | grep -vF '.name == "webmaster" and .source.kind == "local"' \
     >"$TMP/legacy-release-surfaces" || true
   if [[ -s "$TMP/legacy-release-surfaces" ]]; then
@@ -536,6 +539,29 @@ fi
 # the two versions drift by default. The release gate catches it at tag time,
 # which is after the version PR has already merged; this catches it on the PR
 # itself, where fixing it is one command.
+# release-plz refuses to compute versions while any file is both committed and
+# ignored, and says so only at release time. Fourteen `.superpowers/sdd`
+# reports were in that state and stopped the first automated release dead.
+test_no_file_is_both_tracked_and_ignored() {
+  local offenders
+  offenders=$(cd "$ROOT" && git ls-files -ci --exclude-standard)
+  if [[ -n $offenders ]]; then
+    echo "$offenders" >&2
+    fail "the files above are committed and ignored; release-plz refuses to run. Untrack them with git rm --cached"
+  fi
+}
+
+# `tests/scripts.sh` runs on a bare GitHub runner. ripgrep is not installed
+# there, and a missing binary here does not fail loudly — the search returns
+# nothing and the assertion built on it passes or fails for the wrong reason.
+# This ran green locally and red on CI for exactly that reason.
+test_scripts_use_only_tools_the_runner_has() {
+  local script="$ROOT/tests/scripts.sh"
+  if grep -nE '(^|[^[:alnum:]_-])rg[[:space:]]' "$script" | grep -v "test_scripts_use_only_tools" >/dev/null; then
+    fail "tests/scripts.sh calls rg, which a GitHub runner does not have; use grep"
+  fi
+}
+
 test_manifest_versions_agree() {
   local cargo plugin
   cargo=$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$ROOT/Cargo.toml" | head -n 1)
@@ -548,5 +574,7 @@ test_manifest_versions_agree() {
 }
 
 test_manifest_versions_agree
+test_no_file_is_both_tracked_and_ignored
+test_scripts_use_only_tools_the_runner_has
 
-echo "scripts: 23 passed"
+echo "scripts: 25 passed"
