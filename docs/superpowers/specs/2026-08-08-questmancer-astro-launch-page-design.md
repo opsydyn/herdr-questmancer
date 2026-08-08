@@ -16,10 +16,10 @@ shows the supplied Conan-inspired hero and current product screenshots, gives a
 source-install path, and sends visitors to GitHub. It does not become a second
 Questmancer renderer or attempt to connect to Herdr.
 
-The visual direction is **Proof of the Delve**: a large hero mosaic establishes
-the world, the exact “What is best in code?” copy follows, and a Varlock-like
-terminal rhythm explains how to get the source. The page closes with concise
-operational mappings and a GitHub CTA.
+The visual direction is **Proof of the Delve**: a Varlock-inspired, oversized
+hero statement establishes the voice first, the complete hero artwork proves
+the world, and a docs-like terminal rhythm explains how to get the source. The
+page closes with concise operational mappings and a GitHub CTA.
 
 ## Goals
 
@@ -64,12 +64,14 @@ not compete with the hero. The GitHub URL is the absolute repository URL:
 
 ### 2. Proof of the Delve hero
 
-The first section uses the supplied barbarian throne image as a wide, framed
-pixel-art stage. A small “Proof of the Delve” label establishes the hook. The
-hero image has one heading only: the large “What is best in code?” heading in
-the following copy block. The image itself carries no duplicate heading or
-marketing text. A two-image mosaic immediately below shows the Guild Hall and
-Delve screenshots, proving that the product has two distinct but related rooms.
+The first section starts with a centered, oversized hero copy block in the
+spirit of Varlock’s landing page. It contains the one page heading and the
+three approved lines, with the primary GitHub CTA close at hand. The copy is
+followed by a small “Proof of the Delve” label and the supplied barbarian
+throne image as a wide, framed pixel-art stage. The image itself carries no
+duplicate heading or marketing text. A two-image mosaic immediately below
+shows the Guild Hall and Delve screenshots, proving that the product has two
+distinct but related rooms.
 
 The hero is intentionally image-led. The full image must remain visible: the
 stage uses a black background, responsive padding and contain-style fitting so
@@ -79,10 +81,10 @@ screens, but it must preserve the complete source composition.
 
 ### 3. Hero words and CTA
 
-Below the mosaic, a single large `h1` reads “What is best in code?” and sets
+Before the artwork, a single large `h1` reads “What is best in code?” and sets
 the three approved Conan-inspired lines exactly as written. There is no second
-heading for the same phrase elsewhere in the hero. A short paragraph
-grounds the metaphor in Herdr’s facts: campaigns are workspaces, agents are
+heading for the same phrase elsewhere in the hero. A short paragraph grounds
+the metaphor in Herdr’s facts: campaigns are workspaces, agents are
 adventurers, and the scene remains honest about state. A filled **View on
 GitHub** button is the primary CTA. A secondary anchor may scroll to the
 installation/evidence sections, but it must not imply a download or Cargo
@@ -152,9 +154,10 @@ Questmancer tagline, identifies Herdr and provides the GitHub link.
   imported-image layout) inside a padded black stage. `object-fit: cover` is
   reserved for secondary screenshot thumbnails where a captioned crop is
   acceptable.
-- Responsive behaviour: two-column hero and evidence layout at wide sizes;
-  stacked hero, screenshots and install block below the narrow breakpoint;
-  compact feature cards become one or two columns without horizontal scrolling.
+- Responsive behaviour: centered hero copy precedes the full artwork at wide
+  sizes; stacked hero copy, artwork, screenshots and install block below the
+  narrow breakpoint; compact feature cards become one or two columns without
+  horizontal scrolling.
 - Accessibility: semantic landmarks, one `h1`, logical heading order,
   descriptive image alt text, visible keyboard focus, usable contrast and
   reduced-motion-safe CSS.

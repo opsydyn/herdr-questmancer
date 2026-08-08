@@ -25,7 +25,7 @@ test runner.
 - Use one static Astro route, plain Astro components and CSS; add no UI framework, remote font, telemetry, form, Herdr connection or client state.
 - Use the exact approved hero copy: “What is best in code?”, “To crush your bugs.”, “See your agents driven before you.”, and “Hear the lamentations of your token budget.”
 - Make View on GitHub point to https://github.com/opsydyn/herdr-questmancer and do not claim a Cargo release.
-- Keep one heading for “What is best in code?”; the image has only the “Proof of the Delve” section label and no duplicate marketing text.
+- Keep one heading for “What is best in code?” in a large, centered hero copy block above the artwork; the image has only the “Proof of the Delve” section label and no duplicate marketing text.
 - Fit the full hero artwork inside a padded black stage with contain-style fitting; never crop, smooth or filter the main image.
 - Treat object-fit: cover as acceptable only for secondary screenshot thumbnails where a captioned crop remains legible.
 - Use the supplied hero and root screenshots as committed site assets; the build must not depend on files remaining in Downloads or temporary directories.
@@ -322,7 +322,7 @@ git commit -m "feat: add Questmancer launch assets"
 
 **Interfaces:**
 - BaseLayout.astro accepts title and description props and renders the document shell.
-- HeroProof.astro accepts imported hero and primary screenshot assets; it owns the only page h1.
+- HeroProof.astro accepts imported hero and primary screenshot assets; it owns the centered hero copy, CTA and the only page h1 before the artwork.
 - InstallWorkbench.astro renders the five source-install commands as static code.
 - EvidenceGallery.astro accepts screenshot records { src, alt, caption, className }.
 - MappingCards.astro accepts records { icon, title, body } and renders one SVG icon per card.
@@ -384,12 +384,14 @@ configured /herdr-questmancer/ base into generated HTML.
 - [ ] **Step 4: Implement SiteHeader and HeroProof.**
 
 SiteHeader contains the Questmancer wordmark, #guild, #screens anchors and the
-GitHub link. HeroProof renders the Proof of the Delve kicker, a padded black
-stage with the entire hero image using object-fit: contain, and the two
+GitHub link. HeroProof starts with a centered, Varlock-inspired hero copy block
+that owns the only h1, the exact tagline lines, the grounding paragraph and the
+primary GitHub CTA. It then renders the Proof of the Delve kicker, a padded
+black stage with the entire hero image using object-fit: contain, and the two
 screenshot mosaic images. It does not render a marketing heading over the
 image.
 
-HeroProof’s following copy block owns the only h1:
+The hero copy block is:
 
 ~~~
 <h1>What is best in code?</h1>
@@ -397,7 +399,8 @@ HeroProof’s following copy block owns the only h1:
 ~~~
 
 Place View on GitHub beside the grounding paragraph and keep the source-install
-anchor as a secondary action.
+anchor as a secondary action. The artwork and screenshot mosaic follow this
+copy block in the same HeroProof section.
 
 - [ ] **Step 5: Implement InstallWorkbench and EvidenceGallery.**
 
@@ -583,12 +586,13 @@ root route is not used as the acceptance URL.
 
 - [ ] **Step 2: Review wide and narrow compositions.**
 
-At desktop width, verify the full hero has visible black breathing room, the
-hero artwork is not cropped, the screenshot mosaic is legible, and the terminal
-block follows the hero copy. At tablet and 390px mobile widths, verify the hero
-stacks without horizontal scrolling, the full artwork remains visible, code
-lines scroll or wrap without breaking the viewport, and the four mapping cards
-remain readable.
+At desktop width, verify the large hero copy precedes the full hero artwork,
+the artwork has visible black breathing room and is not cropped, the screenshot
+mosaic is legible, and the terminal block follows the hero section. At tablet
+and 390px mobile widths, verify the hero copy, artwork and screenshots stack
+without horizontal scrolling, the full artwork remains visible, code lines
+scroll or wrap without breaking the viewport, and the four mapping cards remain
+readable.
 
 - [ ] **Step 3: Review accessibility and links.**
 
