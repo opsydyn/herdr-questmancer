@@ -4,6 +4,305 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [0.1.0](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.0) - 2026-08-08
+
+### Added
+
+- build Questmancer launch page
+- add Questmancer launch assets
+- keep one guild standing for the install
+- let Herdr order its own agent list by urgency
+- restore sidebar styling on Herdr 0.8.0
+- target Herdr 0.8.0 and protocol 19
+- let Scrying and the Chronicle be read past the fold
+- let a summons be set aside
+- change motion, glyphs and colour depth without restarting
+- give the Ledger a keyring that cannot drift
+- keep every search match instead of only the first
+- make the Chronicle readable
+- jump to the adventurers who are waiting on you
+- build the guild entrance instead of leaving a hole in the wall
+- light up the goblin outbreak
+- give the sidebar a character sheet
+- add the Mage and Sorcerer classes
+- draw the garb an adventurer is actually wearing
+- make an adventurer's state visible in its sprite
+- give every class its own body
+- bring the delve up to the hall's actor-legibility rules
+- make the guild hall readable in small terminal panes
+- improve guild hall actor readability
+- add Herdr sidebar marginalia
+- add native Testmender card portrait
+- add native Ranger card portrait
+- add native Cleric card portrait
+- add native Artificer card portrait
+- add native Druid card portrait
+- add native Orc ancestry portrait
+- add native Paladin card portrait
+- add native Bard card portrait
+- catalogue the Librarian in Storybook
+- open the Librarian ledger
+- station the Librarian in the Guild Hall
+- type scene interactable regions
+- prepare native Librarian illustration
+- author Librarian scene assets
+- recompose Guild Hall for small terminals
+- add Barbarian v2 world poses
+- complete Questmancer scene and portrait slice
+- promote the druid into pixel worlds
+- run questmancer as a pixel world
+- add contextual pixel-world controls
+- project interaction into pixel worlds
+- add druid sprite review masters
+- add druid domain class
+- add second class sprite review batch
+- add portrait sprite masters
+- add sprite inspection presentation
+- add material sprite review lab
+- add sprite silhouette lab
+- add live scene-first preview
+- complete scene cameras and cadence
+- author the scene-first Delve
+- author the scene-first Guild Hall
+- add scene-first Storybook rendering
+- project truthful scene snapshots
+- add terminal-independent scene pixels
+- add responsive Great Room cameras
+- render the Questmancer Great Room
+- derive truthful Great Room stations
+- project the Questmancer Great Room
+- run Storybook without Herdr
+- complete the Storybook catalogue
+- render the Questmancer Storybook shell
+- add Storybook navigation state
+- add production-composed Storybook atlases
+- add deterministic Storybook fixtures
+- define Storybook asset coverage
+- add gated Questmancer Storybook binary
+- contain the Guild Hall goblins
+- dress the guild as fantasy adventurers
+- lead parties through connected Delves
+- open the operational Guild Hall
+- generate stable fantasy adventurers
+- render connected authored cafe bays
+- add deterministic connected cafe scene geometry
+- integrate persistent webmaster runtime
+- restore persisted webmaster startup
+- add debounced persistence worker
+- persist bounded guestbook history
+- publish atomic webmaster state
+- model durable webmaster intent
+- add typed webmaster configuration
+- complete animated cybercafe milestone
+- build responsive actionable cybercafe
+- render cafe workstations and profiles
+- compose original webmaster personas
+- derive deterministic cafe theatre state
+- add semantic terminal pixel canvas
+- complete webmaster desk actions
+- run webmaster terminal asynchronously
+- render webmaster reply composer
+- add webmaster desk keyboard model
+- render live responsive webmaster desk
+- apply live updates to webmaster app state
+- execute webmaster desk commands
+- add Herdr desk interaction requests
+- adapt Herdr events into domain updates
+- compose webmaster application state
+- reduce webmaster domain transitions
+- add bounded webmaster guestbook
+- normalize Herdr sites and agents
+- generate stable agent personas
+- add typed webmaster domain primitives
+- supervise Herdr reconnect and resnapshot
+- stream Herdr lifecycle events
+- add Herdr request client
+- add async Herdr JSON-lines framing
+- decode Herdr protocol 16 messages
+- add Herdr protocol environment and fixtures
+- declare webmaster plugin lifecycle
+- add safe interactive terminal loop
+- render empty desk and cybercafe
+- scaffold webmaster domain shell
+
+### Fixed
+
+- verify published sidebar configs against herdr, not its docs
+- publish sidebar configurations Herdr will actually accept
+- show the command ribbon to someone who has not started
+- stop Esc binning a counsel draft
+- stop the dungeon floor drawing lines through the party
+- make Unknown delvers legible instead of unlit
+- spacing and legibility defects found in real sessions
+- route adventurer portraits by class
+- clear sidebar metadata on close
+- keep canonical Hearth actors visible
+- render adventurers at guild campaign tables
+- prefer fresh local release builds
+- preserve scene bounds and cadence
+- align scene frame deadlines
+- prove scene camera cadence truth
+- prove Delve final composition truth
+- preserve Delve scene truth
+- preserve Guild Hall scene truth
+- expose compact scene assets in Storybook
+- prevent scene blit coordinate overflow
+- keep campaign tokens event-driven
+- complete Great Room operational truth
+- make Storybook coverage exhaustive
+- preserve Great Room token ledgers
+- retain truthful Great Room evidence
+- preserve Great Room Spoils evidence
+- resolve Great Room discovery races
+- bound Great Room visual rows
+- preserve Great Room rendering truth
+- replace the complete Delve home row
+- route Questmancer notices to truthful landmarks
+- separate Questmancer notice origins
+- restore connected Delve persona motion
+- make Delve projection render-authoritative
+- close Storybook final review findings
+- retain Storybook interrupt listener
+- declare named Delve chamber branches
+- align Storybook catalogue visibility
+- derive Storybook chrome breakpoint
+- harden Storybook responsive rendering
+- harden Storybook navigation state
+- finalize responsive render projections
+- complete Questmancer audit corrections
+- align Questmancer release surfaces
+- persist acknowledged Summons by stable identity
+- speak Chronicle events in guild voice
+- gate Questmancer release publication
+- protect wide text from goblin overlays
+- separate spoils sparkle from bard lute
+- preserve state-layer art contrast
+- close adventurer art review gaps
+- preserve adventurer recognition anchors
+- connect Delves through safe passages
+- make Guild Hall context truthful
+- harden Guild Hall interactions
+- preserve sprites in compact cafe bays
+- target overflow bay selection and ownership
+- preserve overflow agents across authored cafe bays
+- remap compact seats and author bay geometry
+- refine cafe geometry and compact navigation
+- author distinct cafe variants and active bay
+- preserve bay floor and furniture cues
+- guard managed pane navigation effects
+- guard managed pane effects and manual test path
+- exclude webmaster pane from domain state
+- carry managed pane identity into model
+- preserve guestbook append durability
+- harden persistent runtime lifecycle
+- make startup settings model-owned
+- prevent persistence deadline starvation
+- validate durable intent updates
+- anchor animation to monotonic runtime clock
+- schedule exact cafe animation boundaries
+- page compact cafe selections
+- preserve actionable cafe edge layouts
+- harden cafe widget semantics
+- contrast personas against transparent canvas
+- make persona colours palette-aware
+- tighten cafe theatre attention timing
+- preserve terminal pixel colour semantics
+- avoid topology subscription replay loop
+- close responsive desk rendering gaps
+- cancel saturated runtime supervisor
+- harden terminal and singleton lifecycle
+
+### Other
+
+- unblock release-plz and stop depending on ripgrep
+- automate versioning with release-plz, defer crates.io
+- deploy Questmancer Astro site to Pages
+- scaffold Questmancer Astro site
+- move Questmancer hero copy above art
+- plan Questmancer Astro launch page
+- cover the controls this session added
+- approve Questmancer launch page spec
+- refine Questmancer hero framing
+- specify Questmancer Astro launch page
+- retire GuildFocus and give Tab a job worth having
+- document the goblin outbreak and the lesson it carries
+- define guild hall readability pass
+- teach the Librarian ledger workflow
+- plan Librarian ledger implementation
+- design Librarian ledger
+- record the production pixel-world smoke
+- keep storybook fixtures clippy clean
+- ship the questmancer pixel world
+- remove the legacy questmancer renderer
+- review pixel-world interactions in storybook
+- plan scene-first production cutover
+- specify scene-first production cutover
+- polish portrait sprite art direction
+- refine portrait sprite fidelity
+- refine sprite silhouettes and gear
+- define Questmancer sprite art direction
+- add scene preview review gate
+- plan scene-first Questmancer renderer
+- define scene-first Questmancer redesign
+- harden Questmancer test lifecycle
+- correct Herdr 0.7.4 manual schema
+- guard Questmancer manual test ownership
+- document the Questmancer Great Room
+- catalogue the Questmancer Great Room
+- cover complete Unicode Delve home row
+- plan Questmancer Great Room
+- design Questmancer Great Room
+- record connected chamber regression verification
+- plan connected chamber regression fix
+- design connected chamber regression fix
+- append second Storybook fix verification
+- record Storybook final fix verification
+- verify Questmancer Storybook assets
+- cover missing Storybook ownership
+- plan Questmancer Storybook implementation
+- approve Questmancer Storybook design
+- record Questmancer live acceptance
+- define stable Summons acknowledgement identity
+- make release workflow contracts exact
+- parse active release workflow contracts
+- prepare Questmancer for release
+- project Herdr state as a Questmancer guild
+- cut over Questmancer product identity
+- plan Questmancer product pivot
+- mark Questmancer direction approved
+- lock Questmancer creative direction
+- clarify follow-up cafe smoke cleanup
+- record cafe managed-pane smoke evidence
+- record Herdr 0.7.4 verification and sidebar follow-up
+- close cafe invariant review gaps
+- harden connected cafe invariants and docs
+- assert authored cafe scene contract
+- correct cafe scene test count
+- strengthen managed pane exclusion coverage
+- plan defect-first connected cafe implementation
+- specify defect-first connected cafe redesign
+- clarify manual test provenance
+- design user quick start and manual test
+- record final persistence review fixes
+- record persistence milestone verification
+- complete persistence milestone
+- prove persistence flush fifo acknowledgement
+- plan persistence milestone
+- fix durable attention episode identity
+- design persistence and property testing
+- record milestone 5 live acceptance
+- plan animated cybercafe milestone
+- record milestone 4 live acceptance
+- document milestone 4 webmaster desk
+- plan operational webmaster desk
+- document webmaster domain core
+- plan webmaster domain core
+- document Herdr protocol runtime
+- plan Herdr protocol milestone
+- define webmaster pixel art direction
+- add milestone one quality gates
+- capture webmaster design and plan
+
 ### Added
 
 - Release automation through `release-plz`: version bumps and changelog entries
