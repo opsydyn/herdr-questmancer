@@ -374,6 +374,35 @@ figcaption span {
   justify-self: end;
 }
 
+.install-prerequisite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.45rem;
+  margin: -0.5rem 0 1.4rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.install-prerequisite-label {
+  color: var(--gold);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.install-prerequisite a {
+  color: var(--teal);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.install-prerequisite a:hover,
+.install-prerequisite a:focus-visible {
+  color: var(--paper);
+}
+
 .terminal {
   overflow: hidden;
   border: 1px solid var(--line-bright);
