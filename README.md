@@ -30,10 +30,16 @@ Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
 
 ```bash
 cargo install questmancer
-herdr plugin link "$(dirname "$(command -v questmancer)")"
 ```
 
-The crate carries the plugin and the pixel art it renders. Source
+This builds the same binary and puts it on your `PATH`, which is enough to run
+`questmancer ui` directly. **It is not on its own an install of the plugin.**
+`cargo install` places binaries and nothing else, so `herdr-plugin.toml` is not
+where Herdr can find it, and `herdr/run.sh` looks for its binary inside the
+plugin directory rather than on `PATH`. Link a checkout as below for the plugin
+itself.
+
+The crate carries the plugin sources and the pixel art it renders. Source
 illustrations, screenshots and the launch site stay in the repository: they are
 worth keeping in git and worth nothing to an install.
 
