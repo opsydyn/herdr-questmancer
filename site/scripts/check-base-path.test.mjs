@@ -24,3 +24,13 @@ test('rejects a missing expected output', async () => {
   await writeFile(join(root, 'index.html'), '<main>ok</main>');
   assert.throws(() => validateBuild(root, '/herdr-questmancer', ['hero']), /missing/);
 });
+
+test('rejects a base-prefixed reference whose output file is missing', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'questmancer-base-'));
+  await mkdir(join(root, '_astro'), { recursive: true });
+  await writeFile(join(root, 'index.html'), '<img src="/herdr-questmancer/_astro/missing.png">');
+  assert.throws(
+    () => validateBuild(root, '/herdr-questmancer', []),
+    /missing built file for local reference/,
+  );
+});

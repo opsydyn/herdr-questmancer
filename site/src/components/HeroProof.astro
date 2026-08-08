@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import hero from '../assets/hero.png';
 import guildHall from '../assets/screenshots/guild-hall.png';
 import delve from '../assets/screenshots/delve.png';
@@ -31,31 +32,28 @@ const githubUrl = 'https://github.com/opsydyn/herdr-questmancer';
   <div class="hero-proof" aria-label="Proof of the Delve">
     <p class="section-kicker"><span aria-hidden="true">01</span> Proof of the Delve</p>
     <figure class="hero-stage">
-      <img
-        src={hero.src}
-        width={hero.width}
-        height={hero.height}
+      <Image
+        src={hero}
         alt="Pixel-art barbarian seated on a throne between red guild banners"
-        decoding="sync"
+        format="png"
+        loading="eager"
       />
     </figure>
     <div class="hero-mosaic">
       <figure class="mosaic-card">
-        <img
-          src={guildHall.src}
-          width={guildHall.width}
-          height={guildHall.height}
+        <Image
+          src={guildHall}
           alt="Questmancer Guild Hall showing a whole party at workstations"
+          format="png"
           loading="eager"
         />
         <figcaption><span>Guild Hall</span> whole-party operational home</figcaption>
       </figure>
       <figure class="mosaic-card">
-        <img
-          src={delve.src}
-          width={delve.width}
-          height={delve.height}
+        <Image
+          src={delve}
           alt="Questmancer Delve showing adventurers working in connected chambers"
+          format="png"
           loading="eager"
         />
         <figcaption><span>Delve</span> active work in connected chambers</figcaption>

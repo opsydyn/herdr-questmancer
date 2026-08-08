@@ -1,14 +1,14 @@
 ---
-import bell from '../assets/icons/bell.svg';
-import heart from '../assets/icons/heart.svg';
-import home from '../assets/icons/home.svg';
-import lock from '../assets/icons/lock.svg';
+import Bell from '../assets/icons/bell.svg';
+import Castle from '../assets/icons/castle.svg';
+import Coins from '../assets/icons/coins.svg';
+import Sword from '../assets/icons/sword.svg';
 
 const mappings = [
-  { icon: home, title: 'Guild Hall', body: 'Whole-party operational home.' },
-  { icon: lock, title: 'Delve', body: 'Active work in connected chambers.' },
-  { icon: bell, title: 'Summons', body: 'Blocked agents call for counsel.' },
-  { icon: heart, title: 'Spoils', body: 'Completed work returns for inspection.' },
+  { icon: Sword, title: 'Guild Hall', body: 'Whole-party operational home.' },
+  { icon: Castle, title: 'Delve', body: 'Active work in connected chambers.' },
+  { icon: Bell, title: 'Summons', body: 'Blocked agents call for counsel.' },
+  { icon: Coins, title: 'Spoils', body: 'Completed work returns for inspection.' },
 ];
 ---
 
@@ -20,7 +20,9 @@ const mappings = [
   <div class="mapping-grid">
     {mappings.map((mapping) => (
       <article class="mapping-card">
-        <div class="mapping-icon" aria-hidden="true"><img src={mapping.icon.src} alt="" width="24" height="24" /></div>
+        <div class="mapping-icon" aria-hidden="true">
+          <mapping.icon width={24} height={24} aria-hidden="true" />
+        </div>
         <div>
           <h3>{mapping.title}</h3>
           <p>{mapping.body}</p>

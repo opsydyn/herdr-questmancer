@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, extname, join, resolve } from 'node:path';
+import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const auditedExtensions = new Set(['.html', '.css', '.js']);
@@ -42,6 +42,28 @@ function isBasePrefixed(reference, basePath) {
   return pathname === basePath || pathname.startsWith(`${basePath}/`);
 }
 
+function outputPathForReference(buildDir, basePath, reference) {
+  const pathname = decodeURIComponent(reference.split(/[?#]/, 1)[0]);
+  const relativePath = pathname.slice(basePath.length).replace(/^\/+/, '');
+  const buildRoot = resolve(buildDir);
+  const candidate = resolve(buildRoot, relativePath || 'index.html');
+  const relativeCandidate = relative(buildRoot, candidate);
+
+  if (
+    relativeCandidate === '..' ||
+    relativeCandidate.startsWith(`..${sep}`) ||
+    isAbsolute(relativeCandidate)
+  ) {
+    throw new Error(`local reference escapes build directory: ${reference}`);
+  }
+
+  if (existsSync(candidate) && statSync(candidate).isDirectory()) {
+    return join(candidate, 'index.html');
+  }
+
+  return candidate;
+}
+
 /**
  * Audit a generated Astro directory for base-safe local references and
  * expected hashed assets.
@@ -61,6 +83,10 @@ export function validateBuild(buildDir, basePath, expectedAssetStems) {
     for (const reference of localReferences(source)) {
       if (!isBasePrefixed(reference, basePath)) {
         throw new Error(`local reference bypasses base path: ${reference}`);
+      }
+      const outputPath = outputPathForReference(buildDir, basePath, reference);
+      if (!existsSync(outputPath) || !statSync(outputPath).isFile()) {
+        throw new Error(`missing built file for local reference: ${reference}`);
       }
     }
   }
@@ -92,10 +118,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     'guild-hall',
     'delve',
     'ledger',
-    'home',
+    'sword',
+    'castle',
     'bell',
-    'heart',
-    'lock',
+    'coins',
   ]);
   console.log('base-path audit passed');
 }

@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import ledger from '../assets/screenshots/ledger.png';
 import adventurer from '../assets/screenshots/adventurer.png';
 import compactParty from '../assets/screenshots/compact-party.png';
@@ -52,7 +53,7 @@ const evidence = [
     {evidence.map((item) => (
       <figure class:list={['evidence-card', item.className]}>
         <div class="evidence-image">
-          <img src={item.src.src} width={item.src.width} height={item.src.height} alt={item.alt} loading="lazy" />
+          <Image src={item.src} format="png" loading="eager" alt={item.alt} />
         </div>
         <figcaption>
           <span>{item.title}</span>
