@@ -262,15 +262,26 @@ plugin never rewrites global Herdr configuration or semantic agent state.
 [ui.sidebar.agents]
 rows = [
   ["state_icon", "workspace", "tab"],
-  ["agent", "$quest_role", "$quest_omen"],
+  [
+    { token = "agent", fg = "#cdd6f4", bold = true, dim = false },
+    { token = "$quest_role", fg = "#9399b2", dim = false },
+    { token = "$quest_omen", fg = "#9399b2", dim = false },
+  ],
 ]
 
 [ui.sidebar.spaces]
 rows = [
   ["state_icon", "workspace"],
-  ["branch", "git_status", "$quest_campaign"],
+  ["branch", "git_status", { token = "$quest_campaign", fg = "#9399b2", dim = false }],
 ]
 ```
+
+Herdr renders sidebar rows faint unless an element sets `dim = false`, and
+unstyled text uses a muted UI colour rather than the theme foreground, so a
+bare token lands around 1.9:1 against a dark background. The explicit `fg` and
+`dim = false` above are what make the rows readable;
+[the character sheet](docs/design/questmancer-sidebar-character-sheet.md)
+measures this in detail.
 
 `$quest_role` is the adventurer's stable ancestry and class, `$quest_omen` is
 the current presence in guild language, and `$quest_campaign` is the live
