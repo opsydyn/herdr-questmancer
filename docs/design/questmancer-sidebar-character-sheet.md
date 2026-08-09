@@ -73,17 +73,17 @@ Add to your Herdr configuration. Each inner array is one rendered line.
 [ui.sidebar.agents]
 row_gap = 1
 rows = [
-  ["state_icon", "$quest_sigil", { token = "agent", bold = true }],
-  [{ token = "$quest_role", dim = true }, { token = "$quest_condition", fg = "#c9a227" }],
-  [{ token = "$quest_vigil", fg = "#c2413f" }],
-  [{ token = "$quest_hoard", dim = true }],
+  ["state_icon", { token = "$quest_sigil", fg = "#9399b2", dim = false }, { token = "agent", fg = "#cdd6f4", bold = true, dim = false }],
+  [{ token = "$quest_role", fg = "#9399b2", dim = false }, { token = "$quest_condition", fg = "#e5b95c", dim = false }],
+  [{ token = "$quest_vigil", fg = "#f38ba8", dim = false }],
+  [{ token = "$quest_hoard", fg = "#e5b95c", dim = false }],
 ]
 
 [ui.sidebar.spaces]
 rows = [
-  ["state_icon", { token = "workspace", bold = true }, "$quest_party"],
-  [{ token = "$quest_campaign", dim = true }],
-  [{ token = "$quest_hoard", dim = true }],
+  ["state_icon", { token = "workspace", fg = "#cdd6f4", bold = true, dim = false }, { token = "$quest_party", fg = "#9399b2", dim = false }],
+  [{ token = "$quest_campaign", fg = "#9399b2", dim = false }],
+  [{ token = "$quest_hoard", fg = "#e5b95c", dim = false }],
 ]
 ```
 
@@ -92,8 +92,8 @@ A tighter two-line variant for narrow sidebars:
 ```toml
 [ui.sidebar.agents]
 rows = [
-  ["$quest_sigil", { token = "agent", bold = true }, { token = "$quest_vigil", fg = "#c2413f" }],
-  [{ token = "$quest_condition", dim = true }],
+  [{ token = "$quest_sigil", fg = "#9399b2", dim = false }, { token = "agent", fg = "#cdd6f4", bold = true, dim = false }, { token = "$quest_vigil", fg = "#f38ba8", dim = false }],
+  [{ token = "$quest_condition", fg = "#e5b95c", dim = false }],
 ]
 ```
 
@@ -103,14 +103,14 @@ A full character sheet, for a wide sidebar:
 [ui.sidebar.agents]
 row_gap = 1
 rows = [
-  ["$quest_sigil", { token = "agent", bold = true }],
-  [{ token = "$quest_role", dim = true }],
-  [{ token = "$quest_epithet", dim = true }],
-  ["state_icon", { token = "$quest_condition", fg = "#c9a227" }],
-  [{ token = "$quest_omen", dim = true }],
-  [{ token = "$quest_trinket", dim = true }],
-  [{ token = "$quest_vigil", fg = "#c2413f" }],
-  [{ token = "$quest_hoard", fg = "#c9a227" }],
+  [{ token = "$quest_sigil", fg = "#9399b2", dim = false }, { token = "agent", fg = "#cdd6f4", bold = true, dim = false }],
+  [{ token = "$quest_role", fg = "#9399b2", dim = false }],
+  [{ token = "$quest_epithet", fg = "#9399b2", dim = false }],
+  ["state_icon", { token = "$quest_condition", fg = "#e5b95c", dim = false }],
+  [{ token = "$quest_omen", fg = "#9399b2", dim = false }],
+  [{ token = "$quest_trinket", fg = "#9399b2", dim = false }],
+  [{ token = "$quest_vigil", fg = "#f38ba8", dim = false }],
+  [{ token = "$quest_hoard", fg = "#e5b95c", dim = false }],
 ]
 ```
 
@@ -132,6 +132,46 @@ twice before anyone ran the binary, and each time a pasted example took a whole
   as token names and rejected: `unknown sidebar token; custom tokens must start
   with $`. Herdr separates adjacent values with `·` itself and puts a single
   space after `state_icon`, so spacers are unnecessary as well as invalid.
+- **Sidebar rows are faint unless you say otherwise, so every styled element
+  sets `dim = false`.** See below — this is the single most important thing on
+  this page.
+
+## Rows are faint by default
+
+Herdr renders sidebar rows with SGR 2 (faint) unless an element opts out.
+Terminals implement faint as a multiplier: Ghostty applies roughly `0.63`. The
+effect is not subtle and it is not optional-looking — it is the difference
+between a readable sheet and a grey smear.
+
+Measured on Ghostty with Herdr's default `catppuccin` theme, background
+`#17191E`:
+
+| Element | Faint (default) | With `dim = false` |
+| --- | --- | --- |
+| unstyled text | `#434757`, **1.87:1** | `overlay0`, 3.49:1 |
+| `fg = "#c9a227"` | `#755d14`, **2.71:1** | `#c9a227`, 7.07:1 |
+| `fg = "#c2413f"` | `#772b2e`, **1.77:1** | `#c2413f`, 3.36:1 |
+
+Three consequences, each of which cost us a wrong diagnosis before the pixels
+were measured:
+
+- **`dim = true` is the default, not an effect you add.** Writing it changes
+  nothing. Every example on this page once carried it, and removing it alone
+  would have changed nothing either.
+- **Unstyled text is `overlay0` — a muted UI colour, not `text`.** A row with
+  no `fg` cannot reach 4.5:1 even with faint off. Give every element an `fg`.
+- **Faint applies to your `fg` too.** Under it, no red reaches 4.5:1 — not even
+  `#ff0000`, which manages 1.79:1. The old vigil colour `#c2413f` was therefore
+  unfixable by colour choice while faint was on, which is why the urgency
+  signal was the least legible row on a sheet whose whole job is urgency.
+
+The palette above is Catppuccin Mocha, so it stays in theme with Herdr's
+default. Against that theme's `#1e1e2e` base: `#cdd6f4` 11.34:1, `#e5b95c`
+8.92:1, `#f38ba8` 7.08:1, `#9399b2` 5.81:1 — a three-tier hierarchy of name,
+status, detail, all clearing WCAG AA.
+
+`tests/sidebar_documentation.rs` holds every example on this page to both rules:
+no element requests faint, and every `fg` clears 4.5:1.
 
 Styling arrived in Herdr 0.7.5. On 0.7.4 an inline table fails with
 `invalid type: map, expected a string`, so these configurations require the
