@@ -1,6 +1,6 @@
 [package]
 name = "questmancer"
-version = "0.1.4"
+version = "0.1.6"
 edition = "2024"
 rust-version = "1.90"
 description = "A cozy fantasy guild and dungeon control room for coding agents."

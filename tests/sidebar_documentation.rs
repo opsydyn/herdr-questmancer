@@ -154,6 +154,124 @@ fn documented_rows_use_the_styling_keys_herdr_accepts() {
     }
 }
 
+/// Herdr's default theme is `catppuccin`, whose base is this. Contrast is
+/// judged against it because it is the background our published examples
+/// actually land on for a reader who has not changed themes.
+const THEME_BACKGROUND: (u8, u8, u8) = (0x1e, 0x1e, 0x2e);
+
+/// The WCAG AA floor for normal-size text. Sidebar rows are small text in a
+/// narrow rail; there is no "large text" exemption available to them.
+const CONTRAST_FLOOR: f64 = 4.5;
+
+fn parse_hex(colour: &str) -> (u8, u8, u8) {
+    let digits = colour.strip_prefix('#').expect("fg is strict hex");
+    let expand = |c: char| u8::from_str_radix(&c.to_string(), 16).expect("hex digit") * 0x11;
+    match digits.len() {
+        3 => {
+            let mut chars = digits.chars();
+            let mut next = || expand(chars.next().expect("three digits"));
+            (next(), next(), next())
+        }
+        6 => {
+            let byte = |at: usize| u8::from_str_radix(&digits[at..at + 2], 16).expect("hex pair");
+            (byte(0), byte(2), byte(4))
+        }
+        _ => panic!("fg {colour:?} is neither #RGB nor #RRGGBB"),
+    }
+}
+
+/// Relative luminance, per WCAG 2.1.
+fn luminance((r, g, b): (u8, u8, u8)) -> f64 {
+    let channel = |value: u8| {
+        let value = f64::from(value) / 255.0;
+        if value <= 0.040_45 {
+            value / 12.92
+        } else {
+            ((value + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+}
+
+fn contrast(foreground: (u8, u8, u8), background: (u8, u8, u8)) -> f64 {
+    let (a, b) = (luminance(foreground), luminance(background));
+    (a.max(b) + 0.05) / (a.min(b) + 0.05)
+}
+
+/// Herdr renders sidebar rows faint unless an element opts out, and terminals
+/// implement faint as a multiplier — Ghostty applies about `0.63`. Measured on
+/// the default catppuccin theme, that put every published row between 1.77:1
+/// and 2.78:1, well under the AA floor, including the vigil whose entire job is
+/// to be noticed.
+///
+/// `dim = true` was therefore never an effect these examples added; it was the
+/// default they restated. Removing it would have changed nothing. Only
+/// `dim = false` turns faint off.
+#[test]
+fn documented_rows_never_request_faint() {
+    for block in toml_blocks() {
+        for (panel, row) in rows_of(&block) {
+            for element in row {
+                let Value::Table(table) = &element else {
+                    continue;
+                };
+                let token = table["token"].as_str().unwrap_or("<unnamed>");
+                match table.get("dim").and_then(Value::as_bool) {
+                    Some(false) => {}
+                    Some(true) => panic!(
+                        "the {panel} element {token:?} sets `dim = true`, which is already \
+                         Herdr's default. Faint drops it to roughly 1.9:1 on the default \
+                         theme; set `dim = false`."
+                    ),
+                    None => panic!(
+                        "the {panel} element {token:?} does not set `dim`, so Herdr renders \
+                         it faint. Every styled element must set `dim = false`."
+                    ),
+                }
+            }
+        }
+    }
+}
+
+/// A colour that cannot be read is not styling. Faint is off by the test above,
+/// so these values land at face value and can be judged directly.
+///
+/// This also encodes a limit worth knowing: while faint was on, no red cleared
+/// the floor — not even `#ff0000`, at 1.79:1 — so the vigil could not be fixed
+/// by choosing a better red. It needed `dim = false` first.
+#[test]
+fn documented_colours_clear_the_contrast_floor() {
+    let mut checked = 0;
+    for block in toml_blocks() {
+        for (panel, row) in rows_of(&block) {
+            for element in row {
+                let Value::Table(table) = &element else {
+                    continue;
+                };
+                let Some(colour) = table.get("fg").and_then(Value::as_str) else {
+                    let token = table["token"].as_str().unwrap_or("<unnamed>");
+                    panic!(
+                        "the {panel} element {token:?} has no `fg`. Unstyled row text uses \
+                         Herdr's muted `overlay0`, which cannot reach {CONTRAST_FLOOR}:1 on \
+                         the default theme even with faint off."
+                    );
+                };
+                let ratio = contrast(parse_hex(colour), THEME_BACKGROUND);
+                assert!(
+                    ratio >= CONTRAST_FLOOR,
+                    "the {panel} colour {colour} is {ratio:.2}:1 against the default theme \
+                     background, under the {CONTRAST_FLOOR}:1 floor for small text"
+                );
+                checked += 1;
+            }
+        }
+    }
+    assert!(
+        checked >= 20,
+        "only {checked} styled elements were checked; the examples lost their styling"
+    );
+}
+
 /// Herdr rows hold token names and nothing else — it inserts its own
 /// separators. Ours carried `" "` and `"Trinket: "` as if literal text were
 /// allowed, and each was read as the name of a token that does not exist.
