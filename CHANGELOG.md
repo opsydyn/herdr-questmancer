@@ -6,6 +6,24 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- Six classes wore their eyes as a single dark bar. At 16x24 an adventurer gets
+  about three pixels of face, and Mage, Rogue, Runewright, Testmender,
+  Pathseeker and Sorcerer each spent two of them on adjacent eye pixels — which
+  do not read as two eyes, they read as one horizontal slot, the same mark a
+  visor or a blindfold makes. The Ranger already had the answer: separate them,
+  `K h K h K`, so skin shows between the eyes and beneath each one. The six now
+  do the same.
+
+  The Mage was the extreme case and needed more than spacing. It had no skin at
+  all — a hood, a glowing accent band where a face belongs, and nothing else, so
+  at magnification it read as an empty cowl rather than a person. It now has a
+  forehead, two eyes and a chin, and the focal accent moved to the staff orb it
+  is already carrying.
+
+  Deliberately unchanged: the Druid's single centred eye. Its hood leaves a
+  three-pixel opening, and two eyes in that space read as a stare rather than a
+  face. One eye in a deep hood is the intended silhouette.
+
 - The Druid was left out of the sprite sweep below, and that entry's claim to
   have covered "every class master" was wrong. Fourteen masters live in
   `src/scene/assets/archetypes.rs`; the Druid's lives in

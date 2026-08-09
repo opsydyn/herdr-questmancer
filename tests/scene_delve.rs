@@ -493,10 +493,14 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // skin-toned hand bridges joining each held prop to its body, and again
     // when the Druid — whose master lives in `adventurer.rs` rather than
     // `archetypes.rs`, and which that sweep therefore missed — got the same
-    // treatment. This fixture's blocked delver is a Druid.
+    // treatment. This fixture's blocked delver is a Druid. Re-pinned once more
+    // when six classes stopped wearing their eyes as a single dark bar: two
+    // adjacent eye pixels read as one slot at this scale, so Mage, Rogue,
+    // Runewright, Testmender, Pathseeker and Sorcerer now separate them the way
+    // the Ranger does. The idle delver here is a Sorcerer.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "3950126e556d94c6bbd2755a2546b916de617c10e4aa724d8fd11f9ce1686e04"
+        "d10d6779ba5b53b130d3257469f23355cefe348cb83102fd533e2b0ba07b66a3"
     );
 
     let non_clear = first
