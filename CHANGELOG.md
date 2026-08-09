@@ -6,6 +6,17 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- The Druid was left out of the sprite sweep below, and that entry's claim to
+  have covered "every class master" was wrong. Fourteen masters live in
+  `src/scene/assets/archetypes.rs`; the Druid's lives in
+  `src/scene/assets/adventurer.rs`, because `archetypes::world_frame` returns
+  `None` for that class. The audit and fix both globbed `archetypes.rs` alone,
+  so they measured fourteen sprites, reported fourteen clean, and never looked
+  at the fifteenth — which was still standing a pixel above its own contact
+  shadow with its staff floating a column clear of any hand. Both are fixed,
+  and the count is now fifteen. A sweep that derives its own scope from one
+  file will report success for exactly that file.
+
 - Every remaining class world sprite carried two of the Ranger's five defects,
   and both were structural rather than stylistic. Held props — daggers, staves,
   hammers, lutes, shields — floated one to three columns clear of the figure

@@ -490,10 +490,13 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // started resolving toward a pale mist instead, and again when the floor's
     // diagonal grid became isotropic patch mottling, and again when every
     // class master gained filled boots that reach the contact shadow and
-    // skin-toned hand bridges joining each held prop to its body.
+    // skin-toned hand bridges joining each held prop to its body, and again
+    // when the Druid — whose master lives in `adventurer.rs` rather than
+    // `archetypes.rs`, and which that sweep therefore missed — got the same
+    // treatment. This fixture's blocked delver is a Druid.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "0e183d7faa81a2bb8185f21fb133026cf56f46867e45fae0641f3aa1621f72f6"
+        "3950126e556d94c6bbd2755a2546b916de617c10e4aa724d8fd11f9ce1686e04"
     );
 
     let non_clear = first
