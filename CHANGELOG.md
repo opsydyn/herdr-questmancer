@@ -6,6 +6,16 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- The Ranger world sprite. Magnified, it showed five defects that terminal
+  scale had hidden: the figure floated two pixels above its own contact
+  shadow, the bow hung a full column clear of any hand, the body was a
+  uniform-width column with no shoulders and no neck, the face read as a dark
+  slot rather than a face, and the feet were outline-only so they merged into
+  the shadow. The bow is gone — a vertical stick beside a hooded figure reads
+  as the staff that Mage and Wizard carry, so the class's own prop was working
+  against it. A shoulder quiver with bright fletching carries the identity
+  instead, and the fletching takes the focal accent where the eye already goes.
+
 - The release pipeline syncs `herdr-plugin.toml` itself. It had been a
   documented manual step, and it was missed twice — fixed by hand once, then
   broken again by the very next version bump — leaving `herdr plugin install`
