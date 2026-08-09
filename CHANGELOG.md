@@ -6,6 +6,19 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- Every remaining class world sprite carried two of the Ranger's five defects,
+  and both were structural rather than stylistic. Held props — daggers, staves,
+  hammers, lutes, shields — floated one to three columns clear of the figure
+  holding them, so at magnification they read as scenery that happened to be
+  nearby rather than as something a character was carrying; a skin-toned hand
+  now bridges each prop to its body. Feet were drawn as outline only and
+  stopped short of the contact-shadow lane, so every adventurer hovered above
+  the shadow the renderer painted for them; boots are now filled and reach the
+  lane. Measured across all fourteen masters: 175 detached pixels and 9
+  floating props before, none after. The remaining Ranger fixes — shoulders,
+  neck, a face that reads — are per-class drawing work and are not in this
+  change; several classes are still uniform-width silhouettes.
+
 - The Ranger world sprite. Magnified, it showed five defects that terminal
   scale had hidden: the figure floated two pixels above its own contact
   shadow, the bow hung a full column clear of any hand, the body was a

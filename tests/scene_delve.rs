@@ -488,10 +488,12 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // again when station slots were re-spaced so delvers stopped overlapping,
     // and again when Unknown delvers stopped being darkened toward black and
     // started resolving toward a pale mist instead, and again when the floor's
-    // diagonal grid became isotropic patch mottling.
+    // diagonal grid became isotropic patch mottling, and again when every
+    // class master gained filled boots that reach the contact shadow and
+    // skin-toned hand bridges joining each held prop to its body.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "4b1c62f28f57bba5f49eca667fee5c42eb4cd79b8ea3b4d03c1859e83878cc48"
+        "0e183d7faa81a2bb8185f21fb133026cf56f46867e45fae0641f3aa1621f72f6"
     );
 
     let non_clear = first
