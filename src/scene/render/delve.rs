@@ -584,6 +584,28 @@ fn background_assets(seed: u64) -> Vec<PlacedAsset> {
         placed(DelveAsset::DungeonClutter, 13, 76, false),
         placed(DelveAsset::Torch, 63, 18, false),
         placed(DelveAsset::Torch, 105, 16, false),
+        // Ceiling first. Before these the dungeon had no upper storey — every
+        // prop either stood on the floor or hung flat on a wall, so the eye
+        // had nothing to tell it the rooms had height. These hang into the
+        // chambers rather than sitting in the ceiling band: stone drawn on
+        // stone is invisible, and the point is the silhouette against a room.
+        placed(DelveAsset::Stalactites, 30, 7, false),
+        placed(DelveAsset::Stalactites, 110, 8, false),
+        placed(DelveAsset::HangingChains, 134, 2, false),
+        // Corners, where a room's edges would otherwise be bare stone.
+        placed(DelveAsset::Cobwebs, 2, 8, false),
+        placed(DelveAsset::Cobwebs, 141, 40, false),
+        // The west chamber was the emptiest region on the canvas.
+        placed(DelveAsset::Sarcophagus, 20, 20, false),
+        placed(DelveAsset::DrippingWater, 45, 9, false),
+        // The east chamber's own landmark, and a reason to look at it.
+        placed(DelveAsset::BrokenStatue, 133, 18, false),
+        placed(DelveAsset::Lever, 108, 44, false),
+        // Life, at the edges. Fungi light the camp approach; the rat is the
+        // only thing down here that is neither party nor scenery.
+        placed(DelveAsset::Mushrooms, 66, 82, false),
+        placed(DelveAsset::Mushrooms, 4, 52, false),
+        placed(DelveAsset::Rat, 96, 84, false),
     ];
     assets.push(if seed.is_multiple_of(2) {
         placed(DelveAsset::Rubble, 44, 52, false)

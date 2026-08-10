@@ -6,6 +6,28 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+### Added
+
+- Nine dungeon tropes, now that there is a floor for scenery to stand on:
+  cobwebs, stalactites, dripping water, hanging chains, a sarcophagus, a broken
+  statue, glowing mushrooms, a wall lever and a rat. Deliberately not added:
+  a portcullis, an arch, columns, puddles and glowing crystals, all of which
+  the dungeon already had.
+
+  Three of these exist to give the rooms height. Before them every prop either
+  stood on the ground or hung flat against a wall, so the dungeon read as one
+  storey tall with a ceiling nobody had drawn. The stalactites hang *into* the
+  chambers rather than sitting in the ceiling band — stone drawn on stone is
+  invisible, and the point of a spike is its silhouette against a room.
+
+  Two are alive. The mushrooms glow at the camp approach and the rat is the
+  only thing down there that is neither party nor furniture.
+
+  The statue is headless on purpose: a whole statue is decoration, a broken one
+  says something happened here before the party arrived.
+
+### Fixed
+
 - The Delve's labyrinth was invisible. The dungeon defines seven named regions
   — entrance, west and east chambers, central junction, descending corridor,
   camp, exit landing — joined by seven doorways, all of it walkability-masked

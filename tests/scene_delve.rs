@@ -127,9 +127,15 @@ fn mean_coolness(buffer: &RgbBuffer) -> i64 {
     total / i64::try_from(buffer.pixels().len()).expect("buffer length fits i64")
 }
 
+/// The nineteen original environment families, plus the nine dungeon tropes
+/// added once the floor became visible enough for scenery to sit on it.
+///
+/// Order is asserted, not just the count: `frame()` indexes `FRAMES` by
+/// `asset as usize`, so appending is safe and reordering silently hands every
+/// asset another asset's sprite.
 #[test]
-fn delve_has_the_nineteen_original_indexed_environment_families() {
-    assert_eq!(DelveAsset::ALL.len(), 19);
+fn delve_has_its_indexed_environment_families_in_order() {
+    assert_eq!(DelveAsset::ALL.len(), 28);
     assert_eq!(
         DelveAsset::ALL,
         &[
@@ -152,6 +158,15 @@ fn delve_has_the_nineteen_original_indexed_environment_families() {
             DelveAsset::Bones,
             DelveAsset::Chests,
             DelveAsset::DungeonClutter,
+            DelveAsset::Cobwebs,
+            DelveAsset::Stalactites,
+            DelveAsset::DrippingWater,
+            DelveAsset::HangingChains,
+            DelveAsset::Sarcophagus,
+            DelveAsset::BrokenStatue,
+            DelveAsset::Mushrooms,
+            DelveAsset::Lever,
+            DelveAsset::Rat,
         ]
     );
     for asset in DelveAsset::ALL {
@@ -502,9 +517,13 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // hue, so that the seven authored regions and their connecting corridors
     // became visible for the first time — the largest single change this
     // fixture has ever recorded, because it repaints every pixel of ground.
+    // Re-pinned again when nine dungeon tropes were furnished into the rooms
+    // the previous change revealed: cobwebs, stalactites, dripping water,
+    // hanging chains, a sarcophagus, a broken statue, glowing mushrooms, a
+    // lever and a rat.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "10e7559359358c3958d5e46d24f87a399b25d3026a00d698744037e81e2f7511"
+        "94e4687749234aeb932630723fe6582281d183d1b3306be219fb724a4f646f13"
     );
 
     let non_clear = first

@@ -47,6 +47,15 @@ pub enum DelveAsset {
     Bones,
     Chests,
     DungeonClutter,
+    Cobwebs,
+    Stalactites,
+    DrippingWater,
+    HangingChains,
+    Sarcophagus,
+    BrokenStatue,
+    Mushrooms,
+    Lever,
+    Rat,
 }
 
 impl DelveAsset {
@@ -70,6 +79,15 @@ impl DelveAsset {
         Self::Bones,
         Self::Chests,
         Self::DungeonClutter,
+        Self::Cobwebs,
+        Self::Stalactites,
+        Self::DrippingWater,
+        Self::HangingChains,
+        Self::Sarcophagus,
+        Self::BrokenStatue,
+        Self::Mushrooms,
+        Self::Lever,
+        Self::Rat,
     ];
 }
 
@@ -287,5 +305,74 @@ const fn rows(asset: DelveAsset) -> &'static [&'static str] {
             "rroosssvvvrr",
             "ssSSSssssSSs",
         ],
+        // Drawn in light stone rather than bone. A web is a thing you notice
+        // second, after the room; bone is bright enough to read as an object
+        // and would pull the eye into an empty corner.
+        DelveAsset::Cobwebs => &[
+            "LLLLLLLL", "LL.L.L..", "L.LL.L..", "L..LL...", "LL.L.L..", "L.L.LL..", "L..LL...",
+            "LL.L....",
+        ],
+        // The ceiling had no presence at all: every prop stood on the ground
+        // or hung on a wall, so the dungeon read as one storey tall.
+        // Two solid tapers, not a row of single-pixel teeth. A wide band of
+        // stone across the top read as a shelf, and lone pixels below it read
+        // as grit; the spike has to be thick enough to hold a silhouette.
+        DelveAsset::Stalactites => &[
+            "SSSSS..SSSS.",
+            "sSSSs..sSSs.",
+            ".SSS....SS..",
+            ".sSs....Ss..",
+            "..S......s..",
+            "..s.........",
+        ],
+        DelveAsset::DrippingWater => &[
+            "..SS..", "..ss..", "...s..", "..W...", "......", "..w...", "......", ".wWw..",
+            "wWWWw.",
+        ],
+        DelveAsset::HangingChains => &[
+            "..r....r..",
+            "..s....s..",
+            "..r....r..",
+            "..s....s..",
+            "..r....r..",
+            "..s....s..",
+            "..r.......",
+            "..s.......",
+            "..r.......",
+        ],
+        DelveAsset::Sarcophagus => &[
+            ".sSSSSSSSSSSs.",
+            "sSLLLLLLLLLLSs",
+            "SLLsLLLLLLsLLS",
+            "SLLLsbbbbsLLLS",
+            "SLLLLLLLLLLLLS",
+            "sSLLLLLLLLLLSs",
+            ".sSSSSSSSSSSs.",
+        ],
+        // Headless on purpose. A whole statue reads as decoration; a broken
+        // one says something happened here before the party arrived.
+        DelveAsset::BrokenStatue => &[
+            "....s.....",
+            "...LLL....",
+            "..LLLLL...",
+            "..LLLLLL..",
+            "..LL.LLL..",
+            "...LLLL...",
+            "...LLLL...",
+            "...L..L...",
+            ".SSSSSSSS.",
+            "SSSSSSSSSS",
+        ],
+        DelveAsset::Mushrooms => &[
+            "..t.......",
+            ".tTt..t...",
+            "..b..tTt..",
+            "..b...b...",
+            "..b...b...",
+        ],
+        DelveAsset::Lever => &["....A.", "...r..", "..r...", ".r....", "sSs...", "sSs..."],
+        // Rust rather than shadow: a dungeon rat that reads as a dark smudge
+        // is indistinguishable from the mortar it runs along.
+        DelveAsset::Rat => &["...rr...", "..rrrrr.", ".rrrrrrr", "rr.rr..r"],
     }
 }
