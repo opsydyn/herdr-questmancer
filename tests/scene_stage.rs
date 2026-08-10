@@ -7,6 +7,7 @@ use questmancer::{
         Timestamp, WorkspaceId,
     },
     scene::{
+        assets::{delve::FLOOR_MID, palette::OAK},
         pixel::{PixelSize, Rgb, RgbBuffer},
         render_scene,
         snapshot::{SceneAgent, SceneConnection, SceneSnapshot, SceneTransition},
@@ -36,43 +37,49 @@ fn colour_distance(left: Rgb, right: Rgb) -> f64 {
     (weight_r * dr * dr + 4.0 * dg * dg + weight_b * db * db).sqrt()
 }
 
-/// Did the delve paint its own world?
+/// Did each world paint itself?
 ///
-/// This cannot be answered by matching exact colours. A dungeon pixel is a
-/// material, then a cool ambient wash, then whatever focus and torch pools
-/// fall on it — so the value that lands in the buffer is a material nobody
-/// wrote down. The previous version of this check tried anyway, listing
-/// fifteen literals for seven surfaces: the constants plus whichever tinted
-/// shades someone had observed. It encoded the lighting pipeline by accident,
-/// and the day the dungeon palette moved it failed insisting the renderer had
-/// painted nothing recognisable, when the renderer was fine and the list was
-/// three months stale.
+/// This cannot be answered by matching exact colours. A painted pixel is a
+/// material, then an ambient wash, then whatever focus, torch and hearth pools
+/// fall on it — so the value that lands in the buffer is a shade nobody wrote
+/// down. Both arms of this check used to try anyway, listing literals someone
+/// had once observed: fifteen for the delve's seven surfaces, ten for the
+/// hall's nine. They encoded the lighting pipeline by accident, and the day
+/// the dungeon palette moved the delve arm failed insisting the renderer had
+/// painted nothing recognisable — when the renderer was fine and the list was
+/// stale.
 ///
-/// So ask the question that actually matters and that tinting cannot spoil:
-/// is any painted pixel nearer the delve's materials than the guild hall's?
-/// That fails exactly when it should — when the delve paints the wrong world,
-/// or nothing at all — and it never needs editing when an artist retunes a
-/// colour.
-fn delve_surface_painted(target: &RgbBuffer) -> bool {
-    use questmancer::scene::assets::delve as material;
+/// So ask the question that matters and that tinting cannot spoil: is any
+/// painted pixel nearer this world's own materials than the other world's?
+/// That fails exactly when it should — when a world paints the wrong room, or
+/// nothing at all — and it never needs editing when an artist retunes a colour.
+fn painted_its_own_world(world: WorldScene, target: &RgbBuffer) -> bool {
+    use questmancer::scene::assets::{delve as dungeon, palette as hall};
 
-    let delve = [
-        material::STONE_DARK,
-        material::STONE_MID,
-        material::STONE_LIGHT,
-        material::FLOOR_DARK,
-        material::FLOOR_MID,
-        material::MOSS_DARK,
-        material::MOSS_LIGHT,
+    let delve_surfaces = [
+        dungeon::STONE_DARK,
+        dungeon::STONE_MID,
+        dungeon::STONE_LIGHT,
+        dungeon::FLOOR_DARK,
+        dungeon::FLOOR_MID,
+        dungeon::MOSS_DARK,
+        dungeon::MOSS_LIGHT,
     ];
-    let hall = [
-        Rgb::new(48, 45, 54),
-        Rgb::new(75, 70, 74),
-        Rgb::new(105, 96, 92),
-        Rgb::new(59, 36, 29),
-        Rgb::new(104, 63, 37),
-        Rgb::new(151, 93, 48),
+    let hall_surfaces = [
+        hall::STONE_DARK,
+        hall::STONE,
+        hall::STONE_LIGHT,
+        hall::OAK_DARK,
+        hall::OAK,
+        hall::OAK_LIGHT,
+        hall::RUG_DARK,
+        hall::RUG,
+        hall::RUG_GOLD,
     ];
+    let (own, other): (&[Rgb], &[Rgb]) = match world {
+        WorldScene::GuildHall => (&hall_surfaces, &delve_surfaces),
+        WorldScene::Delve => (&delve_surfaces, &hall_surfaces),
+    };
     let nearest = |pixel: Rgb, family: &[Rgb]| {
         family
             .iter()
@@ -83,32 +90,7 @@ fn delve_surface_painted(target: &RgbBuffer) -> bool {
     target
         .pixels()
         .iter()
-        .any(|pixel| nearest(*pixel, &delve) < nearest(*pixel, &hall))
-}
-
-fn contains_environment_palette_pixel(world: WorldScene, target: &RgbBuffer) -> bool {
-    let palette: &[Rgb] = match world {
-        WorldScene::GuildHall => &[
-            Rgb::new(48, 45, 54),
-            Rgb::new(75, 70, 74),
-            Rgb::new(105, 96, 92),
-            Rgb::new(59, 36, 29),
-            Rgb::new(104, 63, 37),
-            Rgb::new(151, 93, 48),
-            Rgb::new(76, 25, 35),
-            Rgb::new(130, 43, 48),
-            Rgb::new(196, 126, 48),
-            Rgb::new(67, 22, 31),
-        ],
-        // Derived, never transcribed. This arm used to be fifteen literal
-        // colours: the delve's seven surface constants plus the eight the
-        // cool ambient wash turns them into. The moment those constants moved
-        // the list described a dungeon that no longer existed, and the test
-        // failed claiming the renderer had painted nothing recognisable —
-        // when in truth it was the test that had gone stale.
-        WorldScene::Delve => return delve_surface_painted(target),
-    };
-    target.pixels().iter().any(|pixel| palette.contains(pixel))
+        .any(|pixel| nearest(*pixel, own) < nearest(*pixel, other))
 }
 
 /// Inside the crop band the camera moves over one continuous authored world.
@@ -137,7 +119,7 @@ fn assert_authored_camera_crop(
             );
         }
     }
-    assert!(contains_environment_palette_pixel(world, &crop));
+    assert!(painted_its_own_world(world, &crop));
 }
 
 fn render_at(snapshot: &SceneSnapshot, now: i64) -> (Vec<Rgb>, Option<Duration>) {
@@ -520,8 +502,12 @@ fn viewport_matrix_preserves_exact_targets_and_world_specific_viewport_contracts
     // say no, so make it say no here: a buffer of the guild hall's own oak
     // must never be mistaken for the dungeon.
     assert!(
-        !delve_surface_painted(&RgbBuffer::filled(4, 4, Rgb::new(104, 63, 37))),
-        "the delve surface check accepts guild hall oak, so it proves nothing"
+        !painted_its_own_world(WorldScene::Delve, &RgbBuffer::filled(4, 4, OAK)),
+        "the delve check accepts guild hall oak, so it proves nothing"
+    );
+    assert!(
+        !painted_its_own_world(WorldScene::GuildHall, &RgbBuffer::filled(4, 4, FLOOR_MID)),
+        "the guild hall check accepts dungeon floor, so it proves nothing"
     );
 
     let guild = snapshot(Vec::new());
@@ -553,7 +539,7 @@ fn viewport_matrix_preserves_exact_targets_and_world_specific_viewport_contracts
                     "{expected_world:?} left an unpainted pixel at {viewport:?}"
                 );
                 assert!(
-                    contains_environment_palette_pixel(expected_world, &target),
+                    painted_its_own_world(expected_world, &target),
                     "{expected_world:?} omitted every known environment/material colour at {viewport:?}"
                 );
             }

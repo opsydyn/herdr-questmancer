@@ -33,6 +33,8 @@ pub enum GuildHallAsset {
     Scroll,
     Clutter,
     CounselMarker,
+    WornTimberBeam,
+    HearthCat,
 }
 
 impl GuildHallAsset {
@@ -57,6 +59,8 @@ impl GuildHallAsset {
         Self::Scroll,
         Self::Clutter,
         Self::CounselMarker,
+        Self::WornTimberBeam,
+        Self::HearthCat,
     ];
 }
 
@@ -181,21 +185,26 @@ const fn rows(asset: GuildHallAsset) -> &'static [&'static str] {
             "oLLLLLLLLLLLLLLLLo",
             "oooooooooooooooooo",
         ],
+        // The room's focal point, and it used to be almost bare: a large sheet
+        // of parchment carrying three faint marks. Whatever the eye travels to
+        // first should reward the trip, so it now holds three pinned notices
+        // with ink on them, brass pins, red thread running pin to pin, a wax
+        // seal, and a dagger driven through the board.
         GuildHallAsset::QuestMapWall => &[
             "ooooooooooooooooooooooooooooo",
             "oLLLLLLLLLLLLLLLLLLLLLLLLLLLo",
             "oLPPPPPPPPPPPPPPPPPPPPPPPPPLo",
-            "oLPqPPPPPPPPPPPPPPPPPPPPqPPLo",
-            "oLPPnnPPPPPPPPPPPPnnnPPPPPPLo",
-            "oLPPPnPPPPppPPPPPPnPnPPPPPPLo",
-            "oLPPPPPPppPPPPPPPPnnnPPPPPPLo",
-            "oLPPPPppPPPPPPPPPPPPPPPPPPPLo",
-            "oLPPppPPPPPPPPPPPPPMMPPPPPPLo",
-            "oLPPPPPPPPPPPPPPPMMMPPPPPPPLo",
-            "oLPPPPPPPPPPPPPPPPMMPPPPPPPlo",
-            "oLPPPPPPPPPPPPPPPPPPPPPPPPPlo",
-            "oLPPPPPPPPPPPPPPPPPPPPPPPPPlo",
-            "oLPPPPPPPPPPPPPPPPPPPPPPPPPlo",
+            "oLPBppppPPPPBppppPPPPPPPPPPLo",
+            "oLPPpnnpPWWPpnnnpPPPBppppPPLo",
+            "oLPPpnnpPPWPpnnnpPPPpnnnpPPLo",
+            "oLPPppppPWPPpppppPPPpnnnpPPLo",
+            "oLPPPPPPPWPPPPPPPPPPppppPPPLo",
+            "oLPPPPPPWWPPPPPPPPPPPPPPPPPLo",
+            "oLPBpppWPPPPPPPPPPPPPPPPPPPLo",
+            "oLPPpnnpPPPPPPtPPPPPPPPPPPPlo",
+            "oLPPppppPPPPPPtPPPPPwwPPPPPlo",
+            "oLPPPPPPPPPPPPtPPPPwWwPPPPPlo",
+            "oLPPPPPPPPPPPPPPPPPPwwPPPPPlo",
             "oLLLLLLLLLLLLLLLLLLLLLLLLLLLo",
             "ooooooooooooooooooooooooooooo",
         ],
@@ -228,20 +237,23 @@ const fn rows(asset: GuildHallAsset) -> &'static [&'static str] {
             "...oooo...",
             "..oLOOLo..",
         ],
+        // A guild hall's fire is its emotional anchor and this one was a
+        // thumbnail: four rows of flame in a recess two and a half times its
+        // height. The fire now fills the grate, with an ember bed beneath it.
         GuildHallAsset::Hearth => &[
             "dddddddddddddddddddddddd",
             "dlllllllllllllllllllllld",
             "dlmmmmmmmmmmmmmmmmmmmmld",
             "dlmddddddddddddddddddmld",
             "dlmdssssssssssssssssdmld",
-            "dlmdssssssssssssssssdmld",
+            "dlmdssssssffssssssssdmld",
             "dlmdsssssffffsssssssdmld",
             "dlmdssssffffffssssssdmld",
-            "dlmdssseffffefssssssdmld",
-            "dlmdsssefeeeefssssssdmld",
-            "dlmdssseeeeeefssssssdmld",
-            "dlmdsssseeffeeesssssdmld",
-            "dlmdssseeeeeesssssssdmld",
+            "dlmdsssfffaaffffssssdmld",
+            "dlmdsssffaaaafffssssdmld",
+            "dlmdssefffaaaaffesssdmld",
+            "dlmdsseeffffffffeessdmld",
+            "dlmdsseeeeeeeeeeeessdmld",
             "dlmdssssssssssssssssdmld",
             "dlmddddddddddddddddddmld",
             "dlllllllllllllllllllllld",
@@ -293,5 +305,25 @@ const fn rows(asset: GuildHallAsset) -> &'static [&'static str] {
         // shape at a size that survives half-block conversion — not a colour
         // change and not the three loose pixels it replaces.
         GuildHallAsset::CounselMarker => &[".sss.", "safas", "safas", "saaas", ".sas.", "..s.."],
+        // The ceiling was thirteen identical brackets in a row. One beam in
+        // three is now this one instead: same silhouette, a knot and a peg in
+        // different places. Pixel art wants irregularity; a perfect repeat
+        // reads as wallpaper.
+        GuildHallAsset::WornTimberBeam => &[
+            "oooooooooooo",
+            "oOOOOOOOOOOo",
+            "oOOoOLLOOOOo",
+            "oOOOOOOOoOOo",
+            "oooooooooooo",
+        ],
+        // Asleep by the fire, which is the point: the hearth needed a reason
+        // to be looked at, not just more orange.
+        GuildHallAsset::HearthCat => &[
+            "L...L.....",
+            "LLLLLL....",
+            "LLoLLLLLL.",
+            ".LLLLLLLLL",
+            "..oooooo.o",
+        ],
     }
 }

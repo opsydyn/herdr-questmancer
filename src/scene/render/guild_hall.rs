@@ -803,8 +803,16 @@ fn paint_architecture(target: &mut RgbBuffer, origin: PixelPoint) {
         fill(target, origin, PixelRect::new(x, 0, 3, 52), OAK_DARK);
         fill(target, origin, PixelRect::new(x + 1, 3, 1, 44), OAK_LIGHT);
     }
-    for x in (3..157).step_by(12) {
-        blit_asset(GuildHallAsset::TimberBeam, target, origin, x, 3);
+    // Every third beam is the worn one. Thirteen identical brackets in a row
+    // read as wallpaper rather than as carpentry, and the eye stops seeing a
+    // ceiling at all once it has resolved the repeat.
+    for (index, x) in (3..157).step_by(12).enumerate() {
+        let beam = if index.is_multiple_of(3) {
+            GuildHallAsset::WornTimberBeam
+        } else {
+            GuildHallAsset::TimberBeam
+        };
+        blit_asset(beam, target, origin, x, 3);
     }
 
     paint_guild_entrance(target, origin);
@@ -816,6 +824,12 @@ fn paint_architecture(target: &mut RgbBuffer, origin: PixelPoint) {
 
     blit_asset(GuildHallAsset::Shelf, target, origin, 83, 11);
     blit_asset(GuildHallAsset::Shelf, target, origin, 83, 25);
+    // Asleep between the shelves. The hearth would have been the better story,
+    // but every square of floor in front of the fire is a standing slot — the
+    // cat was drawn there and an adventurer stood on it. Nothing else in this
+    // room is alive except the people you are monitoring, and a room whose
+    // only living things are your open tasks is not much of a guild.
+    blit_asset(GuildHallAsset::HearthCat, target, origin, 88, 19);
     blit_asset(GuildHallAsset::Banner, target, origin, 106, 9);
 
     fill(target, origin, PixelRect::new(130, 7, 30, 52), STONE_DARK);
@@ -836,6 +850,7 @@ fn paint_architecture(target: &mut RgbBuffer, origin: PixelPoint) {
     }
     fill(target, origin, PixelRect::new(132, 7, 28, 4), STONE_LIGHT);
     fill(target, origin, PixelRect::new(130, 54, 30, 5), STONE);
+    fill(target, origin, PixelRect::new(132, 7, 28, 4), STONE_LIGHT);
 }
 
 /// Builds the guild entrance: an ashlar arch, a recessed door, worn threshold

@@ -8,6 +8,19 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- The Guild Hall's quest board carries a quest. It is the room's focal point —
+  the largest bright shape, centred, where the eye lands first — and it held
+  three faint marks on an otherwise blank sheet. It now has three pinned
+  notices with ink on them, brass pins, red thread running pin to pin, a wax
+  seal, and a dagger driven through the board. Whatever the eye travels to
+  first should reward the trip.
+
+- A cat, asleep between the bookshelves. Nothing in the Hall was alive except
+  the adventurers, and a room whose only living things are your open tasks is
+  not much of a guild. It was meant to sleep by the fire, but every square of
+  floor in front of the hearth is a standing slot and an adventurer stood on
+  it.
+
 - Nine dungeon tropes, now that there is a floor for scenery to stand on:
   cobwebs, stalactites, dripping water, hanging chains, a sarcophagus, a broken
   statue, glowing mushrooms, a wall lever and a rat. Deliberately not added:
@@ -27,6 +40,22 @@ All notable changes to this project will be documented here.
   says something happened here before the party arrived.
 
 ### Fixed
+
+- The Guild Hall's fire was a thumbnail. A guild hall's hearth is its emotional
+  anchor, and this one was four rows of flame sitting in a recess two and a
+  half times its height, easy to miss entirely at the far right of the room.
+  The fire now fills the grate, over an ember bed.
+
+- The Hall's ceiling was thirteen identical brackets in a row, which reads as
+  wallpaper rather than as carpentry — once the eye resolves a perfect repeat
+  it stops seeing the thing repeating. Every third beam is now a worn variant:
+  same silhouette, knot and peg in different places.
+
+- The viewport matrix's guild hall arm still carried ten hand-copied colour
+  literals, the same trap that had just gone stale on the delve side. Both arms
+  now derive from the renderer's own constants, and each proves it can say no —
+  the delve check rejects a buffer of hall oak, the hall check rejects dungeon
+  floor.
 
 - The Delve's labyrinth was invisible. The dungeon defines seven named regions
   — entrance, west and east chambers, central junction, descending corridor,
