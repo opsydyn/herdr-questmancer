@@ -6,11 +6,11 @@ use super::{IndexedPaletteEntry, indexed_sprite};
 
 pub const DEEP_BLUE_BLACK: Rgb = Rgb::new(8, 17, 27);
 pub const DUNGEON_SHADOW: Rgb = Rgb::new(13, 29, 38);
-pub const STONE_DARK: Rgb = Rgb::new(22, 43, 49);
-pub const STONE_MID: Rgb = Rgb::new(37, 65, 68);
-pub const STONE_LIGHT: Rgb = Rgb::new(68, 96, 94);
-pub const FLOOR_DARK: Rgb = Rgb::new(23, 50, 54);
-pub const FLOOR_MID: Rgb = Rgb::new(35, 75, 72);
+pub const STONE_DARK: Rgb = Rgb::new(22, 37, 49);
+pub const STONE_MID: Rgb = Rgb::new(37, 59, 68);
+pub const STONE_LIGHT: Rgb = Rgb::new(68, 90, 94);
+pub const FLOOR_DARK: Rgb = Rgb::new(23, 75, 56);
+pub const FLOOR_MID: Rgb = Rgb::new(35, 89, 74);
 pub const MOSS_DARK: Rgb = Rgb::new(31, 67, 45);
 pub const MOSS_LIGHT: Rgb = Rgb::new(68, 104, 62);
 pub const TEAL_GLOW: Rgb = Rgb::new(35, 155, 151);

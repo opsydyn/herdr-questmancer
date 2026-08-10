@@ -145,6 +145,45 @@ mod tests {
         }
     }
 
+    /// A dungeon whose floor matches its walls is not a dungeon, it is a
+    /// texture. The Delve's architecture defines seven named regions and seven
+    /// doorways, and every one of them is drawn purely as a change of surface
+    /// — there is no outline, no shadow, nothing else marking where a wall
+    /// stops and a room begins. So the layout is visible exactly as far as
+    /// these colours differ, and no further.
+    ///
+    /// They did not differ. `STONE_MID` sat 21 from `FLOOR_MID` and
+    /// `STONE_DARK` 17 from `FLOOR_DARK`, roughly half the distance this same
+    /// module already demands between an actor and the ground it stands on.
+    /// The labyrinth was authored, walkability-masked, tested for reachability
+    /// — and invisible. Props read as stuck to a wall because no floor plane
+    /// was perceptible for them to rest on.
+    ///
+    /// Note that `MOSS_DARK` deliberately appears on both surfaces and so
+    /// cannot carry this distinction; moss grows on walls and floors alike.
+    /// The separation has to come from the stone and the ground themselves.
+    #[test]
+    fn dungeon_floors_read_as_floors_against_their_walls() {
+        for (floor_label, floor) in [
+            ("FLOOR_MID", delve::FLOOR_MID),
+            ("FLOOR_DARK", delve::FLOOR_DARK),
+        ] {
+            for (wall_label, wall) in [
+                ("STONE_MID", delve::STONE_MID),
+                ("STONE_DARK", delve::STONE_DARK),
+                ("STONE_LIGHT", delve::STONE_LIGHT),
+            ] {
+                let distance = colour_distance(floor, wall);
+                assert!(
+                    distance >= MINIMUM_MASS_CONTRAST,
+                    "{floor_label} ({floor:?}) sits {distance:.0} from {wall_label} \
+                     ({wall:?}) — the delve's rooms and corridors would dissolve into \
+                     one flat field (minimum {MINIMUM_MASS_CONTRAST})"
+                );
+            }
+        }
+    }
+
     /// The art direction requires actor palettes "protected from matching
     /// their immediate floor or wall". This proves it for every colour that
     /// can fill an actor's body mass: persona garb colours, each archetype's

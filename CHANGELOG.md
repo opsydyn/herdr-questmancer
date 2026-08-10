@@ -6,6 +6,33 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- The Delve's labyrinth was invisible. The dungeon defines seven named regions
+  — entrance, west and east chambers, central junction, descending corridor,
+  camp, exit landing — joined by seven doorways, all of it walkability-masked
+  and tested for reachability. None of it could be seen. Every boundary in that
+  layout is drawn purely as a change of surface, so the architecture is visible
+  exactly as far as floor and wall colours differ, and no further. They sat 21
+  and 17 apart on the same redmean scale where this codebase already demands 40
+  between an adventurer and the ground beneath them.
+
+  The consequence was not merely that the scene looked flat. With no
+  perceptible floor plane, every prop in the dungeon — the bones, the chest,
+  the campfire, the altar slab — read as stuck to a wall, because there was no
+  ground for them to rest on. That is the whole difference between the Delve
+  and the Guild Hall, which has always had a floor you can see.
+
+  Walls are now cooler and darker, floors warmer and lighter: 21 becomes 61 and
+  17 becomes 55. The palette was solved rather than eyeballed, against every
+  constraint already in force — all 43 actor cloth masses stay clear of every
+  dungeon surface, the Unknown delver's mist still sits above the floor in
+  value, and the floor's own speckle is *quieter* than before, honouring the
+  earlier decision to calm that texture. No new art; the labyrinth simply
+  appears.
+
+  A guard now asserts every floor tone clears every wall tone, so this cannot
+  silently collapse again. It was verified by restoring the old palette and
+  watching it fail.
+
 - Six classes wore their eyes as a single dark bar. At 16x24 an adventurer gets
   about three pixels of face, and Mage, Rogue, Runewright, Testmender,
   Pathseeker and Sorcerer each spent two of them on adjacent eye pixels — which

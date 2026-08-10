@@ -497,10 +497,14 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // when six classes stopped wearing their eyes as a single dark bar: two
     // adjacent eye pixels read as one slot at this scale, so Mage, Rogue,
     // Runewright, Testmender, Pathseeker and Sorcerer now separate them the way
-    // the Ranger does. The idle delver here is a Sorcerer.
+    // the Ranger does. The idle delver here is a Sorcerer. Re-pinned again
+    // when the dungeon's floors were pulled away from its walls in value and
+    // hue, so that the seven authored regions and their connecting corridors
+    // became visible for the first time — the largest single change this
+    // fixture has ever recorded, because it repaints every pixel of ground.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "d10d6779ba5b53b130d3257469f23355cefe348cb83102fd533e2b0ba07b66a3"
+        "10e7559359358c3958d5e46d24f87a399b25d3026a00d698744037e81e2f7511"
     );
 
     let non_clear = first

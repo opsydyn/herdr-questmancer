@@ -194,6 +194,11 @@ const CAMP_PASSAGE: PixelRect = PixelRect::new(55, 66, 25, 12);
 const EXIT_LANDING: PixelRect = PixelRect::new(106, 55, 45, 31);
 const EXIT_PASSAGE: PixelRect = PixelRect::new(90, 67, 22, 11);
 
+/// The cool wash laid over the whole dungeon after its materials are painted.
+/// Named because tests must reproduce the exact tint a delve pixel receives;
+/// a second hand-copied `20` is how a palette check goes quietly stale.
+pub const COOL_AMBIENT_STRENGTH: u8 = 20;
+
 const FLOOR_REGIONS: &[PixelRect] = &[
     ENTRANCE,
     ENTRANCE_PASSAGE,
@@ -736,7 +741,7 @@ fn base_walkable(x: i32, y: i32) -> bool {
 }
 
 fn apply_lighting(snapshot: &SceneSnapshot, target: &mut RgbBuffer, origin: PixelPoint) {
-    lighting::apply_cool_ambient(target, 20);
+    lighting::apply_cool_ambient(target, COOL_AMBIENT_STRENGTH);
     lighting::apply_cool_pool(target, translate(origin, 82, 44), 36, 18);
     lighting::apply_cool_pool(target, translate(origin, 135, 72), 30, 16);
     lighting::apply_warm_pool(target, translate(origin, 66, 22), 10, 15);
@@ -1502,7 +1507,7 @@ mod tests {
         )
         .expect("unrecorded material painting cannot conflict");
         paint_background_architecture(&mut ambient, origin, dungeon_seed(&snapshot));
-        lighting::apply_cool_ambient(&mut ambient, 20);
+        lighting::apply_cool_ambient(&mut ambient, COOL_AMBIENT_STRENGTH);
         let mut composed = RgbBuffer::filled(width, height, DEEP_BLUE_BLACK);
         paint_materials(
             &mut composed,
