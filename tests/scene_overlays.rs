@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use questmancer::{
-    app::{ConnectionState, Model, OutputPreview, View},
+    app::{ConnectionState, CounselPhase, CounselRequest, Model, OutputPreview, View},
     domain::{
         AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, ChronicleEntry, ChronicleEvent,
         DomainState, GuildAttention, PaneId, PersonaKey, Presence, TabId, Timestamp, WorkspaceId,
@@ -79,6 +79,84 @@ fn render(model: &Model, width: u16, height: u16) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// Feedback has to reach the frame, not just the model.
+///
+/// `set_action_feedback` was called from thirty-two places and rendered from
+/// none — `Model::status_message` had no caller in any renderer — so every
+/// success and every failure was composed and thrown away. The tests of the
+/// day passed because they asserted `model.status_message()` and never asked
+/// whether a single cell of the frame changed.
+#[test]
+fn a_notice_reaches_the_frame_and_not_only_the_model() {
+    let mut model = model();
+    model.set_action_feedback("Counsel issued.".to_owned());
+
+    let frame = render(&model, 80, 24);
+
+    assert_eq!(model.status_message(), Some("Counsel issued."));
+    assert!(
+        frame.contains("Counsel issued."),
+        "the notice never reached the frame:\n{frame}"
+    );
+}
+
+/// A send in flight is a state the parchment can show, which is the whole
+/// reason it is a state at all.
+#[test]
+fn the_counsel_parchment_reports_a_send_in_flight() {
+    let mut model = model();
+    let _ = reduce_action(&mut model, Action::Counsel);
+    for character in "use jsonb".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let _ = reduce_action(&mut model, Action::Submit);
+
+    assert!(matches!(
+        model.counsel_phase(),
+        Some(CounselPhase::Sending { .. })
+    ));
+    let frame = render(&model, 80, 24);
+    assert!(
+        frame.contains("Sending counsel"),
+        "an in-flight send is invisible:\n{frame}"
+    );
+    assert!(
+        frame.contains("use jsonb"),
+        "the counsel being sent vanished from the parchment:\n{frame}"
+    );
+}
+
+/// A failed send keeps the draft, because retyping a lost message is a worse
+/// outcome than the failure itself.
+#[test]
+fn a_failed_send_keeps_the_draft_and_says_so() {
+    let mut model = model();
+    let _ = reduce_action(&mut model, Action::Counsel);
+    for character in "use jsonb".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let _ = reduce_action(&mut model, Action::Submit);
+    let CounselPhase::Sending { request, .. } =
+        model.counsel_phase().expect("a parchment is open").clone()
+    else {
+        panic!("submitting should put the parchment in flight");
+    };
+
+    // A result for a different send must not settle this one.
+    assert!(!model.fail_counsel(CounselRequest(request.0 + 1), "not mine".to_owned()));
+    assert!(model.fail_counsel(request, "pane is gone".to_owned()));
+
+    let frame = render(&model, 80, 24);
+    assert!(
+        frame.contains("pane is gone"),
+        "the failure was silent:\n{frame}"
+    );
+    assert!(
+        frame.contains("use jsonb"),
+        "a failed send lost the draft:\n{frame}"
+    );
 }
 
 #[test]

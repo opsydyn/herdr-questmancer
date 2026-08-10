@@ -18,10 +18,11 @@ use super::{
         AgentViewBuiltinSortField, AgentViewClearParams, AgentViewSetParams, AgentViewSort,
         AgentViewSortField, AgentViewSortOrder, EmptyParams, ErrorResponse, OkResult, PaneInfo,
         PaneInfoResult, PaneReadParams, PaneReadResult, PaneReadResultEnvelope,
-        PaneReportMetadataParams, PaneSendTextParams, PaneTarget, PluginActionInfo,
-        PluginActionInvokeParams, PluginActionInvokedResult, PluginActionListParams,
-        PluginActionListResult, PluginInvocationContext, Pong, ReadFormat, ReadSource, Request,
-        SessionSnapshot, SessionSnapshotResult, SuccessResponse, WorkspaceReportMetadataParams,
+        PaneReportMetadataParams, PaneSendKeysParams, PaneSendTextParams, PaneTarget,
+        PluginActionInfo, PluginActionInvokeParams, PluginActionInvokedResult,
+        PluginActionListParams, PluginActionListResult, PluginInvocationContext, Pong, ReadFormat,
+        ReadSource, Request, SessionSnapshot, SessionSnapshotResult, SuccessResponse,
+        WorkspaceReportMetadataParams,
     },
 };
 
@@ -75,6 +76,26 @@ impl HerdrClient {
                 PaneSendTextParams {
                     pane_id: pane_id.into(),
                     text: text.into(),
+                },
+                "ok",
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Presses keys in a pane. `pane.send_text` is literal text, so this is
+    /// what actually submits a message an agent is meant to act on.
+    pub async fn send_keys(
+        &self,
+        pane_id: impl Into<String>,
+        keys: &[&str],
+    ) -> Result<(), ClientError> {
+        let _: OkResult = self
+            .request(
+                "pane.send_keys",
+                PaneSendKeysParams {
+                    pane_id: pane_id.into(),
+                    keys: keys.iter().map(|key| (*key).to_owned()).collect(),
                 },
                 "ok",
             )

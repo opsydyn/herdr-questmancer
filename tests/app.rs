@@ -1,5 +1,5 @@
 use questmancer::{
-    app::{ConnectionState, Modal, Model, Notice, View},
+    app::{ConnectionState, CounselPhase, CounselRequest, Modal, Model, Notice, View},
     domain::{AgentKey, DomainState, PaneId, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ledger::LedgerPageId,
@@ -160,8 +160,32 @@ fn the_counsel_modal_is_explicit_app_state() {
     model.push_counsel_character('h');
     model.push_counsel_character('i');
 
-    assert_eq!(model.modal(), &Modal::Counsel { draft: "hi".into() });
-    assert_eq!(model.take_counsel(), Some("hi".into()));
+    assert_eq!(
+        model.modal(),
+        &Modal::Counsel {
+            draft: "hi".into(),
+            phase: CounselPhase::Drafting
+        }
+    );
+
+    // A send is in flight until its own result settles it, so the parchment
+    // stays open and the draft stays put.
+    let request = model
+        .begin_counsel_send(PaneId::new("w1:p1"))
+        .expect("a drafting parchment can be sent");
+    assert!(matches!(
+        model.counsel_phase(),
+        Some(CounselPhase::Sending { .. })
+    ));
+
+    // A result for some other send is not ours to act on.
+    assert!(!model.complete_counsel(CounselRequest(request.0 + 1)));
+    assert!(matches!(
+        model.counsel_phase(),
+        Some(CounselPhase::Sending { .. })
+    ));
+
+    assert!(model.complete_counsel(request));
     assert_eq!(model.modal(), &Modal::None);
 }
 
@@ -172,13 +196,20 @@ fn counsel_editing_can_backspace_clear_and_cancel() {
     model.push_counsel_character('o');
     model.push_counsel_character('k');
     model.backspace_counsel();
-    assert_eq!(model.modal(), &Modal::Counsel { draft: "o".into() });
+    assert_eq!(
+        model.modal(),
+        &Modal::Counsel {
+            draft: "o".into(),
+            phase: CounselPhase::Drafting
+        }
+    );
 
     model.clear_modal_input();
     assert_eq!(
         model.modal(),
         &Modal::Counsel {
-            draft: String::new()
+            draft: String::new(),
+            phase: CounselPhase::Drafting
         }
     );
     model.dismiss_modal();

@@ -7,7 +7,7 @@ use ratatui::{
 use ratatui_image::Image;
 
 use crate::{
-    app::{ColorMode, Modal, Model},
+    app::{ColorMode, CounselPhase, Modal, Model},
     domain::Presence,
     ledger,
     portrait::PortraitGallery,
@@ -200,6 +200,36 @@ pub fn render_scene_overlays(
             }
         }
     }
+    // Last, so it wins the bottom row from the ribbon. Every other surface is
+    // a place you went; this is the app answering for something you did.
+    render_notice(frame, model);
+}
+
+/// The one line that reports what just happened.
+///
+/// Questmancer set action feedback from thirty-two places and drew it from
+/// none: `Model::status_message` had no caller in any renderer, so every
+/// message — "Counsel issued.", the empty-draft refusal, every client failure
+/// — was composed and discarded. Success and failure were equally silent, and
+/// the tests passed because they asserted on the model rather than the frame.
+fn render_notice(frame: &mut Frame<'_>, model: &Model) {
+    let Some(message) = model.status_message() else {
+        return;
+    };
+    let area = frame.area();
+    if area.width < 8 || area.height == 0 {
+        return;
+    }
+    let row = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
+    let width = usize::from(area.width);
+    let mut text: String = message.chars().take(width).collect();
+    if text.chars().count() < width {
+        // Painted over whatever held the row before, so a short notice cannot
+        // leave the tail of a longer one behind it.
+        text.push_str(&" ".repeat(width - text.chars().count()));
+    }
+    frame.render_widget(Clear, row);
+    frame.render_widget(Paragraph::new(text).style(PARCHMENT_BORDER), row);
 }
 
 /// The guild's standing, top right, always.
@@ -360,7 +390,15 @@ fn format_elapsed(elapsed: std::time::Duration) -> String {
 
 fn render_input_parchment(frame: &mut Frame<'_>, model: &Model) {
     let (title, input, keys) = match model.modal() {
-        Modal::Counsel { draft } => (" ISSUE COUNSEL ", draft.as_str(), "Enter send  Esc cancel"),
+        Modal::Counsel { draft, phase } => (
+            " ISSUE COUNSEL ",
+            draft.as_str(),
+            match phase {
+                CounselPhase::Drafting => "Enter send  Esc cancel",
+                CounselPhase::Sending { .. } => "Sending counsel…",
+                CounselPhase::Failed { .. } => "Enter retry  Esc cancel",
+            },
+        ),
         Modal::Search { query } => (
             " SEARCH THE GUILD ",
             query.as_str(),
@@ -371,12 +409,29 @@ fn render_input_parchment(frame: &mut Frame<'_>, model: &Model) {
     let Some(area) = centered(frame.area(), 64, 9) else {
         return;
     };
-    let lines = vec![
-        Line::from(""),
-        Line::from(input.to_owned()),
-        Line::from(""),
-        Line::from(keys),
-    ];
+    // Without a caret the parchment reads as an empty panel rather than a
+    // field waiting for you, and there is nothing to show a keystroke landed.
+    let sending = matches!(
+        model.modal(),
+        Modal::Counsel {
+            phase: CounselPhase::Sending { .. },
+            ..
+        }
+    );
+    let typed = if sending {
+        input.to_owned()
+    } else {
+        format!("{input}_")
+    };
+    let mut lines = vec![Line::from(""), Line::from(typed), Line::from("")];
+    if let Modal::Counsel {
+        phase: CounselPhase::Failed { message },
+        ..
+    } = model.modal()
+    {
+        lines.push(Line::from(format!("Not issued: {message}")));
+    }
+    lines.push(Line::from(keys));
     render_parchment(frame, area, title, Text::from(lines));
 }
 

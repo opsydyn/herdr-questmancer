@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use questmancer::{
-    app::{Modal, Model, RuntimeSettings, View},
+    app::{CounselPhase, CounselRequest, Modal, Model, RuntimeSettings, View},
     command::AgentCommand,
     config::OutputPreviewLines,
     domain::{
@@ -586,7 +586,8 @@ fn counsel_submit_sends_the_exact_draft_to_the_selected_pane() {
     assert_eq!(
         model.modal(),
         &Modal::Counsel {
-            draft: String::new()
+            draft: String::new(),
+            phase: CounselPhase::Drafting
         }
     );
 
@@ -601,9 +602,15 @@ fn counsel_submit_sends_the_exact_draft_to_the_selected_pane() {
         vec![AgentCommand::SendCounsel {
             pane_id: PaneId::new("w1:p1"),
             text: "  use jsonb ".to_owned(),
+            request: CounselRequest(1),
         }]
     );
-    assert_eq!(model.modal(), &Modal::None);
+    // The parchment is the only surface that can report the outcome, so it
+    // stays open until the result arrives rather than closing on `Enter`.
+    assert!(matches!(
+        model.counsel_phase(),
+        Some(CounselPhase::Sending { .. })
+    ));
 }
 
 #[test]
@@ -626,7 +633,8 @@ fn empty_counsel_stays_open_while_clear_and_cancel_are_local() {
     assert_eq!(
         model.modal(),
         &Modal::Counsel {
-            draft: String::new()
+            draft: String::new(),
+            phase: CounselPhase::Drafting
         }
     );
 
@@ -1581,7 +1589,8 @@ fn a_counsel_draft_survives_dismissing_the_parchment() {
     assert_eq!(
         model.modal(),
         &Modal::Counsel {
-            draft: "check the migration".to_owned()
+            draft: "check the migration".to_owned(),
+            phase: CounselPhase::Drafting
         }
     );
 }
@@ -1606,7 +1615,8 @@ fn counsel_drafts_do_not_follow_the_selection_to_another_adventurer() {
     assert_eq!(
         model.modal(),
         &Modal::Counsel {
-            draft: String::new()
+            draft: String::new(),
+            phase: CounselPhase::Drafting
         },
         "the second adventurer starts from a blank parchment"
     );
@@ -1617,7 +1627,8 @@ fn counsel_drafts_do_not_follow_the_selection_to_another_adventurer() {
     assert_eq!(
         model.modal(),
         &Modal::Counsel {
-            draft: "for the first".to_owned()
+            draft: "for the first".to_owned(),
+            phase: CounselPhase::Drafting
         },
         "and the first adventurer's draft is still waiting"
     );
@@ -1638,7 +1649,8 @@ fn a_sent_counsel_leaves_no_draft_behind() {
     assert_eq!(
         model.modal(),
         &Modal::Counsel {
-            draft: String::new()
+            draft: String::new(),
+            phase: CounselPhase::Drafting
         }
     );
 }
