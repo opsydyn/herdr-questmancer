@@ -41,6 +41,28 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- Action confirmations never went away. `clear_action_feedback` had exactly one
+  caller in the entire crate — the branch of search where a query matches a
+  single adventurer — so every other message was permanent. Press `o` on an
+  agent whose output exceeds `output_preview_lines` and "output preview was
+  truncated" pinned itself to the bottom of the room for the rest of the
+  session: still there after the preview closed, after switching between the
+  Guild Hall and the Delve, and after selecting a different adventurer, by then
+  describing something nobody could see.
+
+  This was never specific to that one message. Around ten call sites set action
+  feedback — "Set aside for 15 minutes.", "Draft kept.", the search position —
+  and all of them behaved the same way.
+
+  Feedback now expires six seconds after it is shown, which is longer than the
+  command ribbon's three: the ribbon is a reminder you can bring back by
+  moving, while this may be the only report that an action succeeded, so it has
+  to survive being read. Expiry is on the clock rather than on a list of
+  transitions to clear, because a list of transitions is exactly what existed —
+  one entry long, and wrong for every message nobody remembered to add to it.
+  Standing conditions are untouched; connection and persistence diagnostics do
+  not expire.
+
 - The Guild Hall's fire was a thumbnail. A guild hall's hearth is its emotional
   anchor, and this one was four rows of flame sitting in a recess two and a
   half times its height, easy to miss entirely at the far right of the room.

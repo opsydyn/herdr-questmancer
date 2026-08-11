@@ -193,6 +193,13 @@ impl ConnectionState {
     }
 }
 
+/// How long an action confirmation stays on screen.
+///
+/// Longer than the command ribbon's three seconds: the ribbon is a reminder
+/// you can re-summon by moving, whereas this may be the only report that an
+/// action succeeded or was clipped, and it must survive being read.
+pub const ACTION_FEEDBACK_TTL: Duration = Duration::from_millis(6_000);
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Notice {
     ConnectionDiagnostic(String),
@@ -310,6 +317,7 @@ pub struct Model {
     managed_pane_id: Option<PaneId>,
     goblins: GoblinState,
     last_interaction_at: Option<Timestamp>,
+    action_feedback_at: Option<Timestamp>,
     search: SearchResults,
     reading_scroll: u16,
     counsel_drafts: BTreeMap<AgentKey, String>,
@@ -346,6 +354,7 @@ impl Model {
             managed_pane_id: None,
             goblins: GoblinState::default(),
             last_interaction_at: None,
+            action_feedback_at: None,
             search: SearchResults::default(),
             reading_scroll: 0,
             counsel_drafts: BTreeMap::new(),
@@ -1033,6 +1042,7 @@ impl Model {
 
     pub fn set_action_feedback(&mut self, message: String) {
         self.notices.action = Some(Notice::ActionFeedback(message));
+        self.action_feedback_at = Some(self.now);
     }
 
     pub fn set_persistence_diagnostic(&mut self, message: String) {
@@ -1057,6 +1067,7 @@ impl Model {
 
     pub fn clear_action_feedback(&mut self) {
         self.notices.action = None;
+        self.action_feedback_at = None;
     }
 
     pub fn selected_agent_key(&self) -> Option<&AgentKey> {
@@ -1075,8 +1086,34 @@ impl Model {
         self.now
     }
 
-    pub const fn set_now(&mut self, now: Timestamp) {
+    pub fn set_now(&mut self, now: Timestamp) {
         self.now = now;
+        self.expire_action_feedback();
+    }
+
+    /// Action feedback is a confirmation, not a status. It answers "did that
+    /// work?" for the thing you just did, and it stops being true almost
+    /// immediately afterwards.
+    ///
+    /// Nothing used to retire it. `clear_action_feedback` had exactly one
+    /// caller — the branch of search where a query matches a single
+    /// adventurer — so every other message was permanent. Press `o` on an
+    /// agent with long output and "output preview was truncated" stayed
+    /// pinned to the bottom of the room for the rest of the session, long
+    /// after the preview it described had been closed, describing an
+    /// adventurer you were no longer looking at.
+    ///
+    /// It expires on the clock rather than on a list of transitions, because
+    /// a list of transitions is what we had: one entry long, and wrong for the
+    /// ten messages nobody remembered to add. The search position notice is
+    /// safe here — `n` and `N` rewrite it on every press.
+    fn expire_action_feedback(&mut self) {
+        let stale = self
+            .action_feedback_at
+            .is_some_and(|shown| shown.elapsed_until(self.now) > ACTION_FEEDBACK_TTL);
+        if stale {
+            self.clear_action_feedback();
+        }
     }
 
     pub const fn preferences(&self) -> &DisplayPreferences {

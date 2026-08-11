@@ -1,5 +1,8 @@
 use questmancer::{
-    app::{ConnectionState, CounselPhase, CounselRequest, Modal, Model, Notice, View},
+    app::{
+        ACTION_FEEDBACK_TTL, ConnectionState, CounselPhase, CounselRequest, Modal, Model, Notice,
+        View,
+    },
     domain::{AgentKey, DomainState, PaneId, Timestamp},
     herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     ledger::LedgerPageId,
@@ -59,6 +62,64 @@ fn notices_retain_their_origin_and_connection_clear_is_selective() {
         model.notice(),
         Some(&Notice::ActionFeedback("Counsel issued.".to_owned()))
     );
+}
+
+/// The bug this guards: `clear_action_feedback` had exactly one caller in the
+/// whole crate — the single-match branch of search — so every other action
+/// confirmation was permanent. Pressing `o` on an agent with long output
+/// pinned "output preview was truncated" to the bottom of the room for the
+/// rest of the session, still there after the preview closed, after the view
+/// changed, and after you selected somebody else entirely.
+#[test]
+fn action_feedback_retires_itself_instead_of_living_forever() {
+    let mut model = Model::new(View::Guild);
+    model.set_now(Timestamp::from_millis(10_000));
+    model.set_action_feedback("output preview was truncated".to_owned());
+    assert_eq!(
+        model.action_feedback(),
+        Some("output preview was truncated")
+    );
+
+    // Still readable a moment later: this may be the only report that an
+    // action did anything, so it has to survive being read.
+    model.set_now(Timestamp::from_millis(10_000 + 1_000));
+    assert_eq!(
+        model.action_feedback(),
+        Some("output preview was truncated"),
+        "a confirmation must outlive the glance that reads it"
+    );
+
+    let ttl = i64::try_from(ACTION_FEEDBACK_TTL.as_millis()).expect("ttl fits i64");
+    model.set_now(Timestamp::from_millis(10_000 + ttl + 1));
+    assert_eq!(
+        model.action_feedback(),
+        None,
+        "a stale confirmation must not outlive what it described"
+    );
+
+    // Every later message restarts the clock rather than inheriting the old
+    // one, so a fresh notice is never born already expired.
+    model.set_action_feedback("Set aside for 15 minutes.".to_owned());
+    model.set_now(Timestamp::from_millis(10_000 + ttl + 2));
+    assert_eq!(model.action_feedback(), Some("Set aside for 15 minutes."));
+}
+
+/// Other notice kinds report standing conditions rather than momentary
+/// confirmations, so they must not be swept up by the same clock.
+#[test]
+fn expiry_touches_action_feedback_and_nothing_else() {
+    let mut model = Model::new(View::Guild);
+    model.set_now(Timestamp::from_millis(1_000));
+    model.set_action_feedback("Draft kept.".to_owned());
+    model.set_connection_diagnostic("socket closed".to_owned());
+    model.set_persistence_diagnostic("state write delayed".to_owned());
+
+    let ttl = i64::try_from(ACTION_FEEDBACK_TTL.as_millis()).expect("ttl fits i64");
+    model.set_now(Timestamp::from_millis(1_000 + ttl + 1));
+
+    assert_eq!(model.action_feedback(), None);
+    assert_eq!(model.connection_diagnostic(), Some("socket closed"));
+    assert_eq!(model.persistence_diagnostic(), Some("state write delayed"));
 }
 
 #[test]
