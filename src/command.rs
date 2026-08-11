@@ -5,6 +5,7 @@ use std::sync::{
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
+    app::CounselRequest,
     domain::PaneId,
     herdr::{
         client::{ClientError, HerdrClient},
@@ -19,6 +20,7 @@ pub enum AgentCommand {
     SendCounsel {
         pane_id: PaneId,
         text: String,
+        request: CounselRequest,
     },
     LoadOutput {
         pane_id: PaneId,
@@ -39,7 +41,16 @@ pub enum AgentCommand {
 #[derive(Clone, Debug, PartialEq)]
 pub enum CommandResult {
     Focused(PaneId),
-    CounselSent(PaneId),
+    CounselSent {
+        pane_id: PaneId,
+        request: CounselRequest,
+    },
+    /// Counsel has its own failure rather than the generic `Failed`, because
+    /// the open parchment can only settle on a result it can prove is its own.
+    CounselFailed {
+        request: CounselRequest,
+        message: String,
+    },
     OutputLoaded {
         pane_id: PaneId,
         revision: u64,
@@ -95,6 +106,40 @@ impl CommandExecutor {
         }
     }
 
+    /// Delivers counsel and submits it.
+    ///
+    /// `pane.send_text` is literal text and nothing else. Counsel used to stop
+    /// there, which typed the message onto the adventurer's prompt and left it
+    /// sitting unsent — an apparently successful send that delivered nothing.
+    /// Enter is what submits it, so both calls have to succeed before this
+    /// reports that counsel was issued.
+    async fn send_counsel(
+        &self,
+        pane_id: PaneId,
+        text: String,
+        request: CounselRequest,
+    ) -> CommandResult {
+        if self.is_managed_pane(&pane_id) {
+            return CommandResult::CounselFailed {
+                request,
+                message: "refused operation on the Questmancer guild pane".to_owned(),
+            };
+        }
+        if let Err(error) = self.client.send_text(pane_id.as_str(), text).await {
+            return CommandResult::CounselFailed {
+                request,
+                message: error.to_string(),
+            };
+        }
+        match self.client.send_keys(pane_id.as_str(), &["enter"]).await {
+            Ok(()) => CommandResult::CounselSent { pane_id, request },
+            Err(error) => CommandResult::CounselFailed {
+                request,
+                message: error.to_string(),
+            },
+        }
+    }
+
     pub async fn execute(&self, command: AgentCommand) -> CommandResult {
         match command {
             AgentCommand::FocusPane(pane_id) => {
@@ -106,15 +151,11 @@ impl CommandExecutor {
                     Err(error) => failed("focus pane", error),
                 }
             }
-            AgentCommand::SendCounsel { pane_id, text } => {
-                if self.is_managed_pane(&pane_id) {
-                    return Self::refused_managed_pane("send counsel");
-                }
-                match self.client.send_text(pane_id.as_str(), text).await {
-                    Ok(()) => CommandResult::CounselSent(pane_id),
-                    Err(error) => failed("send counsel", error),
-                }
-            }
+            AgentCommand::SendCounsel {
+                pane_id,
+                text,
+                request,
+            } => self.send_counsel(pane_id, text, request).await,
             AgentCommand::LoadOutput { pane_id, lines } => {
                 if self.is_managed_pane(&pane_id) {
                     return CommandResult::OutputFailed {

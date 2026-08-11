@@ -315,8 +315,17 @@ pub fn apply_command_result(
         CommandResult::Focused(pane_id) => {
             model.set_action_feedback(format!("observing {pane_id}"));
         }
-        CommandResult::CounselSent(_) => {
+        CommandResult::CounselSent { request, .. } => {
+            // Correlation gates the parchment, not the message. A result that
+            // cannot prove it belongs to the open parchment must not close
+            // somebody else's draft — but the counsel really was issued, and
+            // that is worth saying even if the parchment has been dismissed.
+            model.complete_counsel(request);
             model.set_action_feedback(COUNSEL_ISSUED.to_owned());
+        }
+        CommandResult::CounselFailed { request, message } => {
+            model.fail_counsel(request, message.clone());
+            model.set_action_feedback(format!("Counsel was not issued: {message}"));
         }
         CommandResult::OutputLoaded {
             pane_id,

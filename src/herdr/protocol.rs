@@ -259,6 +259,12 @@ pub struct PaneSendTextParams {
     pub text: String,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct PaneSendKeysParams {
+    pub pane_id: String,
+    pub keys: Vec<String>,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReadSource {

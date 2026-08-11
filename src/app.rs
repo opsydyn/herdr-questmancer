@@ -247,6 +247,7 @@ pub enum Modal {
     },
     Counsel {
         draft: String,
+        phase: CounselPhase,
     },
     Search {
         query: String,
@@ -254,6 +255,34 @@ pub enum Modal {
     Scrying,
     Chronicle,
 }
+
+/// Where an open counsel parchment is in its send.
+///
+/// The parchment used to close the instant `Enter` was pressed, which left the
+/// result of the send with nowhere to land: the success notice arrived after
+/// the surface that should have shown it was gone, and a failure was
+/// indistinguishable from a success. "In flight" has to be a state you can
+/// store before it can be a state you can draw.
+///
+/// `Sending` carries the request it is waiting on. Results are correlated
+/// against it and anything else is ignored, so counsel sent to one adventurer
+/// cannot resolve a parchment since reopened for another.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub enum CounselPhase {
+    #[default]
+    Drafting,
+    Sending {
+        request: CounselRequest,
+        pane_id: PaneId,
+    },
+    /// The send failed and the draft survives, so it can be retried rather
+    /// than retyped.
+    Failed { message: String },
+}
+
+/// Identifies one counsel send, so a late result cannot resolve a later draft.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+pub struct CounselRequest(pub u64);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OutputPreview {
@@ -284,6 +313,7 @@ pub struct Model {
     search: SearchResults,
     reading_scroll: u16,
     counsel_drafts: BTreeMap<AgentKey, String>,
+    next_counsel_request: u64,
 }
 
 /// The party a search matched, kept so the matches after the first are
@@ -319,6 +349,7 @@ impl Model {
             search: SearchResults::default(),
             reading_scroll: 0,
             counsel_drafts: BTreeMap::new(),
+            next_counsel_request: 0,
         }
     }
 
@@ -677,13 +708,79 @@ impl Model {
             .selected_agent()
             .and_then(|agent| self.counsel_drafts.get(&agent.key).cloned())
             .unwrap_or_default();
-        self.modal = Modal::Counsel { draft };
+        self.modal = Modal::Counsel {
+            draft,
+            phase: CounselPhase::Drafting,
+        };
+    }
+
+    /// The phase of the open counsel parchment, if one is open.
+    #[must_use]
+    pub const fn counsel_phase(&self) -> Option<&CounselPhase> {
+        match &self.modal {
+            Modal::Counsel { phase, .. } => Some(phase),
+            _ => None,
+        }
+    }
+
+    /// Moves an open parchment from drafting to in-flight, returning the
+    /// request its result must quote to be believed.
+    pub fn begin_counsel_send(&mut self, pane_id: PaneId) -> Option<CounselRequest> {
+        let Modal::Counsel { phase, .. } = &mut self.modal else {
+            return None;
+        };
+        // A second `Enter` while the first send is still out would issue the
+        // same counsel twice.
+        if matches!(phase, CounselPhase::Sending { .. }) {
+            return None;
+        }
+        self.next_counsel_request = self.next_counsel_request.wrapping_add(1);
+        let request = CounselRequest(self.next_counsel_request);
+        *phase = CounselPhase::Sending { request, pane_id };
+        Some(request)
+    }
+
+    /// Settles a send that succeeded: the parchment closes and the draft is
+    /// spent, including any copy set aside earlier for this adventurer.
+    ///
+    /// Returns false when the result does not belong to the open parchment,
+    /// which is how a late result for an adventurer since navigated away from
+    /// is ignored rather than closing somebody else's draft.
+    pub fn complete_counsel(&mut self, request: CounselRequest) -> bool {
+        if !self.counsel_request_matches(request) {
+            return false;
+        }
+        self.modal = Modal::None;
+        self.clear_counsel_draft();
+        true
+    }
+
+    /// Settles a send that failed: the parchment stays open with the draft
+    /// intact, so the message can be retried rather than retyped.
+    pub fn fail_counsel(&mut self, request: CounselRequest, message: String) -> bool {
+        if !self.counsel_request_matches(request) {
+            return false;
+        }
+        if let Modal::Counsel { phase, .. } = &mut self.modal {
+            *phase = CounselPhase::Failed { message };
+        }
+        true
+    }
+
+    fn counsel_request_matches(&self, request: CounselRequest) -> bool {
+        matches!(
+            &self.modal,
+            Modal::Counsel {
+                phase: CounselPhase::Sending { request: open, .. },
+                ..
+            } if *open == request
+        )
     }
 
     /// Sets the open counsel draft aside for the adventurer it was meant for.
     /// Returns true when there was something worth keeping.
     pub fn keep_counsel_draft(&mut self) -> bool {
-        let Modal::Counsel { draft } = &self.modal else {
+        let Modal::Counsel { draft, .. } = &self.modal else {
             return false;
         };
         if draft.trim().is_empty() {
@@ -758,7 +855,7 @@ impl Model {
 
     pub fn counsel_draft(&self) -> Option<&str> {
         match &self.modal {
-            Modal::Counsel { draft } => Some(draft),
+            Modal::Counsel { draft, .. } => Some(draft),
             Modal::None
             | Modal::LibrarianLedger { .. }
             | Modal::Search { .. }
@@ -773,9 +870,28 @@ impl Model {
 
     pub fn push_modal_character(&mut self, character: char) {
         match &mut self.modal {
-            Modal::Counsel { draft } => draft.push(character),
+            Modal::Counsel { draft, phase } => {
+                if Self::counsel_accepts_input(phase) {
+                    draft.push(character);
+                }
+            }
             Modal::Search { query } => query.push(character),
             Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {}
+        }
+    }
+
+    /// Editing is refused while a send is in flight, because the text on
+    /// screen is the text being sent. Editing after a failure clears the
+    /// error: the message should describe the draft in front of you, not the
+    /// one you have already started rewriting.
+    fn counsel_accepts_input(phase: &mut CounselPhase) -> bool {
+        match phase {
+            CounselPhase::Sending { .. } => false,
+            CounselPhase::Failed { .. } => {
+                *phase = CounselPhase::Drafting;
+                true
+            }
+            CounselPhase::Drafting => true,
         }
     }
 
@@ -785,8 +901,10 @@ impl Model {
 
     pub fn backspace_modal_input(&mut self) {
         match &mut self.modal {
-            Modal::Counsel { draft } => {
-                draft.pop();
+            Modal::Counsel { draft, phase } => {
+                if Self::counsel_accepts_input(phase) {
+                    draft.pop();
+                }
             }
             Modal::Search { query } => {
                 query.pop();
@@ -797,7 +915,11 @@ impl Model {
 
     pub fn clear_modal_input(&mut self) {
         match &mut self.modal {
-            Modal::Counsel { draft } => draft.clear(),
+            Modal::Counsel { draft, phase } => {
+                if Self::counsel_accepts_input(phase) {
+                    draft.clear();
+                }
+            }
             Modal::Search { query } => query.clear(),
             Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {}
         }
@@ -867,20 +989,6 @@ impl Model {
     pub fn command_ribbon_visible(&self) -> bool {
         self.last_interaction_at
             .is_none_or(|started| started.elapsed_until(self.now) <= Duration::from_millis(3_000))
-    }
-
-    pub fn take_counsel(&mut self) -> Option<String> {
-        match std::mem::take(&mut self.modal) {
-            Modal::Counsel { draft } => {
-                // Sent, so there is nothing left to resume.
-                self.clear_counsel_draft();
-                Some(draft)
-            }
-            modal => {
-                self.modal = modal;
-                None
-            }
-        }
     }
 
     pub const fn output_preview(&self) -> Option<&OutputPreview> {

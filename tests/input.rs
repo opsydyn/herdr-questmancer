@@ -4,7 +4,7 @@ use crossterm::event::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 use questmancer::{
-    app::{Modal, View},
+    app::{CounselPhase, Modal, View},
     domain::AgentKey,
     scene::{
         SceneActorRegion, SceneFrame, SceneInteractable, SceneInteractableRegion, SceneTarget,
@@ -169,6 +169,7 @@ fn guild_hall_navigation_and_actions_have_explicit_keys() {
 fn counsel_modal_treats_global_shortcuts_as_composed_text() {
     let modal = Modal::Counsel {
         draft: String::new(),
+        phase: CounselPhase::Drafting,
     };
 
     assert_eq!(

@@ -1,4 +1,5 @@
 use questmancer::{
+    app::CounselRequest,
     app::{ConnectionState, DisplayPreferences, Model, Motion, Notice, RuntimeSettings, View},
     command::{AgentCommand, CommandResult},
     config::OutputPreviewLines,
@@ -350,7 +351,10 @@ fn operational_results_use_approved_guild_copy() {
 
     apply_command_result(
         &mut model,
-        CommandResult::CounselSent(PaneId::new("w1:p1")),
+        CommandResult::CounselSent {
+            pane_id: PaneId::new("w1:p1"),
+            request: CounselRequest(1),
+        },
         Timestamp::from_millis(2_000),
     );
     assert_eq!(model.status_message(), Some("Counsel issued."));

@@ -2,7 +2,7 @@ use std::mem::discriminant;
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use questmancer::{
-    app::Modal,
+    app::{CounselPhase, Modal},
     ledger::{LedgerPageId, page_body},
     ui::{
         input::{Action, action_for_event_in},
@@ -25,6 +25,7 @@ fn contexts() -> Vec<Modal> {
         },
         Modal::Counsel {
             draft: String::new(),
+            phase: CounselPhase::Drafting,
         },
         Modal::Search {
             query: String::new(),

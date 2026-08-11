@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use questmancer::{
+    app::CounselRequest,
     command::{AgentCommand, CommandExecutor, CommandResult},
     domain::PaneId,
     herdr::client::HerdrClient,
@@ -202,14 +203,20 @@ async fn non_splittable_reviewr_action_is_unavailable_and_invocation_fails_non_f
 }
 
 #[tokio::test]
-async fn reply_sends_the_composed_text_to_the_selected_pane() {
+async fn reply_sends_the_composed_text_and_submits_it() {
     let (_directory, path, listener) = listener();
+    // Two calls, and the second is the point: `pane.send_text` is literal
+    // text, so counsel that stopped there landed on the adventurer's prompt
+    // and sat unsent.
     let server = tokio::spawn(async move {
-        let (mut stream, _) = listener.accept().await.unwrap();
-        let request = request(&mut stream).await;
-        assert_eq!(request["method"], "pane.send_text");
-        respond(&mut stream, &request, json!({"type": "ok"})).await;
-        request
+        let (mut first, _) = listener.accept().await.unwrap();
+        let text = request(&mut first).await;
+        assert_eq!(text["method"], "pane.send_text");
+        respond(&mut first, &text, json!({"type": "ok"})).await;
+        let (mut second, _) = listener.accept().await.unwrap();
+        let keys = request(&mut second).await;
+        respond(&mut second, &keys, json!({"type": "ok"})).await;
+        (text, keys)
     });
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
@@ -217,12 +224,21 @@ async fn reply_sends_the_composed_text_to_the_selected_pane() {
         .execute(AgentCommand::SendCounsel {
             pane_id: PaneId::new("w1:p1"),
             text: "use jsonb".into(),
+            request: CounselRequest(7),
         })
         .await;
-    let request = server.await.unwrap();
+    let (text, keys) = server.await.unwrap();
 
-    assert_eq!(request["params"]["text"], "use jsonb");
-    assert_eq!(result, CommandResult::CounselSent(PaneId::new("w1:p1")));
+    assert_eq!(text["params"]["text"], "use jsonb");
+    assert_eq!(keys["method"], "pane.send_keys");
+    assert_eq!(keys["params"]["keys"][0], "enter");
+    assert_eq!(
+        result,
+        CommandResult::CounselSent {
+            pane_id: PaneId::new("w1:p1"),
+            request: CounselRequest(7),
+        }
+    );
 }
 
 #[tokio::test]
@@ -363,13 +379,6 @@ async fn managed_pane_effects_are_refused_before_socket_io() {
     let commands = [
         (AgentCommand::FocusPane(managed.clone()), "focus pane"),
         (
-            AgentCommand::SendCounsel {
-                pane_id: managed.clone(),
-                text: "do not send".to_owned(),
-            },
-            "send counsel",
-        ),
-        (
             AgentCommand::InspectSpoils {
                 pane_id: managed.clone(),
                 qualified_id: "acme.diff.inspect".to_owned(),
@@ -377,6 +386,22 @@ async fn managed_pane_effects_are_refused_before_socket_io() {
             "open reviewr",
         ),
     ];
+
+    // Counsel refuses through its own correlated variant, because the open
+    // parchment can only settle on a result it can prove is its own.
+    let refused = executor
+        .execute(AgentCommand::SendCounsel {
+            pane_id: managed.clone(),
+            text: "do not send".to_owned(),
+            request: CounselRequest(1),
+        })
+        .await;
+    assert!(matches!(
+        refused,
+        CommandResult::CounselFailed { request, message }
+            if request == CounselRequest(1)
+                && message == "refused operation on the Questmancer guild pane"
+    ));
 
     for (command, expected_operation) in commands {
         let result = executor.execute(command).await;

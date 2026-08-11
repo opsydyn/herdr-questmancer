@@ -313,10 +313,15 @@ fn submit_counsel(model: &mut Model, commands: &mut Vec<AgentCommand>) {
             return;
         }
     };
-    model.dismiss_modal();
+    // The parchment stays open. It is the only surface that can report what
+    // became of the send, and it closes when the result says so.
+    let Some(request) = model.begin_counsel_send(pane_id.clone()) else {
+        return;
+    };
     commands.push(AgentCommand::SendCounsel {
         pane_id,
         text: draft,
+        request,
     });
 }
 
