@@ -60,3 +60,17 @@ storybook:
 
 storybook-test:
     cargo test --all-targets --features storybook
+
+# Reclaim the build directory. `target/` reached 36 GB on disk here — 24 GB of
+# dependency debug info and 10 GB of incremental state, which cargo grows
+# across rebuilds and never prunes on its own. Run this when disk gets tight;
+# the cost is one full rebuild.
+clean-build:
+    du -sh target 2>/dev/null || true
+    cargo clean
+    @echo "target/ reclaimed — the next build is a full one"
+
+# What is actually taking the space, before deciding to delete anything.
+disk:
+    @du -sh . 2>/dev/null
+    @du -sh target/debug/* 2>/dev/null | sort -rh | head -6

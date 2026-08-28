@@ -73,6 +73,23 @@ missing_panics_doc = "allow"
 module_name_repetitions = "allow"
 must_use_candidate = "allow"
 
+# Debug builds were the largest thing on this machine by a wide margin: 36 GB
+# allocated in `target/`, of which 24 GB was `debug/deps`. Full debug info is
+# the reason — every dependency carries a complete description of its types and
+# locals, and this crate builds a lot of test binaries.
+#
+# `line-tables-only` keeps what is actually read here: file and line in panics
+# and test failures, which is how every golden-hash and guard failure in this
+# project gets diagnosed. What it drops is the ability to inspect variables in
+# a debugger, which nothing in this workflow does.
+[profile.dev]
+debug = "line-tables-only"
+
+# Test and bench binaries inherit dev, but say so explicitly: they are the bulk
+# of the artifacts here, and inheriting silently is how this went unnoticed.
+[profile.test]
+debug = "line-tables-only"
+
 [profile.release]
 strip = true
 lto = "thin"

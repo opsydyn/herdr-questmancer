@@ -39,6 +39,24 @@ All notable changes to this project will be documented here.
   The statue is headless on purpose: a whole statue is decoration, a broken one
   says something happened here before the party arrived.
 
+### Changed
+
+- Debug builds no longer carry full debug info. `target/` had reached 36 GB on
+  disk — 24 GB of dependency debug info and 10 GB of incremental state that
+  cargo grows across rebuilds and never prunes. `[profile.dev]` and
+  `[profile.test]` now use `debug = "line-tables-only"`, which keeps file and
+  line in panics and test failures — the only debug information this project's
+  workflow actually reads, since every golden-hash and guard failure is
+  diagnosed from a panic location — and drops the variable inspection nothing
+  here uses. A full build of the library and every test target now costs 1.7 GB
+  rather than tens of gigabytes.
+
+  `just disk` reports what the build directory is holding, and `just
+  clean-build` reclaims it. Neither touches `target/release`, so the linked
+  Herdr plugin keeps running: `herdr/run.sh` prefers that binary, and its
+  fallback in `bin/` had silently gone five weeks stale, so a plain `cargo
+  clean` would have quietly downgraded a running Questmancer to an old build.
+
 ### Fixed
 
 - Action confirmations never went away. `clear_action_feedback` had exactly one
