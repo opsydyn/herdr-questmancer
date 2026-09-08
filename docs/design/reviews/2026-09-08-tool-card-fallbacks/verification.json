@@ -1,0 +1,23 @@
+{
+  "base_commit": "c3720a90ab0b5b43f9447cc5e71d1ed34a2df4ed",
+  "scope": "Current uncommitted worktree; this slice aligns Bard, Artificer and Testmender card fallbacks",
+  "prior_ritual_visual_approval": "approved by Questmancer on 2026-09-08",
+  "card_visual_approval": "approved by Questmancer on 2026-09-08",
+  "regression": "Exact world pixels and four-pixel transparent margins for six classes under two skin/hair combinations; failed first on old Bard portrait",
+  "focused_rust_tests": 68,
+  "rust_tests": 593,
+  "rust_test_runs": 54,
+  "shell_tests": 28,
+  "just_verify_exit_code": 0,
+  "release_build_exit_code": 0,
+  "review_export_exit_code": 0,
+  "native_live_acceptance": "not exercised",
+  "package_qualification": "not repeated for post-candidate work",
+  "source_sha256": {
+    "src/scene/assets/adventurer.rs": "7806b32066a5cac295a8ff0f9b00738e0c41dfb7d9faff6a002526d36d3275a0"
+  },
+  "output_sha256": {
+    "01-fallback-before-after.png": "f89cd01e78d9209d8a15176066f7457a296c951f7034dc8d9b6f214b33035c29",
+    "02-cards-in-context.png": "c6ff75dbdd19c7b62b896543e9aa511ca87723435e23d506daa2d685751bb8cb"
+  }
+}

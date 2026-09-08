@@ -21,6 +21,8 @@ pub struct ScenePresentation {
     pub overlay: SceneOverlay,
     /// Socket-lifetime cutoff for one-shot theatre, without changing summons.
     pub transition_floor: Option<Timestamp>,
+    /// Observed start of a bounded, presentation-only party-rest reaction.
+    pub party_rest_since: Option<Timestamp>,
     /// Whether the goblin outbreak is currently running.
     ///
     /// This rides on the presentation rather than the scene snapshot on
@@ -39,6 +41,7 @@ impl ScenePresentation {
             },
             selected_agent: model.selected_agent_key().cloned(),
             transition_floor: model.scene_transition_floor(),
+            party_rest_since: model.party_rest_since(),
             goblin_outbreak: model.goblins().is_visible(model.now()),
             overlay: match model.modal() {
                 Modal::None => SceneOverlay::None,

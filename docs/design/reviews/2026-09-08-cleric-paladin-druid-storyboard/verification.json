@@ -1,0 +1,18 @@
+{
+  "scope": "Design candidates; no production routing or native acceptance",
+  "visual_approval": "approved by Questmancer on 2026-09-08",
+  "dimensions": "All 24 authored frames are 16x24 with identical foot anchors per class",
+  "checks": "Rust exporter validates palette, frame bounds, feet, nonempty frames and working pixel changes",
+  "output_sha256": {
+    "01-directions.png": "e636febf338693649714cc37ce0fc6f4ffe92851e5424be5dc2fdfcdeb5284eb",
+    "02-rituals.png": "354828f3728430de3158f21df12aee5bb2ff3d339f5c6159dbd922a932a7c6a4",
+    "03-worlds.png": "8df1838c1b670fff5ae2841aed6457e946f2823493b711a1b893953f7a683f12",
+    "04-working-study.gif": "bc9e65ef5defd88c9c6ae56ad2ae7b6d585bd03d544d675c5d01d0e3861ac5ae"
+  },
+  "repeat_regeneration": "passed; identical SHA256 for all three PNGs and working GIF",
+  "manual_inspection": "Three sheets and both GIF frames inspected; subsequently approved by Questmancer",
+  "gif_timing": {
+    "frames": 2,
+    "milliseconds_per_frame": 500
+  }
+}

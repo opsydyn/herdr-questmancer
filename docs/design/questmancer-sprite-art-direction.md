@@ -3,8 +3,9 @@
 Status: existing art system integrated; the revised three-class proportion
 direction below was visually approved on 2026-09-05 and is implemented in the
 three-class pilot. Production art uses authored `16x24` world masters and
-`24x32` card canvases. Wizard, Ranger and Barbarian reuse their new world
-sprites inside that canvas; the other classes retain independent portraits.
+`24x32` card canvases. All fourteen class fallbacks reuse their personalised
+world sprite at native size inside that canvas. The final Mage and Sorcerer
+card alignment was visually approved on 2026-09-08.
 No class routes to another's silhouette: a borrowed master makes two different adventurers
 indistinguishable in the world, which is the same defect as a borrowed card.
 `no_two_classes_share_a_world_or_portrait_master` keeps it that way.
@@ -81,16 +82,16 @@ face and distinct book spines. The native illustration at
 The [two-sheet production review](reviews/2026-09-05-librarian/README.md)
 includes before/after art, literal size, ANSI-16, both Hall compositions and
 actual Ledger overlay buffers. Implementation was authorised by “Yes librarian
-then move on”; visual approval of the resulting art is pending. The three-class
-storyboard approval does not substitute for this review.
+then move on”; the resulting art was approved in the
+[consolidated review](reviews/2026-09-08-consolidated/README.md) on 2026-09-08.
 
 ## Accepted three-class proportion revision — 2026-09-05
 
 The Questmancer approved the
 [Wizard, Ranger and Barbarian storyboard](reviews/2026-09-05-party-storyboard/README.md)
 with “Way better! Approved”. Its corrected static silhouettes are the reference
-for the implemented pilot. Production playback and presentation await visual
-approval; the [review pack](reviews/2026-09-05-party-pilot/README.md) records
+for the implemented pilot. Production playback and presentation were approved
+in the consolidated review on 2026-09-08; the [review pack](reviews/2026-09-05-party-pilot/README.md) records
 the current frames, rooms, cards and counsel outcomes.
 
 - Keep the `16x24` canvas and foot row 21, counted from zero. Preserve each
@@ -135,17 +136,50 @@ margin. No scaling, stretching or separate copy of the art is involved. This
 static identity portrait does not animate or claim a change in presence.
 
 The [card fallback review](reviews/2026-09-05-card-fallbacks/README.md) shows
-before/after art and actual truecolour/ANSI card buffers. The other eleven
-classes retain their current fallbacks; native illustrations and the revised
+before/after art and actual truecolour/ANSI card buffers. Subsequent approved
+ritual batches extended card alignment to all fourteen classes. Native
+illustrations and the revised
 independent Librarian fallback keep their existing routes. The Questmancer
 visually approved the card fallbacks on 2026-09-05. Actual terminal
 presentation remains a separate acceptance check.
+
+## Approved tool ritual batch — 2026-09-08
+
+The [Bard/Artificer/Testmender storyboard](reviews/2026-09-08-tool-ritual-storyboard/README.md)
+was visually approved and its 24 world frames are implemented. Bard plucks a
+lute, Artificer adjusts a brass device and Testmender draws a needle into a
+patch. The original shared timing remains 500 ms work frames, a 600 ms counsel
+signal, spoils placement at 1000 ms and settled completion by three seconds.
+Their raw silhouettes and class-owned material pixels match the approved
+study. Standard persona role substitution remains active in every moment.
+
+The [production export](reviews/2026-09-08-tool-ritual-production/README.md)
+was visually approved on 2026-09-08. The Questmancer then approved a separate
+card alignment slice. These three card fallbacks now reuse the exact
+personalised `16x24` working master, centred with a four-pixel transparent
+margin inside `24x32`. There is no scaling, animation or duplicate master.
+The [card comparison](reviews/2026-09-08-tool-card-fallbacks/README.md) was
+visually approved on 2026-09-08. Existing roster families and native PNGs retain their routes;
+native/live acceptance remains separate.
+
+## Approved book, shield and living-staff batch — 2026-09-08
+
+The [Cleric/Paladin/Druid storyboard](reviews/2026-09-08-cleric-paladin-druid-storyboard/README.md)
+was visually approved and its 24 frames now use the same bounded ritual
+paths. Cleric traces a book, Paladin checks a shield strap, and Druid gently
+bends a living staff's sprig. Persona colours remain dynamic.
+Their [production review](reviews/2026-09-08-cleric-paladin-druid-production/README.md)
+was visually approved on 2026-09-08. Their card fallbacks now reuse those same
+personalised world sprites, centred at native size in the existing canvas.
+The [card review](reviews/2026-09-08-cleric-paladin-druid-card-fallbacks/README.md)
+was visually approved on 2026-09-08. Native PNGs and roster families retain
+their routes.
 
 ## Two authored sizes, one visual language
 
 | Presentation | Logical size | Terminal footprint | Purpose |
 |---|---:|---:|---|
-| Profile portrait canvas | 24x32 | 24 columns x 16 rows | Current pilot world sprite centred at native size; independent portrait masters for other classes. |
+| Profile portrait canvas | 24x32 | 24 columns x 16 rows | Current personalised world sprite centred at native size for every class. |
 | World sprite | 16x24 | 16 columns x 12 rows | Readable Guild Hall and Delve actor with the same class identity. |
 | Roster master | 8x12 | 8 columns x 6 rows | Whole-party read in a narrow pane, authored per silhouette family. |
 
@@ -250,14 +284,16 @@ Initial target frame groups: idle 2, walk 4, signature 4, hurt/concern 2.
 Feet may not drift; a body bob is at most one logical pixel and never substitutes
 for an unchanged animation frame.
 
-Two routes currently supply poses. Wizard, Ranger and Barbarian author complete
-frames for working, counsel, spoils, completion, rest and unknown. The other
-eleven classes keep one authored master and take an authored *pose decoration*
+Two routes currently supply poses. Wizard, Ranger, Barbarian, Bard, Artificer
+Testmender, Cleric, Paladin, Druid, Rogue, Pathseeker, Runewright, Mage and
+Sorcerer author
+complete frames for working, counsel, spoils, completion,
+rest and unknown. The other two classes keep one authored master and take an authored *pose decoration*
 over it: a carried chest for Returning
 with Spoils, a wider seated stance for Resting. Decorations resolve their
 glyphs against the class's own palette, so the pose changes without the class
 changing, and they occupy the torso and leg zones because class gear lives on
-the left and right edges of every master. For those eleven classes, Seeking Counsel has no
+the left and right edges of every master. For those two classes, Seeking Counsel has no
 decoration: that state already carries the authored counsel marker, and a
 second signal would only compete with it.
 
@@ -275,13 +311,13 @@ tool. The lab should show, for each fixture:
 The lab is for review only. It has no agent prompt, Herdr command, persistence
 mutation or sprite-editor ambition.
 
-The current Storybook has thirty-four stories, including these asset galleries:
+The current Storybook has forty-five stories, including these asset galleries:
 
 - **Core World Masters** shows Barbarian, Bard, Cleric, Druid, Paladin, Ranger,
   Rogue and Wizard at their native 16x24 production scale.
 - **Core Portrait Masters** shows the production card fallbacks: centred native
-  world sprites for the three pilot classes, independent portraits for the
-  other classes. All occupy a `24x32` canvas without stretching.
+  world sprites for all fourteen classes. All occupy a `24x32` canvas without
+  stretching.
 - **Goblin Easter Egg** shows the authored Goblin ancestry callback at both
   production scales.
 - **Roster Silhouette Families** shows the five authored 8x12 masters a narrow
@@ -291,6 +327,21 @@ The current Storybook has thirty-four stories, including these asset galleries:
 - **Custom Class Masters** shows Artificer, Runewright, Testmender and Pathseeker
   world/portrait pairs. **Barbarian Poses**, **Wizard Poses** and **Ranger Poses**
   each show eight production moments, including the still counsel wait.
+  **Bard Poses**, **Artificer Poses** and **Testmender Poses** now provide the
+  same eight production moments for the approved tool-ritual batch.
+  **Cleric Poses**, **Paladin Poses** and **Druid Poses** extend that coverage
+  to the approved book, shield and living-staff batch. Its production visuals
+  and their subsequent card comparison were approved.
+- **Rogue Poses**, **Pathseeker Poses** and **Runewright Poses** show the newest
+  eight-moment sequences. Their storyboard and production visuals are approved.
+  The subsequent card alignment was visually approved in the
+  [card review](reviews/2026-09-08-rogue-pathseeker-runewright-card-fallbacks/README.md).
+- **Mage Poses** and **Sorcerer Poses** complete the fourteen-class set. Their
+  [storyboard](reviews/2026-09-08-mage-sorcerer-storyboard/README.md) was approved,
+  and the sixteen frames now use existing ritual and persona routes. Their
+  [production review](reviews/2026-09-08-mage-sorcerer-production/README.md) was
+  approved. Their subsequent [card alignment](reviews/2026-09-08-mage-sorcerer-card-fallbacks/README.md)
+  completes all fourteen classes and was visually approved on 2026-09-08.
 - **Librarian** shows the revised world sprite and independent Ledger fallback.
 - Fourteen native class-card stories cover all classes, including Mage and
   Sorcerer; Goblin and Orc have separate reserved event-art stories.

@@ -492,39 +492,12 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     let second = render(&snapshot, WorldScene::Delve, VIEWPORT);
     assert_eq!(first.pixels(), second.pixels());
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
-    // Golden bytes for the canonical dungeon. Re-pinned when the delving
-    // party gained contact shadows and the authored counsel marker, when the
-    // Cloak garb and Ranger cloth moved off the dungeon's own floor and moss
-    // colours, and again when Artificer, Runewright, Testmender and
-    // Pathseeker stopped borrowing another class's world master, and again
-    // when returning and resting adventurers gained authored pose art, and
-    // again when persona garb reached each master's trim band, and again when
-    // the Mage and Sorcerer classes shifted these fixtures' persona rolls, and
-    // again when station slots were re-spaced so delvers stopped overlapping,
-    // and again when Unknown delvers stopped being darkened toward black and
-    // started resolving toward a pale mist instead, and again when the floor's
-    // diagonal grid became isotropic patch mottling, and again when every
-    // class master gained filled boots that reach the contact shadow and
-    // skin-toned hand bridges joining each held prop to its body, and again
-    // when the Druid — whose master lives in `adventurer.rs` rather than
-    // `archetypes.rs`, and which that sweep therefore missed — got the same
-    // treatment. This fixture's blocked delver is a Druid. Re-pinned once more
-    // when six classes stopped wearing their eyes as a single dark bar: two
-    // adjacent eye pixels read as one slot at this scale, so Mage, Rogue,
-    // Runewright, Testmender, Pathseeker and Sorcerer now separate them the way
-    // the Ranger does. The idle delver here is a Sorcerer. Re-pinned again
-    // when the dungeon's floors were pulled away from its walls in value and
-    // hue, so that the seven authored regions and their connecting corridors
-    // became visible for the first time — the largest single change this
-    // fixture has ever recorded, because it repaints every pixel of ground.
-    // Re-pinned again when nine dungeon tropes were furnished into the rooms
-    // the previous change revealed: cobwebs, stalactites, dripping water,
-    // hanging chains, a sarcophagus, a broken statue, glowing mushrooms, a
-    // lever and a rat. The party pilot removes transient completion decoration
-    // from this still-motion fixture and uses the reviewed class masters.
+    // Quiet canonical RGB scene, including the approved arcane ritual masters.
+    // The Mage/Sorcerer production review's 05-card-and-delve-check.png shows this exact
+    // fixture; changing the hash requires inspecting that rendered scene.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "2d1ef68371620b01dbd75b39254b4ceda3392840a6eca120cd19b952e2b05cda"
+        "5ab466c7677e1815b5e5f07806a4bd4a56fea78a620ea9552ff9c2272db60626"
     );
 
     let non_clear = first
@@ -728,7 +701,7 @@ fn reconnecting_preserves_the_authored_dungeon_under_connection_light() {
 }
 
 #[test]
-fn static_authored_delve_actors_have_no_invisible_cadence() {
+fn reduced_and_still_delve_actors_have_no_invisible_cadence() {
     let static_snapshot = mixed_snapshot();
     let mut target = RgbBuffer::filled(0, 0, Rgb::BLACK);
     let static_frame = render_scene_for_story(
@@ -743,7 +716,9 @@ fn static_authored_delve_actors_have_no_invisible_cadence() {
     active_snapshot
         .agents
         .retain(|agent| agent.presence == Presence::Working);
-    active_snapshot.motion = Motion::Full;
+    active_snapshot.motion = Motion::Reduced;
+    // All classes have visible work sequences; reduced motion must stay quiet.
+    active_snapshot.agents[0].persona.class = questmancer::domain::AdventurerClass::Mage;
     let active_frame = render_scene_for_story(
         &active_snapshot,
         Some(WorldScene::Delve),

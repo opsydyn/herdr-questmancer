@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.08s
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-48019204e9669f3b)
+
+running 1 test
+test ritual_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching ... FAILED
+
+failures:
+
+---- ritual_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching stdout ----
+
+thread 'ritual_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching' panicked at tests/archetype_assets.rs:91:21:
+assertion `left == right` failed: Cleric Porcelain card pixel (2, 0) must retain the current sprite
+  left: Some(Rgb { r: 83, g: 224, b: 238 })
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    ritual_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test archetype_assets`

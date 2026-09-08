@@ -8,6 +8,9 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- Exclude repository review packs from the crate archive. The expanded art had
+  exceeded the existing 10 MiB package gate; production assets remain included.
+
 - Herdr 0.9 / protocol 22 compatibility: subscribe before the authoritative
   snapshot and reconcile unversioned status events against current pane
   metadata, so queued old events cannot invent a completion transition.
@@ -27,6 +30,21 @@ All notable changes to this project will be documented here.
   release job, including the optional registry publish, checks out that tag.
 
 ### Added
+
+- All fourteen classes now have authored work, counsel and spoils rituals with
+  shared bounded timing and persona colours. Every class card centres the same
+  personalised world sprite at native size. Production rituals and card visuals
+  are approved; native illustrations and roster families remain in use.
+  Storybook now contains 45 stories, including fourteen class pose galleries.
+- Chronicle chapters: Tab inside the Chronicle requests a local last-hour guild
+  recap from retained events, with a fixed UTC window and timestamped sources.
+  Counts distinguish repeated events from distinct adventurers and never infer
+  missing history or successful delivery from campaign closure.
+- The Guild Hall cat gives one 800 ms reaction when the same known non-empty
+  party becomes entirely resting. Baselines, reconnects, unknown states and
+  party changes remain quiet, with no added wakes in reduced/still motion.
+- Cards show the saved keepsake with a fixed description and static authored
+  8x8 illustration. Compact cards retain its text within the existing footprint.
 
 - Campaign crests derived from workspace identity, repeated below the Guild
   Hall's campaign-table actors and named on the adventurer card. Shared tables
@@ -74,7 +92,7 @@ All notable changes to this project will be documented here.
 
 ### Changed
 
-- Questmancer now targets Herdr `0.8.2` and protocol `20`. Older or unknown
+- Questmancer now targets Herdr `0.9.0` and protocol `22`. Older or unknown
   protocol versions are rejected before subscribing or accepting snapshots.
 - Wizard, Ranger and Barbarian card fallbacks use their new personalised world
   sprites at native size, centred in the existing card canvas without scaling.

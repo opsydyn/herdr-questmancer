@@ -1,0 +1,20 @@
+{
+  "scope": "Design candidates; no production routing or native acceptance",
+  "visual_approval": "approved by Questmancer on 2026-09-08",
+  "dimensions": "All 16 authored frames are 16x24 with identical foot anchors per class",
+  "checks": "Rust exporter validates palette, frame bounds, feet, nonempty frames and working pixel changes",
+  "output_sha256": {
+    "01-directions.png": "2e4fb8131a447360983ffd1bcf958927094100389a76c8dcdc9c195e9792fe9d",
+    "02-rituals.png": "5c83b0da673b540359283c886b9bdae24d4148f58bff2b20c17c174ded444165",
+    "03-worlds.png": "0b9c1c1743746c1a72d52bf5e100714ca0722e28ca990fcce5238e90593a327b",
+    "04-working-study.gif": "d790efa214301f3ccf2c41718fff776e5c8351cabdbef85eaf91d68ba03c62a6"
+  },
+  "repeat_regeneration": "All three PNGs and the GIF have identical SHA-256 hashes on a second run",
+  "gif_timing": "Two 500 ms frames, looping",
+  "manual_inspection": "Three sheets and both GIF frames inspected",
+  "production_source_check": {
+    "src/scene/assets/adventurer.rs": "8a58122e6c03d3e9aeedfa6a45fb040072876fc14450689e9124ca15d69e384d",
+    "tests/archetype_assets.rs": "44f9ba33b6d79632a6bae77f04275ca3ebbe0ccc9be906a14b6d160aa51188c7"
+  },
+  "application_verification": "Not rerun for design-only changes; preceding card implementation passed 593 Rust tests, 28 shell tests and release build"
+}

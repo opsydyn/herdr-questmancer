@@ -57,6 +57,7 @@ fn render_at_size(
         world,
         selected_agent: Some(snapshot.agents[0].key.clone()),
         transition_floor: None,
+        party_rest_since: None,
         overlay: SceneOverlay::None,
         goblin_outbreak: false,
     };

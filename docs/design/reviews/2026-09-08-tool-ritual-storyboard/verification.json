@@ -1,0 +1,12 @@
+{
+  "scope": "Design candidates; no production routing or native acceptance",
+  "visual_approval": "approved by Questmancer on 2026-09-08",
+  "dimensions": "All 24 authored frames are 16x24 with identical foot anchors per class",
+  "checks": "Rust exporter validates palette, frame bounds, feet, nonempty frames and working pixel changes",
+  "output_sha256": {
+    "01-directions.png": "d11348f2f526bff67f22b2d77385312f43c0799e61fad3b2c810a49e47b70bc9",
+    "02-rituals.png": "7f1adf24dcccf31b91c8c5d7c97ef6fb581e59212275542685646985bf6f03f6",
+    "03-worlds.png": "a0777d2188083f948be6ee31168b996c01c0584e336f4b499b6cebb93e094a17",
+    "04-working-study.gif": "07391d21b47df56f6d3141d80902666ebd811c2a441c6e5c9ab803541448d46f"
+  }
+}

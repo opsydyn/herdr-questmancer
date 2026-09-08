@@ -1,0 +1,99 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.09s
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-d89813589f2f31a1)
+
+running 16 tests
+test every_class_has_an_authored_roster_master_at_the_small_tier ... ok
+test barbarian_v2_has_truthful_pose_specific_world_frames ... ok
+test roster_silhouette_families_are_pairwise_distinct ... ok
+test every_core_archetype_uses_a_world_master ... ok
+test every_core_archetype_has_a_portrait_canvas ... ok
+test same_family_personas_stay_distinguishable_at_roster_scale ... ok
+test ritual_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching ... ok
+test core_archetype_masters_are_pairwise_distinct_at_both_scales ... ok
+test persona_substitution_is_deterministic_for_a_fixed_persona ... ok
+test persona_substitution_preserves_the_authored_silhouette ... ok
+test garb_changes_the_sprite_without_changing_the_class ... ok
+test returning_and_resting_change_every_class_sprite ... ok
+test every_domain_class_routes_to_authored_world_and_portrait_assets ... ok
+test no_two_classes_share_a_world_or_portrait_master ... ok
+test pose_decorations_leave_most_of_the_class_master_intact ... ok
+test same_class_personas_with_different_appearance_render_distinct_world_masters ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/librarian_assets.rs (target/debug/deps/librarian_assets-9a5bed98ee8d499a)
+
+running 4 tests
+test librarian_world_master_is_native_scale_and_non_empty ... ok
+test librarian_ledger_fallback_fills_a_readable_portrait_canvas ... ok
+test librarian_art_is_grounded_and_the_ledger_uses_its_larger_canvas ... ok
+test embedded_librarian_art_is_a_decodable_png ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/scene_overlays.rs (target/debug/deps/scene_overlays-411458f9bb32797e)
+
+running 35 tests
+test a_narrow_room_drops_the_badge_rather_than_the_scene ... ok
+test a_nameplate_never_paints_through_another_adventurer ... ok
+test a_notice_reaches_the_frame_and_not_only_the_model ... ok
+test ascii_roster_labels_use_ascii_separators_truncation_and_state_glyphs ... ok
+test a_crowded_party_keeps_a_nameplate_for_every_adventurer ... ok
+test a_failed_send_keeps_the_draft_and_says_so ... ok
+test an_empty_chronicle_says_so ... ok
+test a_reopened_parchment_starts_at_the_top ... ok
+test every_visible_sprite_has_an_agent_state_nameplate ... ok
+test counsel_uses_a_centered_parchment_without_replacing_the_world ... ok
+test nameplate_truncation_shortens_the_name_and_keeps_the_state_word ... ok
+test neighbouring_nameplates_never_touch ... ok
+test chapter_requests_are_local_frozen_in_time_and_return_to_the_existing_records ... ok
+test overlays_are_safe_at_zero_and_minimum_viewports ... ok
+test librarian_ledger_is_the_single_responsive_help_surface ... ok
+test scrolling_stops_at_the_end_of_the_text ... ok
+test campaign_crest_is_visible_on_the_adventurers_parchment ... ok
+test long_live_labels_cannot_displace_card_status_keepsake_or_controls ... ok
+test selected_adventurer_card_exposes_fantasy_and_system_identity ... ok
+test keepsake_art_changes_only_its_reserved_card_section ... ok
+test selected_adventurer_does_not_force_the_card_open ... ok
+test the_chronicle_parchment_shows_recorded_events_over_the_world ... ok
+test scrying_can_be_scrolled_to_reach_output_below_the_fold ... ok
+test command_ribbon_expires_after_three_seconds ... ok
+test search_and_scrying_are_contextual_overlays ... ok
+test the_counsel_parchment_reports_a_send_in_flight ... ok
+test the_adventurer_card_does_not_cover_the_standing_badge ... ok
+test the_standing_badge_sits_in_the_top_right_corner ... ok
+test the_ribbon_greets_someone_who_has_not_pressed_anything ... ok
+test the_ledger_shows_the_whole_keyring ... ok
+test campaign_crest_keeps_the_same_named_identity_in_ascii_and_both_rooms ... ok
+test roster_labels_preserve_the_rgb_state_cue_in_final_terminal_cells ... ok
+test an_on_demand_chapter_counts_events_and_exposes_timestamped_sources ... ok
+test only_correlated_confirmed_counsel_receives_a_parchment_seal ... ok
+test keepsake_details_follow_the_saved_assignment_without_crowding_card_facts ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/scene_party.rs (target/debug/deps/scene_party-1629af422c322a92)
+
+running 7 tests
+test every_ritual_pose_keeps_its_foot_anchor_and_native_dimensions ... ok
+test tool_rituals_preserve_persona_masks_and_gear ... ok
+test a_counsel_gesture_settles_once_and_leaves_the_blocked_adventurer_still ... ok
+test both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class ... ok
+test newer_quiet_states_and_disconnect_interrupt_tool_rituals_in_both_rooms ... ok
+test each_return_places_its_spoils_then_settles_at_the_exact_three_second_deadline ... ok
+test reduced_and_still_party_states_do_not_change_pixels_at_cleanup_deadlines ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s
+
+     Running tests/storybook.rs (target/debug/deps/storybook-1740d2374c87244d)
+
+running 6 tests
+test catalogue_contains_every_production_scene_interaction_once ... ok
+test every_production_story_owns_one_asset_exactly_once ... ok
+test scrying_story_contains_settled_output_without_live_io ... ok
+test core_master_galleries_name_every_reviewed_archetype ... ok
+test every_production_story_renders_at_its_minimum_viewport ... ok
+test scene_inspection_reaches_small_production_layouts_while_asset_galleries_keep_their_minimum ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s

@@ -1,0 +1,27 @@
+{
+  "base_commit": "c3720a90ab0b5b43f9447cc5e71d1ed34a2df4ed",
+  "scope": "Subsequent uncommitted keepsake and cat-reaction work",
+  "rust_tests": 582,
+  "rust_test_runs": 53,
+  "shell_tests": 28,
+  "just_verify_exit_code": 0,
+  "release_build_exit_code": 0,
+  "review_export_exit_code": 0,
+  "visual_approval": "approved by Questmancer on 2026-09-08",
+  "native_acceptance": "not exercised",
+  "artifacts": {
+    "cat-reaction.png": {
+      "bytes": 41844,
+      "sha256": "609b318c65fea983a3d6d9221fd74640c9808627d304f22ece443a9e81727eff"
+    },
+    "cat-reaction.gif": {
+      "bytes": 219310,
+      "sha256": "c4a86c2aa16efbe0397666ca8d22f398a1cd93f7eb6c443cd1799aa56e13cf35"
+    }
+  },
+  "logs": {
+    "verify": "verify.log",
+    "release-build": "release-build.log",
+    "focused": "focused.log"
+  }
+}

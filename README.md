@@ -157,6 +157,7 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `!` | Jump to the next adventurer waiting on you |
 | `Tab` | Move to the next campaign's party |
 | `c` | Open the Chronicle |
+| `Tab` in Chronicle | Last-hour guild chapter / records |
 | `/` | Search the party and campaigns |
 | `n` / `N` | Walk to the next / previous search match |
 | `j`/`k`, wheel | Scroll an open Scrying or Chronicle parchment |
@@ -221,6 +222,14 @@ for counsel, returned with spoils, rested, departed, and which campaigns
 closed. With an adventurer selected it shows that adventurer's history;
 otherwise the whole guild's, newest first. `Esc` or `c` closes it. The
 Chronicle is a reading surface — no key acts on the party while it is open.
+
+Inside the Chronicle, `Tab` requests a guild chapter for the last hour, or
+returns to the record list. The UTC window is fixed when requested. Chapters
+count retained events, preserving recorded names, timestamps and source IDs
+below the recap; scroll with `j`/`k` or the wheel. Retained history can be
+incomplete. Normal Herdr 0.9 status events feed the Chronicle; snapshot-only
+changes do not append events, and chapters never fill gaps from live presence. Source lines wrap at the full chapter width; panes narrower than 80 columns
+clip them horizontally. Widen the terminal to read all wrapped lines.
 
 `Tab` moves the selection into the next campaign's party and wraps. With the
 whole party on one campaign it stays put and says so.
@@ -381,11 +390,13 @@ agent processes or persistent state:
 just storybook
 ```
 
-It contains thirty-four fixed production stories, with each asset owned once:
+It contains forty-five fixed production stories, with each asset owned once:
 
 - two worlds: Guild Hall and Delve;
-- ten asset galleries: classic world and portrait masters, Barbarian, Wizard
-  and Ranger poses, persona palettes, five roster silhouette families, custom
+- twenty-one asset galleries: classic world and portrait masters, Barbarian, Wizard,
+  Ranger, Bard, Artificer, Testmender, Cleric, Paladin, Druid, Rogue, Pathseeker,
+  Runewright, Mage and Sorcerer poses, persona palettes, five roster
+  silhouette families, custom
   class masters, Goblin sprites and Librarian sprites;
 - fourteen native class cards: Artificer, Barbarian, Bard, Cleric, Druid, Mage,
   Paladin, Pathseeker, Ranger, Rogue, Runewright, Sorcerer, Testmender and Wizard;
@@ -409,6 +420,43 @@ update resumes work. See the [production pilot review](docs/design/reviews/2026-
 for pose sheets and fixture playback. Their card fallbacks now reuse those
 exact personalised world sprites inside the existing portrait canvas; see the
 [card comparison](docs/design/reviews/2026-09-05-card-fallbacks/README.md).
+
+Bard, Artificer and Testmender now share that bounded timing with their own
+approved lute, brass-device and needlework rituals. Their saved persona
+colours still apply to every pose. Their card fallbacks now centre those same
+sprites at native size, matching the room without changing the card canvas.
+Their existing roster families and native illustrations remain in use. See the
+[card comparison](docs/design/reviews/2026-09-08-tool-card-fallbacks/README.md)
+and the [tool ritual production review](docs/design/reviews/2026-09-08-tool-ritual-production/README.md)
+for current room playback and all three Storybook pose galleries.
+
+Cleric, Paladin and Druid now share those ritual paths with their approved
+book, shield and living-staff frames. Their production visuals were approved.
+Their card fallbacks now reuse those same personalised sprites at native size;
+see the [card comparison](docs/design/reviews/2026-09-08-cleric-paladin-druid-card-fallbacks/README.md)
+for the approved card visual review. Native illustrations and roster families
+remain in use. See
+the [production review](docs/design/reviews/2026-09-08-cleric-paladin-druid-production/README.md)
+for the three new pose galleries and both rooms.
+
+Rogue, Pathseeker and Runewright now use their approved practice-lock, compass
+and rune-stone gestures through the shared ritual timing and persona paths.
+Their [production review](docs/design/reviews/2026-09-08-rogue-pathseeker-runewright-production/README.md)
+includes three new pose galleries and both rooms; production visuals were
+approved on 2026-09-08. Their card fallbacks now centre the same personalised
+world sprites at native size. The [card comparison](docs/design/reviews/2026-09-08-rogue-pathseeker-runewright-card-fallbacks/README.md)
+was visually approved on 2026-09-08. Native illustrations and roster families
+remain in use. The final [Mage and Sorcerer storyboard](docs/design/reviews/2026-09-08-mage-sorcerer-storyboard/README.md)
+was visually approved. Its green-censer and silver-focus gestures now use the
+shared timing and persona paths, completing rituals for all fourteen classes.
+Two new pose galleries bring Storybook to 45 stories. Their
+[production review](docs/design/reviews/2026-09-08-mage-sorcerer-production/README.md)
+was visually approved on 2026-09-08. Their card fallbacks now centre the same
+personalised world sprites at native size, completing continuity for all
+fourteen classes. The [final card comparison](docs/design/reviews/2026-09-08-mage-sorcerer-card-fallbacks/README.md)
+was visually approved on 2026-09-08. Native illustrations and roster families remain in use.
+See the [complete candidate review](docs/reviews/2026-09-08-party-candidate/README.md)
+for current verification and the remaining release gates.
 
 The Storybook uses fixed fixture time and shows authored pose galleries. Its
 world stories do not play a live animation timeline; the review GIFs sample

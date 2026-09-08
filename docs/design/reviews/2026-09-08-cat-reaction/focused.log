@@ -1,0 +1,15 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.46s
+     Running tests/cat_reaction.rs (target/debug/deps/cat_reaction-e371bc82ebc2e1e0)
+
+running 8 tests
+test authored_cat_frames_end_at_the_exact_deadlines_and_keep_native_bounds ... ok
+test stale_status_events_cannot_trigger_or_restart_the_reaction ... ok
+test the_whole_party_must_rest_and_departure_cancels_a_running_reaction ... ok
+test reaction_cancels_when_work_resumes_or_connection_is_lost ... ok
+test unknown_empty_changed_parties_and_connection_baselines_do_not_trigger ... ok
+test reaction_does_not_change_domain_projection_persistence_or_pixels_outside_the_cat ... ok
+test the_last_resting_transition_gets_one_bounded_cat_reaction ... ok
+test reduced_still_delve_and_small_halls_do_not_schedule_cat_wakes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s

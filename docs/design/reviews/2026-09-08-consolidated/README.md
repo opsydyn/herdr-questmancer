@@ -5,6 +5,14 @@ They are production RGB/Ratatui fixtures, not native terminal screenshots.
 Unchanged files are reused only when their new exports match byte-for-byte;
 changed outputs are saved here without overwriting earlier review evidence.
 
+## Approval — 2026-09-08
+
+The Questmancer approved this consolidated visual review after clean local
+qualification of `c3720a9` (0.1.9). This records product visual approval for
+the reviewed pack. No terminal, dimensions or native portrait transport result
+was supplied with that approval, so those observations remain unrecorded.
+Published archives and installer acceptance remain separate.
+
 ## Review order
 
 1. Librarian proportions and Hall/Ledger context.
@@ -63,5 +71,6 @@ native portrait or fallback result; live transitions actually observed.
 The actual 0.1.9 plugin passed an isolated Herdr 0.9 server check: singleton
 open, metadata for working/blocked/idle/unknown, view-action success and status
 transition delivery. All owned panes, identities, link and server were cleaned
-up. Native visuals and user sign-off remain pending. Clean release qualification
+up. The review pack is visually approved; native transport observations remain
+unrecorded. Clean release qualification
 is recorded in [the candidate receipt](../../../reviews/2026-09-08-release-candidate/README.md).

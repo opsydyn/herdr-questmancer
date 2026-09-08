@@ -648,6 +648,7 @@ fn render_with_presentation_frame(
         world,
         selected_agent: None,
         transition_floor: None,
+        party_rest_since: None,
         overlay: questmancer::scene::presentation::SceneOverlay::None,
         goblin_outbreak,
     };
@@ -1029,7 +1030,7 @@ fn static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps() {
 }
 
 #[test]
-fn campaign_table_motion_is_authored_and_does_not_wake_static_classes() {
+fn campaign_table_motion_is_authored_and_reduced_motion_does_not_wake() {
     let mut barbarian = agent(
         "animated-barbarian",
         "amber-library",
@@ -1061,11 +1062,12 @@ fn campaign_table_motion_is_authored_and_does_not_wake_static_classes() {
     );
     assert!(second_frame.next_frame_in.is_some());
 
-    snapshot.agents[0].persona.class = AdventurerClass::Rogue;
+    snapshot.agents[0].persona.class = AdventurerClass::Mage;
+    snapshot.motion = Motion::Reduced;
     let (_, static_frame) = render_with_frame(&snapshot, VIEWPORT);
     assert_eq!(
         static_frame.next_frame_in, None,
-        "a static class master must not keep the Guild Hall render loop awake"
+        "a reduced-motion master must not keep the Guild Hall render loop awake"
     );
 }
 

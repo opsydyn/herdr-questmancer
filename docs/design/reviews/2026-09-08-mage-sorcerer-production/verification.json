@@ -1,0 +1,49 @@
+{
+  "base_commit": "c3720a90ab0b5b43f9447cc5e71d1ed34a2df4ed",
+  "scope": "Current uncommitted worktree; Mage and Sorcerer world rituals",
+  "design_approval": "approved by Questmancer on 2026-09-08",
+  "production_visual_approval": "approved by Questmancer on 2026-09-08",
+  "regression": "Mage in GuildHall returned no deadline instead of 500ms before registration",
+  "focused_rust_tests": 7,
+  "affected_integration_tests": 86,
+  "rust_tests": 593,
+  "rust_test_runs": 54,
+  "shell_tests": 28,
+  "just_verify_exit_code": 0,
+  "release_build_exit_code": 0,
+  "review_export_exit_code": 0,
+  "artwork_comparison": "All 16 production poses match approved transparency and class-owned material pixels; persona role colours remain dynamic",
+  "storybook_stories": 45,
+  "native_live_acceptance": "not exercised",
+  "package_qualification": "not repeated for post-candidate work",
+  "delve_reference_update": "Inspected old and new fixture; resting Sorcerer changes to new master. Current RGB BLAKE3: 5ab466c7677e1815b5e5f07806a4bd4a56fea78a620ea9552ff9c2272db60626",
+  "visual_inspection": "All five sheets, both working GIF frames and six counsel/spoils journey frames inspected",
+  "gif_checks": {
+    "working_frames": 2,
+    "working_frame_ms": 500,
+    "journey_frames": 32,
+    "journey_playback": "once; intended centisecond durations verified"
+  },
+  "source_sha256": {
+    "src/scene/assets/rituals.rs": "6a13cbae3dfe9566f40c7d8905898e3ea81e236fc81d396f37bee24622051d34",
+    "src/scene/assets/rituals/arcane_art.rs": "d68c3351338aced4baec03246fe30a873dae58bd692ef568d5c304924d956462",
+    "src/scene/assets/adventurer.rs": "c5024e2fb24fb5816185b6ad15663c1040e065965b2c85cb5e1e1135a07adc0c",
+    "src/storybook/assets.rs": "dfb85dd8da2b68aadbdb84761c9e43ab3608013715bcc75f4c8b16634fdf914a",
+    "src/storybook/catalogue.rs": "c4cd730813b32959af26cf358e47bd28d2700f4c730031acee37d24d17dfc6ce",
+    "tests/scene_party.rs": "619380450963e3100d515c8dcbf80f59365a4429e7dfec85f0c3c379f73b3082",
+    "tests/storybook.rs": "0f46f1bc74fbaed22aaf809e642e11ca0dee3d5d8663266d772894bf1bf4e380",
+    "tests/scene_delve.rs": "f7445c13392454741fe0c6dc5d595cb95568e6c17bdc9242188c7166f901078a",
+    "tests/scene_stage.rs": "5b1eb463a2683fc0c4cc632dec0dcddc2dab7b7abff089e9b19a7a873cd72e89",
+    "tests/scene_guild_hall.rs": "b012c08ddb7beca212ccfa0ae7709136df49050faf61699673a5effe16fb4cff",
+    "tests/workflow_contract.rb": "bdb3176b09258f134b40674763ec1f2f8e7038fd0bccb39acfa7dca41357aa34"
+  },
+  "output_sha256": {
+    "01-production-poses.png": "7a94bbe0f9320077324636542c996431ccf288955ef0de5903297328839d05cb",
+    "02-rooms-and-viewports.png": "1a3c20a9dd09667e8812edfc490fcd082f58606245f5e62a93cdbe420e2e6d01",
+    "03-ritual-timeline.png": "1b24bb6ac3087e8c6f4e30af92eca3a557d4db9b7884ad927471437072572485",
+    "04-counsel-outcomes.png": "8027c7d73b02d43f932d1dd4c75db1959ce8b0460f1cef03ab5ccb2dc88817db",
+    "05-card-and-delve-check.png": "2bde02a373f0bc146a6456133310a89c83eaccb9502938ba0ee024f8d84995f5",
+    "party-journey.gif": "21894f35ff857dcaa83f7636c6b193a36f121b8508c6913dab0330636b5c7bcf",
+    "working-loop.gif": "37e00afa7151e69ec775ef432126cda5cda5efd9b512c9b1e63531b14ef75857"
+  }
+}

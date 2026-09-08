@@ -168,22 +168,15 @@ pub fn druid_portrait_frame() -> SpriteFrame {
 
 #[must_use]
 pub fn adventurer_portrait_frame(persona: &AdventurerPersona) -> Option<SpriteFrame> {
-    match persona.class {
-        AdventurerClass::Wizard | AdventurerClass::Ranger | AdventurerClass::Barbarian => {
-            // The card should show the same stocky, personalised adventurer
-            // as the room. Centre the native sprite in the existing portrait
-            // canvas; stretching it to fill that canvas would elongate it.
-            let sprite = adventurer_animation_frame(persona, ScenePose::Working, 0);
-            let mut pixels = vec![None; 24 * 32];
-            for (y, row) in sprite.pixels().chunks_exact(16).enumerate() {
-                let start = (y + 4) * 24 + 4;
-                pixels[start..start + 16].copy_from_slice(row);
-            }
-            Some(SpriteFrame::from_pixels(24, 32, pixels))
-        }
-        AdventurerClass::Druid => Some(druid_portrait_frame()),
-        _ => archetypes::portrait_frame(persona.class),
+    // Every class uses the same personalised adventurer as the room.
+    // Centre its native pixels in the portrait canvas without stretching.
+    let sprite = adventurer_animation_frame(persona, ScenePose::Working, 0);
+    let mut pixels = vec![None; 24 * 32];
+    for (y, row) in sprite.pixels().chunks_exact(16).enumerate() {
+        let start = (y + 4) * 24 + 4;
+        pixels[start..start + 16].copy_from_slice(row);
     }
+    Some(SpriteFrame::from_pixels(24, 32, pixels))
 }
 
 /// Roles a persona may recolour inside an authored master. Class-owned
@@ -445,14 +438,10 @@ pub(crate) fn adventurer_at(
     motion: crate::app::Motion,
     elapsed: Option<Duration>,
 ) -> AdventurerFrame {
-    let (frame, next_frame_in) = rituals::sample(persona.class, pose, motion, elapsed);
+    let (frame, next_frame_in) = rituals::sample(pose, motion, elapsed);
     let next = next_frame_in.map(|delay| {
-        let (next_frame, _) = rituals::sample(
-            persona.class,
-            pose,
-            motion,
-            elapsed.map(|age| age.saturating_add(delay)),
-        );
+        let (next_frame, _) =
+            rituals::sample(pose, motion, elapsed.map(|age| age.saturating_add(delay)));
         (delay, adventurer_animation_frame(persona, pose, next_frame))
     });
     AdventurerFrame {

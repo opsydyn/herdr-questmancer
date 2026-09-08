@@ -1,0 +1,25 @@
+{
+  "base_commit": "c3720a90ab0b5b43f9447cc5e71d1ed34a2df4ed",
+  "scope": "Current uncommitted worktree; Mage and Sorcerer card fallback alignment",
+  "prior_ritual_visual_approval": "approved by Questmancer on 2026-09-08",
+  "card_visual_approval": "approved by Questmancer on 2026-09-08",
+  "regression": "Old Mage portrait failed exact world-pixel and transparent-margin expectation before implementation",
+  "focused_rust_tests": 68,
+  "rust_tests": 593,
+  "rust_test_runs": 54,
+  "shell_tests": 28,
+  "just_verify_exit_code": 0,
+  "release_build_exit_code": 0,
+  "review_export_exit_code": 0,
+  "native_live_acceptance": "not exercised",
+  "package_qualification": "not repeated for post-candidate work",
+  "visual_inspection": "Both card review sheets inspected",
+  "source_sha256": {
+    "src/scene/assets/adventurer.rs": "1bf123c5da9eb827341257f7bdd5b1cee90099dcdbb8cc38dbf82e9c9c268d1f",
+    "tests/archetype_assets.rs": "bfbcbe660b708547df10cfb80b95ff286735947123c3eb9aa7338ad561252c46"
+  },
+  "output_sha256": {
+    "01-fallback-before-after.png": "c87be2571b8b2e7fda7ce16a8a0de180add6016ca19796c93ad758ade82a7ac4",
+    "02-cards-in-context.png": "155ba653f6352255b123f7767fbd2fb6aaab5a9d5120b28160e8b0febccd09e7"
+  }
+}

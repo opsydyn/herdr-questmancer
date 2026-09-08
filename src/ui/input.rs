@@ -26,6 +26,7 @@ pub enum Action {
     InspectSpoils,
     NextCampaign,
     OpenChronicle,
+    ToggleChronicleChapter,
     NextResult,
     PreviousResult,
     DeferSummons,
@@ -104,6 +105,7 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         // so no key leaks through to move a selection you cannot see.
         return match key.code {
             KeyCode::Esc | KeyCode::Char('c') => Action::Dismiss,
+            KeyCode::Tab => Action::ToggleChronicleChapter,
             KeyCode::Char('j') | KeyCode::Down => Action::ScrollDown,
             KeyCode::Char('k') | KeyCode::Up => Action::ScrollUp,
             _ => Action::None,

@@ -1,0 +1,88 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.00s
+     Running tests/keepsake_assets.rs (target/debug/deps/keepsake_assets-2347352efdd28176)
+
+running 1 test
+test all_saved_keepsakes_have_distinct_complete_static_card_art ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/persisted_state.rs (target/debug/deps/persisted_state-b6b76d2df13e1ce5)
+
+running 21 tests
+test a_state_file_without_standing_still_loads_with_its_personas ... ok
+test capture_contains_only_durable_intent ... ok
+test observed_domain_without_summons_removes_stored_acknowledgement ... ok
+test overlay_marks_only_unread_attention_as_read ... ok
+test overlay_retains_learned_personas_that_are_not_live ... ok
+test failed_seed_is_atomic_and_cannot_cross_persona_identities ... ok
+test overlay_keeps_a_valid_snapshot_selection_when_persona_is_ambiguous ... ok
+test overlay_restores_seen_summons_when_snapshot_revision_changes ... ok
+test standing_is_captured_and_seeded_back ... ok
+test new_state_json_omits_transport_revision_from_seen_attention ... ok
+test different_summons_does_not_inherit_stored_acknowledgement ... ok
+test standing_is_monotonic_and_saturates ... ok
+test legacy_seen_attention_with_transport_revision_still_deserializes ... ok
+test overlay_restores_matching_persona_selection_and_seen_episode ... ok
+test v1_state_without_persona_generation_loads_and_keeps_its_recorded_classes ... ok
+test validation_rejects_a_mismatched_embedded_persona_key ... ok
+test validation_rejects_a_seen_episode_referencing_a_missing_persona ... ok
+test validation_rejects_a_selected_persona_missing_from_the_map ... ok
+test validation_rejects_an_unsupported_schema_version ... ok
+test valid_state_json_round_trips ... ok
+test overlay_cannot_replace_live_facts ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/persona.rs (target/debug/deps/persona-5c72d7092f459167)
+
+running 9 tests
+test druid_and_living_staff_have_stable_wire_names ... ok
+test legacy_persona_records_default_to_the_original_generation_without_reclassing ... ok
+test workspace_root_and_agent_name_survive_pane_changes ... ok
+test workspace_and_pane_are_the_last_identity_fallback ... ok
+test generated_personas_have_meaningful_trait_diversity ... ok
+test persona_generation_is_stable_and_independent_of_pane_moves ... ok
+test native_agent_session_is_the_strongest_persona_identity ... ok
+test classic_and_questmancer_classes_are_reachable ... ok
+test goblins_are_possible_but_rare ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/scene_overlays.rs (target/debug/deps/scene_overlays-c7cd9257a7ed74a7)
+
+running 32 tests
+test a_narrow_room_drops_the_badge_rather_than_the_scene ... ok
+test a_nameplate_never_paints_through_another_adventurer ... ok
+test a_notice_reaches_the_frame_and_not_only_the_model ... ok
+test ascii_roster_labels_use_ascii_separators_truncation_and_state_glyphs ... ok
+test a_crowded_party_keeps_a_nameplate_for_every_adventurer ... ok
+test an_empty_chronicle_says_so ... ok
+test a_failed_send_keeps_the_draft_and_says_so ... ok
+test every_visible_sprite_has_an_agent_state_nameplate ... ok
+test counsel_uses_a_centered_parchment_without_replacing_the_world ... ok
+test neighbouring_nameplates_never_touch ... ok
+test a_reopened_parchment_starts_at_the_top ... ok
+test nameplate_truncation_shortens_the_name_and_keeps_the_state_word ... ok
+test overlays_are_safe_at_zero_and_minimum_viewports ... ok
+test scrolling_stops_at_the_end_of_the_text ... ok
+test campaign_crest_is_visible_on_the_adventurers_parchment ... ok
+test librarian_ledger_is_the_single_responsive_help_surface ... ok
+test selected_adventurer_does_not_force_the_card_open ... ok
+test the_chronicle_parchment_shows_recorded_events_over_the_world ... ok
+test the_counsel_parchment_reports_a_send_in_flight ... ok
+test keepsake_art_changes_only_its_reserved_card_section ... ok
+test selected_adventurer_card_exposes_fantasy_and_system_identity ... ok
+test scrying_can_be_scrolled_to_reach_output_below_the_fold ... ok
+test command_ribbon_expires_after_three_seconds ... ok
+test the_ribbon_greets_someone_who_has_not_pressed_anything ... ok
+test the_standing_badge_sits_in_the_top_right_corner ... ok
+test the_adventurer_card_does_not_cover_the_standing_badge ... ok
+test search_and_scrying_are_contextual_overlays ... ok
+test the_ledger_shows_the_whole_keyring ... ok
+test campaign_crest_keeps_the_same_named_identity_in_ascii_and_both_rooms ... ok
+test roster_labels_preserve_the_rgb_state_cue_in_final_terminal_cells ... ok
+test only_correlated_confirmed_counsel_receives_a_parchment_seal ... ok
+test keepsake_details_follow_the_saved_assignment_without_crowding_card_facts ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s

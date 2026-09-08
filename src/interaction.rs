@@ -113,7 +113,10 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             }
             ControlFlow::Continue(())
         }
-        Action::SelectAt { .. } | Action::Redraw | Action::None => ControlFlow::Continue(()),
+        Action::ToggleChronicleChapter
+        | Action::SelectAt { .. }
+        | Action::Redraw
+        | Action::None => ControlFlow::Continue(()),
     };
     finish_reduction(model, &before, control, commands)
 }
@@ -184,6 +187,7 @@ fn intercept_reading_modal(model: &mut Model, action: Action) -> bool {
     if matches!(model.modal(), Modal::Chronicle) {
         match action {
             Action::Dismiss | Action::OpenChronicle => model.dismiss_modal(),
+            Action::ToggleChronicleChapter => model.toggle_chronicle_chapter(),
             Action::ScrollUp | Action::ScrollDown => {
                 model.scroll_reading(action == Action::ScrollDown);
             }

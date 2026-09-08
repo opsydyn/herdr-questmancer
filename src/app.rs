@@ -4,6 +4,7 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    chronicle_chapter::{ChapterRequest, ChapterWindow},
     config::OutputPreviewLines,
     domain::{Agent, AgentKey, DomainState, PaneId, Presence, Timestamp},
     ledger::LedgerPageId,
@@ -348,12 +349,42 @@ struct OutputContext {
     pending: Option<OutputRequest>,
 }
 
+/// A transient comparison of live party facts, never saved in the model.
+#[derive(Debug)]
+pub(crate) struct PartyActivity {
+    members: Vec<(AgentKey, PaneId)>,
+    all_resting: bool,
+    all_known: bool,
+}
+
+impl PartyActivity {
+    pub(crate) fn from_domain(domain: &DomainState) -> Self {
+        let agents = domain
+            .agents
+            .values()
+            .filter(|agent| agent.presence != Presence::Exited);
+        let members = agents
+            .clone()
+            .map(|agent| (agent.key.clone(), agent.pane_id.clone()))
+            .collect::<Vec<_>>();
+        Self {
+            all_resting: !members.is_empty()
+                && agents.clone().all(|agent| agent.presence == Presence::Idle),
+            all_known: agents
+                .clone()
+                .all(|agent| agent.presence != Presence::Unknown),
+            members,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Model {
     view: View,
     domain: DomainState,
     connection: ConnectionState,
     scene_transition_floor: Option<Timestamp>,
+    party_rest_since: Option<Timestamp>,
     modal: Modal,
     adventurer_card_visible: bool,
     output_preview: Option<OutputPreview>,
@@ -371,6 +402,7 @@ pub struct Model {
     action_feedback_at: Option<Timestamp>,
     search: SearchResults,
     reading_scroll: u16,
+    chronicle_chapter: Option<ChapterRequest>,
     counsel_drafts: BTreeMap<AgentKey, String>,
     active_counsel: BTreeMap<CounselRequest, CounselAttempt>,
     next_counsel_request: u64,
@@ -395,6 +427,7 @@ impl Model {
             domain: DomainState::default(),
             connection: ConnectionState::Offline,
             scene_transition_floor: None,
+            party_rest_since: None,
             modal: Modal::None,
             adventurer_card_visible: false,
             output_preview: None,
@@ -412,6 +445,7 @@ impl Model {
             action_feedback_at: None,
             search: SearchResults::default(),
             reading_scroll: 0,
+            chronicle_chapter: None,
             counsel_drafts: BTreeMap::new(),
             active_counsel: BTreeMap::new(),
             next_counsel_request: 0,
@@ -435,6 +469,7 @@ impl Model {
     }
 
     pub fn set_connection_at(&mut self, connection: ConnectionState, observed_at: Timestamp) {
+        self.party_rest_since = None;
         // Even Connected -> Connected starts a fresh snapshot lifetime.
         self.invalidate_output();
         // Retained summons remain truthful history, but cannot replay theatre
@@ -448,6 +483,33 @@ impl Model {
 
     pub const fn scene_transition_floor(&self) -> Option<Timestamp> {
         self.scene_transition_floor
+    }
+
+    pub const fn party_rest_since(&self) -> Option<Timestamp> {
+        self.party_rest_since
+    }
+
+    pub(crate) fn observe_party_activity(
+        &mut self,
+        previous: &PartyActivity,
+        observed_at: Option<Timestamp>,
+    ) {
+        let current = PartyActivity::from_domain(&self.domain);
+        let same_party = current.members == previous.members;
+        if !current.all_resting || !same_party {
+            self.party_rest_since = None;
+        }
+        if same_party
+            && previous.all_known
+            && !previous.all_resting
+            && current.all_resting
+            && self.connection == ConnectionState::Connected
+            && self.preferences.motion == Motion::Full
+            && let Some(at) =
+                observed_at.filter(|at| self.scene_transition_floor.is_none_or(|floor| *at > floor))
+        {
+            self.party_rest_since = Some(at);
+        }
     }
 
     pub const fn domain(&self) -> &DomainState {
@@ -702,8 +764,30 @@ impl Model {
     }
 
     pub fn open_chronicle(&mut self) {
+        self.chronicle_chapter = None;
         self.modal = Modal::Chronicle;
         self.reading_scroll = 0;
+    }
+
+    pub fn toggle_chronicle_chapter(&mut self) {
+        if self.modal != Modal::Chronicle {
+            return;
+        }
+        self.chronicle_chapter = if self.chronicle_chapter.is_some() {
+            None
+        } else {
+            Some(ChapterRequest {
+                window: ChapterWindow::last_hour(self.now),
+                adventurer: None,
+            })
+        };
+        self.reading_scroll = 0;
+    }
+
+    pub fn chronicle_chapter_lines(&self) -> Option<Vec<String>> {
+        self.chronicle_chapter
+            .as_ref()
+            .map(|request| request.project(&self.domain.chronicle).lines())
     }
 
     /// The Chronicle entries the view should show, newest first.
@@ -1229,7 +1313,10 @@ impl Model {
                 .output_preview
                 .as_ref()
                 .map_or(1, |preview| preview.text.lines().count().max(1)),
-            Modal::Chronicle => self.chronicle_entries(usize::MAX).len().max(1),
+            Modal::Chronicle => self.chronicle_chapter_lines().map_or_else(
+                || self.chronicle_entries(usize::MAX).len().max(1),
+                |lines| lines.len().max(1),
+            ),
             _ => 1,
         }
     }

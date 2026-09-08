@@ -116,6 +116,7 @@ pub fn paint(
 
     paint_materials(target, origin, seed);
     paint_architecture(target, origin);
+    let cat_deadline = paint_cat(snapshot, plan, target, origin);
     paint_furnishings(snapshot, target, origin);
     for pennant in table_pennants(snapshot) {
         blit(
@@ -147,10 +148,35 @@ pub fn paint(
             .into_iter()
             .chain(effect_deadline)
             .chain(goblin_deadline)
+            .chain(cat_deadline)
             .min(),
         actors,
         interactables,
     }
+}
+
+/// The shelf reservation remains clear of adventurers in the canonical Hall.
+fn paint_cat(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    target: &mut RgbBuffer,
+    origin: PixelPoint,
+) -> Option<Duration> {
+    let reaction = plan
+        .party_rest_since
+        .filter(|since| *since <= snapshot.now)
+        .filter(|since| plan.transition_floor.is_none_or(|floor| *since > floor))
+        .filter(|_| {
+            snapshot.motion == crate::app::Motion::Full
+                && snapshot.connection == crate::scene::snapshot::SceneConnection::Connected
+        })
+        .and_then(|since| crate::scene::assets::cat::reaction(since.elapsed_until(snapshot.now)));
+    let frame = reaction.map_or_else(
+        || crate::scene::assets::guild_hall::frame(GuildHallAsset::HearthCat),
+        |(frame, _)| frame,
+    );
+    blit(frame, translate(origin, 88, 19), target);
+    reaction.map(|(_, deadline)| deadline)
 }
 
 /// Paints goblins for as long as the outbreak window is open, and keeps asking
@@ -824,12 +850,6 @@ fn paint_architecture(target: &mut RgbBuffer, origin: PixelPoint) {
 
     blit_asset(GuildHallAsset::Shelf, target, origin, 83, 11);
     blit_asset(GuildHallAsset::Shelf, target, origin, 83, 25);
-    // Asleep between the shelves. The hearth would have been the better story,
-    // but every square of floor in front of the fire is a standing slot — the
-    // cat was drawn there and an adventurer stood on it. Nothing else in this
-    // room is alive except the people you are monitoring, and a room whose
-    // only living things are your open tasks is not much of a guild.
-    blit_asset(GuildHallAsset::HearthCat, target, origin, 88, 19);
     blit_asset(GuildHallAsset::Banner, target, origin, 106, 9);
 
     fill(target, origin, PixelRect::new(130, 7, 30, 52), STONE_DARK);

@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.18s
+     Running tests/scene_party.rs (target/debug/deps/scene_party-1629af422c322a92)
+
+running 1 test
+test both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class ... FAILED
+
+failures:
+
+---- both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class stdout ----
+
+thread 'both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class' panicked at tests/scene_party.rs:94:13:
+assertion `left == right` failed: GuildHall Bard
+  left: None
+ right: Some(500ms)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `--test scene_party`

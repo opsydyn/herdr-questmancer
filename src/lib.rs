@@ -92,6 +92,7 @@
 #![forbid(unsafe_code)]
 
 pub mod app;
+pub mod chronicle_chapter;
 pub mod cli;
 pub mod command;
 pub mod config;

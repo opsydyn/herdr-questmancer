@@ -24,7 +24,7 @@ fn scrying_story_contains_settled_output_without_live_io() {
 
 #[test]
 fn catalogue_contains_every_production_scene_interaction_once() {
-    assert_eq!(catalogue().len(), 34);
+    assert_eq!(catalogue().len(), 45);
     let titles = catalogue()
         .iter()
         .map(|story| story.title)
@@ -35,6 +35,17 @@ fn catalogue_contains_every_production_scene_interaction_once() {
         "Assets / Barbarian Poses",
         "Assets / Wizard Poses",
         "Assets / Ranger Poses",
+        "Assets / Bard Poses",
+        "Assets / Artificer Poses",
+        "Assets / Testmender Poses",
+        "Assets / Cleric Poses",
+        "Assets / Paladin Poses",
+        "Assets / Druid Poses",
+        "Assets / Rogue Poses",
+        "Assets / Pathseeker Poses",
+        "Assets / Runewright Poses",
+        "Assets / Mage Poses",
+        "Assets / Sorcerer Poses",
         "Assets / Core Portrait Masters",
         "Assets / Goblin Easter Egg",
         "Assets / Librarian",

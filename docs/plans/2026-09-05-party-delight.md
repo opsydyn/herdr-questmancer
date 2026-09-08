@@ -4,7 +4,11 @@ Date: 2026-09-05
 Status: steps 1 and 2b visually approved on 2026-09-05; steps 2a and 2b
 implemented and fully verified. Step 2c is complete. The Librarian refresh
 and three-class production pilot are implemented and fully verified; their
-production visual approval and manual terminal/live acceptance remain pending.
+production visuals were approved on 2026-09-08. Keepsakes, the cat reaction,
+Chronicle chapters, and rituals with matching card fallbacks for all fourteen
+classes are implemented and visually approved. See the
+[complete candidate review](../reviews/2026-09-08-party-candidate/README.md).
+Manual terminal/live and published release acceptance remain separate.
 
 ## Product outcome
 
@@ -74,7 +78,11 @@ rules.
 The [step 1 review pack](../design/reviews/2026-09-05-party-storyboard/README.md)
 is visually approved. Steps 2a and 2b are complete, including visual approval
 of the production roster sheets. Operating-guidance reconciliation in step 2c
-is also complete. Steps 4–6 remain separate proposed follow-on work.
+is also complete. The promoted parts of steps 4–6 are now implemented and
+visually approved: heraldry, keepsakes, the cat reaction, Chronicle chapters
+and all fourteen class rituals/cards. Durable mementos remain unpromoted.
+Native/live and distribution acceptance remain separate; see the
+[current roadmap assessment](../reviews/2026-09-08-roadmap-assessment.md).
 
 ## 1. Storyboard the party
 
@@ -423,6 +431,64 @@ techniques. A sensible next batch is Bard, Artificer and Testmender for
 instrument/tool-handling, followed by the remaining classes. Reassess each
 batch rather than cloning the pilot poses across every silhouette.
 
+On 2026-09-08 the Questmancer approved the Chronicle chapter screens and the
+next storyboard step. The [tool ritual review](../design/reviews/2026-09-08-tool-ritual-storyboard/README.md)
+now proposes Bard lute-picking, Artificer device-adjustment and Testmender
+needlework. It contains eight authored world moments per class, stable feet,
+current/proposed silhouettes, both room placements and a 500 ms working-loop
+study. The Questmancer subsequently approved the storyboard and production
+implementation. All 24 world frames now use the existing scheduler and persona
+substitution, with three new Storybook pose galleries. At that stage, independent
+cards and roster families were retained. The [production review](../design/reviews/2026-09-08-tool-ritual-production/README.md)
+shows real asset routes and both scene renderers; the Questmancer approved
+those production visuals on 2026-09-08.
+
+The implemented batch uses the current scheduling and semantic-state
+boundaries; review its actual production frames in both rooms next. Working comes from Herdr; counsel
+acknowledgement does not resume it; sealed spoils do not claim verified work.
+Do not infer card/roster approval or native/live acceptance from this design pack.
+The final full gate passed 593 Rust tests across 54 runs and 28 shell tests;
+the release build passed. The subsequent card alignment slice was approved
+and implemented: each new ritual class now reuses its personalised `16x24`
+working master in the existing `24x32` fallback canvas, with no scaling or
+animation. The [card review](../design/reviews/2026-09-08-tool-card-fallbacks/README.md)
+was visually approved on 2026-09-08. Native illustrations and roster families
+are retained. The next design-only batch was then authorised and prepared:
+[Cleric, Paladin and Druid](../design/reviews/2026-09-08-cleric-paladin-druid-storyboard/README.md),
+with distinct book, shield and living-staff rituals. Its twenty-four candidate
+poses, both room placements and proposed working playback were visually
+approved on 2026-09-08. The frames are now integrated through the existing
+ritual and persona paths; Storybook has 40 stories. The
+[production review](../design/reviews/2026-09-08-cleric-paladin-druid-production/README.md)
+was visually approved on 2026-09-08. The subsequent card alignment slice is
+implemented: these three classes now reuse their personalised working master
+inside the existing `24x32` card canvas without scaling or animation. Their
+[card review](../design/reviews/2026-09-08-cleric-paladin-druid-card-fallbacks/README.md)
+was visually approved on 2026-09-08. Native illustrations and roster families
+are retained. The next design-only
+[Rogue, Pathseeker and Runewright storyboard](../design/reviews/2026-09-08-rogue-pathseeker-runewright-storyboard/README.md)
+was visually approved on 2026-09-08. Its twenty-four frames are now integrated
+through the existing ritual and persona paths; Storybook has 43 stories. The
+[production review](../design/reviews/2026-09-08-rogue-pathseeker-runewright-production/README.md)
+was visually approved on 2026-09-08. Their subsequent card alignment centres
+the same personalised working master in the existing `24x32` canvas without
+scaling or animation. The
+[card review](../design/reviews/2026-09-08-rogue-pathseeker-runewright-card-fallbacks/README.md)
+was visually approved on 2026-09-08. Native illustrations and roster families
+are retained. The subsequently authorised design-only
+[Mage and Sorcerer storyboard](../design/reviews/2026-09-08-mage-sorcerer-storyboard/README.md)
+was visually approved on 2026-09-08. Its sixteen frames are now integrated
+through the existing ritual and persona routes; Storybook has 45 stories.
+The [production review](../design/reviews/2026-09-08-mage-sorcerer-production/README.md)
+was visually approved on 2026-09-08. Their subsequent card alignment now
+centres the same personalised world sprites in the existing `24x32` canvas.
+The [final card review](../design/reviews/2026-09-08-mage-sorcerer-card-fallbacks/README.md)
+was visually approved on 2026-09-08. All fourteen classes now have rituals and
+matching card fallbacks. Complete candidate preparation was then authorised;
+see the [candidate review](../reviews/2026-09-08-party-candidate/README.md).
+Publication remains a separate gate. Later dated approvals supersede the
+historical pending statements retained below.
+
 Keep ancestry silhouettes and the unused appearance attributes in the backlog
 until their recognition benefit is demonstrated. Retain current persona
 generation and saved identity throughout the pilot.
@@ -487,7 +553,11 @@ Record the revision plus any dirty diff, fixture, viewport, motion/colour mode,
 terminal/transport, screenshot or recording, and reviewer decision for each
 visual pass. Ask whether the moment is clear, recognisable and enjoyable.
 
-## Current handoff
+## Historical handoff before the consolidated approval
+
+The following records the earlier sequencing decision. Later approvals below
+and the [current assessment](../reviews/2026-09-08-roadmap-assessment.md)
+supersede its pending and not-started statements.
 
 2026-09-08 override: the Questmancer moved visual sign-off to the end and asked
 to progress engineering. The four-row sidebar is applied and
@@ -542,3 +612,78 @@ heraldry and guild-memory work have not started.
 - [Guild standing](../design/questmancer-guild-standing.md)
 - [Guarded scene acceptance](../manual-test/questmancer-scene-preview.md)
 - [Native portrait troubleshooting](../troubleshooting/native-portrait-rendering.md)
+
+## Consolidated approval — 2026-09-08
+
+The Questmancer approved the consolidated visual review after clean local
+qualification of 0.1.9 at `c3720a9`. This supersedes earlier pending visual
+review entries for the Librarian, three-class pilot, reviewed cards/rooms,
+sidebar and heraldry. Native transport observations were not supplied and
+remain separate from product approval and local engineering qualification.
+
+The next recommended bounded delight slice is keepsake details: an authored
+illustration and fixed description using the existing assignment and card
+footprint. Implementation has not been requested. Cat reaction, factual
+Chronicle chapters and the next class-art batch follow as separate slices.
+
+## Keepsake details — approved implementation, 2026-09-08
+
+The Questmancer approved the next keepsake slice. The existing six saved
+assignments now select a distinct static 8x8 illustration, title and fixed
+description. Roomy cards use their lower text section; compact cards use two
+text rows and omit artwork. Card dimensions and class portrait bounds stay
+unchanged. Live lines in both cards truncate horizontally to preserve all fact rows
+and controls at the minimum 60x14 viewport. No new persona, persistence,
+inventory, animation or input state is introduced.
+
+[Production review and verification](../design/reviews/2026-09-08-keepsakes/README.md).
+This new art needs its own approval. The previous 0.1.9 clean qualification
+remains evidence for `c3720a9`, not for these subsequent uncommitted changes.
+
+## Cat reaction — approved implementation, 2026-09-08
+
+The Questmancer approved keepsake visuals and the next single cat reaction.
+The canonical Hall's existing cat lifts its head for 400 ms, stretches for
+400 ms, then returns to its authored sleeping pose. All frames remain within
+the existing 10x5 shelf reservation, without new actor targets.
+
+Runtime compares accepted before/after live party facts. The same non-empty
+set of adventurers and panes must move from a known, not-all-resting party
+to all Idle. Unknown states, empty parties, additions/removals, stale events
+and connection baselines cannot trigger it. Renewed work, changed membership
+or a socket boundary cancels it. Both status events and refreshed snapshots
+use this path; rendering is pure. Only an ephemeral start timestamp enters
+presentation, never SceneSnapshot or persistence.
+
+Full motion uses asset-owned 400/800 ms deadlines; reduced/still motion, Delve
+and smaller Hall tiers add no cat wake. Expiration is derived, with no cleanup
+timer. [Production review and evidence](../design/reviews/2026-09-08-cat-reaction/README.md).
+The reaction awaits visual approval. Factual Chronicle chapters remain a
+separate, unstarted slice.
+
+## Chronicle chapters — approved implementation, 2026-09-08
+
+The Questmancer approved the cat reaction and the next factual Chronicle slice.
+`c` retains the selected adventurer's existing record list; `Tab` requests a
+whole-guild chapter for the last hour, then toggles back to records. The UTC
+window is fixed at request time, inclusive at both ends. Only retained entries
+inside that window count, deduplicated by EventId with deterministic timestamp
+and ID ordering. Fixed templates count events, not distinct adventurers.
+Original summaries retain recorded names, with timestamps and source IDs below.
+No read checkpoint, generated prose service, stored chapter or achievement is
+introduced. Source lines wrap at full chapter width; panes narrower than 80 columns
+clip them horizontally.
+
+Source audit found two pre-existing evidence limits: refreshed snapshots do
+not append Chronicle entries, and the joined enum also records unknown
+whereabouts. Chapters label that category as identity events and cannot fill
+unrecorded intervals. Campaign-closure records are counted only if actually
+retained; current workspace removal does not emit that event. These limitations
+are explicit rather than reconstructed from topology or status.
+
+[Review and verification](../design/reviews/2026-09-08-chronicle-chapters/README.md).
+Normal Herdr 0.9 status events already reach the Chronicle through metadata
+reconciliation. Snapshot-only capture and clearer identity event taxonomy are
+separate correctness follow-ups, preserving reconnect baselines and event
+deduplication. The class-art batches that followed are now complete and
+visually approved. Snapshot capture and identity taxonomy remain unpromoted.

@@ -90,6 +90,7 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
             title: "Keeping a Safe Chronicle",
             body: &[
                 "Questmancer stays local. Herdr owns topology and live agent facts; Questmancer stores only small durable intent and its Chronicle.",
+                "In the Chronicle, Tab requests a last-hour guild chapter or returns to records. Chapters count retained events and keep their UTC window fixed until requested again; missing history is not inferred.",
                 "The managed Questmancer pane is never an adventurer and cannot receive focus, counsel, output or Reviewr commands.",
                 "Guarded tests use disposable panes and fresh IDs. Herdr 0.9.0 cannot synthesize an explicit done transition.",
             ],

@@ -1,7 +1,9 @@
 pub mod adventurer;
 pub mod archetypes;
+pub mod cat;
 pub mod delve;
 pub mod guild_hall;
+pub mod keepsakes;
 pub mod librarian;
 pub mod palette;
 pub(crate) mod rituals;

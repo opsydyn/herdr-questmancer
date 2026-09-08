@@ -1,0 +1,51 @@
+{
+  "base_commit": "c3720a90ab0b5b43f9447cc5e71d1ed34a2df4ed",
+  "scope": "Current uncommitted worktree; Cleric, Paladin and Druid world rituals",
+  "design_approval": "approved by Questmancer on 2026-09-08",
+  "production_visual_approval": "approved by Questmancer on 2026-09-08",
+  "regression": "Cleric in GuildHall returned no deadline instead of 500ms before registration",
+  "focused_rust_tests": 7,
+  "affected_integration_tests": 87,
+  "rust_tests": 593,
+  "rust_test_runs": 54,
+  "shell_tests": 28,
+  "just_verify_exit_code": 0,
+  "release_build_exit_code": 0,
+  "review_export_exit_code": 0,
+  "artwork_comparison": "All 24 production poses match approved transparency and class-owned material pixels; persona role colours remain dynamic",
+  "storybook_stories": 40,
+  "native_live_acceptance": "not exercised",
+  "package_qualification": "not repeated for post-candidate work",
+  "initial_gate_limits": [
+    "Sandbox denied isolated Unix socket fixtures; rerun with fixture access",
+    "Workflow contract still expected 37 stories; updated to 40 and full gate rerun"
+  ],
+  "visual_inspection": "All five sheets, both working GIF frames and six counsel/spoils journey frames inspected",
+  "gif_checks": {
+    "working_frames": 2,
+    "working_frame_ms": 500,
+    "journey_frames": 32,
+    "journey_playback": "once; intended centisecond durations verified"
+  },
+  "source_sha256": {
+    "src/scene/assets/rituals.rs": "85b7d278e3709f07420c27bf312556bc4995ba70f8739d103de9c1471380ac25",
+    "src/scene/assets/rituals/support_art.rs": "efba31122cc4fe1adbad0ecfa926f3ccd6a7e845f9415c97f6d16ea6c998c2a7",
+    "src/scene/assets/adventurer.rs": "7806b32066a5cac295a8ff0f9b00738e0c41dfb7d9faff6a002526d36d3275a0",
+    "src/storybook/assets.rs": "ce35a4ef6252cd75f63d3a7a8eb11c2619c80ccd02af5976aae676af9cb16569",
+    "src/storybook/catalogue.rs": "de999d4bf345bee6d1098f6431c7bed899cc6d3fbd6e200570c247562d6b20e3",
+    "tests/scene_party.rs": "73d0cb6bbbe66a0a892c56124e606484edeec01615456c35f61f3cf0160bb2ea",
+    "tests/storybook.rs": "6783b5108fa5635b8057463e2682e1b8db84d3319167b62d215542fa6cd1be4c",
+    "tests/scene_delve.rs": "408aaab551df6c3fe44f49d7ed0f058c0ec2a68fc5e037c06eecba707b8a22df",
+    "tests/scene_stage.rs": "b97ac194692618ee2144494fd7fce9eea35619ea6a7133ebe492b1aa6aa96754",
+    "tests/workflow_contract.rb": "9a098324b9a3dc3a7eb0c17e1cf0ea402bab14572e47ea4192f03951a55f082b"
+  },
+  "output_sha256": {
+    "01-production-poses.png": "738f6ffeb0851e34967fe6c91ba8520cbb83ddf8d47ac5e8152f126985783d03",
+    "02-rooms-and-viewports.png": "2b1562a394c30fddbb0dd5e102df205ed7fe25ae18adf025ce2adb8c650c0499",
+    "03-ritual-timeline.png": "e717550fec601142c0d1df1cf460deb03bd6fd24191271ff3b10148f5f1e226c",
+    "04-counsel-outcomes.png": "3d9b356118e7d2f51782a2991c6d303eaad6849705cda0bc4395ec7812a4d87e",
+    "05-card-and-delve-check.png": "d8fe629246d48197c3c9394889d7af1b77a742f6927db68742e06198f2fb7994",
+    "party-journey.gif": "c4ad50474040c6b87eb49bb9c1b37e08a2883865b3b092ddf32b5fe704fd3f14",
+    "working-loop.gif": "4dce4612478997e370721914de7a4bfb7a701e57bc543182adcdad1464a096c2"
+  }
+}

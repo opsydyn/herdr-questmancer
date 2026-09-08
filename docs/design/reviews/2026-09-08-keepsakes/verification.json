@@ -1,0 +1,19 @@
+{
+  "base_commit": "c3720a90ab0b5b43f9447cc5e71d1ed34a2df4ed",
+  "scope": "Subsequent uncommitted keepsake details and prior approval records",
+  "rust_tests": 574,
+  "rust_test_runs": 52,
+  "shell_tests": 28,
+  "just_verify_exit_code": 0,
+  "release_build_exit_code": 0,
+  "review_export_exit_code": 0,
+  "visual_approval": "approved by Questmancer on 2026-09-08",
+  "native_acceptance": "not exercised",
+  "persona_persistence": "unchanged",
+  "review_sha256": "284c7ee47ffc8634f25267f3e67cb259f76a70b60181ae4d6ba4afb3753440b2",
+  "logs": {
+    "verify": "verify.log",
+    "release-build": "release-build.log",
+    "focused": "focused.log"
+  }
+}

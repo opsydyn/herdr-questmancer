@@ -1,5 +1,10 @@
-//! Authored Wizard, Ranger and Barbarian rituals from the approved 2026-09-05
-//! storyboard. Frame timing belongs here; both rooms consume the same sample.
+//! Authored party rituals from the approved 2026-09-05 and 2026-09-08 storyboards.
+//! Frame timing belongs here; both rooms consume the same sample.
+
+mod arcane_art;
+mod support_art;
+mod tool_art;
+mod trail_art;
 use std::{sync::OnceLock, time::Duration};
 
 use super::{IndexedPaletteEntry, indexed_sprite};
@@ -63,26 +68,32 @@ fn sequence(pose: ScenePose) -> &'static Sequence {
     }
 }
 
-const fn class_index(class: AdventurerClass) -> Option<usize> {
+const fn class_index(class: AdventurerClass) -> usize {
     match class {
-        AdventurerClass::Wizard => Some(0),
-        AdventurerClass::Ranger => Some(1),
-        AdventurerClass::Barbarian => Some(2),
-        _ => None,
+        AdventurerClass::Wizard => 0,
+        AdventurerClass::Ranger => 1,
+        AdventurerClass::Barbarian => 2,
+        AdventurerClass::Bard => 3,
+        AdventurerClass::Artificer => 4,
+        AdventurerClass::Testmender => 5,
+        AdventurerClass::Cleric => 6,
+        AdventurerClass::Paladin => 7,
+        AdventurerClass::Druid => 8,
+        AdventurerClass::Rogue => 9,
+        AdventurerClass::Pathseeker => 10,
+        AdventurerClass::Runewright => 11,
+        AdventurerClass::Mage => 12,
+        AdventurerClass::Sorcerer => 13,
     }
 }
 
 /// An absent age settles a one-shot gesture. The scene uses this for stale
 /// snapshots and socket boundaries, without inventing a new domain event.
 pub(crate) fn sample(
-    class: AdventurerClass,
     pose: ScenePose,
     motion: Motion,
     elapsed: Option<Duration>,
 ) -> (u8, Option<Duration>) {
-    if class_index(class).is_none() {
-        return (0, None);
-    }
     let sequence = sequence(pose);
     let count = sequence.frames.len();
     let static_frame = match sequence.playback {
@@ -119,7 +130,7 @@ pub(crate) fn sample(
 struct ClassArt {
     palette: &'static [IndexedPaletteEntry],
     frames: [&'static [&'static str]; 8],
-    roster: &'static [&'static str],
+    roster: Option<&'static [&'static str]>,
 }
 
 pub(crate) fn world_master(
@@ -127,8 +138,8 @@ pub(crate) fn world_master(
     pose: ScenePose,
     frame: u8,
 ) -> Option<(SpriteFrame, &'static [IndexedPaletteEntry])> {
-    static FRAMES: OnceLock<[[SpriteFrame; 8]; 3]> = OnceLock::new();
-    let class = class_index(class)?;
+    static FRAMES: OnceLock<[[SpriteFrame; 8]; ART.len()]> = OnceLock::new();
+    let class = class_index(class);
     let frames = FRAMES.get_or_init(|| {
         std::array::from_fn(|class| {
             ART[class].frames.map(|rows| {
@@ -138,21 +149,22 @@ pub(crate) fn world_master(
     });
     let sequence = sequence(pose);
     let index = sequence.frames[usize::from(frame) % sequence.frames.len()];
-    Some((frames[class][index].clone(), ART[class].palette))
+    Some((frames.get(class)?[index].clone(), ART[class].palette))
 }
 
 pub(crate) fn roster_master(
     class: AdventurerClass,
 ) -> Option<(SpriteFrame, &'static [IndexedPaletteEntry])> {
-    static FRAMES: OnceLock<[SpriteFrame; 3]> = OnceLock::new();
-    let class = class_index(class)?;
+    static FRAMES: OnceLock<[Option<SpriteFrame>; ART.len()]> = OnceLock::new();
+    let class = class_index(class);
     let frames = FRAMES.get_or_init(|| {
         std::array::from_fn(|class| {
-            indexed_sprite(ART[class].roster, ART[class].palette)
-                .expect("authored pilot roster is valid")
+            ART[class].roster.map(|rows| {
+                indexed_sprite(rows, ART[class].palette).expect("authored pilot roster is valid")
+            })
         })
     });
-    Some((frames[class].clone(), ART[class].palette))
+    Some((frames.get(class)?.as_ref()?.clone(), ART[class].palette))
 }
 
 const WIZARD_PALETTE: &[IndexedPaletteEntry] = &[
@@ -1043,7 +1055,7 @@ const BARBARIAN_ROSTER: &[&str] = &[
     "d.oddo..", "d.od.do.", "..oo.oo.", "........",
 ];
 
-const ART: [ClassArt; 3] = [
+const ART: [ClassArt; 14] = [
     ClassArt {
         palette: WIZARD_PALETTE,
         frames: [
@@ -1056,7 +1068,7 @@ const ART: [ClassArt; 3] = [
             WIZARD_UNKNOWN,
             WIZARD_SETTLED,
         ],
-        roster: WIZARD_ROSTER,
+        roster: Some(WIZARD_ROSTER),
     },
     ClassArt {
         palette: RANGER_PALETTE,
@@ -1070,7 +1082,7 @@ const ART: [ClassArt; 3] = [
             RANGER_UNKNOWN,
             RANGER_SETTLED,
         ],
-        roster: RANGER_ROSTER,
+        roster: Some(RANGER_ROSTER),
     },
     ClassArt {
         palette: BARBARIAN_PALETTE,
@@ -1084,6 +1096,17 @@ const ART: [ClassArt; 3] = [
             BARBARIAN_UNKNOWN,
             BARBARIAN_SETTLED,
         ],
-        roster: BARBARIAN_ROSTER,
+        roster: Some(BARBARIAN_ROSTER),
     },
+    tool_art::BARD,
+    tool_art::ARTIFICER,
+    tool_art::TESTMENDER,
+    support_art::CLERIC,
+    support_art::PALADIN,
+    support_art::DRUID,
+    trail_art::ROGUE,
+    trail_art::PATHSEEKER,
+    trail_art::RUNEWRIGHT,
+    arcane_art::MAGE,
+    arcane_art::SORCERER,
 ];

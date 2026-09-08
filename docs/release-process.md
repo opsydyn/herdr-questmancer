@@ -38,11 +38,25 @@ records verification, packaging, archive checks and remaining acceptance gates.
 
 ## Local candidate — 2026-09-08
 
-The current candidate is `0.1.9`, requiring Herdr `0.9.0` / protocol `22`.
-Its [qualification receipt](reviews/2026-09-08-release-candidate/README.md)
-and [consolidated visual review](design/reviews/2026-09-08-consolidated/README.md)
-track local checks separately from native approval and published distribution.
-The historical `v0.1.8` tag remains untouched.
+The current expanded candidate is `0.1.9`, requiring Herdr `0.9.0` / protocol
+`22`. The [complete candidate review](reviews/2026-09-08-party-candidate/README.md)
+records all approved visuals, verification, source packaging and isolated
+runtime evidence. The [earlier qualification](reviews/2026-09-08-release-candidate/README.md)
+at `c3720a9` covers the earlier source only. Current changes still need a
+reviewed local commit and qualification from that clean commit.
+
+Fresh read-only GitHub API checks on 2026-09-08 found only published `v0.1.0`
+and `v0.1.3`, and the `v0.1.9` tag lookup returned 404. No publication or remote
+write was performed. The historical `v0.1.8` tag remains untouched.
+The complete candidate's curated notes are consolidated under `[0.1.9]` with
+an empty `[Unreleased]` section so the existing release-body extractor includes
+both the earlier changes and the approved party additions.
+
+The expanded review packs initially made the source archive exceed 10 MiB.
+`Cargo.toml` now excludes `docs/design/reviews` and `docs/reviews` from the
+crate; they remain in Git for audit and art review. Runtime code, production
+assets and Storybook remain packaged. The candidate receipt records the exact
+archive size, hash, verified build and packaged Storybook build.
 
 ## Cutting one
 

@@ -1,0 +1,48 @@
+{
+  "base_commit": "c3720a90ab0b5b43f9447cc5e71d1ed34a2df4ed",
+  "scope": "Current uncommitted worktree; Rogue, Pathseeker and Runewright world rituals",
+  "design_approval": "approved by Questmancer on 2026-09-08",
+  "production_visual_approval": "approved by Questmancer on 2026-09-08",
+  "regression": "Rogue in GuildHall returned no deadline instead of 500ms before registration",
+  "focused_rust_tests": 7,
+  "affected_integration_tests": 87,
+  "rust_tests": 593,
+  "rust_test_runs": 54,
+  "shell_tests": 28,
+  "just_verify_exit_code": 0,
+  "release_build_exit_code": 0,
+  "review_export_exit_code": 0,
+  "artwork_comparison": "All 24 production poses match approved transparency and class-owned material pixels; persona role colours remain dynamic",
+  "storybook_stories": 43,
+  "native_live_acceptance": "not exercised",
+  "package_qualification": "not repeated for post-candidate work",
+  "visual_inspection": "All five sheets, both working GIF frames and six counsel/spoils journey frames inspected",
+  "gif_checks": {
+    "working_frames": 2,
+    "working_frame_ms": 500,
+    "journey_frames": 32,
+    "journey_playback": "once; intended centisecond durations verified"
+  },
+  "source_sha256": {
+    "src/scene/assets/rituals.rs": "e5abe7f2c2f9f08760fd0eea310b068dfc560b488bca7b0a034e774784d6b7b8",
+    "src/scene/assets/rituals/trail_art.rs": "81898f8228ec380ebb92035a47b54855c61a0f38e2204b2efd43b80285b0a9dc",
+    "src/scene/assets/adventurer.rs": "33698b086e9477537d0dbc5b4beea5c1985396464fd16ced45fa125d21ebd822",
+    "src/storybook/assets.rs": "acbf5f7abcfd4b6893b623a593c606dae28fe866a16295cd54ad6ce4c2dfe44d",
+    "src/storybook/catalogue.rs": "17842b9371972fea9d09da04d05a3f0afbeb36e6d62668b8d302b2eb6b1c63af",
+    "tests/scene_party.rs": "d30b0b55c2541e6659c407a905f0e21b5d5c91d5f8e02a720832e83cb3b45921",
+    "tests/storybook.rs": "49de372a5633cfcf7b39065c016d6773febfc85e8b6feb8d98e11792878016db",
+    "tests/scene_delve.rs": "93b4541bdfe0047b3b5e1ccb0858bde757369f2e165aa99b21bf996c1126a90a",
+    "tests/scene_stage.rs": "29d276cc5f3551156d3c052d4e737c31818dee59185c4ab948bda4a645a319f6",
+    "tests/scene_guild_hall.rs": "597d5a510716d78b971f5148dd8f7f472a564cc4449746e144fdcd662a723f85",
+    "tests/workflow_contract.rb": "722f8d021b2ebe7a8edfae2a7ff25ebea7974737b2854dc3273a3d539afe61d1"
+  },
+  "output_sha256": {
+    "01-production-poses.png": "08a4c124184298a20b5c1e3589e837d19b426d263177983a4cba6d99f9de4295",
+    "02-rooms-and-viewports.png": "2c07acc3468f59de294e7f7064ebab42ed304ad272aded426e2787a644dc13db",
+    "03-ritual-timeline.png": "94e8ef582b860ce08cbb59037bbeb6aa37f6b108da3828733c1f625b68bb183f",
+    "04-counsel-outcomes.png": "d2c4aad59a1f682b1bc551fda32c75bb1b4e69f80c24da3345019a900fe0c7c2",
+    "05-card-and-delve-check.png": "20bef7999cf1d3899ed7399c055aca332f74dd1a00b6ec8eedef32d4772eeffb",
+    "party-journey.gif": "b4408016a83c61fc2b41cd5dc5940f623ccb6464bdf978d09dcdea4539492cab",
+    "working-loop.gif": "d5df44291f243c9f98f888953b9657e72947c040f0f244c4d09f5069e3ecee4b"
+  }
+}

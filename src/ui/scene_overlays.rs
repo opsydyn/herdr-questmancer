@@ -14,7 +14,7 @@ use crate::{
     portrait::PortraitGallery,
     scene::{
         SceneFrame,
-        assets::{adventurer::adventurer_portrait_frame, librarian, roster},
+        assets::{adventurer::adventurer_portrait_frame, keepsakes, librarian, roster},
         heraldry::{CampaignCrest, CrestField},
         pixel::{PixelPoint, PixelRect, Rgb, RgbBuffer},
         presentation::{SceneOverlay, ScenePresentation},
@@ -346,7 +346,7 @@ fn render_adventurer_card(
         .custom_status
         .as_deref()
         .unwrap_or("No current field report.");
-    let lines = vec![
+    let mut lines = vec![
         Line::from(agent.persona.name.clone()),
         Line::from(format!("{role} · {}", agent.persona.epithet.as_str())),
         campaign_crest_line(&agent.workspace_id, model),
@@ -354,8 +354,6 @@ fn render_adventurer_card(
         Line::from(format!("Campaign: {campaign}")),
         Line::from(format!("{status} · {elapsed}")),
         Line::from(message.to_owned()),
-        Line::from(""),
-        Line::from("Esc close · Enter observe · r counsel · o scry"),
     ];
     if detailed {
         render_portrait_card(
@@ -367,7 +365,26 @@ fn render_adventurer_card(
             portraits,
         );
     } else {
-        render_parchment(frame, card, " ADVENTURER ", Text::from(lines));
+        let keepsake = agent.persona.appearance.keepsake;
+        lines.push(Line::from(format!(
+            "Keepsake: {}",
+            keepsakes::name(keepsake)
+        )));
+        lines.push(Line::from(keepsakes::description(keepsake)));
+        lines.push(Line::from("Esc close · Enter observe · r counsel · o scry"));
+        // Ten fixed rows fit even the minimum card. Truncate long live reports
+        // horizontally so they cannot displace keepsake identity or controls.
+        frame.render_widget(Clear, card);
+        frame.render_widget(
+            Paragraph::new(lines).style(PARCHMENT).block(
+                Block::default()
+                    .title(" ADVENTURER ")
+                    .title_alignment(Alignment::Center)
+                    .borders(Borders::ALL)
+                    .border_style(PARCHMENT_BORDER),
+            ),
+            card,
+        );
     }
 }
 
@@ -433,17 +450,35 @@ fn render_portrait_card(
         );
     }
 
-    let text_area = Rect::new(
-        area.x + 28,
-        area.y + 1,
-        area.width.saturating_sub(29),
-        area.height.saturating_sub(2),
+    let text_area = Rect::new(area.x + 28, area.y + 1, area.width.saturating_sub(29), 10);
+    // Keep each live fact on its own row: long labels must not displace status.
+    frame.render_widget(Paragraph::new(text).style(PARCHMENT), text_area);
+    let keepsake = persona.appearance.keepsake;
+    let mut pixels = RgbBuffer::filled(8, 8, PARCHMENT_RGB);
+    blit(
+        &keepsakes::illustration(keepsake),
+        PixelPoint::new(0, 0),
+        &mut pixels,
+    );
+    flush_rgb(
+        frame.buffer_mut(),
+        Rect::new(text_area.x, area.y + 12, 8, 4),
+        &pixels,
+        PARCHMENT_RGB,
+        colour_mode,
     );
     frame.render_widget(
-        Paragraph::new(text)
-            .style(PARCHMENT)
-            .wrap(Wrap { trim: false }),
-        text_area,
+        Paragraph::new(vec![
+            Line::from(format!("Keepsake: {}", keepsakes::name(keepsake))),
+            Line::from(keepsakes::description(keepsake)),
+        ])
+        .style(PARCHMENT)
+        .wrap(Wrap { trim: false }),
+        Rect::new(text_area.x + 10, area.y + 12, text_area.width - 10, 4),
+    );
+    frame.render_widget(
+        Paragraph::new("Esc close · Enter observe · r counsel · o scry").style(PARCHMENT),
+        Rect::new(text_area.x, area.y + 16, text_area.width, 1),
     );
 }
 
@@ -719,6 +754,10 @@ fn render_scrying_parchment(frame: &mut Frame<'_>, model: &Model) {
 /// human, as a count in a sidebar token. The other six were written and never
 /// read by anything.
 fn render_chronicle_parchment(frame: &mut Frame<'_>, model: &Model) {
+    if let Some(lines) = model.chronicle_chapter_lines() {
+        render_chronicle_chapter(frame, model, lines);
+        return;
+    }
     let available = frame.area();
     let width = available.width.saturating_sub(4).min(76);
     // Borders take two rows, the blank line and the footer two more. Ask for
@@ -771,11 +810,41 @@ fn render_chronicle_parchment(frame: &mut Frame<'_>, model: &Model) {
     }
     lines.push(Line::from(""));
     lines.push(Line::from(if scrollable {
-        "Esc close · j/k or wheel scroll"
+        "Esc close · Tab guild chapter · j/k or wheel scroll"
     } else {
-        "Esc close"
+        "Esc close · Tab guild chapter"
     }));
     render_parchment(frame, area, title, Text::from(lines));
+}
+
+fn render_chronicle_chapter(frame: &mut Frame<'_>, model: &Model, lines: Vec<String>) {
+    let available = frame.area();
+    let capacity = usize::from(available.height.saturating_sub(6)).clamp(1, 14);
+    let offset = usize::from(model.reading_scroll()).min(lines.len().saturating_sub(1));
+    let visible = lines
+        .into_iter()
+        .skip(offset)
+        .take(capacity)
+        .map(Line::from)
+        .collect::<Vec<_>>();
+    let height = u16::try_from(visible.len()).unwrap_or(14).saturating_add(4);
+    let Some(area) = centered(available, crate::chronicle_chapter::CHAPTER_COLUMNS, height) else {
+        return;
+    };
+    let mut text = visible;
+    text.push(Line::from(""));
+    text.push(Line::from("Esc close · Tab records · j/k or wheel scroll"));
+    frame.render_widget(Clear, area);
+    frame.render_widget(
+        Paragraph::new(text).style(PARCHMENT).block(
+            Block::default()
+                .title(" CHRONICLE / LAST HOUR ")
+                .title_alignment(Alignment::Center)
+                .borders(Borders::ALL)
+                .border_style(PARCHMENT_BORDER),
+        ),
+        area,
+    );
 }
 
 fn render_command_ribbon(frame: &mut Frame<'_>, model: &Model) {

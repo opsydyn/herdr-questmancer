@@ -1,0 +1,21 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.39s
+     Running tests/scene_stage.rs (target/debug/deps/scene_stage-071b6819d9eefb53)
+
+running 14 tests
+test quiet_motion_projects_settled_completion_without_transient_effects ... ok
+test completion_theatre_is_fresh_before_but_not_at_three_seconds ... ok
+test static_authored_actor_never_requests_an_animation_deadline ... ok
+test camera_uses_room_threshold_and_small_view_priority ... ok
+test automatic_delve_places_supported_states_at_truthful_stations ... ok
+test guild_hall_places_each_truthful_actor_once_and_keeps_departures_as_effects ... ok
+test focus_changes_only_emphasis_and_crop_not_station_or_identity ... ok
+test automatic_world_choice_uses_the_locked_priority ... ok
+test fresh_spoils_deadline_requires_a_visible_animated_pixel ... ok
+test static_actor_frames_do_not_schedule_camera_dependent_deadlines ... ok
+test static_and_no_motion_frames_have_no_idle_rendering_cost ... ok
+test static_authored_actors_do_not_schedule_invisible_motion ... ok
+test viewport_matrix_preserves_exact_targets_and_world_specific_viewport_contracts ... ok
+test one_target_buffer_is_reused_for_one_thousand_fixed_frames ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.35s

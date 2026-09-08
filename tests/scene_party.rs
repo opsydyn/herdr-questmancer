@@ -17,10 +17,21 @@ use questmancer::{
     },
 };
 
-const CLASSES: [AdventurerClass; 3] = [
+const CLASSES: [AdventurerClass; 14] = [
     AdventurerClass::Wizard,
     AdventurerClass::Ranger,
     AdventurerClass::Barbarian,
+    AdventurerClass::Bard,
+    AdventurerClass::Artificer,
+    AdventurerClass::Testmender,
+    AdventurerClass::Cleric,
+    AdventurerClass::Paladin,
+    AdventurerClass::Druid,
+    AdventurerClass::Rogue,
+    AdventurerClass::Pathseeker,
+    AdventurerClass::Runewright,
+    AdventurerClass::Mage,
+    AdventurerClass::Sorcerer,
 ];
 const WORLDS: [WorldScene; 2] = [WorldScene::GuildHall, WorldScene::Delve];
 
@@ -83,7 +94,7 @@ fn render(
 }
 
 #[test]
-fn both_rooms_play_two_working_frames_at_two_fps_for_each_pilot_class() {
+fn both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class() {
     for world in WORLDS {
         for class in CLASSES {
             let (first, frame) = render(class, Presence::Working, Motion::Full, 0, world);
@@ -181,7 +192,7 @@ fn each_return_places_its_spoils_then_settles_at_the_exact_three_second_deadline
 }
 
 #[test]
-fn every_pilot_pose_keeps_its_foot_anchor_and_native_dimensions() {
+fn every_ritual_pose_keeps_its_foot_anchor_and_native_dimensions() {
     use questmancer::scene::{
         assets::adventurer::{adventurer_animation_frame, adventurer_roster_frame},
         stage::ScenePose,
@@ -216,9 +227,167 @@ fn every_pilot_pose_keeps_its_foot_anchor_and_native_dimensions() {
         }
         let roster = adventurer_roster_frame(&persona);
         assert_eq!(roster.size(), PixelSize::new(8, 12));
+        let expected_foot = match class {
+            AdventurerClass::Wizard | AdventurerClass::Ranger | AdventurerClass::Barbarian => 10,
+            _ => {
+                use questmancer::scene::assets::roster::{family_for, master};
+                let (original, _) = master(family_for(class));
+                assert!(
+                    original
+                        .pixels()
+                        .iter()
+                        .zip(roster.pixels())
+                        .all(|(a, b)| a.is_some() == b.is_some()),
+                    "the expanded batches retain their existing roster silhouettes"
+                );
+                original.pixels().iter().rposition(Option::is_some).unwrap() / 8
+            }
+        };
         assert_eq!(
             roster.pixels().iter().rposition(Option::is_some).unwrap() / 8,
-            10
+            expected_foot
         );
+    }
+}
+
+#[test]
+fn expanded_rituals_preserve_persona_masks_and_gear() {
+    use questmancer::{
+        domain::{AccentTone, Garb, HairTone, SkinTone},
+        scene::{assets::adventurer::adventurer_animation_frame, stage::ScenePose},
+    };
+    for class in [
+        AdventurerClass::Bard,
+        AdventurerClass::Artificer,
+        AdventurerClass::Testmender,
+        AdventurerClass::Cleric,
+        AdventurerClass::Paladin,
+        AdventurerClass::Druid,
+        AdventurerClass::Rogue,
+        AdventurerClass::Pathseeker,
+        AdventurerClass::Runewright,
+        AdventurerClass::Mage,
+        AdventurerClass::Sorcerer,
+    ] {
+        let mut a = snapshot(class, Presence::Working, Motion::None, 0)
+            .agents
+            .remove(0)
+            .persona;
+        a.appearance.skin_tone = SkinTone::Porcelain;
+        a.appearance.hair_tone = HairTone::Black;
+        a.appearance.accent = AccentTone::Cyan;
+        a.appearance.garb = Garb::Vestments;
+        let mut b = a.clone();
+        b.appearance.skin_tone = SkinTone::Ebony;
+        b.appearance.hair_tone = HairTone::Gold;
+        b.appearance.accent = AccentTone::Red;
+        for pose in [
+            ScenePose::Working,
+            ScenePose::SeekingCounsel,
+            ScenePose::ReturningWithSpoils,
+            ScenePose::Settled,
+            ScenePose::Resting,
+            ScenePose::Unknown,
+        ] {
+            for index in 0..2 {
+                let left = adventurer_animation_frame(&a, pose, index);
+                let right = adventurer_animation_frame(&b, pose, index);
+                assert_ne!(
+                    left, right,
+                    "{class:?} {pose:?}: saved appearance must remain visible"
+                );
+                assert!(
+                    left.pixels()
+                        .iter()
+                        .zip(right.pixels())
+                        .all(|(a, b)| a.is_some() == b.is_some())
+                );
+                // Class-owned material must remain somewhere in every pose;
+                // persona substitutions must not recolour the whole body.
+                assert!(
+                    left.pixels()
+                        .iter()
+                        .zip(right.pixels())
+                        .any(|(a, b)| a.is_some() && a == b)
+                );
+                assert_eq!(left, adventurer_animation_frame(&a, pose, index));
+            }
+        }
+        let first = adventurer_animation_frame(&a, ScenePose::Working, 0);
+        let second = adventurer_animation_frame(&a, ScenePose::Working, 1);
+        assert_eq!(&first.pixels()[..12 * 16], &second.pixels()[..12 * 16]);
+        assert_eq!(&first.pixels()[19 * 16..], &second.pixels()[19 * 16..]);
+    }
+}
+
+#[test]
+fn newer_quiet_states_and_disconnect_interrupt_expanded_rituals_in_both_rooms() {
+    for world in WORLDS {
+        for class in [
+            AdventurerClass::Bard,
+            AdventurerClass::Artificer,
+            AdventurerClass::Testmender,
+            AdventurerClass::Cleric,
+            AdventurerClass::Paladin,
+            AdventurerClass::Druid,
+            AdventurerClass::Rogue,
+            AdventurerClass::Pathseeker,
+            AdventurerClass::Runewright,
+            AdventurerClass::Mage,
+            AdventurerClass::Sorcerer,
+        ] {
+            for presence in [Presence::Idle, Presence::Unknown, Presence::Exited] {
+                let mut value = snapshot(class, Presence::Done, Motion::Full, 500);
+                value.agents[0].presence = presence;
+                value.agents[0].presence_since = value.now;
+                let mut pixels = RgbBuffer::filled(0, 0, Rgb::BLACK);
+                let first = render_scene_for_story(
+                    &value,
+                    Some(world),
+                    PixelSize::new(160, 90),
+                    &mut pixels,
+                );
+                let before = pixels.clone();
+                value.now = Timestamp::from_millis(60_000);
+                let last = render_scene_for_story(
+                    &value,
+                    Some(world),
+                    PixelSize::new(160, 90),
+                    &mut pixels,
+                );
+                assert_eq!(
+                    before, pixels,
+                    "{world:?} {class:?} {presence:?}: stale spoils cannot continue"
+                );
+                assert_eq!(first.next_frame_in, None);
+                assert_eq!(last.next_frame_in, None);
+                assert_eq!(
+                    first.actors.len(),
+                    usize::from(presence != Presence::Exited)
+                );
+            }
+            for presence in [Presence::Working, Presence::Blocked, Presence::Done] {
+                let mut value = snapshot(class, presence, Motion::Full, 0);
+                value.connection = SceneConnection::Reconnecting { attempt: 1 };
+                let mut pixels = RgbBuffer::filled(0, 0, Rgb::BLACK);
+                let first = render_scene_for_story(
+                    &value,
+                    Some(world),
+                    PixelSize::new(160, 90),
+                    &mut pixels,
+                );
+                let before = pixels.clone();
+                value.now = Timestamp::from_millis(60_000);
+                let last = render_scene_for_story(
+                    &value,
+                    Some(world),
+                    PixelSize::new(160, 90),
+                    &mut pixels,
+                );
+                assert_eq!(before, pixels, "disconnected retained facts cannot animate");
+                assert_eq!(first.next_frame_in, None);
+                assert_eq!(last.next_frame_in, None);
+            }
+        }
     }
 }

@@ -1,0 +1,34 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.50s
+     Running tests/scene_delve.rs (target/debug/deps/scene_delve-ebee96130811f28f)
+
+running 14 tests
+test a_narrow_delve_recomposes_the_party_instead_of_cropping_it ... ok
+test delve_has_its_indexed_environment_families_in_order ... ok
+test the_unknown_treatment_drains_identity_without_draining_light ... ok
+test truthful_station_regions_intersect_their_authored_actors_and_exited_is_absent ... ok
+test delvers_at_one_station_never_overlap ... ok
+test minimum_viewport_is_a_camera_crop_of_the_same_canonical_dungeon ... ok
+test static_authored_delve_actors_have_no_invisible_cadence ... ok
+test narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible ... ok
+test no_motion_delve_is_byte_identical_across_fresh_completion_timestamps ... ok
+test unknown_delvers_stay_legible_against_the_floor_they_stand_on ... ok
+test reconnecting_preserves_the_authored_dungeon_under_connection_light ... ok
+test unknown_dimming_preserves_transparent_sprite_pixels ... ok
+test every_authored_floor_pixel_doorway_and_named_region_is_connected ... ok
+test canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/scene_party.rs (target/debug/deps/scene_party-1629af422c322a92)
+
+running 7 tests
+test every_ritual_pose_keeps_its_foot_anchor_and_native_dimensions ... ok
+test tool_rituals_preserve_persona_masks_gear_and_independent_cards ... ok
+test both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class ... ok
+test a_counsel_gesture_settles_once_and_leaves_the_blocked_adventurer_still ... ok
+test newer_quiet_states_and_disconnect_interrupt_tool_rituals_in_both_rooms ... ok
+test each_return_places_its_spoils_then_settles_at_the_exact_three_second_deadline ... ok
+test reduced_and_still_party_states_do_not_change_pixels_at_cleanup_deadlines ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s

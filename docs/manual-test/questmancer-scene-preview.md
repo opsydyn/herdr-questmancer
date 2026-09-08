@@ -49,7 +49,7 @@ For review without Herdr or agent processes:
 just storybook
 ```
 
-Review all thirty-four fixed stories: two worlds, ten sprite/palette galleries,
+Review all forty-five fixed stories: two worlds, twenty-one sprite/palette galleries,
 fourteen native class cards, two reserved Goblin/Orc art cards, and six
 interactions. `j`/`k` select within a category; `h`/`l` change category. Include
 the Librarian's world sprite and Ledger fallback separately from its native
@@ -57,9 +57,16 @@ illustration. Storybook does
 not connect to Herdr, invoke plugin actions, write state or send text. In
 Ghostty, confirm the header reports `portrait: native Kitty`; on unsupported
 terminals it must report `portrait: authored sprite fallback` and preserve the
-`24x32` authored card canvas. Wizard, Ranger and Barbarian must show their
-new stocky world sprite at native proportions, with matching persona colours
-and readable card text. The other classes retain their independent fallbacks.
+`24x32` authored card canvas. All fourteen classes must show their current
+world sprite at native proportions, with matching persona colours and readable
+card text. Include Cleric, Paladin
+and Druid pose galleries and both room sequences in the production review.
+Also review Rogue, Pathseeker and Runewright's new pose galleries and room
+sequences separately from their newly aligned card fallbacks; verify exact
+native proportions and four-pixel margins in the existing portrait canvas.
+Review Mage and Sorcerer's new pose galleries and both room sequences
+separately from their newly aligned card fallbacks. Confirm the skull staff
+and halo remain legible and the four-pixel margins retain the card layout.
 
 Press Enter to inspect at the full terminal size. World, card and interaction
 stories now reach production layouts at every positive size; sprite galleries

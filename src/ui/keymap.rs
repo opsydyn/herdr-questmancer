@@ -79,6 +79,11 @@ pub const BINDINGS: &[Binding] = &[
         action: Action::InspectSpoils,
     },
     Binding {
+        keys: "Tab (Chronicle)",
+        description: "Guild chapter (last hour) / records",
+        action: Action::ToggleChronicleChapter,
+    },
+    Binding {
         keys: "c",
         description: "Read the Chronicle",
         action: Action::OpenChronicle,

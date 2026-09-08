@@ -439,9 +439,16 @@ pub fn apply_command_result(
 }
 
 fn apply_domain_event(model: &mut Model, event: AppEvent, effects: &mut RuntimeEffects) {
+    let previous = crate::app::PartyActivity::from_domain(model.domain());
+    let observed_at = match &event {
+        AppEvent::SnapshotReplaced { observed_at, .. } => Some(*observed_at),
+        AppEvent::AgentStatusChanged { occurred_at, .. } => Some(*occurred_at),
+        _ => None,
+    };
     let state = model.take_domain();
     let (state, domain_commands) = update(state, event);
     model.replace_domain(state);
+    model.observe_party_activity(&previous, observed_at);
     for command in domain_commands {
         if command == Command::RequestSnapshot {
             push_unique_refresh(&mut effects.agent_commands);

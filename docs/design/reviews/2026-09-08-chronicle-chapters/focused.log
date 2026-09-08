@@ -1,0 +1,130 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.01s
+     Running tests/chronicle_chapter.rs (target/debug/deps/chronicle_chapter-7c6faac15780944a)
+
+running 7 tests
+test chapter_uses_inclusive_explicit_bounds_and_never_counts_future_events ... ok
+test bounded_history_and_empty_windows_make_no_claim_of_completeness ... ok
+test unknown_whereabouts_are_not_rewritten_as_an_arrival ... ok
+test long_recorded_names_remain_complete_across_scrollable_lines ... ok
+test timestamp_extremes_are_saturating_and_honest ... ok
+test every_event_type_has_a_factual_template_and_traceable_source ... ok
+test repeats_count_events_and_source_order_is_stable_across_arrival_order ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/interaction.rs (target/debug/deps/interaction-c3518d213cf97c30)
+
+running 59 tests
+test clicking_the_selected_adventurer_toggles_its_card_closed ... ok
+test clicking_librarian_opens_fresh_ledger_without_selecting_or_commanding_an_agent ... ok
+test configured_runtime_settings_drive_output_and_reviewr_commands ... ok
+test cycling_without_a_search_explains_itself ... ok
+test a_sent_counsel_leaves_no_draft_behind ... ok
+test a_counsel_draft_survives_dismissing_the_parchment ... ok
+test counsel_drafts_do_not_follow_the_selection_to_another_adventurer ... ok
+test counsel_success_after_dismissal_spends_the_original_draft ... ok
+test a_set_aside_summons_returns_when_its_time_is_up ... ok
+test counsel_submit_sends_the_exact_draft_to_the_selected_pane ... ok
+test a_deferred_summons_is_skipped_until_it_expires ... ok
+test acknowledgement_claims_success_only_for_an_unread_summons ... ok
+test delve_search_reuses_selection_and_single_output_load_boundary ... ok
+test delve_selection_reuses_the_guild_commands_and_loads_once_per_change ... ok
+test dismissing_an_empty_parchment_says_nothing ... ok
+test delve_counsel_and_acknowledgement_reuse_the_existing_local_and_command_boundaries ... ok
+test display_preferences_can_be_changed_while_running_and_persist ... ok
+test empty_counsel_stays_open_while_clear_and_cancel_are_local ... ok
+test empty_search_does_not_select_the_first_agent ... ok
+test guild_and_delve_switching_preserves_selection ... ok
+test first_and_last_select_boundaries_and_load_only_changed_selection ... ok
+test mark_seen_keeps_the_newly_selected_distinct_persona_selected ... ok
+test quit_is_an_explicit_typed_loop_outcome ... ok
+test ledger_opens_pages_toggles_and_blocks_normal_model_actions ... ok
+test delve_visit_refresh_and_optional_reviewr_reuse_typed_guild_commands ... ok
+test mark_seen_uses_the_domain_reducer_for_the_selected_agent ... ok
+test motion_cycles_through_every_setting ... ok
+test navigation_with_only_the_managed_pane_has_no_output_effect ... ok
+test pointer_selection_never_observes_or_sends_counsel ... ok
+test navigation_does_not_load_output_for_a_managed_pane ... ok
+test refresh_loads_only_the_selected_output ... ok
+test relative_selection_loads_one_preview_per_change ... ok
+test repeated_urgency_jumps_cycle_every_waiting_adventurer ... ok
+test retry_after_submission_failure_does_not_write_the_counsel_again ... ok
+test managed_pane_selection_never_emits_effect_commands ... ok
+test search_keeps_every_match_and_n_walks_them ... ok
+test reviewr_opens_only_when_available_for_a_selection ... ok
+test search_modal_supports_edit_clear_and_cancel ... ok
+test search_no_match_stays_editable_with_visible_status ... ok
+test selected_adventurer_card_can_be_dismissed_without_clearing_selection ... ok
+test selection_changes_persist_but_noops_and_animation_redraws_do_not ... ok
+test search_results_drop_adventurers_who_have_gone ... ok
+test setting_aside_keeps_the_summons_rather_than_clearing_it ... ok
+test setting_a_summons_aside_takes_it_out_of_the_urgency_cycle ... ok
+test shift_n_walks_the_matches_in_reverse ... ok
+test setting_aside_nothing_says_so ... ok
+test tab_moves_the_selection_into_the_next_campaign ... ok
+test tab_says_so_when_the_whole_party_is_on_one_campaign ... ok
+test the_chronicle_scopes_to_the_selected_adventurer ... ok
+test search_is_case_insensitive_across_agent_fields ... ok
+test view_switch_is_reduced_without_effect_commands ... ok
+test the_chronicle_swallows_keys_that_would_move_the_party ... ok
+test the_urgency_jump_reaches_a_blocked_adventurer_in_one_press ... ok
+test the_chronicle_view_shows_what_the_guild_recorded ... ok
+test uncertain_text_delivery_has_no_automatic_retry_path ... ok
+test unchanged_idle_room_emits_no_output_load_or_persistence_effects ... ok
+test urgency_order_puts_the_unanswered_and_longest_waiting_first ... ok
+test visit_focuses_selected_pane_and_empty_selection_is_contextual ... ok
+test search_matches_visible_presence_class_and_ancestry_terms ... ok
+
+test result: ok. 59 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/keymap.rs (target/debug/deps/keymap-47ea31aa2b84bb9c)
+
+running 4 tests
+test the_ledger_keyring_page_is_generated_from_the_bindings ... ok
+test every_documented_binding_is_still_reachable ... ok
+test authored_ledger_pages_are_untouched ... ok
+test every_bound_key_is_documented ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scene_overlays.rs (target/debug/deps/scene_overlays-d9a0feccbc91434d)
+
+running 35 tests
+test a_narrow_room_drops_the_badge_rather_than_the_scene ... ok
+test ascii_roster_labels_use_ascii_separators_truncation_and_state_glyphs ... ok
+test a_failed_send_keeps_the_draft_and_says_so ... ok
+test a_crowded_party_keeps_a_nameplate_for_every_adventurer ... ok
+test a_notice_reaches_the_frame_and_not_only_the_model ... ok
+test an_empty_chronicle_says_so ... ok
+test a_nameplate_never_paints_through_another_adventurer ... ok
+test every_visible_sprite_has_an_agent_state_nameplate ... ok
+test a_reopened_parchment_starts_at_the_top ... ok
+test chapter_requests_are_local_frozen_in_time_and_return_to_the_existing_records ... ok
+test nameplate_truncation_shortens_the_name_and_keeps_the_state_word ... ok
+test neighbouring_nameplates_never_touch ... ok
+test counsel_uses_a_centered_parchment_without_replacing_the_world ... ok
+test campaign_crest_is_visible_on_the_adventurers_parchment ... ok
+test librarian_ledger_is_the_single_responsive_help_surface ... ok
+test long_live_labels_cannot_displace_card_status_keepsake_or_controls ... ok
+test overlays_are_safe_at_zero_and_minimum_viewports ... ok
+test scrolling_stops_at_the_end_of_the_text ... ok
+test keepsake_art_changes_only_its_reserved_card_section ... ok
+test selected_adventurer_card_exposes_fantasy_and_system_identity ... ok
+test command_ribbon_expires_after_three_seconds ... ok
+test the_chronicle_parchment_shows_recorded_events_over_the_world ... ok
+test the_counsel_parchment_reports_a_send_in_flight ... ok
+test selected_adventurer_does_not_force_the_card_open ... ok
+test the_standing_badge_sits_in_the_top_right_corner ... ok
+test the_adventurer_card_does_not_cover_the_standing_badge ... ok
+test scrying_can_be_scrolled_to_reach_output_below_the_fold ... ok
+test the_ledger_shows_the_whole_keyring ... ok
+test the_ribbon_greets_someone_who_has_not_pressed_anything ... ok
+test search_and_scrying_are_contextual_overlays ... ok
+test campaign_crest_keeps_the_same_named_identity_in_ascii_and_both_rooms ... ok
+test roster_labels_preserve_the_rgb_state_cue_in_final_terminal_cells ... ok
+test an_on_demand_chapter_counts_events_and_exposes_timestamped_sources ... ok
+test only_correlated_confirmed_counsel_receives_a_parchment_seal ... ok
+test keepsake_details_follow_the_saved_assignment_without_crowding_card_facts ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s

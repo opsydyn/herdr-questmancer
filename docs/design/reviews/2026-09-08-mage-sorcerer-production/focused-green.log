@@ -1,0 +1,14 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.14s
+     Running tests/scene_party.rs (target/debug/deps/scene_party-1629af422c322a92)
+
+running 7 tests
+test every_ritual_pose_keeps_its_foot_anchor_and_native_dimensions ... ok
+test expanded_rituals_preserve_persona_masks_and_gear ... ok
+test a_counsel_gesture_settles_once_and_leaves_the_blocked_adventurer_still ... ok
+test both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class ... ok
+test each_return_places_its_spoils_then_settles_at_the_exact_three_second_deadline ... ok
+test newer_quiet_states_and_disconnect_interrupt_expanded_rituals_in_both_rooms ... ok
+test reduced_and_still_party_states_do_not_change_pixels_at_cleanup_deadlines ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.15s

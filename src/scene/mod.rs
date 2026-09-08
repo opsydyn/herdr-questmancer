@@ -113,6 +113,7 @@ pub fn render_scene_for_world(
     plan.suppress_transitions_through(snapshot, presentation.transition_floor);
     render::interaction::apply_selection(&mut plan, presentation);
     plan.goblin_outbreak = presentation.goblin_outbreak;
+    plan.party_rest_since = presentation.party_rest_since;
     render::paint(snapshot, &plan, viewport, target)
 }
 

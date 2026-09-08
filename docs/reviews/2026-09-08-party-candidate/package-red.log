@@ -1,0 +1,4 @@
+Packaged crate: 18542974 bytes; required below 10485760 bytes
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+AssertionError: Release package exceeds the repository release gate

@@ -1020,3 +1020,229 @@ fn campaign_crest_keeps_the_same_named_identity_in_ascii_and_both_rooms() {
         }
     }
 }
+
+#[test]
+fn keepsake_details_follow_the_saved_assignment_without_crowding_card_facts() {
+    use questmancer::{
+        app::{CharacterSet, ColorMode},
+        domain::Keepsake,
+    };
+    let cases = [
+        (
+            Keepsake::Feather,
+            "Feather",
+            "From a bird with excellent timing.",
+        ),
+        (
+            Keepsake::LuckyCoin,
+            "Lucky Coin",
+            "Always lands on a promising side.",
+        ),
+        (Keepsake::Mug, "Mug", "The last sip is mostly optimism."),
+        (
+            Keepsake::PressedLeaf,
+            "Pressed Leaf",
+            "A small autumn, carefully folded.",
+        ),
+        (Keepsake::Ribbon, "Ribbon", "Tied once. Retold many times."),
+        (
+            Keepsake::TinyFamiliar,
+            "Tiny Familiar",
+            "Offers advice in very small squeaks.",
+        ),
+    ];
+    for (keepsake, name, description) in cases {
+        for view in [View::Guild, View::Delve] {
+            for (width, height) in [(60, 14), (95, 19), (96, 20), (120, 36)] {
+                for mode in [ColorMode::Ansi16, ColorMode::Xterm256] {
+                    let mut model = model();
+                    let _ = reduce_action(&mut model, Action::Switch(view));
+                    let mut preferences = *model.preferences();
+                    preferences.color_mode = mode;
+                    preferences.character_set = CharacterSet::Ascii;
+                    model.set_preferences(preferences);
+                    model
+                        .domain_mut()
+                        .agents
+                        .get_mut(&AgentKey::new("codex"))
+                        .unwrap()
+                        .persona
+                        .appearance
+                        .keepsake = keepsake;
+                    model.show_adventurer_card();
+                    let persona = model.selected_agent().unwrap().persona.clone();
+                    let screen = render(&model, width, height);
+                    for expected in [
+                        name,
+                        description,
+                        "Campaign: Questmancer",
+                        "Agent: codex",
+                        "Working",
+                        "Esc close",
+                        "r counsel",
+                        "o scry",
+                    ] {
+                        assert!(
+                            screen.contains(expected),
+                            "{keepsake:?} {width}x{height} missing {expected}:\n{screen}"
+                        );
+                    }
+                    assert_eq!(model.selected_agent().unwrap().persona, persona);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn keepsake_art_changes_only_its_reserved_card_section() {
+    use questmancer::domain::Keepsake;
+    let mut model = model();
+    model.show_adventurer_card();
+    let mut buffers = Vec::new();
+    for keepsake in [Keepsake::Feather, Keepsake::Mug] {
+        model
+            .domain_mut()
+            .agents
+            .get_mut(&AgentKey::new("codex"))
+            .unwrap()
+            .persona
+            .appearance
+            .keepsake = keepsake;
+        let mut terminal = Terminal::new(TestBackend::new(120, 36)).unwrap();
+        terminal
+            .draw(|frame| {
+                render_scene_overlays(frame, &model, &ScenePresentation::from_model(&model), None);
+            })
+            .unwrap();
+        buffers.push(terminal.backend().buffer().clone());
+    }
+    // The detailed card is 78x18 at (41,2); its keepsake owns rows 14..18
+    // in the text column. Portrait, identity, controls and world stay intact.
+    let mut art_changes = 0;
+    for y in 0..36 {
+        for x in 0..120 {
+            if buffers[0].cell((x, y)) != buffers[1].cell((x, y)) {
+                assert!(
+                    (69..118).contains(&x) && (14..18).contains(&y),
+                    "unexpected change at {x},{y}"
+                );
+                if x < 77 {
+                    art_changes += 1;
+                }
+            }
+        }
+    }
+    assert!(
+        art_changes > 5,
+        "the saved keepsake must select actual card artwork"
+    );
+}
+
+#[test]
+fn long_live_labels_cannot_displace_card_status_keepsake_or_controls() {
+    use questmancer::domain::Keepsake;
+    let mut model = model();
+    let agent = model
+        .domain_mut()
+        .agents
+        .get_mut(&AgentKey::new("codex"))
+        .unwrap();
+    agent.name = "A very long system label ".repeat(30);
+    agent.custom_status = Some("A lengthy field report ".repeat(30));
+    agent.persona.appearance.keepsake = Keepsake::Ribbon;
+    model.show_adventurer_card();
+    for (width, height) in [(60, 14), (120, 36)] {
+        let screen = render(&model, width, height);
+        for expected in [
+            "Working",
+            "Campaign: Questmancer",
+            "Keepsake: Ribbon",
+            "Tied once. Retold many times.",
+            "Esc close",
+            "o scry",
+        ] {
+            assert!(
+                screen.contains(expected),
+                "missing {expected} at {width}x{height}"
+            );
+        }
+    }
+}
+
+#[test]
+fn an_on_demand_chapter_counts_events_and_exposes_timestamped_sources() {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    use questmancer::ui::input::action_for_event_in;
+    let mut model = model();
+    let selected = model.selected_agent_key().cloned().unwrap();
+    for (revision, at) in [(1, 3_000_000), (2, 3_100_000), (3, 3_200_000)] {
+        model.domain_mut().chronicle.append(ChronicleEntry::new(
+            Timestamp::from_millis(at),
+            Some(selected.clone()),
+            None,
+            None,
+            revision,
+            ChronicleEvent::SpoilsReturned,
+            "codex returned with spoils",
+        ));
+    }
+    model.set_now(Timestamp::from_millis(3_600_000));
+    let _ = reduce_action(&mut model, Action::OpenChronicle);
+    let action = action_for_event_in(
+        &Event::Key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE)),
+        model.modal(),
+    );
+    let _ = reduce_action(&mut model, action);
+    let rendered = render(&model, 100, 26);
+    assert!(
+        rendered.contains("LAST HOUR"),
+        "a chapter should be explicitly requested:\n{rendered}"
+    );
+    assert!(rendered.contains("3 spoils-return events"));
+    assert!(rendered.contains("1970-01-01 00:00:00 UTC"));
+    assert!(rendered.contains("1970-01-01 01:00:00 UTC"));
+    assert!(rendered.contains("Retained records only"));
+    let mut visited = rendered;
+    for _ in 0..30 {
+        let _ = reduce_action(&mut model, Action::ScrollDown);
+        visited.push_str(&render(&model, 100, 26));
+    }
+    assert!(visited.contains("codex returned with spoils"));
+    assert!(visited.contains("1970-01-01 00:53:20 UTC"));
+    assert!(visited.contains("Source: event-"));
+    assert!(
+        render(&model, 100, 26).contains("Source: event-"),
+        "the last scroll position must retain a source"
+    );
+    assert!(!visited.contains("3 adventurers returned"));
+}
+
+#[test]
+fn chapter_requests_are_local_frozen_in_time_and_return_to_the_existing_records() {
+    use questmancer::persistence::PersistedStateV1;
+    let mut model = model();
+    model.set_now(Timestamp::from_millis(3_600_000));
+    let selected = model.selected_agent_key().cloned();
+    let before = PersistedStateV1::capture(&model);
+    let _ = reduce_action(&mut model, Action::OpenChronicle);
+    let effects = reduce_action(&mut model, Action::ToggleChronicleChapter);
+    assert!(effects.commands.is_empty());
+    assert!(effects.persistence.is_empty());
+    let lines = model.chronicle_chapter_lines().unwrap();
+    assert!(lines.iter().any(|line| line.contains("Scope: whole guild")));
+    model.set_now(Timestamp::from_millis(7_200_000));
+    assert_eq!(model.chronicle_chapter_lines().unwrap(), lines);
+    for _ in 0..100 {
+        let _ = reduce_action(&mut model, Action::ScrollDown);
+    }
+    assert_eq!(usize::from(model.reading_scroll()), lines.len() - 1);
+    let screen = render(&model, 100, 26);
+    assert!(screen.contains("No retained events"));
+    let _ = reduce_action(&mut model, Action::ToggleChronicleChapter);
+    assert_eq!(model.reading_scroll(), 0);
+    assert!(model.chronicle_chapter_lines().is_none());
+    assert!(render(&model, 100, 26).contains("no Chronicle yet"));
+    assert_eq!(model.selected_agent_key(), selected.as_ref());
+    assert_eq!(PersistedStateV1::capture(&model), before);
+}

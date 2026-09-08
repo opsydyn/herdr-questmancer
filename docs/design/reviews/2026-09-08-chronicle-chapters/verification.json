@@ -1,0 +1,19 @@
+{
+  "base_commit": "c3720a90ab0b5b43f9447cc5e71d1ed34a2df4ed",
+  "scope": "Subsequent uncommitted keepsake, cat and Chronicle chapter work",
+  "rust_tests": 591,
+  "rust_test_runs": 54,
+  "shell_tests": 28,
+  "just_verify_exit_code": 0,
+  "release_build_exit_code": 0,
+  "review_export_exit_code": 0,
+  "visual_approval": "approved by Questmancer on 2026-09-08",
+  "native_acceptance": "not exercised",
+  "history_limit": "Only retained records; normal status events record history, snapshot-only changes and workspace closures do not",
+  "review_sha256": "6fedaaad2d468f1915d030629f21caf6c9f3e781c452248cc580f2abd0d1ac2f",
+  "logs": {
+    "verify": "verify.log",
+    "release-build": "release-build.log",
+    "focused": "focused.log"
+  }
+}

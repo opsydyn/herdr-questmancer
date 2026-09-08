@@ -57,12 +57,8 @@ fn every_core_archetype_has_a_portrait_canvas() {
 }
 
 #[test]
-fn pilot_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching() {
-    for class in [
-        AdventurerClass::Wizard,
-        AdventurerClass::Ranger,
-        AdventurerClass::Barbarian,
-    ] {
+fn ritual_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching() {
+    for &class in AdventurerClass::ALL {
         for (skin, hair) in [
             (SkinTone::Porcelain, HairTone::Black),
             (SkinTone::Ebony, HairTone::Gold),

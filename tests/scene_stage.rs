@@ -538,8 +538,16 @@ fn viewport_matrix_preserves_exact_targets_and_world_specific_viewport_contracts
 }
 
 #[test]
-fn static_authored_actors_do_not_schedule_invisible_motion() {
-    let working = snapshot(vec![agent("working", Presence::Working)]);
+fn reduced_authored_actors_are_still_while_full_motion_spoils_remain_bounded() {
+    // Every class now has authored rituals. Reduced motion remains static;
+    // fresh full-motion completion still owns its bounded visible deadline.
+    let static_agent = |key, presence| {
+        let mut value = agent(key, presence);
+        value.persona.class = AdventurerClass::Mage;
+        value
+    };
+    let mut working = snapshot(vec![static_agent("working", Presence::Working)]);
+    working.motion = Motion::Reduced;
     let (working_start, working_deadline) = render_at(&working, 1_000);
     let (working_after_five_steps, working_late_deadline) = render_at(&working, 1_996);
     let (working_after_six_steps, _) = render_at(&working, 2_000);
@@ -548,7 +556,8 @@ fn static_authored_actors_do_not_schedule_invisible_motion() {
     assert_eq!(working_start, working_after_five_steps);
     assert_eq!(working_start, working_after_six_steps);
 
-    let blocked = snapshot(vec![agent("blocked", Presence::Blocked)]);
+    let mut blocked = snapshot(vec![static_agent("blocked", Presence::Blocked)]);
+    blocked.motion = Motion::Reduced;
     let (blocked_start, blocked_deadline) = render_at(&blocked, 1_000);
     let (blocked_before, _) = render_at(&blocked, 1_499);
     let (blocked_next, _) = render_at(&blocked, 1_500);
@@ -563,7 +572,7 @@ fn static_authored_actors_do_not_schedule_invisible_motion() {
     assert_eq!(blocked_phase_two, blocked_unchanged_boundary);
     assert_eq!(blocked_unchanged_boundary, blocked_visible_change);
 
-    let mut completed = agent("completed", Presence::Done);
+    let mut completed = static_agent("completed", Presence::Done);
     completed.transition = Some(SceneTransition {
         summons: GuildSummons::SpoilsReturned,
         since: Timestamp::from_millis(1_000),
@@ -576,7 +585,7 @@ fn static_authored_actors_do_not_schedule_invisible_motion() {
     assert_eq!(fresh_start, fresh_before);
     assert_ne!(fresh_before, fresh_next);
 
-    let idle = snapshot(vec![agent("idle", Presence::Idle)]);
+    let idle = snapshot(vec![static_agent("idle", Presence::Idle)]);
     let (idle_start, idle_deadline) = render_at(&idle, 1_000);
     let (idle_before, _) = render_at(&idle, 1_999);
     let (idle_next, _) = render_at(&idle, 2_000);

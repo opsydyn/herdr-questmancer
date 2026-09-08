@@ -344,6 +344,10 @@ fn asset_stories() -> Vec<Story> {
         ),
     ];
     stories.extend(native_card_stories());
+    stories.splice(4..4, tool_ritual_stories());
+    stories.splice(7..7, support_ritual_stories());
+    stories.splice(10..10, trail_ritual_stories());
+    stories.splice(13..13, arcane_ritual_stories());
     stories
 }
 
@@ -666,4 +670,167 @@ fn librarian_ledger(context: StoryContext) -> StoryFixture {
 
 fn narrow(context: StoryContext) -> StoryFixture {
     scene(fixtures::narrow_interaction_fixture(context))
+}
+
+fn bard_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Bard)
+}
+
+fn artificer_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Artificer)
+}
+
+fn testmender_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Testmender)
+}
+
+fn tool_ritual_stories() -> [Story; 3] {
+    [
+        story!(
+            "asset.bard-poses",
+            "Assets / Bard Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Bard.",
+            ASSET_VIEWPORT,
+            bard_poses,
+            BardPoseFamily
+        ),
+        story!(
+            "asset.artificer-poses",
+            "Assets / Artificer Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Artificer.",
+            ASSET_VIEWPORT,
+            artificer_poses,
+            ArtificerPoseFamily
+        ),
+        story!(
+            "asset.testmender-poses",
+            "Assets / Testmender Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Testmender.",
+            ASSET_VIEWPORT,
+            testmender_poses,
+            TestmenderPoseFamily
+        ),
+    ]
+}
+
+fn cleric_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Cleric)
+}
+
+fn paladin_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Paladin)
+}
+
+fn druid_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Druid)
+}
+
+fn support_ritual_stories() -> [Story; 3] {
+    [
+        story!(
+            "asset.cleric-poses",
+            "Assets / Cleric Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Cleric.",
+            ASSET_VIEWPORT,
+            cleric_poses,
+            ClericPoseFamily
+        ),
+        story!(
+            "asset.paladin-poses",
+            "Assets / Paladin Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Paladin.",
+            ASSET_VIEWPORT,
+            paladin_poses,
+            PaladinPoseFamily
+        ),
+        story!(
+            "asset.druid-poses",
+            "Assets / Druid Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Druid.",
+            ASSET_VIEWPORT,
+            druid_poses,
+            DruidPoseFamily
+        ),
+    ]
+}
+
+fn rogue_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Rogue)
+}
+
+fn pathseeker_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Pathseeker)
+}
+
+fn runewright_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Runewright)
+}
+
+fn trail_ritual_stories() -> [Story; 3] {
+    [
+        story!(
+            "asset.rogue-poses",
+            "Assets / Rogue Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Rogue.",
+            ASSET_VIEWPORT,
+            rogue_poses,
+            RoguePoseFamily
+        ),
+        story!(
+            "asset.pathseeker-poses",
+            "Assets / Pathseeker Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Pathseeker.",
+            ASSET_VIEWPORT,
+            pathseeker_poses,
+            PathseekerPoseFamily
+        ),
+        story!(
+            "asset.runewright-poses",
+            "Assets / Runewright Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Runewright.",
+            ASSET_VIEWPORT,
+            runewright_poses,
+            RunewrightPoseFamily
+        ),
+    ]
+}
+
+fn mage_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Mage)
+}
+
+fn sorcerer_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Sorcerer)
+}
+
+fn arcane_ritual_stories() -> [Story; 2] {
+    [
+        story!(
+            "asset.mage-poses",
+            "Assets / Mage Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Mage.",
+            ASSET_VIEWPORT,
+            mage_poses,
+            MagePoseFamily
+        ),
+        story!(
+            "asset.sorcerer-poses",
+            "Assets / Sorcerer Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Sorcerer.",
+            ASSET_VIEWPORT,
+            sorcerer_poses,
+            SorcererPoseFamily
+        ),
+    ]
 }

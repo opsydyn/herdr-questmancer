@@ -1,0 +1,62 @@
+## main...origin/main [ahead 8]
+ M AGENTS.md
+ M CHANGELOG.md
+ M Cargo.lock
+ M Cargo.toml
+ M PLAN.md
+ M README.md
+ M docs/design/questmancer-sprite-art-direction.md
+ M docs/design/reviews/2026-09-08-consolidated/README.md
+ M docs/manual-test/questmancer-scene-preview.md
+ M docs/plans/2026-09-05-party-delight.md
+ M docs/release-process.md
+ M src/app.rs
+ M src/interaction.rs
+ M src/ledger.rs
+ M src/lib.rs
+ M src/runtime_loop.rs
+ M src/scene/assets/adventurer.rs
+ M src/scene/assets/mod.rs
+ M src/scene/assets/rituals.rs
+ M src/scene/mod.rs
+ M src/scene/presentation.rs
+ M src/scene/render/delve.rs
+ M src/scene/render/guild_hall.rs
+ M src/scene/stage.rs
+ M src/storybook/assets.rs
+ M src/storybook/catalogue.rs
+ M src/ui/input.rs
+ M src/ui/keymap.rs
+ M src/ui/scene_overlays.rs
+ M tests/archetype_assets.rs
+ M tests/scene_delve.rs
+ M tests/scene_guild_hall.rs
+ M tests/scene_overlays.rs
+ M tests/scene_party.rs
+ M tests/scene_roster.rs
+ M tests/scene_stage.rs
+ M tests/storybook.rs
+ M tests/workflow_contract.rb
+?? docs/design/reviews/2026-09-08-cat-reaction/
+?? docs/design/reviews/2026-09-08-chronicle-chapters/
+?? docs/design/reviews/2026-09-08-cleric-paladin-druid-card-fallbacks/
+?? docs/design/reviews/2026-09-08-cleric-paladin-druid-production/
+?? docs/design/reviews/2026-09-08-cleric-paladin-druid-storyboard/
+?? docs/design/reviews/2026-09-08-keepsakes/
+?? docs/design/reviews/2026-09-08-mage-sorcerer-card-fallbacks/
+?? docs/design/reviews/2026-09-08-mage-sorcerer-production/
+?? docs/design/reviews/2026-09-08-mage-sorcerer-storyboard/
+?? docs/design/reviews/2026-09-08-rogue-pathseeker-runewright-card-fallbacks/
+?? docs/design/reviews/2026-09-08-rogue-pathseeker-runewright-production/
+?? docs/design/reviews/2026-09-08-rogue-pathseeker-runewright-storyboard/
+?? docs/design/reviews/2026-09-08-tool-card-fallbacks/
+?? docs/design/reviews/2026-09-08-tool-ritual-production/
+?? docs/design/reviews/2026-09-08-tool-ritual-storyboard/
+?? docs/reviews/2026-09-08-party-candidate/
+?? src/chronicle_chapter.rs
+?? src/scene/assets/cat.rs
+?? src/scene/assets/keepsakes.rs
+?? src/scene/assets/rituals/
+?? tests/cat_reaction.rs
+?? tests/chronicle_chapter.rs
+?? tests/keepsake_assets.rs

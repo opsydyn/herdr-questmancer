@@ -1,0 +1,38 @@
+{
+  "base_commit": "c3720a90ab0b5b43f9447cc5e71d1ed34a2df4ed",
+  "scope": "Uncommitted post-candidate work including the new three-class world rituals",
+  "storyboard_visual_approval": "approved on 2026-09-08",
+  "production_visual_approval": "approved by Questmancer on 2026-09-08",
+  "rust_tests": 593,
+  "rust_test_runs": 54,
+  "shell_tests": 28,
+  "just_verify_exit_code": 0,
+  "release_build_exit_code": 0,
+  "review_export_exit_code": 0,
+  "approved_art_comparison": "All 24 production silhouettes and class-owned material pixels match the approved JSON; persona roles remain dynamic",
+  "native_live_acceptance": "not exercised",
+  "package_qualification": "not repeated for post-candidate changes",
+  "source_sha256": {
+    "src/scene/assets/rituals.rs": "65fc7efa63f686ef37a1d45fceff310133926fe9f6996411e16306da7f1bc7ed",
+    "src/scene/assets/rituals/tool_art.rs": "e683631b88da6e9261f8eb83643347bfde49dfcf2ab5e14a3b7729a9a5faf094",
+    "docs/design/reviews/2026-09-08-tool-ritual-storyboard/candidates.json": "459588c5625a48d5e31fde91786ed2c6f72913a6d4bc0469c05b7b0109eec4a0"
+  },
+  "output_sha256": {
+    "01-production-poses.png": "7598712875105c709d15953ad9a7e820a1ee1e0a17adf9d16551b5c46596b282",
+    "02-rooms-and-viewports.png": "d6b3fb4c03c0865737e2c29990eedbd3e3702848dc6883a2c6b975d7b6f5481d",
+    "03-ritual-timeline.png": "b66f0313fb5fc1cd0984f05ed00f7b5b59a5d06e402980475fbaeb22521def41",
+    "04-counsel-outcomes.png": "84ac9184e25a555e29c78358382599a698d7b2fcd370dfb3ef061bd6df5f6bb4",
+    "05-card-and-delve-check.png": "3e21fc82e47c3d05261e28c3f3675d768d8f71ece1398cf4256638eef6244baa",
+    "party-journey.gif": "16e071528d3974c980d5d4b99d2b615a7da9e9822fa0b83576c13a93ab46fffa",
+    "working-loop.gif": "11c916a00a9951b3986a0fb5c121a348e5676d13d4f0956dce9504e24aed6367"
+  },
+  "logs": [
+    "verify.log",
+    "release-build.log",
+    "focused.log",
+    "red.log",
+    "room-tests.log",
+    "stage-tests.log",
+    "regenerate.log"
+  ]
+}

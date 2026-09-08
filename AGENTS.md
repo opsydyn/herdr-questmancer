@@ -160,10 +160,12 @@ explicit licensing and design decision.
 All fourteen classes have distinct world masters, portrait fallbacks and
 native PNG cards: Artificer, Barbarian, Bard, Cleric, Druid, Mage, Paladin,
 Pathseeker, Ranger, Rogue, Runewright, Sorcerer, Testmender and Wizard. Cards
-are selected by class. Wizard, Ranger and Barbarian card fallbacks reuse their
-current personalised `16x24` world sprite, centred without scaling inside the
-existing `24x32` card canvas. These card fallbacks were visually approved on
-2026-09-05. Other classes keep their independent portrait fallbacks. Goblin and Orc art is reserved for future event/NPC storytelling and must not replace an
+are selected by class. Every class fallback reuses its current personalised
+`16x24` world sprite, centred without scaling inside the existing `24x32`
+canvas. All card alignments are visually approved; Mage and Sorcerer completed
+the set on 2026-09-08 under
+`docs/design/reviews/2026-09-08-mage-sorcerer-card-fallbacks/`.
+Goblin and Orc art is reserved for future event/NPC storytelling and must not replace an
 ordinary adventurer's class portrait. The
 Librarian's Ledger has a separate native illustration. All paths must retain a
 non-empty authored RGB sprite fallback.
@@ -246,7 +248,7 @@ without Herdr, agent processes or persistent state:
 just storybook
 ```
 
-It owns thirty-four fixed production stories: two worlds, twenty-six asset
+It owns forty-five fixed production stories: two worlds, thirty-seven asset
 views and six interactions. `j`/`k` and Up/Down select within the current
 category; `h`/`l` and Left/Right change category. `Enter` enters inspection,
 `Esc` returns and `q` exits. Resize Ghostty while viewing `World / Guild Hall`
@@ -323,42 +325,67 @@ and malformed-file diagnostics.
 
 ## Current product status and remaining gates
 
-The v0.1 engineering scope is feature-complete. Do not reopen old dashboard,
-cybercafe or legacy-renderer milestones as unfinished work.
+The v0.1 engineering scope and the approved party-delight sequence are complete.
+Do not reopen dashboard, cybercafe or legacy-renderer milestones. Work inline;
+new product ideas remain in the backlog until the user promotes them.
+
+All current review-pack visuals are approved: Librarian, Hall/Delve, campaign
+heraldry, keepsakes, cat reaction, Chronicle chapters, and rituals plus matching
+card fallbacks for all fourteen classes. The last card approval was 2026-09-08.
+See `docs/reviews/2026-09-08-party-candidate/README.md` for the approval index,
+review findings and current candidate evidence. Storybook has 45 stories:
+two worlds, 37 asset views and six interactions.
+
+The expanded 0.1.9 candidate preparation passed 593 Rust tests across 54 runs,
+28 shell tests, the release build, verified dirty-source packaging and the
+packaged Storybook build. Review packs remain in Git but are excluded from
+the crate to keep it under the existing 10 MiB package gate. Isolated runtime
+qualification is recorded in the candidate receipt; it is separate from native
+appearance and real-agent completion acceptance. The earlier clean qualification
+at `c3720a9` does not qualify these later changes as a clean commit.
 
 Remaining release work is evidence and distribution:
 
-- repeat guarded Herdr acceptance from the eventual clean release commit;
-- capture current Guild Hall and Delve release visuals;
-- close the current release gap: the public repository's manifest is `0.1.8`,
-  while the latest published release checked on 2026-09-06 is `v0.1.3` with
-  four archives and `SHA256SUMS`. Those archives and its temporary macOS ARM64
-  installation passed the [release preflight](docs/reviews/2026-09-06-release-readiness/README.md).
-  A matching `v0.1.8` release is absent. Verify
-  the eventual release archives, checksums and installer end to end;
+- the complete local candidate commit was authorised on 2026-09-08; repeat
+  clean-commit verification, package and guarded Herdr qualification. Consult
+  `docs/reviews/2026-09-08-roadmap-assessment.md` for the post-commit receipt
+  location and do not treat preparation logs as clean-commit evidence;
+- capture current Guild Hall and Delve release visuals through native transport;
+- publish only when authorised, then verify four platform archives, checksums
+  and the installer end to end. The 2026-09-08 read-only remote check found
+  latest release `v0.1.3` and no `v0.1.9` tag. Historical 0.1.3 archive checks
+  do not qualify the new candidate;
 - optionally smoke Reviewr when `persiyanov.reviewr.open` is installed;
-- retain real-agent resting/completion transitions as unverified until they are
-  actually observed.
+- retain real-agent resting/completion transitions as unverified until observed.
 
-Post-v0.1 ideas belong in the backlog unless the user promotes them. The
-approved current sequence is recorded in `docs/plans/2026-09-05-party-delight.md`:
-three-class storyboard approved, scrying ordering complete, roster state cues
-implemented and visually approved. The Librarian refresh and three-class
-production pilot are implemented; both await production visual approval. The pilot uses 500 ms working frames, one
-600 ms counsel gesture and spoils that settle within three seconds. Confirmed
-counsel seals the existing notice without changing Herdr presence. Sidebar
-marginalia, optional urgency sorting and guild standing are already implemented.
+## Current presentation contracts — 2026-09-08
 
-## Current sequence override — 2026-09-08
+The four-row sidebar is applied. Campaign heraldry uses native-scale crests
+below canonical Hall campaign-table actors and the same named identity on cards.
+It derives only from workspace IDs, adds no durable state or wakeups, and omits
+table crest sets when all cannot fit. Smaller Hall tiers omit them.
 
-The Questmancer explicitly deferred visual sign-off until last. The four-row
-sidebar is applied and campaign heraldry is implemented: native-scale crests
-below the canonical Hall's campaign-table actors, with the same named identity
-on adventurer cards. It is derived only from workspace IDs and adds no durable
-state or wakeups. Table crest sets are omitted when all cannot fit; smaller
-Hall tiers omit them. The current full gate is 570 Rust tests / 51 runs and
-28 shell tests. All new visuals remain unapproved until the final review.
-See `docs/reviews/2026-09-08-final-review.md`. Publication is a separate gate.
+Six existing saved keepsake assignments select static 8x8 card illustrations
+and fixed copy. Detailed cards reserve their lower text section for these;
+compact cards retain name and description without artwork. Persona generation,
+persistence and the card footprint are unchanged.
+
+The canonical Hall cat performs one 800 ms head-lift/stretch after the same
+known non-empty party becomes entirely resting. It has no persistent state or
+extra wakes in reduced/still motion. Reconnects and membership changes reset
+the baseline.
+
+Tab inside the Chronicle requests a last-hour recap with a fixed UTC window,
+retained-event counts and timestamped sources; Tab returns to records. Chapters
+add no persistence or agent commands. Snapshot refreshes append no history;
+the old joined event also represents unknown whereabouts, so chapters call it
+an identity event. Preserve these evidence limits.
+
+All fourteen classes use authored rituals with existing persona substitution:
+two 500 ms working frames, one 600 ms counsel gesture, spoils placed at 1000 ms
+and quiet by three seconds. Confirmed counsel seals the existing notice without
+changing Herdr presence. Every class card centres its personalised static world
+master in the existing 24x32 canvas. Roster families and native PNGs remain in use.
 
 ## Source-of-truth order
 

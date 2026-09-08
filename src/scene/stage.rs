@@ -82,6 +82,7 @@ pub struct ScenePlan {
     pub effects: Vec<SceneEffect>,
     /// Socket boundary for suppressing one-shot presentation from retained facts.
     pub transition_floor: Option<Timestamp>,
+    pub party_rest_since: Option<Timestamp>,
     /// Presentation-only: set from `ScenePresentation`, never from a snapshot.
     pub goblin_outbreak: bool,
 }
@@ -144,6 +145,7 @@ pub(crate) fn project_for_world(
         actors,
         effects,
         transition_floor: None,
+        party_rest_since: None,
         goblin_outbreak: false,
     }
 }

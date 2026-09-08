@@ -1334,6 +1334,7 @@ mod tests {
             actors,
             effects: Vec::new(),
             transition_floor: None,
+            party_rest_since: None,
             goblin_outbreak: false,
         };
         let anchors = actor_anchors(&plan);
@@ -1414,6 +1415,7 @@ mod tests {
             actors,
             effects: Vec::new(),
             transition_floor: None,
+            party_rest_since: None,
             goblin_outbreak: false,
         };
 
@@ -1592,6 +1594,7 @@ mod tests {
             actors: Vec::new(),
             effects: Vec::new(),
             transition_floor: None,
+            party_rest_since: None,
             goblin_outbreak: false,
         };
         paint_depth_sorted(&snapshot, &empty_plan, &mut composed, origin);
