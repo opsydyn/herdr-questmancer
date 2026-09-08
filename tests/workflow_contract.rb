@@ -120,6 +120,13 @@ build = job(release_jobs, "build")
 publish = job(release_jobs, "publish")
 crates_io = job(release_jobs, "crates-io")
 
+release_jobs.each do |name, value|
+  checkout = steps(value, name).find { |step| step["uses"] == "actions/checkout@v5" }
+  unless checkout && checkout.dig("with", "ref") == "${{ inputs.tag || github.ref }}"
+    abort_contract("#{name} must check out the release tag for both tag pushes and workflow dispatches")
+  end
+end
+
 require_checkout_depth(verify, "verify")
 [
   "cargo fmt --all --check",
@@ -165,6 +172,19 @@ release_job = job(release_plz, "release")
 require_checkout_depth(release_job, "release")
 unless release_job["needs"] == "release-pr"
   abort_contract("release must need release-pr, so tagging follows the version bump")
+end
+dispatch = steps(release_job, "release").find { |step| step["name"] == "Dispatch archives for the new tag" }
+abort_contract("release must explicitly dispatch the archive build after creating a tag") unless dispatch
+unless dispatch["if"] == "${{ steps.release-plz.outputs.releases_created == 'true' }}" &&
+       dispatch["run"] == "bash scripts/dispatch-tagged-release.sh" &&
+       dispatch.dig("env", "RELEASES") == "${{ steps.release-plz.outputs.releases }}" &&
+       dispatch.dig("env", "GH_TOKEN") == "${{ secrets.GITHUB_TOKEN }}" &&
+       release_job.dig("permissions", "actions") == "write"
+  abort_contract("release dispatch must use the emitted release, a scoped workflow token and Actions write permission")
+end
+tag_step = steps(release_job, "release").find { |step| step.dig("with", "command") == "release" }
+unless tag_step && tag_step.dig("env", "GITHUB_TOKEN") == "${{ secrets.GITHUB_TOKEN }}"
+  abort_contract("tagging must use GITHUB_TOKEN so the explicit dispatch cannot duplicate a PAT-triggered build")
 end
 # release-plz owns the version and the tag; release.yml owns the GitHub release,
 # because it is the only job holding the archives to attach to one.
@@ -255,7 +275,7 @@ plan = File.read("docs/superpowers/plans/2026-07-17-questmancer-great-room.md")
   "counsel",
   "search",
   "scrying",
-  "twenty-five fixed production stories",
+  "thirty-four fixed production stories",
   "Librarian's Ledger",
   "persistent Librarian"
 ].each { |expected| require_text(readme, "README", expected) }

@@ -1,0 +1,35 @@
+{
+  "owned_pid": 66302,
+  "socket": "/tmp/qm-h09-probe-mj5ltgg4/config/herdr/herdr.sock",
+  "resources": [
+    {
+      "pane_id": "w1:p1",
+      "workspace_id": "w1"
+    }
+  ],
+  "test_created_link": true,
+  "probe": {
+    "checks": [
+      "typed ping and snapshot",
+      "managed-pane exclusion",
+      "recent unwrapped output",
+      "focus of owned pane",
+      "five registered plugin actions",
+      "pane and workspace metadata",
+      "urgency view set and clear",
+      "real supervisor subscription",
+      "blocked idle unknown working through production reducer",
+      "metadata cleanup"
+    ],
+    "protocol": 22,
+    "result": "passed",
+    "version": "0.9.0"
+  },
+  "protocol": 22,
+  "version": "0.9.0",
+  "capture": "passed",
+  "test_link_removed": true,
+  "source_released": true,
+  "server_exit_code": 0,
+  "socket_removed": true
+}

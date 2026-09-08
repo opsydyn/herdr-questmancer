@@ -74,19 +74,14 @@ pub enum SceneEffect {
     },
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SceneCadence {
-    EventDriven,
-    Fps(u8),
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScenePlan {
     pub world: WorldScene,
     pub camera: SceneCamera,
     pub actors: Vec<ActorPlacement>,
     pub effects: Vec<SceneEffect>,
-    pub cadence: SceneCadence,
+    /// Socket boundary for suppressing one-shot presentation from retained facts.
+    pub transition_floor: Option<Timestamp>,
     /// Presentation-only: set from `ScenePresentation`, never from a snapshot.
     pub goblin_outbreak: bool,
 }
@@ -95,6 +90,32 @@ impl ScenePlan {
     #[must_use]
     pub fn project(snapshot: &SceneSnapshot, viewport: PixelSize) -> Self {
         project_for_world(snapshot, viewport, automatic_world(snapshot))
+    }
+
+    pub(crate) fn suppress_transitions_through(
+        &mut self,
+        snapshot: &SceneSnapshot,
+        floor: Option<Timestamp>,
+    ) {
+        self.transition_floor = floor;
+        let Some(floor) = floor else { return };
+        self.effects.retain(|effect| match effect {
+            SceneEffect::FreshSpoils { since, .. } | SceneEffect::RecentDeparture { since, .. } => {
+                *since > floor
+            }
+        });
+        for actor in &mut self.actors {
+            if actor.pose == ScenePose::ReturningWithSpoils
+                && snapshot.agents.iter().any(|agent| {
+                    agent.key == actor.agent
+                        && agent
+                            .transition
+                            .is_some_and(|transition| transition.since <= floor)
+                })
+            {
+                actor.pose = ScenePose::Settled;
+            }
+        }
     }
 }
 
@@ -105,23 +126,24 @@ pub(crate) fn project_for_world(
     world: WorldScene,
 ) -> ScenePlan {
     let agents = sorted_agents(snapshot);
+    let connected = snapshot.connection == SceneConnection::Connected;
     let actors = agents
         .iter()
-        .filter_map(|agent| placement_for(agent, snapshot.now, world))
+        .filter_map(|agent| placement_for(agent, snapshot.now, world, connected, snapshot.motion))
         .collect::<Vec<_>>();
     let effects = agents
         .iter()
+        .filter(|_| connected && snapshot.motion == Motion::Full)
         .filter_map(|agent| effect_for(agent, snapshot.now))
         .collect::<Vec<_>>();
     let camera = camera_for(&agents, snapshot.now, viewport, world);
-    let cadence = cadence_for(snapshot.motion, &actors, &effects);
 
     ScenePlan {
         world,
         camera,
         actors,
         effects,
-        cadence,
+        transition_floor: None,
         goblin_outbreak: false,
     }
 }
@@ -161,7 +183,13 @@ fn sorted_agents(snapshot: &SceneSnapshot) -> Vec<&SceneAgent> {
     agents
 }
 
-fn placement_for(agent: &SceneAgent, now: Timestamp, world: WorldScene) -> Option<ActorPlacement> {
+fn placement_for(
+    agent: &SceneAgent,
+    now: Timestamp,
+    world: WorldScene,
+    connected: bool,
+    motion: Motion,
+) -> Option<ActorPlacement> {
     let (station, pose) = match (world, agent.presence) {
         (WorldScene::GuildHall, Presence::Working) => (
             TruthfulStation::CampaignToken(agent.workspace_id.clone()),
@@ -176,7 +204,7 @@ fn placement_for(agent: &SceneAgent, now: Timestamp, world: WorldScene) -> Optio
         }
         (WorldScene::GuildHall, Presence::Done) => (
             TruthfulStation::SpoilsBench,
-            if has_fresh_spoils(agent, now) {
+            if connected && motion == Motion::Full && has_fresh_spoils(agent, now) {
                 ScenePose::ReturningWithSpoils
             } else {
                 ScenePose::Settled
@@ -193,7 +221,7 @@ fn placement_for(agent: &SceneAgent, now: Timestamp, world: WorldScene) -> Optio
         ),
         (WorldScene::Delve, Presence::Done) => (
             TruthfulStation::DelveExit(agent.workspace_id.clone()),
-            if has_fresh_spoils(agent, now) {
+            if connected && motion == Motion::Full && has_fresh_spoils(agent, now) {
                 ScenePose::ReturningWithSpoils
             } else {
                 ScenePose::Settled
@@ -225,15 +253,21 @@ fn effect_for(agent: &SceneAgent, now: Timestamp) -> Option<SceneEffect> {
         return None;
     }
     match transition.summons {
-        GuildSummons::SpoilsReturned => Some(SceneEffect::FreshSpoils {
-            agent: agent.key.clone(),
-            since: transition.since,
-        }),
-        GuildSummons::AdventurerDeparted => Some(SceneEffect::RecentDeparture {
-            workspace_id: agent.workspace_id.clone(),
-            since: transition.since,
-        }),
-        GuildSummons::CounselRequested => None,
+        GuildSummons::SpoilsReturned if has_fresh_spoils(agent, now) => {
+            Some(SceneEffect::FreshSpoils {
+                agent: agent.key.clone(),
+                since: transition.since,
+            })
+        }
+        GuildSummons::AdventurerDeparted if agent.presence == Presence::Exited => {
+            Some(SceneEffect::RecentDeparture {
+                workspace_id: agent.workspace_id.clone(),
+                since: transition.since,
+            })
+        }
+        GuildSummons::SpoilsReturned
+        | GuildSummons::AdventurerDeparted
+        | GuildSummons::CounselRequested => None,
     }
 }
 
@@ -282,47 +316,12 @@ fn anchor_for(agent: &SceneAgent, world: WorldScene) -> CameraAnchor {
     }
 }
 
-fn cadence_for(motion: Motion, actors: &[ActorPlacement], effects: &[SceneEffect]) -> SceneCadence {
-    match motion {
-        Motion::None => SceneCadence::EventDriven,
-        Motion::Reduced => {
-            if actors.iter().any(|actor| actor.pose == ScenePose::Resting) {
-                SceneCadence::Fps(1)
-            } else {
-                SceneCadence::EventDriven
-            }
-        }
-        Motion::Full => {
-            let effect_fps = if effects
-                .iter()
-                .any(|effect| matches!(effect, SceneEffect::FreshSpoils { .. }))
-            {
-                8
-            } else {
-                0
-            };
-            let actor_fps = actors
-                .iter()
-                .map(|actor| match actor.pose {
-                    ScenePose::ReturningWithSpoils => 8,
-                    ScenePose::Working => 6,
-                    ScenePose::SeekingCounsel => 2,
-                    ScenePose::Resting => 1,
-                    ScenePose::Settled | ScenePose::Unknown => 0,
-                })
-                .max()
-                .unwrap_or(0);
-            match effect_fps.max(actor_fps).min(8) {
-                0 => SceneCadence::EventDriven,
-                fps => SceneCadence::Fps(fps),
-            }
-        }
-    }
-}
-
 fn has_fresh_spoils(agent: &SceneAgent, now: Timestamp) -> bool {
     agent.transition.is_some_and(|transition| {
-        transition.summons == GuildSummons::SpoilsReturned && is_fresh(transition.since, now)
+        agent.presence == Presence::Done
+            && transition.since >= agent.presence_since
+            && transition.summons == GuildSummons::SpoilsReturned
+            && is_fresh(transition.since, now)
     })
 }
 

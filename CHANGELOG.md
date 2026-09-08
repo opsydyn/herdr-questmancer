@@ -4,9 +4,42 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-09-08
+
 ### Fixed
 
+- Herdr 0.9 / protocol 22 compatibility: subscribe before the authoritative
+  snapshot and reconcile unversioned status events against current pane
+  metadata, so queued old events cannot invent a completion transition.
+
+- Scrying now keeps only the current selected adventurer's latest output.
+  Superseded reads and failures cannot overwrite newer results; repeated
+  refreshes coalesce while counsel continues independently.
+- Roster adventurers retain recognisable state cues without names, colour or
+  motion. Fresh spoils settle within three seconds, and reduced/still scenes
+  do not wake for decorative animation or cleanup.
+- Storybook inspection now reaches the production roster, vignette and
+  status-only layouts at small sizes. Sprite galleries retain their minimum
+  canvas instead of being compressed into unreadable art.
+- Release automation now explicitly requests the archive workflow after
+  tagging. Tags made with `GITHUB_TOKEN` previously appeared without a matching
+  downloadable release; dispatch failures now fail the tagging job. Every
+  release job, including the optional registry publish, checks out that tag.
+
 ### Added
+
+- Campaign crests derived from workspace identity, repeated below the Guild
+  Hall's campaign-table actors and named on the adventurer card. Shared tables
+  show separate crests only when the whole set fits; smaller Hall tiers keep
+  their existing composition. No new persistence or animation wake is needed.
+
+- A stockier Librarian world sprite and a separately authored Ledger fallback.
+- Wizard, Ranger and Barbarian rituals: two working frames at 500 ms each,
+  a single 600 ms counsel gesture, and returned spoils that are placed and
+  settled. Their production pose galleries bring Storybook to 34 stories.
+- Correlated, confirmed counsel seals the existing notice. Rejected or
+  uncertain delivery remains unsealed, and confirmation does not change
+  Herdr presence.
 
 - The Guild Hall's quest board carries a quest. It is the room's focal point —
   the largest bright shape, centred, where the eye lands first — and it held
@@ -40,6 +73,11 @@ All notable changes to this project will be documented here.
   says something happened here before the party arrived.
 
 ### Changed
+
+- Questmancer now targets Herdr `0.8.2` and protocol `20`. Older or unknown
+  protocol versions are rejected before subscribing or accepting snapshots.
+- Wizard, Ranger and Barbarian card fallbacks use their new personalised world
+  sprites at native size, centred in the existing card canvas without scaling.
 
 - Debug builds no longer carry full debug info. `target/` had reached 36 GB on
   disk — 24 GB of dependency debug info and 10 GB of incremental state that

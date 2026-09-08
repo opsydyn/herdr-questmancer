@@ -12,8 +12,8 @@ use questmancer::{
         render_scene,
         snapshot::{SceneAgent, SceneConnection, SceneSnapshot, SceneTransition},
         stage::{
-            ActorPlacement, COMPLETION_THEATRE_MS, CameraAnchor, SceneCadence, SceneCamera,
-            SceneEffect, ScenePlan, ScenePose, TruthfulStation, WorldScene,
+            ActorPlacement, COMPLETION_THEATRE_MS, CameraAnchor, SceneCamera, SceneEffect,
+            ScenePlan, ScenePose, TruthfulStation, WorldScene,
         },
     },
 };
@@ -446,54 +446,19 @@ fn focus_changes_only_emphasis_and_crop_not_station_or_identity() {
 }
 
 #[test]
-fn cadence_is_derived_only_from_motion_and_visible_needs() {
+fn quiet_motion_projects_settled_completion_without_transient_effects() {
     let mut fresh = agent("fresh", Presence::Done);
     fresh.transition = Some(SceneTransition {
         summons: GuildSummons::SpoilsReturned,
         since: Timestamp::from_millis(2_001),
     });
-
-    let full_cases = [
-        (
-            vec![agent("unknown", Presence::Unknown)],
-            SceneCadence::EventDriven,
-        ),
-        (
-            vec![agent("settled", Presence::Done)],
-            SceneCadence::EventDriven,
-        ),
-        (vec![agent("idle", Presence::Idle)], SceneCadence::Fps(1)),
-        (
-            vec![agent("blocked", Presence::Blocked)],
-            SceneCadence::Fps(2),
-        ),
-        (
-            vec![agent("working", Presence::Working)],
-            SceneCadence::Fps(6),
-        ),
-        (
-            vec![agent("working", Presence::Working), fresh.clone()],
-            SceneCadence::Fps(8),
-        ),
-    ];
-    for (agents, expected) in full_cases {
-        assert_eq!(project(&snapshot(agents)).cadence, expected);
+    for motion in [Motion::Reduced, Motion::None] {
+        let mut quiet = snapshot(vec![fresh.clone()]);
+        quiet.motion = motion;
+        let plan = project(&quiet);
+        assert_eq!(plan.actors[0].pose, ScenePose::Settled);
+        assert!(plan.effects.is_empty());
     }
-
-    let mut reduced_idle = snapshot(vec![
-        agent("working", Presence::Working),
-        agent("idle", Presence::Idle),
-    ]);
-    reduced_idle.motion = Motion::Reduced;
-    assert_eq!(project(&reduced_idle).cadence, SceneCadence::Fps(1));
-
-    let mut reduced_working = snapshot(vec![agent("working", Presence::Working)]);
-    reduced_working.motion = Motion::Reduced;
-    assert_eq!(project(&reduced_working).cadence, SceneCadence::EventDriven);
-
-    let mut no_motion = snapshot(vec![agent("idle", Presence::Idle), fresh]);
-    no_motion.motion = Motion::None;
-    assert_eq!(project(&no_motion).cadence, SceneCadence::EventDriven);
 }
 
 #[test]

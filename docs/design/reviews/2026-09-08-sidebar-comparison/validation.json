@@ -1,0 +1,19 @@
+{
+  "herdr": "0.9.0",
+  "checks": [
+    {
+      "configuration": "current",
+      "result": "config: ok"
+    },
+    {
+      "configuration": "three",
+      "result": "config: ok"
+    },
+    {
+      "configuration": "four",
+      "result": "config: ok"
+    }
+  ],
+  "global_configuration_changed": false,
+  "native_visual_acceptance": "pending"
+}

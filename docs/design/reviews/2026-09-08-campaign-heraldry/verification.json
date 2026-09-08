@@ -1,0 +1,17 @@
+{
+  "baseline_commit": "efcd87d",
+  "checkout": "inline with preserved prior edits",
+  "visual_signoff": "deferred by user",
+  "rust_tests": 570,
+  "rust_test_runs": 51,
+  "shell_tests": 28,
+  "full_verify": "passed",
+  "release_build": "passed",
+  "package_verification": "passed",
+  "package_bytes": 7842857,
+  "package_sha256": "811294ddc4bab91f89f10aa1e29d5747f595176568f2604db28bcc83c62c050d",
+  "release_binary_sha256": "d7d8c2f2a14b57e4a75ac4009b2c54691d3a2d51d7a8995fd0dd0dcb04afcb6b",
+  "sidebar_agent_rows": 4,
+  "sidebar_config_check": "passed",
+  "published": false
+}

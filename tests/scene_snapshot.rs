@@ -186,11 +186,11 @@ fn snapshot_preserves_every_connection_variant() {
         ),
         (
             ConnectionState::Incompatible {
-                expected: 20,
+                expected: 22,
                 actual: 19,
             },
             SceneConnection::Incompatible {
-                expected: 20,
+                expected: 22,
                 actual: 19,
             },
         ),

@@ -1,17 +1,18 @@
 use std::{collections::BTreeSet, time::Duration};
 
+use serde_json::json;
 use tokio::{
     sync::{mpsc, watch},
     time::sleep,
 };
 
 use super::{
-    client::HerdrClient,
+    client::{ClientError, HerdrClient},
     protocol::{SessionSnapshot, WireEvent},
     subscription::{HerdrSubscription, SubscriptionRequest},
 };
 
-pub const SUPPORTED_PROTOCOL: u32 = 19;
+pub const SUPPORTED_PROTOCOL: u32 = 22;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Backoff {
@@ -145,6 +146,28 @@ impl ConnectionSupervisor {
             };
         }
 
+        // Status subscriptions require pane IDs. This first snapshot is only
+        // discovery; Herdr 0.9 lifecycle streams do not replay earlier events.
+        let discovery = match self.client.snapshot().await {
+            Ok(snapshot) => snapshot,
+            Err(error) => return CycleOutcome::disconnected(error, false),
+        };
+        if discovery.protocol != SUPPORTED_PROTOCOL {
+            return CycleOutcome::Incompatible {
+                actual: discovery.protocol,
+            };
+        }
+
+        let request = SubscriptionRequest::for_snapshot(&discovery);
+        let subscribed_pane_ids = pane_subscription_ids(&discovery);
+        let mut subscription =
+            match HerdrSubscription::connect(self.client.socket_path(), request).await {
+                Ok(subscription) => subscription,
+                Err(error) => return CycleOutcome::disconnected(error, false),
+            };
+
+        // The acknowledged socket buffers events while the authoritative
+        // baseline is loaded. Never publish a party with missing subscriptions.
         let snapshot = match self.client.snapshot().await {
             Ok(snapshot) => snapshot,
             Err(error) => return CycleOutcome::disconnected(error, false),
@@ -154,14 +177,9 @@ impl ConnectionSupervisor {
                 actual: snapshot.protocol,
             };
         }
-
-        let request = SubscriptionRequest::for_snapshot(&snapshot);
-        let subscribed_pane_ids = pane_subscription_ids(&snapshot);
-        let mut subscription =
-            match HerdrSubscription::connect(self.client.socket_path(), request).await {
-                Ok(subscription) => subscription,
-                Err(error) => return CycleOutcome::disconnected(error, false),
-            };
+        if pane_subscription_ids(&snapshot) != subscribed_pane_ids {
+            return CycleOutcome::Resync;
+        }
 
         if update_tx
             .send(ConnectionUpdate::Connected(snapshot))
@@ -180,6 +198,10 @@ impl ConnectionSupervisor {
                         connected: true,
                     };
                 }
+                Err(error) => return CycleOutcome::disconnected(error, true),
+            };
+            let event = match self.reconcile_status_event(event).await {
+                Ok(event) => event,
                 Err(error) => return CycleOutcome::disconnected(error, true),
             };
             let topology_changed = is_topology_event(&event.event);
@@ -205,6 +227,31 @@ impl ConnectionSupervisor {
                 }
             }
         }
+    }
+
+    async fn reconcile_status_event(&self, mut event: WireEvent) -> Result<WireEvent, ClientError> {
+        if !matches!(
+            event.event.as_str(),
+            "pane.agent_status_changed" | "pane_agent_status_changed"
+        ) || event.data.get("revision").is_some()
+        {
+            return Ok(event);
+        }
+        let Some(pane_id) = event.data.get("pane_id").and_then(|id| id.as_str()) else {
+            return Ok(event);
+        };
+        // Unversioned status text may be older than a just-installed snapshot.
+        // Use current metadata rather than inventing a newer revision for it.
+        // This request reads no terminal output and is never driven by a frame.
+        let pane = self.client.get_pane(pane_id).await?;
+        event.data = json!({
+            "pane_id": pane.pane_id,
+            "workspace_id": pane.workspace_id,
+            "agent_status": pane.agent_status,
+            "custom_status": pane.custom_status,
+            "revision": pane.revision,
+        });
+        Ok(event)
     }
 }
 

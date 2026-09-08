@@ -1,0 +1,75 @@
+{
+  "world": [
+    "................",
+    ".....oooo.......",
+    "...oobbbboo.....",
+    "..obBBBBBBbo....",
+    ".obBBHBBHBBbo...",
+    ".obBssssssBbo...",
+    ".obsoPooPosbo...",
+    "..bsosssosb.....",
+    "..obBssssBbo....",
+    "...obBBBBbo.....",
+    "..oobppppboo....",
+    ".obbbpggpbbbo...",
+    "obBbbpPPpbbBbo..",
+    "obBbbppppbbBbo..",
+    "obBbbpggpbbBbo..",
+    "obBbbbbbbbbBbo..",
+    ".oBbbbrrbbbBo...",
+    ".obbbrrrrbbbo...",
+    "..obbbbbbbbo....",
+    "..obb....bbo....",
+    ".obb......bbo...",
+    ".ob........bo...",
+    "..oo......oo....",
+    "................"
+  ],
+  "palette": {
+    "o": [
+      28,
+      18,
+      23
+    ],
+    "b": [
+      82,
+      43,
+      29
+    ],
+    "B": [
+      142,
+      76,
+      42
+    ],
+    "H": [
+      195,
+      116,
+      59
+    ],
+    "s": [
+      225,
+      166,
+      102
+    ],
+    "P": [
+      242,
+      218,
+      163
+    ],
+    "p": [
+      91,
+      49,
+      111
+    ],
+    "g": [
+      218,
+      164,
+      55
+    ],
+    "r": [
+      130,
+      37,
+      52
+    ]
+  }
+}

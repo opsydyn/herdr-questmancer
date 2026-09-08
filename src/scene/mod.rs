@@ -1,4 +1,5 @@
 pub mod assets;
+pub mod heraldry;
 pub mod pixel;
 pub mod presentation;
 pub mod render;
@@ -109,6 +110,7 @@ pub fn render_scene_for_world(
     target: &mut RgbBuffer,
 ) -> SceneFrame {
     let mut plan = stage::project_for_world(snapshot, viewport, presentation.world);
+    plan.suppress_transitions_through(snapshot, presentation.transition_floor);
     render::interaction::apply_selection(&mut plan, presentation);
     plan.goblin_outbreak = presentation.goblin_outbreak;
     render::paint(snapshot, &plan, viewport, target)

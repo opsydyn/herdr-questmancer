@@ -5,7 +5,7 @@ use std::sync::{
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
-    app::CounselRequest,
+    app::{CounselRequest, OutputRequest},
     domain::PaneId,
     herdr::{
         client::{ClientError, HerdrClient},
@@ -22,9 +22,16 @@ pub enum AgentCommand {
         text: String,
         request: CounselRequest,
     },
+    /// Retries only the Enter boundary after counsel text was already
+    /// accepted by the pane.
+    SubmitCounsel {
+        pane_id: PaneId,
+        request: CounselRequest,
+    },
     LoadOutput {
         pane_id: PaneId,
         lines: u32,
+        request: OutputRequest,
     },
     RefreshSnapshot,
     DiscoverReviewr {
@@ -47,18 +54,32 @@ pub enum CommandResult {
     },
     /// Counsel has its own failure rather than the generic `Failed`, because
     /// the open parchment can only settle on a result it can prove is its own.
-    CounselFailed {
+    CounselTextFailed {
+        request: CounselRequest,
+        message: String,
+    },
+    /// The text request was written but no trustworthy acknowledgement came
+    /// back. Retrying the text could duplicate instructions.
+    CounselTextUncertain {
+        pane_id: PaneId,
+        request: CounselRequest,
+        message: String,
+    },
+    CounselSubmissionFailed {
+        pane_id: PaneId,
         request: CounselRequest,
         message: String,
     },
     OutputLoaded {
         pane_id: PaneId,
+        request: OutputRequest,
         revision: u64,
         text: String,
         truncated: bool,
     },
     OutputFailed {
         pane_id: PaneId,
+        request: OutputRequest,
         message: String,
     },
     ReviewrAvailable(bool),
@@ -120,20 +141,42 @@ impl CommandExecutor {
         request: CounselRequest,
     ) -> CommandResult {
         if self.is_managed_pane(&pane_id) {
-            return CommandResult::CounselFailed {
+            return CommandResult::CounselTextFailed {
                 request,
                 message: "refused operation on the Questmancer guild pane".to_owned(),
             };
         }
         if let Err(error) = self.client.send_text(pane_id.as_str(), text).await {
-            return CommandResult::CounselFailed {
+            return match &error {
+                // A protocol rejection is an acknowledgement that Herdr did
+                // not accept the operation. Other failures may happen after
+                // the full request was written, so their outcome is unknown.
+                ClientError::Server { .. } => CommandResult::CounselTextFailed {
+                    request,
+                    message: error.to_string(),
+                },
+                _ => CommandResult::CounselTextUncertain {
+                    pane_id,
+                    request,
+                    message: error.to_string(),
+                },
+            };
+        }
+        self.submit_counsel(pane_id, request).await
+    }
+
+    async fn submit_counsel(&self, pane_id: PaneId, request: CounselRequest) -> CommandResult {
+        if self.is_managed_pane(&pane_id) {
+            return CommandResult::CounselSubmissionFailed {
+                pane_id,
                 request,
-                message: error.to_string(),
+                message: "refused operation on the Questmancer guild pane".to_owned(),
             };
         }
         match self.client.send_keys(pane_id.as_str(), &["enter"]).await {
             Ok(()) => CommandResult::CounselSent { pane_id, request },
-            Err(error) => CommandResult::CounselFailed {
+            Err(error) => CommandResult::CounselSubmissionFailed {
+                pane_id,
                 request,
                 message: error.to_string(),
             },
@@ -156,10 +199,18 @@ impl CommandExecutor {
                 text,
                 request,
             } => self.send_counsel(pane_id, text, request).await,
-            AgentCommand::LoadOutput { pane_id, lines } => {
+            AgentCommand::SubmitCounsel { pane_id, request } => {
+                self.submit_counsel(pane_id, request).await
+            }
+            AgentCommand::LoadOutput {
+                pane_id,
+                lines,
+                request,
+            } => {
                 if self.is_managed_pane(&pane_id) {
                     return CommandResult::OutputFailed {
                         pane_id,
+                        request,
                         message: "refused operation on the Questmancer guild pane".to_owned(),
                     };
                 }
@@ -170,12 +221,14 @@ impl CommandExecutor {
                 {
                     Ok(read) => CommandResult::OutputLoaded {
                         pane_id,
+                        request,
                         revision: read.revision,
                         text: read.text,
                         truncated: read.truncated,
                     },
                     Err(error) => CommandResult::OutputFailed {
                         pane_id,
+                        request,
                         message: error.to_string(),
                     },
                 }

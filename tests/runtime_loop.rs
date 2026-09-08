@@ -1,6 +1,8 @@
 use questmancer::{
-    app::CounselRequest,
-    app::{ConnectionState, DisplayPreferences, Model, Motion, Notice, RuntimeSettings, View},
+    app::{
+        ConnectionState, CounselPhase, DisplayPreferences, Model, Motion, Notice, OutputRequest,
+        RuntimeSettings, View,
+    },
     command::{AgentCommand, CommandResult},
     config::OutputPreviewLines,
     domain::{
@@ -30,6 +32,44 @@ fn snapshot() -> SessionSnapshot {
     let response: SuccessResponse<SessionSnapshotResult> =
         serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
     response.result.snapshot
+}
+
+fn output_request(commands: &[AgentCommand]) -> OutputRequest {
+    commands
+        .iter()
+        .find_map(|command| match command {
+            AgentCommand::LoadOutput { request, .. } => Some(*request),
+            _ => None,
+        })
+        .expect("selected output should be requested")
+}
+
+fn connect_for_output() -> (Model, OutputRequest) {
+    let mut model = Model::new(View::Guild);
+    let effects = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(snapshot()),
+        Timestamp::from_millis(1_000),
+    );
+    (model, output_request(&effects.agent_commands))
+}
+
+fn refresh_output(model: &mut Model) -> OutputRequest {
+    output_request(&reduce_action(model, Action::Refresh).commands)
+}
+
+fn output_loaded(model: &mut Model, request: OutputRequest, revision: u64, text: &str) {
+    apply_command_result(
+        model,
+        CommandResult::OutputLoaded {
+            pane_id: PaneId::new("w1:p1"),
+            request,
+            revision,
+            text: text.to_owned(),
+            truncated: false,
+        },
+        Timestamp::from_millis(2_000),
+    );
 }
 
 fn model_with_two_distinct_personas() -> Model {
@@ -188,7 +228,7 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
     assert_eq!(model.domain().agents.len(), 1);
     assert!(effects.agent_commands.iter().any(|command| matches!(
         command,
-        AgentCommand::LoadOutput { pane_id, lines: 123 }
+        AgentCommand::LoadOutput { pane_id, lines: 123, .. }
             if pane_id.as_str() == "w1:p1"
     )));
     assert!(
@@ -203,6 +243,195 @@ fn connection_bootstrap_updates_model_and_lazily_loads_selected_output() {
         AgentCommand::PublishMarginalia(projection)
             if projection.agents.len() == 1 && projection.campaigns.len() == 1
     )));
+}
+
+#[test]
+fn reconnect_does_not_replay_completion_but_a_new_done_event_can() {
+    use questmancer::{
+        herdr::protocol::AgentStatus,
+        scene::{
+            pixel::{PixelSize, Rgb, RgbBuffer},
+            presentation::ScenePresentation,
+            render_scene_for_world,
+            snapshot::SceneSnapshot,
+        },
+    };
+    let (mut model, _) = connect_for_output();
+    model.switch_to(View::Delve);
+    model.set_preferences(DisplayPreferences {
+        motion: Motion::Full,
+        ..DisplayPreferences::default()
+    });
+    let deadline = |model: &Model| {
+        let mut pixels = RgbBuffer::filled(0, 0, Rgb::BLACK);
+        render_scene_for_world(
+            &SceneSnapshot::from_model(model),
+            &ScenePresentation::from_model(model),
+            PixelSize::new(30, 30),
+            &mut pixels,
+        )
+        .next_frame_in
+    };
+    apply_connection_update(
+        &mut model,
+        status_update_with_revision("done", 8),
+        Timestamp::from_millis(2_000),
+    );
+    model.set_now(Timestamp::from_millis(2_125));
+    assert!(deadline(&model).is_some());
+    let attention = model.selected_agent().unwrap().attention.clone();
+
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Disconnected("test disconnect".to_owned()),
+        Timestamp::from_millis(2_150),
+    );
+    assert_eq!(deadline(&model), None);
+    let mut resumed = snapshot();
+    resumed.panes[0].agent_status = AgentStatus::Done;
+    resumed.panes[0].revision = 8;
+    resumed.agents[0].agent_status = AgentStatus::Done;
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(resumed),
+        Timestamp::from_millis(2_200),
+    );
+    model.set_now(Timestamp::from_millis(2_250));
+    assert_eq!(
+        model.selected_agent().unwrap().attention,
+        attention,
+        "connection changes cannot erase the summons"
+    );
+    assert_eq!(
+        deadline(&model),
+        None,
+        "retained completion must stay settled after reconnect"
+    );
+
+    apply_connection_update(
+        &mut model,
+        status_update_with_revision("working", 9),
+        Timestamp::from_millis(2_300),
+    );
+    apply_connection_update(
+        &mut model,
+        status_update_with_revision("done", 10),
+        Timestamp::from_millis(2_400),
+    );
+    model.set_now(Timestamp::from_millis(2_525));
+    assert!(
+        deadline(&model).is_some(),
+        "a new completion in this connection must still play"
+    );
+}
+
+fn party_world_deadline(model: &Model) -> Option<std::time::Duration> {
+    use questmancer::scene::{
+        pixel::{PixelSize, Rgb, RgbBuffer},
+        presentation::ScenePresentation,
+        render_scene_for_world,
+        snapshot::SceneSnapshot,
+    };
+    let mut pixels = RgbBuffer::filled(0, 0, Rgb::BLACK);
+    render_scene_for_world(
+        &SceneSnapshot::from_model(model),
+        &ScenePresentation::from_model(model),
+        PixelSize::new(160, 90),
+        &mut pixels,
+    )
+    .next_frame_in
+}
+
+#[test]
+fn party_counsel_gestures_follow_presence_episodes_across_reports_and_reconnects() {
+    use questmancer::{domain::AdventurerClass, herdr::protocol::AgentStatus};
+    use std::time::Duration;
+    for class in [
+        AdventurerClass::Wizard,
+        AdventurerClass::Ranger,
+        AdventurerClass::Barbarian,
+    ] {
+        let mut model = connected_model_with_presence(Presence::Working);
+        model.set_connection_at(ConnectionState::Connected, Timestamp::from_millis(1_000));
+        let mut saved = questmancer::persistence::PersistedStateV1::capture(&model);
+        for persona in saved.personas.values_mut() {
+            persona.class = class;
+        }
+        model
+            .durable_intent_mut()
+            .seed(&saved)
+            .expect("valid pilot persona fixture");
+        model.set_preferences(DisplayPreferences {
+            motion: Motion::Full,
+            ..DisplayPreferences::default()
+        });
+        apply_connection_update(
+            &mut model,
+            status_update_with_revision("blocked", 8),
+            Timestamp::from_millis(2_000),
+        );
+        model.set_now(Timestamp::from_millis(2_000));
+        assert_eq!(
+            party_world_deadline(&model),
+            Some(Duration::from_millis(600))
+        );
+        apply_connection_update(
+            &mut model,
+            status_update_with_revision("blocked", 9),
+            Timestamp::from_millis(2_200),
+        );
+        model.set_now(Timestamp::from_millis(2_200));
+        for view in [View::Delve, View::Guild] {
+            model.switch_to(view);
+            assert_eq!(
+                party_world_deadline(&model),
+                Some(Duration::from_millis(400)),
+                "reports and room changes cannot restart the gesture"
+            );
+        }
+        apply_connection_update(
+            &mut model,
+            ConnectionUpdate::Disconnected("gesture test".to_owned()),
+            Timestamp::from_millis(2_250),
+        );
+        assert_eq!(party_world_deadline(&model), None);
+        let mut resumed = snapshot();
+        resumed.panes[0].agent_status = AgentStatus::Blocked;
+        resumed.panes[0].revision = 9;
+        resumed.agents[0].agent_status = AgentStatus::Blocked;
+        apply_connection_update(
+            &mut model,
+            ConnectionUpdate::Connected(resumed),
+            Timestamp::from_millis(2_300),
+        );
+        model.set_now(Timestamp::from_millis(2_350));
+        assert_eq!(
+            party_world_deadline(&model),
+            None,
+            "retained blocked facts must remain still"
+        );
+        apply_connection_update(
+            &mut model,
+            status_update_with_revision("working", 10),
+            Timestamp::from_millis(2_400),
+        );
+        apply_connection_update(
+            &mut model,
+            status_update_with_revision("blocked", 11),
+            Timestamp::from_millis(2_500),
+        );
+        model.set_now(Timestamp::from_millis(2_500));
+        assert_eq!(
+            party_world_deadline(&model),
+            Some(Duration::from_millis(600)),
+            "a new blocked episode has a new gesture"
+        );
+        model.set_now(Timestamp::from_millis(3_100));
+        for view in [View::Delve, View::Guild] {
+            model.switch_to(view);
+            assert_eq!(party_world_deadline(&model), None);
+        }
+    }
 }
 
 #[test]
@@ -278,13 +507,289 @@ fn runtime_domain_update_keeps_the_newly_selected_distinct_persona_selected() {
 }
 
 #[test]
-fn output_and_discovery_results_update_app_state() {
-    let mut model = Model::new(View::Guild);
+fn older_output_result_cannot_overwrite_a_newer_selected_preview() {
+    let (mut model, older) = connect_for_output();
+    let newer = refresh_output(&mut model);
+    output_loaded(&mut model, newer, 20, "newer output");
+    output_loaded(&mut model, older, 10, "older output");
+
+    let preview = model.output_preview().unwrap();
+    assert_eq!(preview.revision, 20);
+    assert_eq!(preview.text, "newer output");
+}
+
+#[test]
+fn stale_output_failure_preserves_newer_text_and_feedback() {
+    let (mut model, older) = connect_for_output();
+    let newer = refresh_output(&mut model);
+    output_loaded(&mut model, newer, 20, "current output");
+    model.set_action_feedback("counsel issued".into());
+
+    apply_command_result(
+        &mut model,
+        CommandResult::OutputFailed {
+            pane_id: PaneId::new("w1:p1"),
+            request: older,
+            message: "old read failed".into(),
+        },
+        Timestamp::from_millis(3_000),
+    );
+
+    let preview = model.output_preview().unwrap();
+    assert_eq!(preview.text, "current output");
+    assert_eq!(preview.revision, 20);
+    assert_eq!(preview.error, None);
+    assert_eq!(model.action_feedback(), Some("counsel issued"));
+}
+
+#[test]
+fn even_the_latest_output_request_cannot_regress_the_current_revision() {
+    let (mut model, first) = connect_for_output();
+    output_loaded(&mut model, first, 20, "current output");
+    let newer = refresh_output(&mut model);
 
     apply_command_result(
         &mut model,
         CommandResult::OutputLoaded {
             pane_id: PaneId::new("w1:p1"),
+            request: newer,
+            revision: 10,
+            text: "stale output".into(),
+            truncated: true,
+        },
+        Timestamp::from_millis(3_000),
+    );
+
+    let preview = model.output_preview().unwrap();
+    assert_eq!(preview.text, "current output");
+    assert_eq!(preview.revision, 20);
+    assert!(!preview.loading);
+    assert_eq!(model.action_feedback(), None);
+
+    let current = refresh_output(&mut model);
+    output_loaded(&mut model, current, 20, "same revision refreshed");
+    assert_eq!(
+        model.output_preview().unwrap().text,
+        "same revision refreshed"
+    );
+}
+
+#[test]
+fn superseded_output_does_not_settle_a_newer_pending_read_even_at_a_higher_revision() {
+    let (mut model, older) = connect_for_output();
+    let newer = refresh_output(&mut model);
+    output_loaded(&mut model, older, 100, "superseded output");
+    assert!(model.output_preview().unwrap().loading);
+    assert!(model.output_preview().unwrap().text.is_empty());
+    output_loaded(&mut model, newer, 20, "current request");
+    assert_eq!(model.output_preview().unwrap().text, "current request");
+}
+
+#[test]
+fn leaving_and_reselecting_an_adventurer_invalidates_the_old_output_request() {
+    let mut model = model_with_two_distinct_personas();
+    model.set_connection(ConnectionState::Connected);
+    let old = refresh_output(&mut model);
+    model.select_last_agent();
+    assert!(model.output_preview().is_none());
+    model.select_first_agent();
+    output_loaded(&mut model, old, 100, "old selection lifetime");
+    assert!(model.output_preview().is_none());
+
+    let current = refresh_output(&mut model);
+    output_loaded(&mut model, current, 20, "reselected output");
+    assert_eq!(model.output_preview().unwrap().text, "reselected output");
+}
+
+#[test]
+fn removal_and_recreation_of_a_pane_cannot_revive_its_old_output_request() {
+    let (mut model, old) = connect_for_output();
+    let mut empty = snapshot();
+    empty.agents.clear();
+    apply_command_result(
+        &mut model,
+        CommandResult::SnapshotLoaded(Box::new(empty)),
+        Timestamp::from_millis(2_000),
+    );
+    assert!(model.selected_agent().is_none());
+    output_loaded(&mut model, old, 100, "removed pane");
+    assert!(model.output_preview().is_none());
+
+    let restored = apply_command_result(
+        &mut model,
+        CommandResult::SnapshotLoaded(Box::new(snapshot())),
+        Timestamp::from_millis(3_000),
+    );
+    let current = output_request(&restored.agent_commands);
+    output_loaded(&mut model, old, 100, "old pane incarnation");
+    assert!(model.output_preview().unwrap().loading);
+    output_loaded(&mut model, current, 1, "recreated pane");
+    assert_eq!(model.output_preview().unwrap().text, "recreated pane");
+}
+
+#[test]
+fn replacing_the_selected_agent_on_the_same_pane_invalidates_output() {
+    let (mut model, old) = connect_for_output();
+    let mut domain = model.domain().clone();
+    let mut replacement = domain.agents.values().next().unwrap().clone();
+    replacement.key = AgentKey::new("replacement-agent");
+    domain.selected_agent = Some(replacement.key.clone());
+    domain.agents.clear();
+    domain.agents.insert(replacement.key.clone(), replacement);
+    model.replace_domain(domain);
+
+    output_loaded(&mut model, old, 100, "former adventurer");
+    assert!(model.output_preview().is_none());
+    let current = refresh_output(&mut model);
+    output_loaded(&mut model, current, 1, "replacement adventurer");
+    assert_eq!(
+        model.output_preview().unwrap().text,
+        "replacement adventurer"
+    );
+}
+
+#[test]
+fn every_connection_boundary_rejects_old_reads_and_reloads_unchanged_selection() {
+    for boundary in [
+        ConnectionUpdate::Disconnected("closed".into()),
+        ConnectionUpdate::Resyncing,
+        ConnectionUpdate::Reconnecting {
+            attempt: 1,
+            delay: std::time::Duration::from_millis(250),
+        },
+        ConnectionUpdate::Incompatible {
+            expected: 22,
+            actual: 19,
+        },
+        ConnectionUpdate::Connected(snapshot()),
+    ] {
+        let (mut model, first) = connect_for_output();
+        output_loaded(&mut model, first, 20, "former connection");
+        let pending = refresh_output(&mut model);
+        apply_connection_update(&mut model, boundary, Timestamp::from_millis(3_000));
+
+        let reconnected = apply_connection_update(
+            &mut model,
+            ConnectionUpdate::Connected(snapshot()),
+            Timestamp::from_millis(4_000),
+        );
+        let current = output_request(&reconnected.agent_commands);
+        assert_ne!(current, pending);
+        output_loaded(&mut model, pending, 100, "late from former connection");
+        apply_command_result(
+            &mut model,
+            CommandResult::OutputFailed {
+                pane_id: PaneId::new("w1:p1"),
+                request: pending,
+                message: "former connection failed".into(),
+            },
+            Timestamp::from_millis(4_000),
+        );
+        assert!(model.output_preview().unwrap().loading);
+        assert_eq!(model.output_preview().unwrap().error, None);
+        output_loaded(&mut model, current, 1, "new connection");
+        assert_eq!(model.output_preview().unwrap().text, "new connection");
+        assert_eq!(model.output_preview().unwrap().revision, 1);
+    }
+}
+
+#[test]
+fn unsolicited_output_results_are_ignored_without_a_selected_request() {
+    let mut model = Model::new(View::Guild);
+    output_loaded(&mut model, OutputRequest(99), 100, "unowned output");
+    apply_command_result(
+        &mut model,
+        CommandResult::OutputFailed {
+            pane_id: PaneId::new("w1:p1"),
+            request: OutputRequest(99),
+            message: "unowned failure".into(),
+        },
+        Timestamp::from_millis(3_000),
+    );
+    assert!(model.output_preview().is_none());
+}
+
+#[test]
+fn output_result_must_match_both_request_and_pane() {
+    let (mut model, current) = connect_for_output();
+    apply_command_result(
+        &mut model,
+        CommandResult::OutputLoaded {
+            pane_id: PaneId::new("w1:p2"),
+            request: current,
+            revision: 100,
+            text: "wrong pane".into(),
+            truncated: true,
+        },
+        Timestamp::from_millis(3_000),
+    );
+    assert!(model.output_preview().unwrap().loading);
+    assert_eq!(model.action_feedback(), None);
+    output_loaded(&mut model, current, 20, "correct pane");
+    assert_eq!(model.output_preview().unwrap().text, "correct pane");
+}
+
+#[test]
+fn an_exit_event_invalidates_the_pending_read_without_loading_the_exited_pane() {
+    let (mut model, request) = connect_for_output();
+    let effects = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Event(WireEvent {
+            event: "pane.exited".into(),
+            data: json!({"pane_id": "w1:p1", "workspace_id": "w1", "revision": 8}),
+        }),
+        Timestamp::from_millis(3_000),
+    );
+    assert!(
+        !effects
+            .agent_commands
+            .iter()
+            .any(|command| matches!(command, AgentCommand::LoadOutput { .. }))
+    );
+    output_loaded(&mut model, request, 100, "departed output");
+    assert!(model.output_preview().is_none());
+}
+
+#[test]
+fn disconnected_refresh_does_not_read_a_retained_agent_snapshot() {
+    let (mut model, request) = connect_for_output();
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Disconnected("closed".into()),
+        Timestamp::from_millis(3_000),
+    );
+    assert!(model.selected_agent().is_some());
+    assert!(
+        reduce_action(&mut model, Action::Refresh)
+            .commands
+            .is_empty()
+    );
+    output_loaded(&mut model, request, 100, "offline output");
+    assert!(model.output_preview().is_none());
+}
+
+#[test]
+fn a_pending_read_cannot_populate_the_managed_pane() {
+    let (mut model, request) = connect_for_output();
+    model.set_managed_pane_id(Some(PaneId::new("w1:p1")));
+    output_loaded(&mut model, request, 20, "managed output");
+    assert!(model.output_preview().is_none());
+    assert!(
+        reduce_action(&mut model, Action::Refresh)
+            .commands
+            .is_empty()
+    );
+}
+
+#[test]
+fn output_and_discovery_results_update_app_state() {
+    let (mut model, request) = connect_for_output();
+
+    apply_command_result(
+        &mut model,
+        CommandResult::OutputLoaded {
+            pane_id: PaneId::new("w1:p1"),
+            request,
             revision: 12,
             text: "published".into(),
             truncated: false,
@@ -347,13 +852,20 @@ fn available_reviewr_discovery_preserves_a_newer_adapter_diagnostic() {
 
 #[test]
 fn operational_results_use_approved_guild_copy() {
-    let mut model = Model::new(View::Guild);
+    let mut model = connected_model_with_presence(Presence::Working);
+    let _ = reduce_action(&mut model, Action::Counsel);
+    let _ = reduce_action(&mut model, Action::TypeCharacter('x'));
+    let sent = reduce_action(&mut model, Action::Submit);
+    let request = match sent.commands.as_slice() {
+        [AgentCommand::SendCounsel { request, .. }] => *request,
+        commands => panic!("expected one counsel command, got {commands:?}"),
+    };
 
     apply_command_result(
         &mut model,
         CommandResult::CounselSent {
             pane_id: PaneId::new("w1:p1"),
-            request: CounselRequest(1),
+            request,
         },
         Timestamp::from_millis(2_000),
     );
@@ -368,14 +880,57 @@ fn operational_results_use_approved_guild_copy() {
 }
 
 #[test]
+fn failed_enter_becomes_a_submission_only_retry() {
+    let mut model = connected_model_with_presence(Presence::Working);
+    let _ = reduce_action(&mut model, Action::Counsel);
+    for character in "use jsonb".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let sent = reduce_action(&mut model, Action::Submit);
+    let (pane_id, request) = match sent.commands.as_slice() {
+        [
+            AgentCommand::SendCounsel {
+                pane_id, request, ..
+            },
+        ] => (pane_id.clone(), *request),
+        commands => panic!("expected one counsel command, got {commands:?}"),
+    };
+
+    apply_command_result(
+        &mut model,
+        CommandResult::CounselSubmissionFailed {
+            pane_id: pane_id.clone(),
+            request,
+            message: "enter was not accepted".to_owned(),
+        },
+        Timestamp::from_millis(2_000),
+    );
+
+    assert!(matches!(
+        model.counsel_phase(),
+        Some(CounselPhase::SubmissionFailed { request: failed, .. }) if *failed == request
+    ));
+    assert_eq!(
+        model.status_message(),
+        Some("Counsel was written but not submitted: enter was not accepted")
+    );
+    let retry = reduce_action(&mut model, Action::Submit);
+    assert_eq!(
+        retry.commands,
+        vec![AgentCommand::SubmitCounsel { pane_id, request }]
+    );
+}
+
+#[test]
 fn output_failure_is_scoped_to_the_selected_scrying_preview() {
-    let mut model = Model::new(View::Guild);
+    let (mut model, request) = connect_for_output();
     let before = model.domain().clone();
 
     apply_command_result(
         &mut model,
         CommandResult::OutputFailed {
             pane_id: PaneId::new("w1:p1"),
+            request,
             message: "pane vanished".into(),
         },
         Timestamp::from_millis(2_000),

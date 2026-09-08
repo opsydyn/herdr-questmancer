@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use crate::{
-    app::{ConnectionState, Model, OutputPreview},
+    app::{ConnectionState, Model},
     command::{AgentCommand, CommandExecutor, CommandResult},
-    domain::{PaneId, Timestamp},
+    domain::{AgentKey, PaneId, Timestamp},
     herdr::{
         client::HerdrClient,
         environment::HerdrEnvironment,
@@ -91,6 +91,10 @@ pub struct RuntimeConnection {
     shutdown_tx: watch::Sender<bool>,
     supervisor_task: Option<JoinHandle<()>>,
     command_tasks: JoinSet<CommandResult>,
+    /// Scrying has one read in flight and at most the latest pending refresh.
+    /// Its cancellation must never touch the counsel/focus command set.
+    output_tasks: JoinSet<CommandResult>,
+    pending_output: Option<AgentCommand>,
     last_sidebar_projection: Option<SidebarProjection>,
     /// Whether Questmancer asked Herdr to order its agent list. Tracked so
     /// shutdown clears exactly what was set and nothing else.
@@ -117,6 +121,8 @@ impl RuntimeConnection {
             shutdown_tx,
             supervisor_task: Some(supervisor_task),
             command_tasks: JoinSet::new(),
+            output_tasks: JoinSet::new(),
+            pending_output: None,
             last_sidebar_projection: None,
             urgency_view_set: false,
         }
@@ -124,6 +130,11 @@ impl RuntimeConnection {
 
     pub fn schedule(&mut self, commands: impl IntoIterator<Item = AgentCommand>) {
         for command in commands {
+            if matches!(command, AgentCommand::LoadOutput { .. }) {
+                self.pending_output = Some(command);
+                self.start_pending_output();
+                continue;
+            }
             match &command {
                 AgentCommand::PublishMarginalia(projection) => {
                     self.last_sidebar_projection = Some(projection.clone());
@@ -137,19 +148,44 @@ impl RuntimeConnection {
         }
     }
 
+    fn start_pending_output(&mut self) {
+        if self.output_tasks.is_empty()
+            && let Some(command) = self.pending_output.take()
+        {
+            let executor = self.executor.clone();
+            self.output_tasks
+                .spawn(async move { executor.execute(command).await });
+        }
+    }
+
     pub async fn next_event(&mut self) -> RuntimeEvent {
         loop {
             let has_commands = !self.command_tasks.is_empty();
-            if !self.updates_open && !has_commands {
+            let has_output = !self.output_tasks.is_empty();
+            if !self.updates_open && !has_commands && !has_output {
                 return std::future::pending().await;
             }
 
             tokio::select! {
                 update = self.update_rx.recv(), if self.updates_open => {
                     if let Some(update) = update {
+                        if !matches!(update, ConnectionUpdate::Event(_)) {
+                            self.pending_output = None;
+                            self.output_tasks.abort_all();
+                        }
                         return RuntimeEvent::Connection(update);
                     }
                     self.updates_open = false;
+                }
+                completion = self.output_tasks.join_next(), if has_output => {
+                    self.start_pending_output();
+                    match completion {
+                        Some(Ok(result)) => return RuntimeEvent::Command(result),
+                        Some(Err(error)) if !error.is_cancelled() => {
+                            return RuntimeEvent::CommandTaskFailed(error.to_string());
+                        }
+                        _ => {}
+                    }
                 }
                 completion = self.command_tasks.join_next(), if has_commands => {
                     match completion {
@@ -177,14 +213,16 @@ impl RuntimeConnection {
             Err(error) => Some(error),
         };
 
-        self.command_tasks.abort_all();
         let mut command_error = None;
-        while let Some(result) = self.command_tasks.join_next().await {
-            if let Err(error) = result
-                && !error.is_cancelled()
-                && command_error.is_none()
-            {
-                command_error = Some(error);
+        for tasks in [&mut self.command_tasks, &mut self.output_tasks] {
+            tasks.abort_all();
+            while let Some(result) = tasks.join_next().await {
+                if let Err(error) = result
+                    && !error.is_cancelled()
+                    && command_error.is_none()
+                {
+                    command_error = Some(error);
+                }
             }
         }
         if let Some(projection) = self.last_sidebar_projection.take() {
@@ -213,6 +251,7 @@ impl Drop for RuntimeConnection {
             supervisor_task.abort();
         }
         self.command_tasks.abort_all();
+        self.output_tasks.abort_all();
     }
 }
 
@@ -257,7 +296,7 @@ pub fn apply_connection_update(
             }
             AdapterAction::SetConnection(connection) => {
                 let connected = connection == ConnectionState::Connected;
-                model.set_connection(connection);
+                model.set_connection_at(connection, observed_at);
                 if connected {
                     model.clear_connection_notice();
                 }
@@ -273,15 +312,7 @@ pub fn apply_connection_update(
         }
     }
 
-    let after = selected_revision(model);
-    if after != before
-        && let Some((pane_id, _)) = after
-    {
-        effects.agent_commands.push(AgentCommand::LoadOutput {
-            pane_id,
-            lines: model.settings().output_preview_lines.get(),
-        });
-    }
+    refresh_output_after_update(model, before.as_ref(), discover_reviewr, &mut effects);
     if discover_reviewr {
         effects.agent_commands.push(AgentCommand::DiscoverReviewr {
             qualified_id: model.settings().reviewr_action.clone(),
@@ -305,6 +336,38 @@ pub fn apply_connection_update(
     effects
 }
 
+fn apply_counsel_result(model: &mut Model, result: CommandResult) {
+    match result {
+        CommandResult::CounselSent { request, .. } => {
+            if model.complete_counsel(request) {
+                model.set_counsel_issued(COUNSEL_ISSUED.to_owned());
+            }
+        }
+        CommandResult::CounselTextFailed { request, message } => {
+            if model.fail_counsel(request, message.clone()) {
+                model.set_action_feedback(format!("Counsel was not issued: {message}"));
+            }
+        }
+        CommandResult::CounselTextUncertain {
+            request, message, ..
+        } => {
+            if model.mark_counsel_text_uncertain(request, message.clone()) {
+                model.set_action_feedback(format!("Counsel delivery is unconfirmed: {message}"));
+            }
+        }
+        CommandResult::CounselSubmissionFailed {
+            request, message, ..
+        } => {
+            if model.fail_counsel_submission(request, message.clone()) {
+                model.set_action_feedback(format!(
+                    "Counsel was written but not submitted: {message}"
+                ));
+            }
+        }
+        _ => unreachable!("only counsel results are routed here"),
+    }
+}
+
 pub fn apply_command_result(
     model: &mut Model,
     result: CommandResult,
@@ -315,57 +378,27 @@ pub fn apply_command_result(
         CommandResult::Focused(pane_id) => {
             model.set_action_feedback(format!("observing {pane_id}"));
         }
-        CommandResult::CounselSent { request, .. } => {
-            // Correlation gates the parchment, not the message. A result that
-            // cannot prove it belongs to the open parchment must not close
-            // somebody else's draft — but the counsel really was issued, and
-            // that is worth saying even if the parchment has been dismissed.
-            model.complete_counsel(request);
-            model.set_action_feedback(COUNSEL_ISSUED.to_owned());
-        }
-        CommandResult::CounselFailed { request, message } => {
-            model.fail_counsel(request, message.clone());
-            model.set_action_feedback(format!("Counsel was not issued: {message}"));
-        }
+        result @ (CommandResult::CounselSent { .. }
+        | CommandResult::CounselTextFailed { .. }
+        | CommandResult::CounselTextUncertain { .. }
+        | CommandResult::CounselSubmissionFailed { .. }) => apply_counsel_result(model, result),
         CommandResult::OutputLoaded {
             pane_id,
+            request,
             revision,
             text,
             truncated,
         } => {
-            let belongs_to_selection = model
-                .selected_agent()
-                .is_none_or(|agent| agent.pane_id == pane_id);
-            if belongs_to_selection {
-                model.set_output_preview(Some(OutputPreview {
-                    pane_id,
-                    revision,
-                    text,
-                    loading: false,
-                    error: None,
-                }));
-                if truncated {
-                    model.set_action_feedback("output preview was truncated".to_owned());
-                }
+            if model.complete_output_request(request, &pane_id, revision, text) && truncated {
+                model.set_action_feedback("output preview was truncated".to_owned());
             }
         }
-        CommandResult::OutputFailed { pane_id, message } => {
-            let belongs_to_selection = model
-                .selected_agent()
-                .is_none_or(|agent| agent.pane_id == pane_id);
-            if belongs_to_selection {
-                let revision = model
-                    .output_preview()
-                    .filter(|preview| preview.pane_id == pane_id)
-                    .map_or(0, |preview| preview.revision);
-                model.set_output_preview(Some(OutputPreview {
-                    pane_id,
-                    revision,
-                    text: String::new(),
-                    loading: false,
-                    error: Some(format!("load output failed: {message}")),
-                }));
-            }
+        CommandResult::OutputFailed {
+            pane_id,
+            request,
+            message,
+        } => {
+            model.fail_output_request(request, &pane_id, &message);
         }
         CommandResult::ReviewrAvailable(available) => {
             model.set_reviewr_available(available);
@@ -386,6 +419,7 @@ pub fn apply_command_result(
             model.set_integration_diagnostic(format!("sidebar marginalia failed: {message}"));
         }
         CommandResult::SnapshotLoaded(snapshot) => {
+            let before = selected_revision(model);
             apply_domain_event(
                 model,
                 AppEvent::SnapshotReplaced {
@@ -395,6 +429,7 @@ pub fn apply_command_result(
                 },
                 &mut effects,
             );
+            refresh_output_after_update(model, before.as_ref(), false, &mut effects);
         }
         CommandResult::Failed { operation, message } => {
             model.set_action_feedback(format!("{operation} failed: {message}"));
@@ -422,10 +457,33 @@ fn apply_domain_event(model: &mut Model, event: AppEvent, effects: &mut RuntimeE
     }
 }
 
-fn selected_revision(model: &Model) -> Option<(PaneId, u64)> {
-    model
-        .selected_agent()
-        .map(|agent| (agent.pane_id.clone(), agent.pane_revision))
+fn selected_revision(model: &Model) -> Option<(AgentKey, PaneId, u64)> {
+    model.selected_agent().map(|agent| {
+        (
+            agent.key.clone(),
+            agent.pane_id.clone(),
+            agent.pane_revision,
+        )
+    })
+}
+
+fn refresh_output_after_update(
+    model: &mut Model,
+    before: Option<&(AgentKey, PaneId, u64)>,
+    fresh_connection: bool,
+    effects: &mut RuntimeEffects,
+) {
+    let after = selected_revision(model);
+    if (fresh_connection || after.as_ref() != before)
+        && let Some((_, pane_id, _)) = after
+        && let Some(request) = model.begin_output_request(&pane_id)
+    {
+        effects.agent_commands.push(AgentCommand::LoadOutput {
+            pane_id,
+            lines: model.settings().output_preview_lines.get(),
+            request,
+        });
+    }
 }
 
 fn push_unique_refresh(commands: &mut Vec<AgentCommand>) {
@@ -440,18 +498,218 @@ mod tests {
 
     use tokio::{
         io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-        net::UnixListener,
+        net::{UnixListener, UnixStream},
         sync::oneshot,
         time::timeout,
     };
 
     use super::*;
     use crate::{
+        app::{CounselRequest, OutputRequest},
         domain::WorkspaceId,
         sidebar::{
             QUEST_CAMPAIGN, QUEST_OMEN, QUEST_ROLE, SidebarAgentTokens, SidebarCampaignTokens,
         },
     };
+
+    fn test_connection(
+        socket_path: PathBuf,
+    ) -> (RuntimeConnection, mpsc::Sender<ConnectionUpdate>) {
+        let (update_tx, update_rx) = mpsc::channel(1);
+        let (shutdown_tx, _shutdown_rx) = watch::channel(false);
+        (
+            RuntimeConnection {
+                executor: CommandExecutor::new(HerdrClient::new(socket_path), None),
+                update_rx,
+                updates_open: true,
+                shutdown_tx,
+                supervisor_task: Some(tokio::spawn(async {})),
+                command_tasks: JoinSet::new(),
+                output_tasks: JoinSet::new(),
+                pending_output: None,
+                last_sidebar_projection: None,
+                urgency_view_set: false,
+            },
+            update_tx,
+        )
+    }
+
+    fn output_command(number: u32) -> AgentCommand {
+        AgentCommand::LoadOutput {
+            pane_id: PaneId::new("w1:p1"),
+            lines: number,
+            request: OutputRequest(u64::from(number)),
+        }
+    }
+
+    async fn accept_request(listener: &UnixListener) -> (UnixStream, serde_json::Value) {
+        let (mut stream, _) = timeout(Duration::from_secs(1), listener.accept())
+            .await
+            .unwrap()
+            .unwrap();
+        let mut line = String::new();
+        timeout(
+            Duration::from_secs(1),
+            BufReader::new(&mut stream).read_line(&mut line),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        (stream, serde_json::from_str(&line).unwrap())
+    }
+
+    async fn respond_to(
+        stream: &mut UnixStream,
+        request: &serde_json::Value,
+        result: serde_json::Value,
+    ) {
+        let response = serde_json::json!({"id": request["id"], "result": result});
+        stream
+            .write_all(format!("{response}\n").as_bytes())
+            .await
+            .unwrap();
+    }
+
+    fn output_response(revision: u64) -> serde_json::Value {
+        serde_json::json!({"type": "pane_read", "read": {
+            "pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1",
+            "source": "recent_unwrapped", "format": "text", "text": "output",
+            "revision": revision, "truncated": false
+        }})
+    }
+
+    #[tokio::test]
+    async fn output_refresh_bursts_coalesce_without_blocking_counsel() {
+        let directory = tempfile::tempdir().unwrap();
+        let socket_path = directory.path().join("herdr.sock");
+        let listener = UnixListener::bind(&socket_path).unwrap();
+        let (mut connection, _update_tx) = test_connection(socket_path);
+        connection.schedule([output_command(1)]);
+        let (mut first_stream, first) = accept_request(&listener).await;
+        assert_eq!(first["method"], "pane.read");
+        assert_eq!(first["params"]["lines"], 1);
+
+        connection.schedule((2..=100).map(output_command));
+        connection.schedule([AgentCommand::SendCounsel {
+            pane_id: PaneId::new("w1:p1"),
+            text: "review the result".into(),
+            request: CounselRequest(7),
+        }]);
+        let (mut text_stream, text) = accept_request(&listener).await;
+        assert_eq!(
+            text["method"], "pane.send_text",
+            "superseded reads reached Herdr"
+        );
+        respond_to(&mut text_stream, &text, serde_json::json!({"type": "ok"})).await;
+        let (mut keys_stream, keys) = accept_request(&listener).await;
+        assert_eq!(keys["method"], "pane.send_keys");
+        respond_to(&mut keys_stream, &keys, serde_json::json!({"type": "ok"})).await;
+        assert!(matches!(
+            timeout(Duration::from_secs(1), connection.next_event())
+                .await
+                .unwrap(),
+            RuntimeEvent::Command(CommandResult::CounselSent {
+                request: CounselRequest(7),
+                ..
+            })
+        ));
+
+        respond_to(&mut first_stream, &first, output_response(1)).await;
+        assert!(matches!(
+            timeout(Duration::from_secs(1), connection.next_event())
+                .await
+                .unwrap(),
+            RuntimeEvent::Command(CommandResult::OutputLoaded {
+                request: OutputRequest(1),
+                ..
+            })
+        ));
+        let (mut latest_stream, latest) = accept_request(&listener).await;
+        assert_eq!(latest["method"], "pane.read");
+        assert_eq!(latest["params"]["lines"], 100);
+        respond_to(&mut latest_stream, &latest, output_response(100)).await;
+        assert!(matches!(
+            timeout(Duration::from_secs(1), connection.next_event())
+                .await
+                .unwrap(),
+            RuntimeEvent::Command(CommandResult::OutputLoaded {
+                request: OutputRequest(100),
+                ..
+            })
+        ));
+        assert!(
+            timeout(Duration::from_millis(50), listener.accept())
+                .await
+                .is_err()
+        );
+        connection.shutdown().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn disconnect_cancels_only_output_and_drops_its_pending_refresh() {
+        let directory = tempfile::tempdir().unwrap();
+        let socket_path = directory.path().join("herdr.sock");
+        let listener = UnixListener::bind(&socket_path).unwrap();
+        let (mut connection, update_tx) = test_connection(socket_path);
+        connection.schedule([output_command(1)]);
+        let (mut output_stream, output) = accept_request(&listener).await;
+        assert_eq!(output["method"], "pane.read");
+        connection.schedule([AgentCommand::SendCounsel {
+            pane_id: PaneId::new("w1:p1"),
+            text: "finish this check".into(),
+            request: CounselRequest(8),
+        }]);
+        let (mut text_stream, text) = accept_request(&listener).await;
+        assert_eq!(text["method"], "pane.send_text");
+        connection.schedule([output_command(2)]);
+        update_tx
+            .send(ConnectionUpdate::Disconnected("closed".into()))
+            .await
+            .unwrap();
+        assert!(matches!(
+            timeout(Duration::from_secs(1), connection.next_event())
+                .await
+                .unwrap(),
+            RuntimeEvent::Connection(ConnectionUpdate::Disconnected(_))
+        ));
+
+        let mut line = String::new();
+        assert_eq!(
+            timeout(
+                Duration::from_secs(1),
+                BufReader::new(&mut output_stream).read_line(&mut line)
+            )
+            .await
+            .unwrap()
+            .unwrap(),
+            0,
+            "the invalidated output socket must be closed"
+        );
+        respond_to(&mut text_stream, &text, serde_json::json!({"type": "ok"})).await;
+        let (mut keys_stream, keys) = accept_request(&listener).await;
+        assert_eq!(keys["method"], "pane.send_keys");
+        respond_to(&mut keys_stream, &keys, serde_json::json!({"type": "ok"})).await;
+        assert!(matches!(
+            timeout(Duration::from_secs(1), connection.next_event())
+                .await
+                .unwrap(),
+            RuntimeEvent::Command(CommandResult::CounselSent {
+                request: CounselRequest(8),
+                ..
+            })
+        ));
+        assert!(
+            timeout(Duration::from_millis(50), listener.accept())
+                .await
+                .is_err()
+        );
+        assert!(
+            timeout(Duration::from_millis(50), connection.next_event())
+                .await
+                .is_err()
+        );
+        connection.shutdown().await.unwrap();
+    }
 
     #[tokio::test]
     async fn shutdown_cancels_a_supervisor_blocked_on_a_saturated_update_channel() {
@@ -476,6 +734,8 @@ mod tests {
             shutdown_tx,
             supervisor_task: Some(supervisor_task),
             command_tasks: JoinSet::new(),
+            output_tasks: JoinSet::new(),
+            pending_output: None,
             last_sidebar_projection: None,
             urgency_view_set: false,
         };
@@ -527,6 +787,8 @@ mod tests {
             shutdown_tx,
             supervisor_task: Some(tokio::spawn(async {})),
             command_tasks: JoinSet::new(),
+            output_tasks: JoinSet::new(),
+            pending_output: None,
             urgency_view_set: false,
             last_sidebar_projection: Some(SidebarProjection {
                 agents: vec![SidebarAgentTokens {

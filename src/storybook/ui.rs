@@ -16,7 +16,7 @@ use crate::{
                 adventurer_animation_frame, adventurer_portrait_frame, adventurer_roster_frame,
             },
             archetypes::{goblin_portrait_frame, goblin_world_frame},
-            barbarian_v2, librarian,
+            librarian,
         },
         pixel::{PixelSize, Rgb, RgbBuffer},
         presentation::ScenePresentation,
@@ -312,22 +312,23 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
         return custom_class_entries();
     }
 
-    if gallery == ArchetypeGallery::BarbarianV2Poses {
-        let legacy = crate::scene::assets::archetypes::world_frame(AdventurerClass::Barbarian)
-            .expect("legacy Barbarian master remains available during review");
-        return vec![
-            ("Legacy", legacy),
-            ("Settled", barbarian_v2::frame(ScenePose::Settled, 0)),
-            ("Working A", barbarian_v2::frame(ScenePose::Working, 0)),
-            ("Working B", barbarian_v2::frame(ScenePose::Working, 1)),
-            ("Counsel", barbarian_v2::frame(ScenePose::SeekingCounsel, 0)),
-            (
-                "Spoils",
-                barbarian_v2::frame(ScenePose::ReturningWithSpoils, 0),
-            ),
-            ("Resting", barbarian_v2::frame(ScenePose::Resting, 0)),
-            ("Unknown", barbarian_v2::frame(ScenePose::Unknown, 0)),
-        ];
+    if let ArchetypeGallery::RitualPoses(class) = gallery {
+        let mut persona =
+            AdventurerPersona::for_key(PersonaKey::new(format!("storybook-ritual-{class:?}")));
+        persona.class = class;
+        return [
+            ("Working A", ScenePose::Working, 0),
+            ("Working B", ScenePose::Working, 1),
+            ("Counsel gesture", ScenePose::SeekingCounsel, 0),
+            ("Counsel waiting", ScenePose::SeekingCounsel, 1),
+            ("Returned spoils", ScenePose::ReturningWithSpoils, 0),
+            ("Completed", ScenePose::Settled, 0),
+            ("Resting", ScenePose::Resting, 0),
+            ("Unknown", ScenePose::Unknown, 0),
+        ]
+        .into_iter()
+        .map(|(label, pose, index)| (label, adventurer_animation_frame(&persona, pose, index)))
+        .collect();
     }
 
     CORE_ARCHETYPES
@@ -342,7 +343,7 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
                 }
                 ArchetypeGallery::PortraitMasters => adventurer_portrait_frame(&persona)
                     .expect("every core archetype has a portrait master"),
-                ArchetypeGallery::BarbarianV2Poses
+                ArchetypeGallery::RitualPoses(_)
                 | ArchetypeGallery::PersonaPalettes
                 | ArchetypeGallery::RosterFamilies
                 | ArchetypeGallery::CustomClassMasters
@@ -356,9 +357,8 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
         .collect()
 }
 
-/// The Wizard master is shared by Wizard, Artificer and Runewright, so it is
-/// where persona palette variation matters most for telling same-class
-/// adventurers apart in the world.
+/// The Wizard demonstrates persona variation within one authored class,
+/// keeping skin, hair and accent identity visible through the working ritual.
 fn persona_palette_entries() -> Vec<(&'static str, SpriteFrame)> {
     const VARIANTS: [(&str, SkinTone, HairTone, AccentTone); 6] = [
         (

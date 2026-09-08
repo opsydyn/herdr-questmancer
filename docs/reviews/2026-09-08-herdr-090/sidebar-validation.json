@@ -1,0 +1,45 @@
+{
+  "configs": [
+    {
+      "source": "README.md",
+      "result": 0,
+      "stdout": "config: ok\n",
+      "stderr": ""
+    },
+    {
+      "source": "docs/design/questmancer-sidebar-character-sheet.md",
+      "result": 0,
+      "stdout": "config: ok\n",
+      "stderr": ""
+    },
+    {
+      "source": "docs/design/questmancer-sidebar-character-sheet.md",
+      "result": 0,
+      "stdout": "config: ok\n",
+      "stderr": ""
+    },
+    {
+      "source": "docs/design/questmancer-sidebar-character-sheet.md",
+      "result": 0,
+      "stdout": "config: ok\n",
+      "stderr": ""
+    },
+    {
+      "source": "docs/design/questmancer-sidebar-09.md",
+      "result": 0,
+      "stdout": "config: ok\n",
+      "stderr": ""
+    }
+  ],
+  "contrast_background": "#1e1e2e",
+  "contrast_ratios": {
+    "#9399b2": 5.81,
+    "#a6e3a1": 11.03,
+    "#cba6f7": 8.07,
+    "#cdd6f4": 11.34,
+    "#e5b95c": 8.92,
+    "#f38ba8": 7.08
+  },
+  "native_visual_review": "pending",
+  "user_config_modified": false
+}

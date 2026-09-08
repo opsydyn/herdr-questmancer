@@ -1,10 +1,10 @@
 pub mod adventurer;
 pub mod archetypes;
-pub(crate) mod barbarian_v2;
 pub mod delve;
 pub mod guild_hall;
 pub mod librarian;
 pub mod palette;
+pub(crate) mod rituals;
 pub mod roster;
 
 use std::collections::HashMap;
@@ -88,9 +88,9 @@ mod tests {
     use crate::domain::{AdventurerClass, Garb};
 
     use super::{
-        archetypes, barbarian_v2, delve, guild_hall, librarian,
+        archetypes, delve, guild_hall, librarian,
         palette::{self, OAK, SELECTION_RUNE, STONE},
-        roster,
+        rituals, roster,
     };
     use crate::scene::pixel::Rgb;
 
@@ -131,6 +131,28 @@ mod tests {
             if let Some((frame, _)) = archetypes::world_master(*class) {
                 collect(format!("{class:?} world master"), &frame);
             }
+        }
+        for class in [
+            AdventurerClass::Wizard,
+            AdventurerClass::Ranger,
+            AdventurerClass::Barbarian,
+        ] {
+            for pose in [
+                crate::scene::stage::ScenePose::Working,
+                crate::scene::stage::ScenePose::SeekingCounsel,
+                crate::scene::stage::ScenePose::ReturningWithSpoils,
+                crate::scene::stage::ScenePose::Settled,
+                crate::scene::stage::ScenePose::Resting,
+                crate::scene::stage::ScenePose::Unknown,
+            ] {
+                for index in 0..2 {
+                    let (frame, _) =
+                        rituals::world_master(class, pose, index).expect("pilot class");
+                    collect(format!("ritual {class:?} {pose:?} {index}"), &frame);
+                }
+            }
+            let (frame, _) = rituals::roster_master(class).expect("pilot roster");
+            collect(format!("ritual roster {class:?}"), &frame);
         }
         for family in roster::RosterFamily::ALL {
             let (frame, _) = roster::master(*family);
@@ -215,11 +237,20 @@ mod tests {
                 }
             }
         }
-        for entry in barbarian_v2::palette() {
-            if matches!(entry.key, 'L' | 'l')
-                && let Some(colour) = entry.colour
-            {
-                masses.push((format!("Barbarian v2 leather '{}'", entry.key), colour));
+        for class in [
+            AdventurerClass::Wizard,
+            AdventurerClass::Ranger,
+            AdventurerClass::Barbarian,
+        ] {
+            let (_, class_palette) =
+                rituals::world_master(class, crate::scene::stage::ScenePose::Working, 0)
+                    .expect("pilot class");
+            for entry in class_palette {
+                if matches!(entry.key, 'c' | 'C')
+                    && let Some(colour) = entry.colour
+                {
+                    masses.push((format!("ritual {class:?} cloth '{}'", entry.key), colour));
+                }
             }
         }
         for family in roster::RosterFamily::ALL {

@@ -114,17 +114,21 @@ rows = [
 ]
 ```
 
-## What Herdr 0.8.0 actually accepts
+## What Herdr 0.9.0 accepts
 
-Every configuration above is verified by feeding it to `herdr config check`,
-not by reading the published documentation. This document got the schema wrong
+The three configurations above were rechecked against Herdr 0.9.0 on
+2026-09-08; each returned `config: ok`. The README example passed too.
+The original rules came from feeding them to `herdr config check`, not from
+reading the published documentation. This document got the schema wrong
 twice before anyone ran the binary, and each time a pasted example took a whole
 `config.toml` down to defaults:
 
 - **A row element is a token name, or an inline table keyed `token`.**
   `{ token = "$quest_vigil", fg = "#c2413f" }`. `value =` is rejected. So is a
   table with styling but no `token`.
-- **The only style keys are `token`, `fg`, `bold` and `dim`.** `italic` is
+- **Base styles use `token`, `fg`, `bold` and `dim`.** Herdr 0.9 also
+  accepts ordered conditional `rules`; see the
+  [conditional sidebar proposal](questmancer-sidebar-09.md). `italic` is
   rejected, and `bold` must be a boolean rather than a string.
 - **`fg` takes strict hex only** — `#RGB` or `#RRGGBB`, either case. A named
   colour such as `"red"` is rejected.
@@ -175,7 +179,7 @@ no element requests faint, and every `fg` clears 4.5:1.
 
 Styling arrived in Herdr 0.7.5. On 0.7.4 an inline table fails with
 `invalid type: map, expected a string`, so these configurations require the
-0.8.0 the plugin now targets.
+0.9.0 the plugin now targets.
 
 Because a row cannot supply literal text, anything a value needs in order to
 explain itself has to travel inside the token. That is why `$quest_hoard`

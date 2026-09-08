@@ -1,5 +1,7 @@
 use std::{collections::HashMap, fmt, sync::OnceLock};
 
+use crate::domain::AdventurerClass;
+
 use super::{
     AssetId, SceneFirstAsset, asset_inventory,
     fixtures::{self, StoryContext, StoryFixture},
@@ -145,9 +147,12 @@ pub fn validate_coverage(
     }
 }
 
-const WORLD_VIEWPORT: Viewport = Viewport::new(160, 45, 80, 24);
+// Scene fixtures delegate every positive size to the production renderer.
+// Only authored asset galleries need a minimum canvas to preserve their layout.
+const WORLD_VIEWPORT: Viewport = Viewport::new(160, 45, 1, 1);
+const CARD_VIEWPORT: Viewport = Viewport::new(120, 36, 1, 1);
 const ASSET_VIEWPORT: Viewport = Viewport::new(120, 36, 80, 28);
-const NARROW_VIEWPORT: Viewport = Viewport::new(64, 24, 48, 18);
+const NARROW_VIEWPORT: Viewport = Viewport::new(64, 24, 1, 1);
 
 macro_rules! story {
     ($id:literal, $title:literal, $category:expr, $description:literal, $viewport:expr, $builder:ident, $asset:ident) => {
@@ -257,13 +262,31 @@ fn asset_stories() -> Vec<Story> {
             CoreWorldMasters
         ),
         story!(
-            "asset.barbarian-v2-poses",
-            "Assets / Barbarian v2 Poses",
+            "asset.barbarian-poses",
+            "Assets / Barbarian Poses",
             Category::Assets,
-            "Legacy comparison and every truthful production pose for the compact Barbarian v2 experiment.",
+            "Production working, counsel, spoils and quiet poses for the Barbarian.",
             ASSET_VIEWPORT,
-            barbarian_v2_poses,
-            BarbarianV2PoseFamily
+            barbarian_poses,
+            BarbarianPoseFamily
+        ),
+        story!(
+            "asset.wizard-poses",
+            "Assets / Wizard Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Wizard.",
+            ASSET_VIEWPORT,
+            wizard_poses,
+            WizardPoseFamily
+        ),
+        story!(
+            "asset.ranger-poses",
+            "Assets / Ranger Poses",
+            Category::Assets,
+            "Production working, counsel, spoils and quiet poses for the Ranger.",
+            ASSET_VIEWPORT,
+            ranger_poses,
+            RangerPoseFamily
         ),
         story!(
             "asset.persona-palettes",
@@ -339,7 +362,7 @@ fn native_foundation_card_stories() -> [Story; 5] {
             "Asset / Native Artificer Card",
             Category::Assets,
             "The production Artificer card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_artificer_portrait,
             NativeArtificerPortrait
         ),
@@ -348,7 +371,7 @@ fn native_foundation_card_stories() -> [Story; 5] {
             "Asset / Native Barbarian Card",
             Category::Assets,
             "The production card uses the embedded PNG on native protocols and its authored sprite fallback everywhere else.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_barbarian_portrait,
             NativeBarbarianPortrait
         ),
@@ -357,7 +380,7 @@ fn native_foundation_card_stories() -> [Story; 5] {
             "Asset / Native Bard Card",
             Category::Assets,
             "The production Bard card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_bard_portrait,
             NativeBardPortrait
         ),
@@ -366,7 +389,7 @@ fn native_foundation_card_stories() -> [Story; 5] {
             "Asset / Native Cleric Card",
             Category::Assets,
             "The production Cleric card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_cleric_portrait,
             NativeClericPortrait
         ),
@@ -375,7 +398,7 @@ fn native_foundation_card_stories() -> [Story; 5] {
             "Asset / Native Druid Card",
             Category::Assets,
             "The production Druid card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_druid_portrait,
             NativeDruidPortrait
         ),
@@ -389,7 +412,7 @@ fn native_custom_class_card_stories() -> [Story; 4] {
             "Asset / Native Runewright Card",
             Category::Assets,
             "The production Runewright card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_runewright_portrait,
             NativeRunewrightPortrait
         ),
@@ -398,7 +421,7 @@ fn native_custom_class_card_stories() -> [Story; 4] {
             "Asset / Native Pathseeker Card",
             Category::Assets,
             "The production Pathseeker card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_pathseeker_portrait,
             NativePathseekerPortrait
         ),
@@ -407,7 +430,7 @@ fn native_custom_class_card_stories() -> [Story; 4] {
             "Asset / Native Mage Card",
             Category::Assets,
             "The production Mage card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_mage_portrait,
             NativeMagePortrait
         ),
@@ -416,7 +439,7 @@ fn native_custom_class_card_stories() -> [Story; 4] {
             "Asset / Native Sorcerer Card",
             Category::Assets,
             "The production Sorcerer card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_sorcerer_portrait,
             NativeSorcererPortrait
         ),
@@ -430,7 +453,7 @@ fn native_adventurer_card_stories() -> [Story; 5] {
             "Asset / Native Paladin Card",
             Category::Assets,
             "The production Paladin card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_paladin_portrait,
             NativePaladinPortrait
         ),
@@ -439,7 +462,7 @@ fn native_adventurer_card_stories() -> [Story; 5] {
             "Asset / Native Ranger Card",
             Category::Assets,
             "The production Ranger card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_ranger_portrait,
             NativeRangerPortrait
         ),
@@ -448,7 +471,7 @@ fn native_adventurer_card_stories() -> [Story; 5] {
             "Asset / Native Rogue Card",
             Category::Assets,
             "The production Rogue card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_rogue_portrait,
             NativeRoguePortrait
         ),
@@ -457,7 +480,7 @@ fn native_adventurer_card_stories() -> [Story; 5] {
             "Asset / Native Testmender Card",
             Category::Assets,
             "The production Testmender card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_testmender_portrait,
             NativeTestmenderPortrait
         ),
@@ -466,7 +489,7 @@ fn native_adventurer_card_stories() -> [Story; 5] {
             "Asset / Native Wizard Card",
             Category::Assets,
             "The production Wizard card uses its embedded PNG on native protocols and the authored sprite fallback elsewhere.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_wizard_portrait,
             NativeWizardPortrait
         ),
@@ -480,7 +503,7 @@ fn reserved_event_art_stories() -> [Story; 2] {
             "Asset / Reserved Goblin Event Art",
             Category::Assets,
             "Reserved event/NPC art. It is not selected for ordinary adventurer cards.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_goblin_portrait,
             NativeGoblinPortrait
         ),
@@ -489,7 +512,7 @@ fn reserved_event_art_stories() -> [Story; 2] {
             "Asset / Reserved Orc Event Art",
             Category::Assets,
             "Reserved event/NPC art. It is not selected for ordinary adventurer cards.",
-            ASSET_VIEWPORT,
+            CARD_VIEWPORT,
             native_orc_portrait,
             NativeOrcPortrait
         ),
@@ -513,8 +536,16 @@ fn guild_world(context: StoryContext) -> StoryFixture {
     scene(fixtures::guild_world_fixture(context))
 }
 
-fn barbarian_v2_poses(_context: StoryContext) -> StoryFixture {
-    fixtures::barbarian_v2_pose_fixture()
+fn barbarian_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Barbarian)
+}
+
+fn wizard_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Wizard)
+}
+
+fn ranger_poses(_context: StoryContext) -> StoryFixture {
+    fixtures::ritual_pose_fixture(AdventurerClass::Ranger)
 }
 
 fn delve_world(context: StoryContext) -> StoryFixture {

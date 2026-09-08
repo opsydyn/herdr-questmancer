@@ -1,19 +1,21 @@
 use ratatui::{
     Frame,
     layout::{Alignment, Rect},
-    text::{Line, Text},
+    style::Color,
+    text::{Line, Span, Text},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 use ratatui_image::Image;
 
 use crate::{
-    app::{ColorMode, CounselPhase, Modal, Model},
+    app::{CharacterSet, ColorMode, CounselPhase, Modal, Model, Notice},
     domain::Presence,
     ledger,
     portrait::PortraitGallery,
     scene::{
         SceneFrame,
-        assets::{adventurer::adventurer_portrait_frame, librarian},
+        assets::{adventurer::adventurer_portrait_frame, librarian, roster},
+        heraldry::{CampaignCrest, CrestField},
         pixel::{PixelPoint, PixelRect, Rgb, RgbBuffer},
         presentation::{SceneOverlay, ScenePresentation},
         sprite::blit,
@@ -33,7 +35,20 @@ pub fn render_scene_identity_labels(frame: &mut Frame<'_>, model: &Model, scene:
     let actor_areas = scene
         .actors
         .iter()
-        .filter_map(|region| actor_terminal_area(region.bounds, area))
+        .flat_map(|region| {
+            let is_roster =
+                region.bounds.width == roster::WIDTH && region.bounds.height == roster::HEIGHT;
+            let marker =
+                is_roster.then(|| crate::scene::render::roster::state_marker_bounds(region.bounds));
+            let mut body = region.bounds;
+            if is_roster {
+                body.height += 3; // Preserve the selection ring below the feet.
+            }
+            [Some(body), marker]
+                .into_iter()
+                .flatten()
+                .filter_map(|bounds| actor_terminal_area(bounds, area))
+        })
         .collect::<Vec<_>>();
     for region in &scene.actors {
         let Some(agent) = model.domain().agents.get(&region.agent) else {
@@ -54,7 +69,13 @@ pub fn render_scene_identity_labels(frame: &mut Frame<'_>, model: &Model, scene:
         let elapsed = (selected || urgent).then_some(elapsed.as_str());
 
         let placed = budgets.iter().find_map(|budget| {
-            let label = fit_identity_label(&agent.name, agent.presence, elapsed, *budget);
+            let label = fit_identity_label(
+                &agent.name,
+                agent.presence,
+                elapsed,
+                *budget,
+                model.preferences().character_set,
+            );
             let width = u16::try_from(label.chars().count())
                 .unwrap_or(u16::MAX)
                 .min(area.width);
@@ -66,7 +87,14 @@ pub fn render_scene_identity_labels(frame: &mut Frame<'_>, model: &Model, scene:
             let maximum_x = i32::from(area.right().saturating_sub(width));
             let x = preferred_x.clamp(i32::from(area.x), maximum_x.max(i32::from(area.x)));
             let actor_row = region.bounds.y.div_euclid(2);
-            let below = (region.bounds.y + i32::from(region.bounds.height) + 1).div_euclid(2);
+            let foot_clearance =
+                if region.bounds.width == roster::WIDTH && region.bounds.height == roster::HEIGHT {
+                    4
+                } else {
+                    1
+                };
+            let below =
+                (region.bounds.y + i32::from(region.bounds.height) + foot_clearance).div_euclid(2);
             [actor_row - 1, below].into_iter().find_map(|y| {
                 let y = u16::try_from(y).ok()?;
                 if y < area.y || y >= area.bottom().saturating_sub(1) {
@@ -99,9 +127,9 @@ fn actor_terminal_area(bounds: PixelRect, frame_area: Rect) -> Option<Rect> {
     let x = u16::try_from(bounds.x).ok()?;
     let y = u16::try_from(bounds.y.div_euclid(2)).ok()?;
     let width = bounds.width.min(frame_area.width.saturating_sub(x));
-    let height = bounds
-        .height
-        .div_ceil(2)
+    let bottom = u16::try_from((bounds.y + i32::from(bounds.height) + 1).div_euclid(2)).ok()?;
+    let height = bottom
+        .saturating_sub(y)
         .min(frame_area.height.saturating_sub(y));
     (width > 0 && height > 0 && x < frame_area.right() && y < frame_area.bottom())
         .then_some(Rect::new(x, y, width, height))
@@ -134,11 +162,17 @@ fn fit_identity_label(
     presence: Presence,
     elapsed: Option<&str>,
     maximum: usize,
+    characters: CharacterSet,
 ) -> String {
-    let badge = presence_badge(presence);
+    let badge = presence_badge(presence, characters);
+    let separator = if characters == CharacterSet::Ascii {
+        "|"
+    } else {
+        "·"
+    };
     let suffix = elapsed.map_or_else(
-        || format!(" · {badge}"),
-        |elapsed| format!(" · {badge} {elapsed}"),
+        || format!(" {separator} {badge}"),
+        |elapsed| format!(" {separator} {badge} {elapsed}"),
     );
     let suffix_length = suffix.chars().count();
     if name.chars().count() + suffix_length <= maximum {
@@ -147,9 +181,14 @@ fn fit_identity_label(
     let name_budget = maximum.saturating_sub(suffix_length);
     if name_budget >= 4 {
         let kept = name.chars().take(name_budget - 1).collect::<String>();
-        return format!("{kept}…{suffix}");
+        let ellipsis = if characters == CharacterSet::Ascii {
+            '~'
+        } else {
+            '…'
+        };
+        return format!("{kept}{ellipsis}{suffix}");
     }
-    let glyph = presence_glyph(presence);
+    let glyph = presence_glyph(presence, characters);
     let compact = elapsed.map_or_else(|| glyph.to_owned(), |elapsed| format!("{glyph} {elapsed}"));
     if compact.chars().count() <= maximum {
         compact
@@ -158,24 +197,29 @@ fn fit_identity_label(
     }
 }
 
-fn presence_badge(presence: Presence) -> &'static str {
+fn presence_badge(presence: Presence, characters: CharacterSet) -> &'static str {
     match presence {
         Presence::Working => "WORKING",
         Presence::Blocked => "! NEEDS COUNSEL",
+        Presence::Done if characters == CharacterSet::Ascii => "+ COMPLETED",
         Presence::Done => "✓ COMPLETED",
         Presence::Idle => "RESTING",
+        Presence::Exited if characters == CharacterSet::Ascii => "x DEPARTED",
         Presence::Exited => "× DEPARTED",
         Presence::Unknown => "? UNKNOWN",
     }
 }
 
 /// Single-character state marker for lanes too narrow to carry any name.
-fn presence_glyph(presence: Presence) -> &'static str {
+fn presence_glyph(presence: Presence, characters: CharacterSet) -> &'static str {
     match presence {
+        Presence::Working if characters == CharacterSet::Ascii => ">",
         Presence::Working => "»",
         Presence::Blocked => "!",
+        Presence::Done if characters == CharacterSet::Ascii => "+",
         Presence::Done => "✓",
         Presence::Idle => "z",
+        Presence::Exited if characters == CharacterSet::Ascii => "x",
         Presence::Exited => "×",
         Presence::Unknown => "?",
     }
@@ -222,14 +266,27 @@ fn render_notice(frame: &mut Frame<'_>, model: &Model) {
     }
     let row = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
     let width = usize::from(area.width);
-    let mut text: String = message.chars().take(width).collect();
-    if text.chars().count() < width {
+    let seal = if matches!(model.notice(), Some(Notice::CounselIssued(_))) {
+        match model.preferences().character_set {
+            CharacterSet::Unicode => "◆ ",
+            CharacterSet::Ascii => "(*) ",
+        }
+    } else {
+        ""
+    };
+    let text_width = width.saturating_sub(seal.chars().count());
+    let mut text: String = message.chars().take(text_width).collect();
+    if text.chars().count() < text_width {
         // Painted over whatever held the row before, so a short notice cannot
         // leave the tail of a longer one behind it.
-        text.push_str(&" ".repeat(width - text.chars().count()));
+        text.push_str(&" ".repeat(text_width - text.chars().count()));
     }
     frame.render_widget(Clear, row);
-    frame.render_widget(Paragraph::new(text).style(PARCHMENT_BORDER), row);
+    let line = Line::from(vec![
+        Span::styled(seal, PARCHMENT.fg(Color::Red)),
+        Span::raw(text),
+    ]);
+    frame.render_widget(Paragraph::new(line).style(PARCHMENT_BORDER), row);
 }
 
 /// The guild's standing, top right, always.
@@ -292,7 +349,7 @@ fn render_adventurer_card(
     let lines = vec![
         Line::from(agent.persona.name.clone()),
         Line::from(format!("{role} · {}", agent.persona.epithet.as_str())),
-        Line::from(""),
+        campaign_crest_line(&agent.workspace_id, model),
         Line::from(format!("Agent: {}", agent.name)),
         Line::from(format!("Campaign: {campaign}")),
         Line::from(format!("{status} · {elapsed}")),
@@ -312,6 +369,30 @@ fn render_adventurer_card(
     } else {
         render_parchment(frame, card, " ADVENTURER ", Text::from(lines));
     }
+}
+
+fn campaign_crest_line(workspace: &crate::domain::WorkspaceId, model: &Model) -> Line<'static> {
+    let crest = CampaignCrest::for_workspace(workspace);
+    let rgb = crest.field.colour();
+    let colour = match model.preferences().color_mode {
+        ColorMode::Xterm256 => Color::Rgb(rgb.r, rgb.g, rgb.b),
+        ColorMode::Ansi16 => match crest.field {
+            CrestField::Azure => Color::Blue,
+            CrestField::Moss => Color::Green,
+            CrestField::Wine => Color::Magenta,
+            CrestField::Umber => Color::Yellow,
+        },
+    };
+    Line::from(vec![
+        Span::raw("Crest: "),
+        Span::styled(
+            crest
+                .charge
+                .symbol(model.preferences().character_set == CharacterSet::Ascii),
+            ratatui::style::Style::default().fg(colour),
+        ),
+        Span::raw(format!(" {} {}", crest.field.name(), crest.charge.name())),
+    ])
 }
 
 fn render_portrait_card(
@@ -396,7 +477,9 @@ fn render_input_parchment(frame: &mut Frame<'_>, model: &Model) {
             match phase {
                 CounselPhase::Drafting => "Enter send  Esc cancel",
                 CounselPhase::Sending { .. } => "Sending counsel…",
-                CounselPhase::Failed { .. } => "Enter retry  Esc cancel",
+                CounselPhase::TextFailed { .. } => "Enter retry  Esc cancel",
+                CounselPhase::TextUncertain { .. } => "Enter observe  Esc abandon",
+                CounselPhase::SubmissionFailed { .. } => "Enter retry submission  Esc close",
             },
         ),
         Modal::Search { query } => (
@@ -411,25 +494,41 @@ fn render_input_parchment(frame: &mut Frame<'_>, model: &Model) {
     };
     // Without a caret the parchment reads as an empty panel rather than a
     // field waiting for you, and there is nothing to show a keystroke landed.
-    let sending = matches!(
+    let locked = matches!(
         model.modal(),
         Modal::Counsel {
-            phase: CounselPhase::Sending { .. },
+            phase: CounselPhase::Sending { .. }
+                | CounselPhase::TextUncertain { .. }
+                | CounselPhase::SubmissionFailed { .. },
             ..
         }
     );
-    let typed = if sending {
+    let typed = if locked {
         input.to_owned()
     } else {
         format!("{input}_")
     };
     let mut lines = vec![Line::from(""), Line::from(typed), Line::from("")];
     if let Modal::Counsel {
-        phase: CounselPhase::Failed { message },
+        phase: CounselPhase::TextFailed { message },
         ..
     } = model.modal()
     {
         lines.push(Line::from(format!("Not issued: {message}")));
+    }
+    if let Modal::Counsel {
+        phase: CounselPhase::SubmissionFailed { message, .. },
+        ..
+    } = model.modal()
+    {
+        lines.push(Line::from(format!("Written, not submitted: {message}")));
+    }
+    if let Modal::Counsel {
+        phase: CounselPhase::TextUncertain { message, .. },
+        ..
+    } = model.modal()
+    {
+        lines.push(Line::from(format!("Delivery unconfirmed: {message}")));
     }
     lines.push(Line::from(keys));
     render_parchment(frame, area, title, Text::from(lines));
@@ -743,18 +842,30 @@ mod tests {
     #[test]
     fn full_labels_pass_through_untouched() {
         assert_eq!(
-            fit_identity_label("codex", Presence::Working, Some("7m"), 36),
+            fit_identity_label(
+                "codex",
+                Presence::Working,
+                Some("7m"),
+                36,
+                CharacterSet::Unicode
+            ),
             "codex · WORKING 7m"
         );
         assert_eq!(
-            fit_identity_label("codex", Presence::Idle, None, 20),
+            fit_identity_label("codex", Presence::Idle, None, 20, CharacterSet::Unicode),
             "codex · RESTING"
         );
     }
 
     #[test]
     fn truncation_shortens_the_name_and_never_the_state() {
-        let label = fit_identity_label("archive-mender-of-the-vaults", Presence::Working, None, 20);
+        let label = fit_identity_label(
+            "archive-mender-of-the-vaults",
+            Presence::Working,
+            None,
+            20,
+            CharacterSet::Unicode,
+        );
         assert_eq!(label, "archive-m… · WORKING");
         assert_eq!(label.chars().count(), 20);
     }
@@ -766,6 +877,7 @@ mod tests {
             Presence::Blocked,
             Some("3m"),
             36,
+            CharacterSet::Unicode,
         );
         assert!(label.ends_with(" · ! NEEDS COUNSEL 3m"), "{label}");
         assert!(label.chars().count() <= 36);
@@ -774,9 +886,18 @@ mod tests {
     #[test]
     fn lanes_too_narrow_for_a_name_fall_back_to_the_state_glyph() {
         assert_eq!(
-            fit_identity_label("codex", Presence::Blocked, Some("3m"), 8),
+            fit_identity_label(
+                "codex",
+                Presence::Blocked,
+                Some("3m"),
+                8,
+                CharacterSet::Unicode
+            ),
             "! 3m"
         );
-        assert_eq!(fit_identity_label("codex", Presence::Working, None, 6), "»");
+        assert_eq!(
+            fit_identity_label("codex", Presence::Working, None, 6, CharacterSet::Unicode),
+            "»"
+        );
     }
 }

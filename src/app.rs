@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     config::OutputPreviewLines,
-    domain::{Agent, AgentKey, DomainState, PaneId, Timestamp},
+    domain::{Agent, AgentKey, DomainState, PaneId, Presence, Timestamp},
     ledger::LedgerPageId,
     persistence::DurableIntent,
     update::{AppEvent, update},
@@ -204,6 +204,8 @@ pub const ACTION_FEEDBACK_TTL: Duration = Duration::from_millis(6_000);
 pub enum Notice {
     ConnectionDiagnostic(String),
     ActionFeedback(String),
+    /// A correlated counsel operation confirmed both text and submission.
+    CounselIssued(String),
     PersistenceDiagnostic(String),
     ReviewrAvailabilityDiagnostic(String),
     IntegrationDiagnostic(String),
@@ -214,6 +216,7 @@ impl Notice {
         match self {
             Self::ConnectionDiagnostic(message)
             | Self::ActionFeedback(message)
+            | Self::CounselIssued(message)
             | Self::PersistenceDiagnostic(message)
             | Self::ReviewrAvailabilityDiagnostic(message)
             | Self::IntegrationDiagnostic(message) => message,
@@ -282,14 +285,47 @@ pub enum CounselPhase {
         request: CounselRequest,
         pane_id: PaneId,
     },
-    /// The send failed and the draft survives, so it can be retried rather
-    /// than retyped.
-    Failed { message: String },
+    /// The text was not accepted, so retrying the complete write is safe.
+    TextFailed { message: String },
+    /// The text request was sent but its acknowledgement was lost or invalid.
+    /// The pane must be inspected because rewriting could duplicate counsel.
+    TextUncertain {
+        request: CounselRequest,
+        pane_id: PaneId,
+        message: String,
+    },
+    /// The text was accepted but its Enter submission was not. A retry may
+    /// submit the existing prompt, but must never write the text again.
+    SubmissionFailed {
+        request: CounselRequest,
+        pane_id: PaneId,
+        message: String,
+    },
 }
 
 /// Identifies one counsel send, so a late result cannot resolve a later draft.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CounselRequest(pub u64);
+
+/// A counsel operation whose Herdr result has not settled yet.
+///
+/// This deliberately lives on the model rather than in [`Modal`]. The user
+/// may dismiss a parchment while its I/O is still running; presentation
+/// lifetime must not erase the operation identity needed to settle that I/O.
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct CounselAttempt {
+    agent_key: AgentKey,
+    pane_id: PaneId,
+    draft: String,
+    stage: CounselAttemptStage,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum CounselAttemptStage {
+    Sending,
+    TextUncertain { message: String },
+    SubmissionFailed { message: String },
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OutputPreview {
@@ -300,14 +336,29 @@ pub struct OutputPreview {
     pub error: Option<String>,
 }
 
+/// Identifies one selected-output read for this model's lifetime. It is never
+/// persisted or reused after a selection or connection boundary.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OutputRequest(pub u64);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct OutputContext {
+    agent_key: AgentKey,
+    pane_id: PaneId,
+    pending: Option<OutputRequest>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Model {
     view: View,
     domain: DomainState,
     connection: ConnectionState,
+    scene_transition_floor: Option<Timestamp>,
     modal: Modal,
     adventurer_card_visible: bool,
     output_preview: Option<OutputPreview>,
+    output_context: Option<OutputContext>,
+    next_output_request: u64,
     notices: Box<Notices>,
     reviewr_available: bool,
     now: Timestamp,
@@ -321,6 +372,7 @@ pub struct Model {
     search: SearchResults,
     reading_scroll: u16,
     counsel_drafts: BTreeMap<AgentKey, String>,
+    active_counsel: BTreeMap<CounselRequest, CounselAttempt>,
     next_counsel_request: u64,
 }
 
@@ -342,9 +394,12 @@ impl Model {
             view,
             domain: DomainState::default(),
             connection: ConnectionState::Offline,
+            scene_transition_floor: None,
             modal: Modal::None,
             adventurer_card_visible: false,
             output_preview: None,
+            output_context: None,
+            next_output_request: 0,
             notices: Box::default(),
             reviewr_available: false,
             now: Timestamp::from_millis(0),
@@ -358,6 +413,7 @@ impl Model {
             search: SearchResults::default(),
             reading_scroll: 0,
             counsel_drafts: BTreeMap::new(),
+            active_counsel: BTreeMap::new(),
             next_counsel_request: 0,
         }
     }
@@ -375,7 +431,23 @@ impl Model {
     }
 
     pub fn set_connection(&mut self, connection: ConnectionState) {
+        self.set_connection_at(connection, self.now);
+    }
+
+    pub fn set_connection_at(&mut self, connection: ConnectionState, observed_at: Timestamp) {
+        // Even Connected -> Connected starts a fresh snapshot lifetime.
+        self.invalidate_output();
+        // Retained summons remain truthful history, but cannot replay theatre
+        // after a socket boundary. This presentation cutoff is never persisted.
+        self.scene_transition_floor = Some(
+            self.scene_transition_floor
+                .map_or(observed_at, |previous| previous.max(observed_at)),
+        );
         self.connection = connection;
+    }
+
+    pub const fn scene_transition_floor(&self) -> Option<Timestamp> {
+        self.scene_transition_floor
     }
 
     pub const fn domain(&self) -> &DomainState {
@@ -411,6 +483,7 @@ impl Model {
         }
         self.durable_intent.overlay(&mut domain);
         self.domain = domain;
+        self.reconcile_output();
     }
 
     fn remember_current_selection(&mut self) {
@@ -470,17 +543,24 @@ impl Model {
     }
 
     pub fn select_first_agent(&mut self) {
-        self.domain.selected_agent = self.domain.agents.keys().next().cloned();
+        self.set_agent_selection(self.domain.agents.keys().next().cloned());
     }
 
     pub fn select_last_agent(&mut self) {
-        self.domain.selected_agent = self.domain.agents.keys().next_back().cloned();
+        self.set_agent_selection(self.domain.agents.keys().next_back().cloned());
     }
 
     pub fn select_agent(&mut self, agent: &AgentKey) {
         if self.domain.agents.contains_key(agent) {
-            self.domain.selected_agent = Some(agent.clone());
+            self.set_agent_selection(Some(agent.clone()));
         }
+    }
+
+    fn set_agent_selection(&mut self, selected: Option<AgentKey>) {
+        if self.domain.selected_agent != selected {
+            self.invalidate_output();
+        }
+        self.domain.selected_agent = selected;
     }
 
     /// The adventurers waiting on a human, most urgent first.
@@ -533,14 +613,14 @@ impl Model {
             .as_ref()
             .and_then(|selected| waiting.iter().position(|key| key == selected))
             .map_or(first, |position| &waiting[(position + 1) % waiting.len()]);
-        self.domain.selected_agent = Some(next.clone());
+        self.set_agent_selection(Some(next.clone()));
         true
     }
 
     fn move_agent_selection(&mut self, direction: i8) {
         let keys = self.domain.agents.keys().cloned().collect::<Vec<_>>();
         if keys.is_empty() {
-            self.domain.selected_agent = None;
+            self.set_agent_selection(None);
             return;
         }
         let current = self
@@ -554,7 +634,7 @@ impl Model {
         } else {
             current.saturating_sub(1)
         };
-        self.domain.selected_agent = Some(keys[next].clone());
+        self.set_agent_selection(Some(keys[next].clone()));
     }
 
     /// Records what a search matched, in the party's own order.
@@ -600,7 +680,7 @@ impl Model {
             Some(position) => (position + matched.len() - 1) % matched.len(),
             None => 0,
         };
-        self.domain.selected_agent = Some(matched[next].clone());
+        self.set_agent_selection(Some(matched[next].clone()));
         Some((next + 1, matched.len()))
     }
 
@@ -685,7 +765,7 @@ impl Model {
         let Some(next) = next else {
             return false;
         };
-        self.domain.selected_agent = Some(next);
+        self.set_agent_selection(Some(next));
         true
     }
 
@@ -713,6 +793,36 @@ impl Model {
     /// single slot: restoring someone else's half-written counsel would be a
     /// worse failure than losing it.
     pub fn open_counsel(&mut self) {
+        let selected = self.domain.selected_agent.as_ref();
+        if let Some((request, attempt)) = self
+            .active_counsel
+            .iter()
+            .find(|(_, attempt)| Some(&attempt.agent_key) == selected)
+        {
+            let phase = match &attempt.stage {
+                CounselAttemptStage::Sending => CounselPhase::Sending {
+                    request: *request,
+                    pane_id: attempt.pane_id.clone(),
+                },
+                CounselAttemptStage::SubmissionFailed { message } => {
+                    CounselPhase::SubmissionFailed {
+                        request: *request,
+                        pane_id: attempt.pane_id.clone(),
+                        message: message.clone(),
+                    }
+                }
+                CounselAttemptStage::TextUncertain { message } => CounselPhase::TextUncertain {
+                    request: *request,
+                    pane_id: attempt.pane_id.clone(),
+                    message: message.clone(),
+                },
+            };
+            self.modal = Modal::Counsel {
+                draft: attempt.draft.clone(),
+                phase,
+            };
+            return;
+        }
         let draft = self
             .selected_agent()
             .and_then(|agent| self.counsel_drafts.get(&agent.key).cloned())
@@ -735,7 +845,7 @@ impl Model {
     /// Moves an open parchment from drafting to in-flight, returning the
     /// request its result must quote to be believed.
     pub fn begin_counsel_send(&mut self, pane_id: PaneId) -> Option<CounselRequest> {
-        let Modal::Counsel { phase, .. } = &mut self.modal else {
+        let Modal::Counsel { draft, phase } = &self.modal else {
             return None;
         };
         // A second `Enter` while the first send is still out would issue the
@@ -743,8 +853,29 @@ impl Model {
         if matches!(phase, CounselPhase::Sending { .. }) {
             return None;
         }
+        let agent_key = self.domain.selected_agent.clone()?;
+        if self
+            .active_counsel
+            .values()
+            .any(|attempt| attempt.agent_key == agent_key)
+        {
+            return None;
+        }
+        let draft = draft.clone();
         self.next_counsel_request = self.next_counsel_request.wrapping_add(1);
         let request = CounselRequest(self.next_counsel_request);
+        self.active_counsel.insert(
+            request,
+            CounselAttempt {
+                agent_key,
+                pane_id: pane_id.clone(),
+                draft,
+                stage: CounselAttemptStage::Sending,
+            },
+        );
+        let Modal::Counsel { phase, .. } = &mut self.modal else {
+            unreachable!("the counsel modal was checked above")
+        };
         *phase = CounselPhase::Sending { request, pane_id };
         Some(request)
     }
@@ -752,35 +883,152 @@ impl Model {
     /// Settles a send that succeeded: the parchment closes and the draft is
     /// spent, including any copy set aside earlier for this adventurer.
     ///
-    /// Returns false when the result does not belong to the open parchment,
-    /// which is how a late result for an adventurer since navigated away from
-    /// is ignored rather than closing somebody else's draft.
+    /// Returns false for an unknown or already settled request. A late result
+    /// still settles its own operation without closing somebody else's draft.
     pub fn complete_counsel(&mut self, request: CounselRequest) -> bool {
-        if !self.counsel_request_matches(request) {
+        let Some(attempt) = self.active_counsel.remove(&request) else {
             return false;
+        };
+        if self.counsel_request_matches(request) {
+            self.modal = Modal::None;
         }
-        self.modal = Modal::None;
-        self.clear_counsel_draft();
+        self.counsel_drafts.remove(&attempt.agent_key);
         true
     }
 
     /// Settles a send that failed: the parchment stays open with the draft
     /// intact, so the message can be retried rather than retyped.
     pub fn fail_counsel(&mut self, request: CounselRequest, message: String) -> bool {
-        if !self.counsel_request_matches(request) {
+        let Some(attempt) = self.active_counsel.remove(&request) else {
             return false;
-        }
-        if let Modal::Counsel { phase, .. } = &mut self.modal {
-            *phase = CounselPhase::Failed { message };
+        };
+        if self.counsel_request_matches(request)
+            && let Modal::Counsel { phase, .. } = &mut self.modal
+        {
+            *phase = CounselPhase::TextFailed { message };
+        } else if !attempt.draft.trim().is_empty() {
+            self.counsel_drafts.insert(attempt.agent_key, attempt.draft);
         }
         true
+    }
+
+    /// Records that the text reached the pane but pressing Enter did not.
+    /// The attempt stays active so a later retry can submit only the text
+    /// already present on the prompt.
+    pub fn fail_counsel_submission(&mut self, request: CounselRequest, message: String) -> bool {
+        let pane_id = {
+            let Some(attempt) = self.active_counsel.get_mut(&request) else {
+                return false;
+            };
+            attempt.stage = CounselAttemptStage::SubmissionFailed {
+                message: message.clone(),
+            };
+            attempt.pane_id.clone()
+        };
+        if self.counsel_request_matches(request)
+            && let Modal::Counsel { phase, .. } = &mut self.modal
+        {
+            *phase = CounselPhase::SubmissionFailed {
+                request,
+                pane_id,
+                message,
+            };
+        }
+        true
+    }
+
+    /// Records a send-text request whose acknowledgement was not trustworthy.
+    /// No resend transition is provided: the pane must be inspected first.
+    pub fn mark_counsel_text_uncertain(
+        &mut self,
+        request: CounselRequest,
+        message: String,
+    ) -> bool {
+        let pane_id = {
+            let Some(attempt) = self.active_counsel.get_mut(&request) else {
+                return false;
+            };
+            attempt.stage = CounselAttemptStage::TextUncertain {
+                message: message.clone(),
+            };
+            attempt.pane_id.clone()
+        };
+        if self.counsel_request_matches(request)
+            && let Modal::Counsel { phase, .. } = &mut self.modal
+        {
+            *phase = CounselPhase::TextUncertain {
+                request,
+                pane_id,
+                message,
+            };
+        }
+        true
+    }
+
+    /// Returns the original pane for an uncertain text delivery. Observation
+    /// is the only safe immediate action because neither resend nor submit can
+    /// prove what is currently on the prompt.
+    pub fn uncertain_counsel_pane(&self) -> Option<PaneId> {
+        let Modal::Counsel {
+            phase: CounselPhase::TextUncertain { pane_id, .. },
+            ..
+        } = &self.modal
+        else {
+            return None;
+        };
+        Some(pane_id.clone())
+    }
+
+    /// Explicitly abandons tracking for an uncertain text delivery. The draft
+    /// is not restored as unsent because it may already exist on the prompt.
+    pub fn abandon_uncertain_counsel(&mut self) -> bool {
+        let Modal::Counsel {
+            phase: CounselPhase::TextUncertain { request, .. },
+            ..
+        } = &self.modal
+        else {
+            return false;
+        };
+        let request = *request;
+        self.active_counsel.remove(&request);
+        true
+    }
+
+    /// Moves a failed Enter submission back in flight without exposing the
+    /// original counsel text to the command layer again.
+    pub fn retry_counsel_submission(&mut self) -> Option<(PaneId, CounselRequest)> {
+        let Modal::Counsel {
+            phase:
+                CounselPhase::SubmissionFailed {
+                    request, pane_id, ..
+                },
+            ..
+        } = &self.modal
+        else {
+            return None;
+        };
+        let request = *request;
+        let pane_id = pane_id.clone();
+        let attempt = self.active_counsel.get_mut(&request)?;
+        attempt.stage = CounselAttemptStage::Sending;
+        let Modal::Counsel { phase, .. } = &mut self.modal else {
+            unreachable!("the counsel modal was checked above")
+        };
+        *phase = CounselPhase::Sending {
+            request,
+            pane_id: pane_id.clone(),
+        };
+        Some((pane_id, request))
     }
 
     fn counsel_request_matches(&self, request: CounselRequest) -> bool {
         matches!(
             &self.modal,
             Modal::Counsel {
-                phase: CounselPhase::Sending { request: open, .. },
+                phase:
+                    CounselPhase::Sending { request: open, .. }
+                    | CounselPhase::TextUncertain { request: open, .. }
+                    | CounselPhase::SubmissionFailed { request: open, .. },
                 ..
             } if *open == request
         )
@@ -789,9 +1037,19 @@ impl Model {
     /// Sets the open counsel draft aside for the adventurer it was meant for.
     /// Returns true when there was something worth keeping.
     pub fn keep_counsel_draft(&mut self) -> bool {
-        let Modal::Counsel { draft, .. } = &self.modal else {
+        let Modal::Counsel { draft, phase } = &self.modal else {
             return false;
         };
+        // An in-flight draft is owned by `active_counsel`. Saving it as an
+        // ordinary draft would offer already-written counsel as a fresh send.
+        if matches!(
+            phase,
+            CounselPhase::Sending { .. }
+                | CounselPhase::TextUncertain { .. }
+                | CounselPhase::SubmissionFailed { .. }
+        ) {
+            return false;
+        }
         if draft.trim().is_empty() {
             return false;
         }
@@ -801,12 +1059,6 @@ impl Model {
         let draft = draft.clone();
         self.counsel_drafts.insert(key, draft);
         true
-    }
-
-    fn clear_counsel_draft(&mut self) {
-        if let Some(key) = self.domain.selected_agent.clone() {
-            self.counsel_drafts.remove(&key);
-        }
     }
 
     pub fn open_search(&mut self) {
@@ -895,8 +1147,10 @@ impl Model {
     /// one you have already started rewriting.
     fn counsel_accepts_input(phase: &mut CounselPhase) -> bool {
         match phase {
-            CounselPhase::Sending { .. } => false,
-            CounselPhase::Failed { .. } => {
+            CounselPhase::Sending { .. }
+            | CounselPhase::TextUncertain { .. }
+            | CounselPhase::SubmissionFailed { .. } => false,
+            CounselPhase::TextFailed { .. } => {
                 *phase = CounselPhase::Drafting;
                 true
             }
@@ -1005,7 +1259,116 @@ impl Model {
     }
 
     pub fn set_output_preview(&mut self, preview: Option<OutputPreview>) {
+        self.output_context = None;
         self.output_preview = preview;
+    }
+
+    fn invalidate_output(&mut self) {
+        self.output_context = None;
+        self.output_preview = None;
+        if self.modal == Modal::Scrying {
+            self.reading_scroll = 0;
+        }
+    }
+
+    fn reconcile_output(&mut self) {
+        if let Some(context) = &self.output_context {
+            let eligible = self.selected_agent().is_some_and(|agent| {
+                agent.key == context.agent_key
+                    && agent.pane_id == context.pane_id
+                    && agent.presence != Presence::Exited
+                    && self.managed_pane_id.as_ref() != Some(&agent.pane_id)
+            });
+            if !eligible {
+                self.invalidate_output();
+            }
+        }
+    }
+
+    /// Starts a read only for a live, selected adventurer on this connection.
+    /// Superseding a request preserves the last revision as a lower bound.
+    pub fn begin_output_request(&mut self, pane_id: &PaneId) -> Option<OutputRequest> {
+        self.reconcile_output();
+        let agent = self.selected_agent()?;
+        if self.connection != ConnectionState::Connected
+            || agent.pane_id != *pane_id
+            || agent.presence == Presence::Exited
+            || self.managed_pane_id.as_ref() == Some(pane_id)
+        {
+            return None;
+        }
+        let agent_key = agent.key.clone();
+        self.next_output_request = self.next_output_request.checked_add(1)?;
+        let request = OutputRequest(self.next_output_request);
+        if self.output_context.is_none() {
+            self.output_preview = None;
+        }
+        self.output_context = Some(OutputContext {
+            agent_key,
+            pane_id: pane_id.clone(),
+            pending: Some(request),
+        });
+        let preview = self.output_preview.get_or_insert_with(|| OutputPreview {
+            pane_id: pane_id.clone(),
+            revision: 0,
+            text: String::new(),
+            loading: true,
+            error: None,
+        });
+        preview.loading = true;
+        preview.error = None;
+        Some(request)
+    }
+
+    fn finish_output_request(&mut self, request: OutputRequest, pane_id: &PaneId) -> bool {
+        self.reconcile_output();
+        let Some(context) = &mut self.output_context else {
+            return false;
+        };
+        if self.connection != ConnectionState::Connected
+            || context.pane_id != *pane_id
+            || context.pending != Some(request)
+        {
+            return false;
+        }
+        context.pending = None;
+        true
+    }
+
+    pub fn complete_output_request(
+        &mut self,
+        request: OutputRequest,
+        pane_id: &PaneId,
+        revision: u64,
+        text: String,
+    ) -> bool {
+        if !self.finish_output_request(request, pane_id) {
+            return false;
+        }
+        let preview = self
+            .output_preview
+            .as_mut()
+            .expect("a read owns its preview");
+        preview.loading = false;
+        if revision < preview.revision {
+            return false;
+        }
+        preview.revision = revision;
+        preview.text = text;
+        preview.error = None;
+        true
+    }
+
+    pub fn fail_output_request(&mut self, request: OutputRequest, pane_id: &PaneId, message: &str) {
+        if self.finish_output_request(request, pane_id) {
+            let preview = self
+                .output_preview
+                .as_mut()
+                .expect("a read owns its preview");
+            preview.loading = false;
+            preview.text.clear();
+            preview.error = Some(format!("load output failed: {message}"));
+        }
     }
 
     pub fn status_message(&self) -> Option<&str> {
@@ -1042,6 +1405,11 @@ impl Model {
 
     pub fn set_action_feedback(&mut self, message: String) {
         self.notices.action = Some(Notice::ActionFeedback(message));
+        self.action_feedback_at = Some(self.now);
+    }
+
+    pub(crate) fn set_counsel_issued(&mut self, message: String) {
+        self.notices.action = Some(Notice::CounselIssued(message));
         self.action_feedback_at = Some(self.now);
     }
 
@@ -1168,6 +1536,7 @@ impl Model {
 
     pub fn set_managed_pane_id(&mut self, pane_id: Option<PaneId>) {
         self.managed_pane_id = pane_id;
+        self.reconcile_output();
     }
 
     pub const fn goblins(&self) -> &GoblinState {

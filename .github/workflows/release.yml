@@ -4,12 +4,8 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
-  # A tag pushed by a workflow using GITHUB_TOKEN does not start other
-  # workflows — GitHub blocks that to stop workflows triggering themselves.
-  # release-plz tags with exactly that token, so a merged release pull request
-  # creates the tag and nothing builds from it. Giving release-plz a personal
-  # access token fixes it properly; this is the escape hatch for a tag that
-  # already exists, and for re-running a release whose build failed.
+  # release-plz explicitly dispatches after tagging with GITHUB_TOKEN.
+  # This also supports recovery of an existing tag whose build did not run.
   workflow_dispatch:
     inputs:
       tag:
@@ -263,6 +259,8 @@ jobs:
     environment: crates-io
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@1.90.0

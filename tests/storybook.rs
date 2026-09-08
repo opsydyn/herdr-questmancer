@@ -1,16 +1,30 @@
 #![cfg(feature = "storybook")]
 
 use questmancer::storybook::{
-    app::StorybookApp,
+    app::{Action, StorybookApp, reduce},
     catalogue::{catalogue, validate_catalogue},
-    fixtures::StoryContext,
+    fixtures::{StoryContext, StoryFixture},
     ui,
 };
 use ratatui::{Terminal, backend::TestBackend};
 
 #[test]
+fn scrying_story_contains_settled_output_without_live_io() {
+    let model = questmancer::storybook::fixtures::scrying_interaction_fixture(
+        questmancer::storybook::fixtures::StoryContext::fixed(),
+    );
+    let preview = model.output_preview().expect("scrying story has output");
+    assert!(
+        !preview.loading,
+        "a fixed story must not wait for a real socket"
+    );
+    assert_eq!(preview.text, "The runes resolve into a clean test report.");
+    assert_eq!(preview.error, None);
+}
+
+#[test]
 fn catalogue_contains_every_production_scene_interaction_once() {
-    assert_eq!(catalogue().len(), 32);
+    assert_eq!(catalogue().len(), 34);
     let titles = catalogue()
         .iter()
         .map(|story| story.title)
@@ -18,7 +32,9 @@ fn catalogue_contains_every_production_scene_interaction_once() {
 
     for title in [
         "Assets / Core World Masters",
-        "Assets / Barbarian v2 Poses",
+        "Assets / Barbarian Poses",
+        "Assets / Wizard Poses",
+        "Assets / Ranger Poses",
         "Assets / Core Portrait Masters",
         "Assets / Goblin Easter Egg",
         "Assets / Librarian",
@@ -73,6 +89,34 @@ fn every_production_story_renders_at_its_minimum_viewport() {
         terminal
             .draw(|frame| ui::render(frame, &app, stories, &StoryContext::fixed(), None))
             .unwrap();
+    }
+}
+
+#[test]
+fn scene_inspection_reaches_small_production_layouts_while_asset_galleries_keep_their_minimum() {
+    let stories = catalogue();
+    for (index, story) in stories.iter().enumerate() {
+        let context = StoryContext::fixed();
+        let is_scene = matches!((story.build)(context), StoryFixture::SceneApplication(_));
+        let mut app = StorybookApp::new(stories);
+        app.select(index, stories);
+        let _ = reduce(&mut app, Action::Inspect, stories);
+        for (width, height) in [(64, 20), (30, 15), (24, 13), (16, 9)] {
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal
+                .draw(|frame| ui::render(frame, &app, stories, &context, None))
+                .unwrap();
+            let buffer = terminal.backend().buffer();
+            let first_row = (0..width)
+                .map(|x| buffer.cell((x, 0)).unwrap().symbol())
+                .collect::<String>();
+            assert_eq!(
+                first_row.starts_with("Needs "),
+                !is_scene,
+                "{} at {width}x{height}: inspect must reach the production scene",
+                story.title
+            );
+        }
     }
 }
 

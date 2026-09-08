@@ -1,9 +1,12 @@
 # Guild Hall art direction
 
-Status: approved direction; renderer implementation awaits visual review.
-Landed so far: persona palette substitution in world masters, the compact and
-vignette quiet stage, state-first nameplate truncation, and the garb-versus-
-material contrast floor with its automated proof.
+Status: approved direction, with remaining canonical-room changes requiring
+their own visual review. Implemented: persona palette substitution, compact
+and vignette quiet stages, state-first nameplate truncation, material contrast,
+and shared roster state cues. The [production roster review](reviews/2026-09-05-roster-states/README.md)
+was visually approved on 2026-09-05. The broader station blueprint below is a
+design target, not a record of current coordinates or accepted room changes.
+The Librarian's original sprite remains outside the new proportion pass.
 
 Scope: Guild Hall first. The Delve has since adopted the same actor-legibility
 rules while keeping its darker dungeon direction: its party grounds against the
@@ -183,14 +186,20 @@ The roster rung exists because a Questmancer pane is usually narrow: dropping
 straight from compact to a single adventurer answers "who needs counsel" only
 by accident, and answers "how large is my party" not at all. Roster masters
 are authored per silhouette family, never mechanically downscaled, and carry
-no pose — state is told by grounding, the counsel marker and the nameplate.
+no authored pose sequence. Working, counsel, resting, completed and unknown
+use shared tool, lantern, Z, check and question-mark cues even when names
+cannot fit. Full-motion spoils shimmer only until the three-second deadline;
+reduced/still rosters retain one stable completed cue without a timer.
 A station becomes unavailable rather than shrinking a master into a token;
 the roster is a different authored size, not a squeezed one.
 
 At every size, the selected adventurer wins priority. Otherwise an adventurer
-needing counsel wins priority. The Librarian stays visible and selectable when
-the vignette can fit both actors; otherwise the handbook remains reachable via
-the normal help path.
+needing counsel wins vignette priority. The current Librarian is visible and
+clickable in canonical and compact Halls, with a reserved slot. Roster,
+vignette and status-only tiers omit that actor; `?` always reaches the Ledger.
+The source thresholds are canonical `160x90` with at most eleven adventurers,
+compact at least `64x40` with capacity, roster at least `20x27` with capacity,
+then a `16x24` vignette or status-only output.
 
 ## Renderer seam and invariants
 
@@ -220,7 +229,7 @@ Storybook coverage for these truthful situations:
 | Hall / returning with spoils | one-shot completion treatment and spoils station read |
 | Hall / full party and overflow | no stacking, truthful overflow treatment and Librarian visibility |
 | Hall / compact and vignette | recomposition, native-scale sprites and priority selection |
-| Hall / roster | whole party visible at authored 8x12, no shared silhouette edges, counsel marker per blocked adventurer |
+| Hall / roster | whole party visible at authored 8x12, no shared silhouette edges, five distinct state cues and clear selection rings |
 
 Review the stories at the canonical `160x90` RGB world, a compact viewport and
 a small Ghostty window. Automated tests should enforce station/label

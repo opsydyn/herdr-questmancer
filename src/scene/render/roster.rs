@@ -5,23 +5,32 @@
 //! adventurer behaves identically in the Guild Hall and the Delve; only the
 //! surface it stands on differs.
 
-use crate::scene::{
-    SceneActorRegion,
-    assets::{adventurer::adventurer_roster_frame, roster},
-    pixel::{PixelPoint, PixelRect, PixelSize, Rgb, RgbBuffer},
-    snapshot::SceneSnapshot,
-    sprite::blit,
-    stage::ScenePlan,
+use std::time::Duration;
+
+use crate::{
+    app::Motion,
+    scene::{
+        SceneActorRegion,
+        assets::{
+            adventurer::adventurer_roster_frame,
+            palette::{AMBER_LIGHT, INK_BLUE, PARCHMENT_DARK, PARCHMENT_LIGHT, WINE_LIGHT},
+            roster,
+        },
+        pixel::{PixelPoint, PixelRect, PixelSize, Rgb, RgbBuffer},
+        snapshot::{SceneConnection, SceneSnapshot},
+        sprite::blit,
+        stage::{COMPLETION_THEATRE_MS, SceneEffect, ScenePlan},
+    },
 };
 
-use super::interaction::{paint_actor_grounding, paint_actor_state_marker, paint_selection_marker};
-use super::is_visible;
+use super::interaction::{paint_actor_grounding, paint_selection_marker};
+use super::{earliest_deadline, next_frame_delay};
 
 /// Each master keeps a one-pixel gutter beside it so neighbouring adventurers
 /// never share a silhouette edge.
 pub(crate) const STRIDE_X: u16 = roster::WIDTH + 2;
-/// The vertical lane carries the grounding shadow plus a full counsel marker
-/// for the row below, so a blocked adventurer's marker never lands on the feet
+/// The vertical lane carries the grounding shadow plus a full state marker
+/// for the row below, so an adventurer's marker never lands on the feet
 /// of the adventurer above it.
 pub(crate) const STRIDE_Y: u16 = roster::HEIGHT + 8;
 pub(crate) const TOP_MARGIN: u16 = 7;
@@ -89,12 +98,21 @@ pub(crate) fn paint_party(
             sprite.size().width,
             sprite.size().height,
         );
-        if !is_visible(PixelPoint::new(0, 0), bounds, target.size()) {
+        if bounds.x < 0
+            || bounds.y < 0
+            || bounds.x + i32::from(bounds.width) > i32::from(target.size().width)
+            || bounds.y + i32::from(bounds.height) > i32::from(target.size().height)
+        {
             continue;
         }
         paint_actor_grounding(target, bounds, placement.pose, shadow);
         blit(&sprite, actor_origin, target);
-        paint_actor_state_marker(target, bounds, placement.pose);
+        let marker = state_marker_bounds(bounds);
+        blit(
+            roster::state_marker(placement.pose),
+            PixelPoint::new(marker.x, marker.y),
+            target,
+        );
         if placement.selected {
             paint_selection_marker(target, actor_origin, sprite.size());
         }
@@ -104,4 +122,78 @@ pub(crate) fn paint_party(
         });
     }
     regions
+}
+
+/// A separate lane above the native roster master; labels must preserve it.
+pub(crate) fn state_marker_bounds(actor: PixelRect) -> PixelRect {
+    let size = roster::STATE_MARKER_SIZE;
+    PixelRect::new(
+        actor.x + i32::from(actor.width / 2) - i32::from(size / 2),
+        actor.y - i32::from(size),
+        size,
+        size,
+    )
+}
+
+/// The two reserved top pixels carry connection facts without covering a
+/// party cue. World-coordinate diagnostics do not fit this recomposed tier.
+pub(crate) fn paint_connection_fact(snapshot: &SceneSnapshot, target: &mut RgbBuffer) {
+    match snapshot.connection {
+        SceneConnection::Connected => {}
+        SceneConnection::Offline => target.put(1, 0, WINE_LIGHT),
+        SceneConnection::Connecting => target.put(1, 0, AMBER_LIGHT),
+        SceneConnection::Reconnecting { attempt } => {
+            for index in 0..attempt.clamp(1, 6) {
+                target.put(1 + i32::try_from(index * 2).unwrap_or(0), 0, AMBER_LIGHT);
+            }
+        }
+        SceneConnection::Incompatible { expected, actual } => {
+            target.fill_rect(PixelRect::new(0, 0, 15, 2), PARCHMENT_DARK);
+            for (count, row, colour) in [(expected, 0, PARCHMENT_LIGHT), (actual, 1, INK_BLUE)] {
+                for index in 0..count.min(7) {
+                    target.put(1 + i32::try_from(index * 2).unwrap_or(0), row, colour);
+                }
+            }
+        }
+    }
+}
+
+/// Fresh spoils shimmer in the side gutters without covering identity or the
+/// persistent completion cue. Reduced/still scenes use that cue alone.
+pub(crate) fn paint_effects(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    target: &mut RgbBuffer,
+    actors: &[SceneActorRegion],
+) -> Option<Duration> {
+    if snapshot.motion != Motion::Full {
+        return None;
+    }
+    let mut next_frame_in = None;
+    let duration = Duration::from_millis(COMPLETION_THEATRE_MS.cast_unsigned());
+    for effect in &plan.effects {
+        let SceneEffect::FreshSpoils { agent, since } = effect else {
+            continue;
+        };
+        let Some(region) = actors.iter().find(|region| region.agent == *agent) else {
+            continue;
+        };
+        let elapsed = since.elapsed_until(snapshot.now);
+        let Some(remaining) = duration.checked_sub(elapsed).filter(|left| !left.is_zero()) else {
+            continue;
+        };
+        let phase = i32::try_from((elapsed.as_millis() / 125) % 4).unwrap_or(0);
+        for (x, offset) in [
+            (region.bounds.x - 1, phase),
+            (region.bounds.x + i32::from(region.bounds.width), 3 - phase),
+        ] {
+            target.put(x, region.bounds.y + 1 + offset, AMBER_LIGHT);
+            target.put(x, region.bounds.y + 6 + offset, PARCHMENT_LIGHT);
+        }
+        next_frame_in = Some(earliest_deadline(
+            next_frame_in,
+            next_frame_delay(elapsed, 8).min(remaining),
+        ));
+    }
+    next_frame_in
 }

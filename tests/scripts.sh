@@ -408,6 +408,61 @@ test_contributor_test_recipes_reference_real_targets() {
   (( count > 0 )) || fail "justfile did not contain any focused --test targets"
 }
 
+make_dispatch_gh() {
+  mkdir -p "$TMP/dispatch-bin"
+  cat >"$TMP/dispatch-bin/gh" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$@" >"$DISPATCH_CALLS"
+exit "${DISPATCH_EXIT_CODE:-0}"
+SH
+  chmod +x "$TMP/dispatch-bin/gh"
+}
+
+test_tagged_release_dispatches_exact_stable_tag() {
+  make_dispatch_gh
+  local calls="$TMP/dispatch-calls" expected="$TMP/dispatch-expected"
+  PATH="$TMP/dispatch-bin:$PATH" \
+    DISPATCH_CALLS="$calls" GH_TOKEN=fixture-token \
+    GITHUB_REPOSITORY=example/questmancer \
+    RELEASES='[{"package_name":"questmancer","version":"0.1.8","tag":"v0.1.8","prs":[]}]' \
+    bash "$ROOT/scripts/dispatch-tagged-release.sh" >"$TMP/dispatch-output"
+  printf '%s\n' workflow run release.yml --repo example/questmancer --ref main -f tag=v0.1.8 >"$expected"
+  cmp "$calls" "$expected" || fail "dispatch did not target exactly the emitted stable tag"
+  assert_contains "$TMP/dispatch-output" "Requested archive build for v0.1.8"
+
+  if PATH="$TMP/dispatch-bin:$PATH" \
+    DISPATCH_CALLS="$calls" DISPATCH_EXIT_CODE=23 GH_TOKEN=fixture-token \
+    GITHUB_REPOSITORY=example/questmancer \
+    RELEASES='[{"package_name":"questmancer","version":"0.1.8","tag":"v0.1.8"}]' \
+    bash "$ROOT/scripts/dispatch-tagged-release.sh" >"$TMP/dispatch-failure" 2>&1; then
+    fail "a rejected workflow dispatch was reported as successful"
+  fi
+  assert_not_contains "$TMP/dispatch-failure" "Requested archive build"
+}
+
+test_tagged_release_rejects_ambiguous_or_invalid_outputs() {
+  make_dispatch_gh
+  local payload calls="$TMP/rejected-dispatch-calls"
+  for payload in \
+    '[]' \
+    'null' \
+    'not JSON' \
+    '[{"package_name":"another-crate","version":"0.1.8","tag":"v0.1.8"}]' \
+    '[{"package_name":"questmancer","version":"0.1.8","tag":"v0.1.9"}]' \
+    '[{"package_name":"questmancer","version":"0.1.8-rc.1","tag":"v0.1.8-rc.1"}]' \
+    '[{"package_name":"questmancer","version":"0.1.8\n","tag":"v0.1.8\n"}]' \
+    '[{"package_name":"questmancer","version":"0.1.8","tag":"v0.1.8; touch bad"}]' \
+    '[{"package_name":"questmancer","version":"0.1.8","tag":"v0.1.8"},{"package_name":"questmancer","version":"0.1.9","tag":"v0.1.9"}]'; do
+    rm -f "$calls"
+    if PATH="$TMP/dispatch-bin:$PATH" DISPATCH_CALLS="$calls" GH_TOKEN=fixture-token \
+      GITHUB_REPOSITORY=example/questmancer RELEASES="$payload" \
+      bash "$ROOT/scripts/dispatch-tagged-release.sh" >"$TMP/dispatch-rejection" 2>&1; then
+      fail "dispatch accepted invalid release output: $payload"
+    fi
+    [[ ! -e $calls ]] || fail "invalid release output reached gh"
+  done
+}
+
 test_native_archive_installs_after_checksum_verification() {
   local fixture="$TMP/native-release"
   local plugin_root="$TMP/native-plugin"
@@ -528,6 +583,8 @@ test_busy_control_lock_refuses_a_second_action
 test_release_packaging_contract
 test_workflow_yaml_contract_and_comment_mutations
 test_contributor_test_recipes_reference_real_targets
+test_tagged_release_dispatches_exact_stable_tag
+test_tagged_release_rejects_ambiguous_or_invalid_outputs
 test_native_archive_installs_after_checksum_verification
 test_current_release_surfaces_have_no_legacy_identity_or_vocabulary
 if grep -R -E -q 'questmancer-storybook|storybook' herdr-plugin.toml herdr; then
@@ -591,4 +648,4 @@ test_no_file_is_both_tracked_and_ignored
 test_install_documents_the_native_path
 test_scripts_use_only_tools_the_runner_has
 
-echo "scripts: 26 passed"
+echo "scripts: 28 passed"

@@ -1,11 +1,11 @@
-use std::sync::OnceLock;
+use std::{sync::OnceLock, time::Duration};
 
 use crate::domain::AdventurerPersona;
 
 use super::{
-    IndexedPaletteEntry, archetypes, barbarian_v2, indexed_sprite,
+    IndexedPaletteEntry, archetypes, indexed_sprite,
     palette::{AdventurerPalette, adventurer_palette},
-    roster,
+    rituals, roster,
 };
 use crate::{
     domain::AdventurerClass,
@@ -168,10 +168,21 @@ pub fn druid_portrait_frame() -> SpriteFrame {
 
 #[must_use]
 pub fn adventurer_portrait_frame(persona: &AdventurerPersona) -> Option<SpriteFrame> {
-    if persona.class == AdventurerClass::Druid {
-        Some(druid_portrait_frame())
-    } else {
-        archetypes::portrait_frame(persona.class)
+    match persona.class {
+        AdventurerClass::Wizard | AdventurerClass::Ranger | AdventurerClass::Barbarian => {
+            // The card should show the same stocky, personalised adventurer
+            // as the room. Centre the native sprite in the existing portrait
+            // canvas; stretching it to fill that canvas would elongate it.
+            let sprite = adventurer_animation_frame(persona, ScenePose::Working, 0);
+            let mut pixels = vec![None; 24 * 32];
+            for (y, row) in sprite.pixels().chunks_exact(16).enumerate() {
+                let start = (y + 4) * 24 + 4;
+                pixels[start..start + 16].copy_from_slice(row);
+            }
+            Some(SpriteFrame::from_pixels(24, 32, pixels))
+        }
+        AdventurerClass::Druid => Some(druid_portrait_frame()),
+        _ => archetypes::portrait_frame(persona.class),
     }
 }
 
@@ -198,18 +209,6 @@ const fn standard_role(key: char) -> Option<PersonaRole> {
         'r' => Some(PersonaRole::HairShadow),
         'R' => Some(PersonaRole::HairBase),
         'l' => Some(PersonaRole::Garb),
-        'a' => Some(PersonaRole::Accent),
-        _ => None,
-    }
-}
-
-/// The Barbarian v2 masters predate the shared grammar: `S` is skin,
-/// `H`/`h` are hair and `L`/`l` are class-owned leather.
-const fn barbarian_role(key: char) -> Option<PersonaRole> {
-    match key {
-        'S' => Some(PersonaRole::SkinBase),
-        'H' => Some(PersonaRole::HairShadow),
-        'h' => Some(PersonaRole::HairBase),
         'a' => Some(PersonaRole::Accent),
         _ => None,
     }
@@ -403,13 +402,8 @@ pub fn adventurer_animation_frame(
         persona.class,
         persona.appearance.accent,
     );
-    if persona.class == AdventurerClass::Barbarian {
-        personalise(
-            &barbarian_v2::frame(pose, animation_frame),
-            barbarian_v2::palette(),
-            barbarian_role,
-            &colours,
-        )
+    if let Some((frame, palette)) = rituals::world_master(persona.class, pose, animation_frame) {
+        personalise(&frame, palette, standard_role, &colours)
     } else if persona.class == AdventurerClass::Druid {
         let frame = personalise(&druid_world_frame(), DRUID_PALETTE, standard_role, &colours);
         apply_pose(&frame, pose, DRUID_PALETTE, &colours)
@@ -433,15 +427,38 @@ pub fn adventurer_roster_frame(persona: &AdventurerPersona) -> SpriteFrame {
         persona.class,
         persona.appearance.accent,
     );
-    let (frame, palette) = roster::master(roster::family_for(persona.class));
+    let (frame, palette) = rituals::roster_master(persona.class)
+        .unwrap_or_else(|| roster::master(roster::family_for(persona.class)));
     personalise(&frame, palette, standard_role, &colours)
 }
 
-/// Whether time can select different authored pixels for this adventurer pose.
-/// Renderers use this to avoid scheduling frames for static class masters.
-#[must_use]
-pub fn adventurer_pose_is_animated(persona: &AdventurerPersona, pose: ScenePose) -> bool {
-    persona.class == AdventurerClass::Barbarian && matches!(pose, ScenePose::Working)
+pub(crate) struct AdventurerFrame {
+    pub sprite: SpriteFrame,
+    pub next: Option<(Duration, SpriteFrame)>,
+}
+
+/// Samples authored pixels and their next actual change together. The age is
+/// absent when a retained fact must not replay a one-shot gesture.
+pub(crate) fn adventurer_at(
+    persona: &AdventurerPersona,
+    pose: ScenePose,
+    motion: crate::app::Motion,
+    elapsed: Option<Duration>,
+) -> AdventurerFrame {
+    let (frame, next_frame_in) = rituals::sample(persona.class, pose, motion, elapsed);
+    let next = next_frame_in.map(|delay| {
+        let (next_frame, _) = rituals::sample(
+            persona.class,
+            pose,
+            motion,
+            elapsed.map(|age| age.saturating_add(delay)),
+        );
+        (delay, adventurer_animation_frame(persona, pose, next_frame))
+    });
+    AdventurerFrame {
+        sprite: adventurer_animation_frame(persona, pose, frame),
+        next,
+    }
 }
 
 #[cfg(test)]
@@ -459,15 +476,12 @@ mod tests {
     /// cluster too. Every master palette must keep role colours unique.
     #[test]
     fn persona_role_colours_are_unique_within_every_master_palette() {
-        let mut palettes: Vec<MasterPaletteFixture> = vec![
-            ("Druid".to_owned(), DRUID_PALETTE, standard_role),
-            (
-                "Barbarian v2".to_owned(),
-                barbarian_v2::palette(),
-                barbarian_role,
-            ),
-        ];
+        let mut palettes: Vec<MasterPaletteFixture> =
+            vec![("Druid".to_owned(), DRUID_PALETTE, standard_role)];
         for class in AdventurerClass::ALL {
+            if let Some((_, palette)) = rituals::world_master(*class, ScenePose::Working, 0) {
+                palettes.push((format!("ritual {class:?}"), palette, standard_role));
+            }
             if let Some((_, palette)) = archetypes::world_master(*class) {
                 palettes.push((format!("{class:?}"), palette, standard_role));
             }

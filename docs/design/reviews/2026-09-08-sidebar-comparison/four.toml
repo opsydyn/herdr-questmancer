@@ -1,0 +1,8 @@
+[ui.sidebar.agents]
+row_gap = 1
+rows = [
+  [{ token = "$quest_sigil", fg = "#e5b95c", bold = true, dim = false, rules = [{ equals = "⚔", fg = "#e5b95c" }, { equals = "♪", fg = "#f5c2e7" }, { equals = "✚", fg = "#f9e2af" }, { equals = "❧", fg = "#a6e3a1" }, { equals = "✜", fg = "#f9e2af" }, { equals = "↟", fg = "#a6e3a1" }, { equals = "✦", fg = "#89b4fa" }, { equals = "✧", fg = "#cba6f7" }, { equals = "⚙", fg = "#94e2d5" }, { equals = "ᚱ", fg = "#94e2d5" }, { equals = "✎", fg = "#a6e3a1" }, { equals = "⌖", fg = "#89b4fa" }, { equals = "☠", fg = "#cba6f7" }, { equals = "☼", fg = "#f5c2e7" }] }, { token = "agent", fg = "#cdd6f4", bold = true, dim = false }],
+  ["state_icon", { token = "$quest_condition", fg = "#9399b2", bold = false, dim = false, rules = [{ equals = "Restrained", fg = "#f38ba8", bold = true }, { equals = "Concentrating", fg = "#e5b95c" }, { equals = "Triumphant", fg = "#a6e3a1", bold = true }, { equals = "Blinded", fg = "#cba6f7", bold = true }] }, { token = "$quest_vigil", fg = "#e5b95c", bold = false, dim = false, rules = [{ starts_with = "●●●", fg = "#f38ba8", bold = true }, { starts_with = "###", fg = "#f38ba8", bold = true }] }],
+  [{ token = "$quest_role", fg = "#9399b2", dim = false }],
+  [{ token = "$quest_hoard", fg = "#e5b95c", dim = false, rules = [{ equals = "◈ empty", fg = "#9399b2" }, { equals = "* empty", fg = "#9399b2" }] }],
+]

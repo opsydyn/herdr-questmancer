@@ -1,0 +1,527 @@
+<div id="qm-sidebar-review" aria-label="Questmancer sidebar layout comparison">
+  <style>
+    #qm-sidebar-review { font:14px system-ui,sans-serif; color:#cdd6f4; }
+    #qm-sidebar-review .qm-controls {display:flex;gap:16px;flex-wrap:wrap;padding:12px;background:#181825;margin-bottom:12px;}
+    #qm-sidebar-review label {display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    #qm-sidebar-review select {background:#313244;color:#cdd6f4;border:1px solid #9399b2;padding:6px;font:inherit;}
+    #qm-sidebar-review .qm-columns {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+    #qm-sidebar-review .qm-panel {background:#1e1e2e;padding:12px;min-width:0;}
+    #qm-sidebar-review h3 {font:500 14px system-ui;margin:0 0 8px;color:#cdd6f4;}
+    #qm-sidebar-review .qm-terminal {font:13px/1.55 Menlo,Consolas,monospace;max-width:100%;}
+    #qm-sidebar-review .qm-line {white-space:pre;min-height:1.55em;}
+    #qm-sidebar-review .qm-agent {margin-bottom:1.55em;}
+    #qm-sidebar-review .qm-agent:last-child {margin-bottom:0;}
+    #qm-sidebar-review .qm-caption {color:#9399b2;margin:12px 0 0;font:12px system-ui;}
+    @media(max-width:650px){#qm-sidebar-review .qm-columns{grid-template-columns:1fr;}}
+  </style>
+  <div class="qm-controls">
+    <label>Compare with <select id="qm-layout"><option value="four">Four rows · condition first</option><option value="three">Three rows · compact proposal</option></select></label>
+    <label>Width <select id="qm-width"><option value="24">24 columns</option><option value="32">32 columns</option></select></label>
+    <label>Examples <select id="qm-states"><option value="active">Counsel / working / resting</option><option value="other">New counsel / spoils / unknown</option></select></label>
+    <label><input id="qm-ascii" type="checkbox"> ASCII</label>
+  </div>
+  <div class="qm-columns">
+    <section class="qm-panel" aria-label="Current sidebar"><h3>Current · eight configured rows</h3><div id="qm-current" class="qm-terminal"></div><div class="qm-caption" id="qm-current-count"></div></section>
+    <section class="qm-panel" aria-label="Proposed sidebar"><h3 id="qm-proposed-title">Four rows · condition first</h3><div id="qm-proposed" class="qm-terminal"></div><div class="qm-caption" id="qm-proposed-count"></div></section>
+  </div>
+  <div class="qm-caption" aria-live="polite">Illustrative fixtures · dark palette · approximate column clipping · native Herdr review pending</div>
+  <script type="application/json" id="qm-config-data">{
+  "current": {
+    "row_gap": 1,
+    "rows": [
+      [
+        {
+          "token": "$quest_sigil",
+          "fg": "#e5b95c",
+          "bold": true,
+          "dim": false,
+          "rules": [
+            {
+              "equals": "⚔",
+              "fg": "#e5b95c"
+            },
+            {
+              "equals": "♪",
+              "fg": "#f5c2e7"
+            },
+            {
+              "equals": "✚",
+              "fg": "#f9e2af"
+            },
+            {
+              "equals": "❧",
+              "fg": "#a6e3a1"
+            },
+            {
+              "equals": "✜",
+              "fg": "#f9e2af"
+            },
+            {
+              "equals": "↟",
+              "fg": "#a6e3a1"
+            },
+            {
+              "equals": "✦",
+              "fg": "#89b4fa"
+            },
+            {
+              "equals": "✧",
+              "fg": "#cba6f7"
+            },
+            {
+              "equals": "⚙",
+              "fg": "#94e2d5"
+            },
+            {
+              "equals": "ᚱ",
+              "fg": "#94e2d5"
+            },
+            {
+              "equals": "✎",
+              "fg": "#a6e3a1"
+            },
+            {
+              "equals": "⌖",
+              "fg": "#89b4fa"
+            },
+            {
+              "equals": "☠",
+              "fg": "#cba6f7"
+            },
+            {
+              "equals": "☼",
+              "fg": "#f5c2e7"
+            }
+          ]
+        },
+        {
+          "token": "agent",
+          "fg": "#cdd6f4",
+          "bold": true,
+          "dim": false
+        }
+      ],
+      [
+        {
+          "token": "$quest_role",
+          "fg": "#9399b2",
+          "dim": false
+        }
+      ],
+      [
+        {
+          "token": "$quest_epithet",
+          "fg": "#9399b2",
+          "dim": false
+        }
+      ],
+      [
+        "state_icon",
+        {
+          "token": "$quest_condition",
+          "fg": "#e5b95c",
+          "dim": false
+        }
+      ],
+      [
+        {
+          "token": "$quest_omen",
+          "fg": "#9399b2",
+          "dim": false
+        }
+      ],
+      [
+        {
+          "token": "$quest_trinket",
+          "fg": "#9399b2",
+          "dim": false
+        }
+      ],
+      [
+        {
+          "token": "$quest_vigil",
+          "fg": "#f38ba8",
+          "dim": false
+        }
+      ],
+      [
+        {
+          "token": "$quest_hoard",
+          "fg": "#e5b95c",
+          "dim": false
+        }
+      ]
+    ]
+  },
+  "three": {
+    "row_gap": 1,
+    "rows": [
+      [
+        "state_icon",
+        {
+          "token": "agent",
+          "fg": "#cdd6f4",
+          "bold": true,
+          "dim": false
+        },
+        {
+          "token": "machine",
+          "fg": "#9399b2",
+          "dim": false
+        }
+      ],
+      [
+        {
+          "token": "$quest_sigil",
+          "fg": "#e5b95c",
+          "bold": true,
+          "dim": false,
+          "rules": [
+            {
+              "equals": "⚔",
+              "fg": "#e5b95c"
+            },
+            {
+              "equals": "♪",
+              "fg": "#f5c2e7"
+            },
+            {
+              "equals": "✚",
+              "fg": "#f9e2af"
+            },
+            {
+              "equals": "❧",
+              "fg": "#a6e3a1"
+            },
+            {
+              "equals": "✜",
+              "fg": "#f9e2af"
+            },
+            {
+              "equals": "↟",
+              "fg": "#a6e3a1"
+            },
+            {
+              "equals": "✦",
+              "fg": "#89b4fa"
+            },
+            {
+              "equals": "✧",
+              "fg": "#cba6f7"
+            },
+            {
+              "equals": "⚙",
+              "fg": "#94e2d5"
+            },
+            {
+              "equals": "ᚱ",
+              "fg": "#94e2d5"
+            },
+            {
+              "equals": "✎",
+              "fg": "#a6e3a1"
+            },
+            {
+              "equals": "⌖",
+              "fg": "#89b4fa"
+            },
+            {
+              "equals": "☠",
+              "fg": "#cba6f7"
+            },
+            {
+              "equals": "☼",
+              "fg": "#f5c2e7"
+            }
+          ]
+        },
+        {
+          "token": "$quest_role",
+          "fg": "#9399b2",
+          "dim": false
+        },
+        {
+          "token": "$quest_condition",
+          "fg": "#9399b2",
+          "bold": false,
+          "dim": false,
+          "rules": [
+            {
+              "equals": "Restrained",
+              "fg": "#f38ba8",
+              "bold": true
+            },
+            {
+              "equals": "Concentrating",
+              "fg": "#e5b95c"
+            },
+            {
+              "equals": "Triumphant",
+              "fg": "#a6e3a1",
+              "bold": true
+            },
+            {
+              "equals": "Blinded",
+              "fg": "#cba6f7",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "token": "$quest_vigil",
+          "fg": "#e5b95c",
+          "bold": false,
+          "dim": false,
+          "rules": [
+            {
+              "starts_with": "●●●",
+              "fg": "#f38ba8",
+              "bold": true
+            },
+            {
+              "starts_with": "###",
+              "fg": "#f38ba8",
+              "bold": true
+            }
+          ]
+        },
+        {
+          "token": "$quest_hoard",
+          "fg": "#e5b95c",
+          "dim": false,
+          "rules": [
+            {
+              "equals": "◈ empty",
+              "fg": "#9399b2"
+            },
+            {
+              "equals": "* empty",
+              "fg": "#9399b2"
+            }
+          ]
+        }
+      ]
+    ]
+  },
+  "four": {
+    "row_gap": 1,
+    "rows": [
+      [
+        {
+          "token": "$quest_sigil",
+          "fg": "#e5b95c",
+          "bold": true,
+          "dim": false,
+          "rules": [
+            {
+              "equals": "⚔",
+              "fg": "#e5b95c"
+            },
+            {
+              "equals": "♪",
+              "fg": "#f5c2e7"
+            },
+            {
+              "equals": "✚",
+              "fg": "#f9e2af"
+            },
+            {
+              "equals": "❧",
+              "fg": "#a6e3a1"
+            },
+            {
+              "equals": "✜",
+              "fg": "#f9e2af"
+            },
+            {
+              "equals": "↟",
+              "fg": "#a6e3a1"
+            },
+            {
+              "equals": "✦",
+              "fg": "#89b4fa"
+            },
+            {
+              "equals": "✧",
+              "fg": "#cba6f7"
+            },
+            {
+              "equals": "⚙",
+              "fg": "#94e2d5"
+            },
+            {
+              "equals": "ᚱ",
+              "fg": "#94e2d5"
+            },
+            {
+              "equals": "✎",
+              "fg": "#a6e3a1"
+            },
+            {
+              "equals": "⌖",
+              "fg": "#89b4fa"
+            },
+            {
+              "equals": "☠",
+              "fg": "#cba6f7"
+            },
+            {
+              "equals": "☼",
+              "fg": "#f5c2e7"
+            }
+          ]
+        },
+        {
+          "token": "agent",
+          "fg": "#cdd6f4",
+          "bold": true,
+          "dim": false
+        }
+      ],
+      [
+        "state_icon",
+        {
+          "token": "$quest_condition",
+          "fg": "#9399b2",
+          "bold": false,
+          "dim": false,
+          "rules": [
+            {
+              "equals": "Restrained",
+              "fg": "#f38ba8",
+              "bold": true
+            },
+            {
+              "equals": "Concentrating",
+              "fg": "#e5b95c"
+            },
+            {
+              "equals": "Triumphant",
+              "fg": "#a6e3a1",
+              "bold": true
+            },
+            {
+              "equals": "Blinded",
+              "fg": "#cba6f7",
+              "bold": true
+            }
+          ]
+        },
+        {
+          "token": "$quest_vigil",
+          "fg": "#e5b95c",
+          "bold": false,
+          "dim": false,
+          "rules": [
+            {
+              "starts_with": "●●●",
+              "fg": "#f38ba8",
+              "bold": true
+            },
+            {
+              "starts_with": "###",
+              "fg": "#f38ba8",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "token": "$quest_role",
+          "fg": "#9399b2",
+          "dim": false
+        }
+      ],
+      [
+        {
+          "token": "$quest_hoard",
+          "fg": "#e5b95c",
+          "dim": false,
+          "rules": [
+            {
+              "equals": "◈ empty",
+              "fg": "#9399b2"
+            },
+            {
+              "equals": "* empty",
+              "fg": "#9399b2"
+            }
+          ]
+        }
+      ]
+    ]
+  }
+}
+</script>
+  <script>
+  (() => {
+    const root=document.getElementById('qm-sidebar-review');
+    const configs=JSON.parse(root.querySelector('#qm-config-data').textContent);
+    const state={layout:'four',width:'24',examples:'active',ascii:false};
+    const fixtures=[
+      {agent:'Codex',machine:'Local',role:'Elf Wizard',sigil:'✧',abbr:'Wz',epithet:'the Patient',trinket:'Brass Key',count:0},
+      {agent:'Claude',machine:'Local',role:'Human Ranger',sigil:'↟',abbr:'Rg',epithet:'the Keen',trinket:'Pressed Leaf',count:2},
+      {agent:'Codex',machine:'Local',role:'Dwarf Barbarian',sigil:'⚔',abbr:'Ba',epithet:'the Resolute',trinket:'Lucky Coin',count:0}
+    ];
+    const sets={active:[['Restrained','seeks counsel','●●●○○○'],['Concentrating','on expedition',''],['Resting','at the hearth','']],other:[['Restrained','seeks counsel','●○○○○○'],['Triumphant','returned with spoils',''],['Blinded','whereabouts unknown','']]};
+    function values(f,i){
+      const [condition,omen,vigil]=sets[state.examples][i];
+      const glyph=state.ascii?'*':'◈';
+      return {agent:f.agent,machine:f.machine,state_icon:'●',
+        '$quest_sigil':state.ascii?f.abbr:f.sigil,'$quest_role':f.role,'$quest_epithet':f.epithet,
+        '$quest_condition':condition,'$quest_omen':omen,'$quest_trinket':(state.ascii?'~':'❖')+' '+f.trinket,
+        '$quest_vigil':state.ascii?vigil.replaceAll('●','#').replaceAll('○','-'):vigil,
+        '$quest_hoard':glyph+' '+(f.count===0?'empty':f.count+' spoils')};
+    }
+    function style(element,value){
+      const base=typeof element==='string'?{fg:'#9399b2'}:{...element};
+      for(const rule of base.rules||[]){
+        if(('equals'in rule&&value===rule.equals)||('starts_with'in rule&&value.startsWith(rule.starts_with))){Object.assign(base,rule);break;}
+      }
+      return base;
+    }
+    function paint(container,key){
+      container.replaceChildren();let total=0;
+      fixtures.forEach((f,i)=>{
+        const data=values(f,i),box=document.createElement('div');box.className='qm-agent';
+        for(const row of configs[key].rows){
+          const parts=row.map(e=>({e,key:typeof e==='string'?e:e.token})).filter(p=>data[p.key]);
+          if(!parts.length)continue;
+          const chars=[];
+          parts.forEach((p,index)=>{
+            if(index){const sep=parts[index-1].key==='state_icon'?' ':' · ';for(const c of sep)chars.push({c,fg:'#9399b2'});}
+            const s=style(p.e,data[p.key]);
+            if(p.key==='state_icon')s.fg={'Restrained':'#f38ba8','Concentrating':'#e5b95c','Resting':'#9399b2','Triumphant':'#a6e3a1','Blinded':'#cba6f7'}[data['$quest_condition']];
+            for(const c of data[p.key])chars.push({c,fg:s.fg||'#9399b2',bold:s.bold});
+          });
+          const line=document.createElement('div');line.className='qm-line';
+          line.setAttribute('aria-label',chars.map(x=>x.c).join(''));
+          const width=Number(state.width);const clipped=chars.length>width;
+          const shown=chars.slice(0,clipped?width-1:width);if(clipped)shown.push({c:'…',fg:'#9399b2'});
+          for(const char of shown){const span=document.createElement('span');span.textContent=char.c;span.style.color=char.fg;span.style.fontWeight=char.bold?'700':'400';line.append(span);}
+          box.append(line);total++;
+        }
+        container.append(box);
+      });
+      return total+fixtures.length-1;
+    }
+    function render(){
+      root.querySelector('#qm-layout').value=state.layout;root.querySelector('#qm-width').value=state.width;
+      root.querySelector('#qm-states').value=state.examples;root.querySelector('#qm-ascii').checked=state.ascii;
+      root.querySelector('#qm-proposed-title').textContent=state.layout==='four'?'Four rows · condition first':'Three rows · compact proposal';
+      for(const [id,key] of [['current','current'],['proposed',state.layout]]){
+        const lines=paint(root.querySelector('#qm-'+id),key);
+        root.querySelector('#qm-'+id+'-count').textContent=lines+' display rows for these three adventurers';
+      }
+    }
+    for(const [id,key] of [['layout','layout'],['width','width'],['states','examples'],['ascii','ascii']]){
+      root.querySelector('#qm-'+id).addEventListener('change',e=>{state[key]=key==='ascii'?e.target.checked:e.target.value;render();});
+    }
+    render();
+    if(globalThis.Tweak){const t=new Tweak({container:root,onChange:render});t.addSelect(state,'layout',{label:'Candidate layout',options:[{label:'Four rows',value:'four'},{label:'Three rows',value:'three'}]});}
+  })();
+  </script>
+</div>

@@ -362,8 +362,8 @@ fn session_snapshot() -> impl Strategy<Value = SessionSnapshot> {
                 .pane_count += 1;
         }
         SessionSnapshot {
-            version: "0.7.3".to_owned(),
-            protocol: 16,
+            version: "0.9.0".to_owned(),
+            protocol: 22,
             focused_workspace_id: agents.first().map(|agent| agent.workspace_id.clone()),
             focused_tab_id: agents.first().map(|agent| agent.tab_id.clone()),
             focused_pane_id: agents.first().map(|agent| agent.pane_id.clone()),

@@ -1,0 +1,243 @@
+{
+  "date": "2026-09-06",
+  "scope": "authorised local Herdr upgrade and release preflight; no commit, tag, workflow dispatch or publication",
+  "source": {
+    "base_commit": "efcd87d0a3b4031977d8be28c6114c3037d93733",
+    "dirty": true,
+    "preserved_existing_changes": true,
+    "questmancer_version": "0.1.8",
+    "supported_protocol": 20,
+    "minimum_herdr": "0.8.2"
+  },
+  "upstream_release": {
+    "url": "https://github.com/herdrdev/herdr/releases/tag/v0.8.2",
+    "published_at": "2026-08-19",
+    "channel": "stable"
+  },
+  "installation": {
+    "from": "0.8.0",
+    "to": "0.8.2",
+    "asset": "herdr-macos-aarch64",
+    "url": "https://github.com/herdrdev/herdr/releases/download/v0.8.2/herdr-macos-aarch64",
+    "sha256": "a5d4f4d504d8b309c91f811050559300faba31258425f53c50852fc96f6ae574",
+    "installed": "/Users/alancurrie/.local/bin/herdr",
+    "backup": "/tmp/questmancer-herdr-082.2GmTg0/herdr-0.8.0-backup",
+    "method": "verified official binary; atomic replacement"
+  },
+  "final_user_session": {
+    "herdr_version": "0.8.2",
+    "protocol": 20,
+    "default_server": "not running",
+    "restart_needed": false,
+    "sessions": [
+      {
+        "name": "default",
+        "status": "stopped"
+      }
+    ],
+    "shared_server_actions": []
+  },
+  "isolated_live_probe": {
+    "checks": [
+      "typed ping and snapshot",
+      "managed-pane exclusion",
+      "recent unwrapped output",
+      "focus of owned pane",
+      "five registered plugin actions",
+      "pane and workspace metadata",
+      "urgency view set and clear",
+      "real supervisor subscription",
+      "blocked idle unknown working through production reducer",
+      "metadata cleanup"
+    ],
+    "protocol": 20,
+    "result": "passed",
+    "version": "0.8.2"
+  },
+  "cleanup": {
+    "attempts": [
+      {
+        "attempt": "protocol-capture",
+        "source_released": true,
+        "server_exit_code": 0,
+        "socket_removed": true
+      },
+      {
+        "attempt": "client-probe",
+        "source_released": true,
+        "server_exit_code": 0,
+        "socket_removed": true
+      },
+      {
+        "attempt": "client-probe-2",
+        "source_released": true,
+        "server_exit_code": 0,
+        "socket_removed": true
+      },
+      {
+        "attempt": "client-probe-3",
+        "source_released": true,
+        "server_exit_code": 0,
+        "socket_removed": true
+      }
+    ],
+    "test_created_link_removed": true,
+    "shared_registration_changed": false,
+    "final_probe_stderr_bytes": 0
+  },
+  "sidebar_configs": [
+    {
+      "source": "README.md",
+      "exit_code": 0,
+      "stdout": "config: ok\n",
+      "stderr": ""
+    },
+    {
+      "source": "docs/design/questmancer-sidebar-character-sheet.md",
+      "exit_code": 0,
+      "stdout": "config: ok\n",
+      "stderr": ""
+    },
+    {
+      "source": "docs/design/questmancer-sidebar-character-sheet.md",
+      "exit_code": 0,
+      "stdout": "config: ok\n",
+      "stderr": ""
+    },
+    {
+      "source": "docs/design/questmancer-sidebar-character-sheet.md",
+      "exit_code": 0,
+      "stdout": "config: ok\n",
+      "stderr": ""
+    }
+  ],
+  "verification": {
+    "command": "just verify",
+    "exit_code": 0,
+    "rust_tests": 555,
+    "test_runs": 50,
+    "shell_tests": 28,
+    "format": "passed",
+    "clippy_warnings_denied": "passed",
+    "shell_syntax": "passed",
+    "dispatcher_bash_syntax": "passed",
+    "workflow_ruby_syntax": "passed"
+  },
+  "release_build": {
+    "command": "cargo build --release",
+    "result": "passed",
+    "binary_version": "questmancer 0.1.8",
+    "path": "target/release/questmancer",
+    "sha256": "e255e42fcd87dddc3063d4aa98567472586beb1441ba9b7c5b67a8a07cf6750f"
+  },
+  "package": {
+    "command": "cargo package --locked --allow-dirty",
+    "result": "passed",
+    "path": "target/package/questmancer-0.1.8.crate",
+    "bytes": 7711914,
+    "limit_bytes": 10485760,
+    "sha256": "83cc89d9b56f1590440cbd2030ea77be013893987f2decccdbe1a90aeb0be515",
+    "verified_current_source_asset_and_support_files": 164,
+    "missing_files": [],
+    "scope": "current source, authored assets, changelog and review; predates only the generated receipt.json; not a clean release commit"
+  },
+  "published_archives": {
+    "version": "0.1.3",
+    "release_url": "https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.3",
+    "archives": [
+      {
+        "name": "questmancer-v0.1.3-aarch64-apple-darwin.tar.gz",
+        "sha256": "ac314d6274ba34ddcb39940307c6c7b92ea7885b54cbdb36aa4b03d4fe935023",
+        "archive_bytes": 6216265,
+        "executable": "Mach-O 64-bit executable arm64",
+        "layout": "one root-level executable"
+      },
+      {
+        "name": "questmancer-v0.1.3-aarch64-unknown-linux-gnu.tar.gz",
+        "sha256": "971411695539dabf8201a2a527e52d7dd539339fd4237631465be7929a44c00b",
+        "archive_bytes": 6199335,
+        "executable": "ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=a6e0e6453c7436ba31f82861975e46349511cd00, stripped",
+        "layout": "one root-level executable"
+      },
+      {
+        "name": "questmancer-v0.1.3-x86_64-apple-darwin.tar.gz",
+        "sha256": "63e18898217e985a29ddbb861338ba2ed4142e577a8d67a1c64e397d525dd508",
+        "archive_bytes": 6307669,
+        "executable": "Mach-O 64-bit executable x86_64",
+        "layout": "one root-level executable"
+      },
+      {
+        "name": "questmancer-v0.1.3-x86_64-unknown-linux-gnu.tar.gz",
+        "sha256": "a7e94c4252e844ab62d42e8db716f7fda126eaa197699d905a1325ca769909cf",
+        "archive_bytes": 6361702,
+        "executable": "ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=d9b76ffdc106cf824dc8636e9823b5cacf406fbd, stripped",
+        "layout": "one root-level executable"
+      }
+    ],
+    "current_installer_against_published_manifest": {
+      "result": "passed",
+      "binary_version": "questmancer 0.1.3",
+      "host": "arm64",
+      "temporary_root": "/tmp/questmancer-herdr-082.2GmTg0/published-0.1.3/install-current-script"
+    },
+    "matching_0.1.8_release": "absent; not substituted by the 0.1.3 installer check",
+    "result": "passed"
+  },
+  "local_release_repair": {
+    "dispatch": "validated single stable Questmancer release using GITHUB_TOKEN and job-scoped actions write",
+    "all_jobs_checkout_requested_tag": true,
+    "mocked_dispatch_tests": "passed",
+    "live_workflow_dispatch": "not performed",
+    "tag_0_1_8": "a594845f040d54dcc2f175524d4720e8008f8773",
+    "historical_tagging_run": "https://github.com/opsydyn/herdr-questmancer/actions/runs/31478542616",
+    "current_registry_gate": "unverified; repository variable and secret-name reads were forbidden"
+  },
+  "temporary_logs": [
+    {
+      "path": "/tmp/questmancer-herdr-082-red.log",
+      "sha256": "f2d42c784304b5bdbc2a3169a6107451cd8d31ce329ff53a7ef19b6303e81e6d"
+    },
+    {
+      "path": "/tmp/questmancer-herdr-082-protocol-guards.log",
+      "sha256": "1bf845b6df8a15194e039f0986f97640182d0a20d4d6c5ae712abbedb54c2f15"
+    },
+    {
+      "path": "/tmp/questmancer-herdr-082-integration.log",
+      "sha256": "b181f5e22cedae1a8f9eb2c0a922b69a328b8c9c200d966e547240e5b73291a5"
+    },
+    {
+      "path": "/tmp/questmancer-herdr-082-final-verify.log",
+      "sha256": "6cde2c4ce58c639517027fd7731517b0ca8f8838c8cbc24e47412c171e907bf2"
+    },
+    {
+      "path": "/tmp/questmancer-herdr-082-release-build.log",
+      "sha256": "966540243fd931fd15d77c87c79cd9e5176d6027ee44bdb1a11f2e2777bf2079"
+    },
+    {
+      "path": "/tmp/questmancer-herdr-082-package.log",
+      "sha256": "48abb8a8ca9a3d2872e44d00e876266f9b9da665305954174b6430a1842808ef"
+    },
+    {
+      "path": "/tmp/questmancer-release-dispatch-red.log",
+      "sha256": "2ee9c495ee2d0d539c1a3ba26c55c51db42345d32073e9d60c3271b69f45c032"
+    },
+    {
+      "path": "/tmp/questmancer-release-checkout-red.log",
+      "sha256": "ccb6b889e79a80749c027c557c7a4528cd28ab12f46c4cf7e9e5cc616d50c00a"
+    },
+    {
+      "path": "/tmp/questmancer-release-checkout-green.log",
+      "sha256": "5eaec188f032c4ea4538f8b9fcf1dfc0d0bc3c402fda38ea4ca832061319c228"
+    }
+  ],
+  "remaining_gates": [
+    "manual native Librarian and pilot review",
+    "native Guild Hall and Delve captures and resize review",
+    "clean release commit verification and guarded live acceptance",
+    "reviewed new version and tag containing current work",
+    "four-platform publication and installer test for that version",
+    "live registry settings",
+    "optional Reviewr",
+    "real-agent resting and completion observations"
+  ]
+}

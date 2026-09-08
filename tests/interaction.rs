@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use questmancer::{
-    app::{CounselPhase, CounselRequest, Modal, Model, RuntimeSettings, View},
+    app::{CounselPhase, CounselRequest, Modal, Model, OutputRequest, RuntimeSettings, View},
     command::AgentCommand,
     config::OutputPreviewLines,
     domain::{
@@ -29,6 +29,7 @@ fn live_model_with_two_agents() -> Model {
     domain.agents.insert(second.key.clone(), second);
     let mut model = Model::new(View::Guild);
     model.replace_domain(domain);
+    model.set_connection(questmancer::app::ConnectionState::Connected);
     model
 }
 
@@ -246,6 +247,7 @@ fn first_and_last_select_boundaries_and_load_only_changed_selection() {
         vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p2"),
             lines: 80,
+            request: OutputRequest(1),
         }]
     );
 
@@ -262,6 +264,7 @@ fn first_and_last_select_boundaries_and_load_only_changed_selection() {
         vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
+            request: OutputRequest(2),
         }]
     );
 }
@@ -276,6 +279,7 @@ fn relative_selection_loads_one_preview_per_change() {
         vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p2"),
             lines: 80,
+            request: OutputRequest(1),
         }]
     );
 
@@ -285,6 +289,7 @@ fn relative_selection_loads_one_preview_per_change() {
         vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
+            request: OutputRequest(2),
         }]
     );
 }
@@ -319,6 +324,7 @@ fn pointer_selection_never_observes_or_sends_counsel() {
         vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p2"),
             lines: 80,
+            request: OutputRequest(1),
         }]
     );
     assert!(!reduction.commands.iter().any(|command| matches!(
@@ -472,6 +478,7 @@ fn navigation_does_not_load_output_for_a_managed_pane() {
         vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
+            request: OutputRequest(1),
         }]
     );
 }
@@ -503,6 +510,7 @@ fn refresh_loads_only_the_selected_output() {
         vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
+            request: OutputRequest(1),
         }]
     );
 
@@ -532,6 +540,7 @@ fn configured_runtime_settings_drive_output_and_reviewr_commands() {
         vec![AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 123,
+            request: OutputRequest(1),
         }]
     );
 
@@ -786,6 +795,7 @@ fn search_is_case_insensitive_across_agent_fields() {
             vec![AgentCommand::LoadOutput {
                 pane_id: PaneId::new("w1:p2"),
                 lines: 80,
+                request: OutputRequest(1),
             }],
             "query {query}"
         );
@@ -873,7 +883,11 @@ fn search_matches_visible_presence_class_and_ancestry_terms() {
             "query {query}"
         );
         assert_eq!(model.modal(), &Modal::None, "query {query}");
-        assert_eq!(submitted.commands.len(), 1, "query {query}");
+        assert_eq!(
+            submitted.commands.len(),
+            usize::from(query != "departed"),
+            "query {query}: an exited pane must not be read"
+        );
     }
 }
 
@@ -1644,6 +1658,11 @@ fn a_sent_counsel_leaves_no_draft_behind() {
     }
     let sent = reduce_action(&mut model, Action::Submit);
     assert!(!sent.commands.is_empty(), "counsel must actually be sent");
+    let request = match sent.commands.as_slice() {
+        [AgentCommand::SendCounsel { request, .. }] => *request,
+        commands => panic!("expected one counsel command, got {commands:?}"),
+    };
+    assert!(model.complete_counsel(request));
 
     let _ = reduce_action(&mut model, Action::Counsel);
     assert_eq!(
@@ -1653,6 +1672,101 @@ fn a_sent_counsel_leaves_no_draft_behind() {
             phase: CounselPhase::Drafting
         }
     );
+}
+
+/// A delivery result belongs to the counsel operation, not to the parchment
+/// that happened to be visible when the operation began.
+#[test]
+fn counsel_success_after_dismissal_spends_the_original_draft() {
+    let mut model = live_model_with_two_agents();
+    let _ = reduce_action(&mut model, Action::Counsel);
+    for character in "ship it".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let sent = reduce_action(&mut model, Action::Submit);
+    let request = match sent.commands.as_slice() {
+        [AgentCommand::SendCounsel { request, .. }] => *request,
+        commands => panic!("expected one counsel command, got {commands:?}"),
+    };
+
+    let _ = reduce_action(&mut model, Action::Dismiss);
+    assert_eq!(model.modal(), &Modal::None);
+
+    assert!(
+        model.complete_counsel(request),
+        "the operation must survive its presentation being dismissed"
+    );
+    let _ = reduce_action(&mut model, Action::Counsel);
+    assert_eq!(
+        model.modal(),
+        &Modal::Counsel {
+            draft: String::new(),
+            phase: CounselPhase::Drafting
+        },
+        "successful counsel has been spent and must not be offered again"
+    );
+}
+
+/// Once the text write succeeded, retrying the whole operation could place
+/// the same instruction on the prompt twice. Only Enter may be retried.
+#[test]
+fn retry_after_submission_failure_does_not_write_the_counsel_again() {
+    let mut model = live_model_with_two_agents();
+    let _ = reduce_action(&mut model, Action::Counsel);
+    for character in "ship it".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let sent = reduce_action(&mut model, Action::Submit);
+    let (pane_id, request) = match sent.commands.as_slice() {
+        [
+            AgentCommand::SendCounsel {
+                pane_id, request, ..
+            },
+        ] => (pane_id.clone(), *request),
+        commands => panic!("expected one counsel command, got {commands:?}"),
+    };
+    assert!(model.fail_counsel_submission(request, "enter was not accepted".to_owned()));
+
+    let retried = reduce_action(&mut model, Action::Submit);
+
+    assert_eq!(
+        retried.commands,
+        vec![AgentCommand::SubmitCounsel { pane_id, request }],
+        "retrying submission must not contain the counsel text"
+    );
+}
+
+/// If the text acknowledgement is lost, neither rewriting nor pressing Enter
+/// is known to be correct. Questmancer offers observation and requires an
+/// explicit abandonment before a new draft can be composed.
+#[test]
+fn uncertain_text_delivery_has_no_automatic_retry_path() {
+    let mut model = live_model_with_two_agents();
+    let _ = reduce_action(&mut model, Action::Counsel);
+    for character in "ship it".chars() {
+        let _ = reduce_action(&mut model, Action::TypeCharacter(character));
+    }
+    let sent = reduce_action(&mut model, Action::Submit);
+    let (pane_id, request) = match sent.commands.as_slice() {
+        [
+            AgentCommand::SendCounsel {
+                pane_id, request, ..
+            },
+        ] => (pane_id.clone(), *request),
+        commands => panic!("expected one counsel command, got {commands:?}"),
+    };
+    assert!(model.mark_counsel_text_uncertain(request, "response was lost".to_owned()));
+
+    let observe = reduce_action(&mut model, Action::Submit);
+    assert_eq!(observe.commands, vec![AgentCommand::FocusPane(pane_id)]);
+
+    let _ = reduce_action(&mut model, Action::Dismiss);
+    assert_eq!(
+        model.action_feedback(),
+        Some("Unconfirmed counsel abandoned. Inspect before issuing it again.")
+    );
+    let _ = reduce_action(&mut model, Action::Counsel);
+    assert_eq!(model.counsel_draft(), Some(""));
 }
 
 /// An empty parchment is not a draft, and saying "draft kept" for nothing

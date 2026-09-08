@@ -1,5 +1,9 @@
 # Questmancer 0.1.0 guarded acceptance
 
+Historical acceptance procedure and receipts. Current development targets
+Herdr 0.9.0 / protocol 22; use [the current scene acceptance guide](questmancer-scene-preview.md)
+for a new run. Versions and observations below remain historical evidence.
+
 This runbook is deliberately conservative. Protect every server, plugin link,
 pane, tab and agent that existed before the test. Never stop a pre-existing
 Herdr server, unlink a pre-existing plugin, report against another real agent,

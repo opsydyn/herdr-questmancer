@@ -6,7 +6,6 @@ use crate::{
     scene::{
         SceneActorRegion, SceneFrame, SceneInteractable, SceneInteractableRegion,
         assets::{
-            adventurer::{adventurer_animation_frame, adventurer_pose_is_animated},
             guild_hall::{GuildHallAsset, frame},
             librarian,
             palette::{
@@ -15,6 +14,7 @@ use crate::{
                 SHADOW, STONE, STONE_DARK, STONE_LIGHT, VOID, WINE_DARK,
             },
         },
+        heraldry::{CampaignCrest, table_pennants},
         pixel::{PixelPoint, PixelRect, PixelSize, Rgb, RgbBuffer},
         snapshot::{SceneConnection, SceneSnapshot},
         sprite::blit,
@@ -27,8 +27,8 @@ use crate::{
 
 use super::interaction::{self, paint_selection_marker};
 use super::{
-    actor_animation_phase, actor_next_frame_delay, actor_origin, earliest_deadline,
-    effect_animation_phase, is_visible, lighting, next_frame_delay, roster,
+    actor_frame, actor_next_frame_delay, actor_origin, earliest_deadline, effect_animation_phase,
+    is_visible, lighting, next_frame_delay, roster,
 };
 
 pub const WIDTH: i32 = 160;
@@ -117,6 +117,13 @@ pub fn paint(
     paint_materials(target, origin, seed);
     paint_architecture(target, origin);
     paint_furnishings(snapshot, target, origin);
+    for pennant in table_pennants(snapshot) {
+        blit(
+            &CampaignCrest::for_workspace(&pennant.workspace).frame(),
+            translate(origin, pennant.origin.x, pennant.origin.y),
+            target,
+        );
+    }
     apply_connection_light(snapshot, target, origin);
     restore_landmark_signatures(target, origin);
     let (actor_deadline, actors) = paint_actors(snapshot, plan, target, origin);
@@ -254,8 +261,8 @@ fn paint_roster(
     let regions = roster::paint_party(snapshot, plan, target, block_top, SHADOW);
     // Completion theatre is a truthful one-shot signal, not decoration: a
     // narrow pane must still show that an adventurer returned with spoils.
-    let effect_deadline = paint_compact_effects(snapshot, plan, target, &regions);
-    paint_compact_connection_fact(snapshot, target);
+    let effect_deadline = roster::paint_effects(snapshot, plan, target, &regions);
+    roster::paint_connection_fact(snapshot, target);
 
     SceneFrame {
         world: plan.world,
@@ -320,9 +327,8 @@ fn paint_priority_actor(
     else {
         return (None, Vec::new());
     };
-    let elapsed = agent.presence_since.elapsed_until(snapshot.now);
-    let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
-    let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
+    let animation = actor_frame(snapshot, plan, agent, placement.pose);
+    let sprite = &animation.sprite;
     let origin = PixelPoint::new(
         (i32::from(target.size().width) - i32::from(sprite.size().width)) / 2,
         i32::from(target.size().height) - i32::from(sprite.size().height),
@@ -334,16 +340,12 @@ fn paint_priority_actor(
         sprite.size().height,
     );
     paint_actor_grounding(target, bounds, placement.pose);
-    blit(&sprite, origin, target);
+    blit(sprite, origin, target);
     interaction::paint_actor_state_marker(target, bounds, placement.pose);
     if placement.selected {
         paint_selection_marker(target, origin, sprite.size());
     }
-    let next_frame_in = if adventurer_pose_is_animated(&agent.persona, placement.pose) {
-        actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
-    } else {
-        None
-    };
+    let next_frame_in = actor_next_frame_delay(&animation, origin, target.size());
     (
         next_frame_in,
         vec![SceneActorRegion {
@@ -540,9 +542,8 @@ fn paint_compact_actors(
         else {
             continue;
         };
-        let elapsed = agent.presence_since.elapsed_until(snapshot.now);
-        let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
-        let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
+        let animation = actor_frame(snapshot, plan, agent, placement.pose);
+        let sprite = &animation.sprite;
         let actor_origin = compact_actor_origin(
             target.size(),
             index.saturating_add(1),
@@ -555,14 +556,13 @@ fn paint_compact_actors(
             sprite.size().width,
             sprite.size().height,
         );
-        if adventurer_pose_is_animated(&agent.persona, placement.pose)
-            && is_visible(PixelPoint::new(0, 0), bounds, target.size())
-            && let Some(delay) = actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
+        if is_visible(PixelPoint::new(0, 0), bounds, target.size())
+            && let Some(delay) = actor_next_frame_delay(&animation, actor_origin, target.size())
         {
             next_frame_in = Some(earliest_deadline(next_frame_in, delay));
         }
         paint_actor_grounding(target, bounds, placement.pose);
-        blit(&sprite, actor_origin, target);
+        blit(sprite, actor_origin, target);
         interaction::paint_actor_state_marker(target, bounds, placement.pose);
         if placement.selected {
             paint_selection_marker(target, actor_origin, sprite.size());
@@ -1031,24 +1031,22 @@ fn paint_actors(
         else {
             continue;
         };
-        let elapsed = agent.presence_since.elapsed_until(snapshot.now);
-        let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
-        let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
-        let actor_origin = actor_origin(origin, anchor, &sprite);
+        let animation = actor_frame(snapshot, plan, agent, placement.pose);
+        let sprite = &animation.sprite;
+        let actor_origin = actor_origin(origin, anchor, sprite);
         let bounds = PixelRect::new(
             actor_origin.x,
             actor_origin.y,
             sprite.size().width,
             sprite.size().height,
         );
-        if adventurer_pose_is_animated(&agent.persona, placement.pose)
-            && is_visible(PixelPoint::new(0, 0), bounds, target.size())
-            && let Some(delay) = actor_next_frame_delay(snapshot.motion, placement.pose, elapsed)
+        if is_visible(PixelPoint::new(0, 0), bounds, target.size())
+            && let Some(delay) = actor_next_frame_delay(&animation, actor_origin, target.size())
         {
             next_frame_in = Some(earliest_deadline(next_frame_in, delay));
         }
         paint_actor_grounding(target, bounds, placement.pose);
-        blit(&sprite, actor_origin, target);
+        blit(sprite, actor_origin, target);
         interaction::paint_actor_state_marker(target, bounds, placement.pose);
         if placement.selected {
             paint_selection_marker(target, actor_origin, sprite.size());

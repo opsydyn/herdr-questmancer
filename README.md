@@ -48,8 +48,8 @@ compositions that keep the Guild Hall useful when the party gets busy.
 
 ## Before the first quest
 
-- Herdr `0.8.0`, protocol `19`
-- Rust `1.90.0` (selected by `rust-toolchain.toml`)
+- Herdr `0.9.0`, protocol `22`
+- Rust `1.90.0` for source builds (selected by `rust-toolchain.toml`)
 - `jq` for the migration and guarded smoke-test recipes below
 - `just` only for contributor shortcuts
 
@@ -64,16 +64,22 @@ Herdr fetches the repository, reads `herdr-plugin.toml`, and runs the plugin's
 own build step, which downloads the prebuilt binary for your platform and
 verifies it against the release checksums. No clone, no Rust toolchain.
 
-This is the path Herdr users should take. Everything below is for working on
-Questmancer rather than using it.
+This command requires a release matching the fetched manifest. Checked on
+2026-09-06: public `main` declares `0.1.8`, but the latest published release is
+[`v0.1.3`](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.3).
+There is no published `v0.1.8` release, so the current default install cannot
+download its matching binary. Use [source linking](#link-a-local-guild) for
+this checkout until that release gap is closed. See the
+[dated distribution check](docs/release-process.md#distribution-status--2026-09-06).
 
 ## Build the binary (optional)
 
 ```bash
-cargo install questmancer
+cargo install --path . --locked
 ```
 
-This builds the same binary and puts it on your `PATH`, which is enough to run
+From a local checkout, this builds the same binary and puts it on your `PATH`,
+which is enough to run
 `questmancer ui` directly. **It is not on its own an install of the plugin.**
 `cargo install` places binaries and nothing else, so `herdr-plugin.toml` is not
 where Herdr can find it, and `herdr/run.sh` looks for its binary inside the
@@ -173,6 +179,13 @@ Scrying and the Chronicle scroll with `j`/`k`, the arrow keys or the mouse
 wheel. Scrying asks Herdr for `output_preview_lines` and the parchment shows
 what fits, so scrolling is how the rest is reached.
 
+Scrying follows the current selection and connection. A newer refresh replaces
+any pending refresh; older results and failures cannot replace newer output.
+Changing adventurer or reconnecting clears the previous preview and loads the
+current selection again. Repeated refreshes keep one read in flight and the
+latest pending read, while counsel proceeds independently. Exited adventurers
+and Questmancer's managed pane cannot be read.
+
 `s` sets a summons aside for fifteen minutes. The summons and the moment it
 arrived both survive — the Hall still shows the adventurer needs counsel — but
 `!` skips them until the time is up. Setting aside is session-scoped on
@@ -183,6 +196,21 @@ reopening Questmancer is a fair moment to be reminded.
 `m`, `u` and `p` change motion, glyphs and colour depth while running. Each
 reports the setting it landed on and is written to durable state, so a change
 made at runtime survives a restart without editing the configuration file.
+
+At the authored `8x12` roster tier, both rooms give every live adventurer a
+shared shape cue: a tool for working, lantern for counsel, Z for resting,
+check for completed and question mark for unknown. These remain visible when
+nameplates cannot fit. In full motion, fresh spoils shimmer beside the actor
+for at most three seconds, then leave the completed cue. Reduced and still
+modes keep that cue without a redraw timer. Newer presence or disconnection
+interrupts the return, and reconnecting does not replay retained completion.
+
+The Guild Hall chooses canonical, compact, roster, single-adventurer vignette,
+then status-only layouts according to size and party capacity. The Delve
+uses its authored crop, with a whole-party roster below `100x56` RGB when it
+fits at least `20x27`. The Librarian's clickable sprite appears in canonical
+and compact Halls; `?` reaches its Ledger from every tier. See the
+[current size contracts](PLAN.md#responsive-contracts) for exact thresholds.
 
 Search reports how many adventurers matched and `n`/`N` walk them, wrapping.
 Matches for adventurers who have since left the party are dropped rather than
@@ -204,11 +232,16 @@ without cluttering the room for anyone else.
 A counsel draft is kept when you close the parchment with `Esc`, and `r`
 takes it up again. Drafts belong to the adventurer they were written for, so
 switching selection never puts somebody else's half-written counsel in front
-of you. Sending clears the draft.
+of you. Sending clears the draft. A send continues to own its draft if the
+parchment is closed while Herdr is replying, so a late result still settles the
+right operation.
 
 Counsel and search accept ordinary text. `Enter` submits, `Ctrl-U` clears, and
-`Esc` cancels. Questmancer never selects, focuses, reads, or counsels its own
-managed pane.
+`Esc` cancels. A definite text rejection keeps an editable draft. If text
+delivery cannot be confirmed, `Enter` observes the adventurer and `Esc`
+explicitly abandons the attempt; Questmancer never resends uncertain text. If
+the text was accepted but Enter failed, retry sends Enter only. Questmancer
+never selects, focuses, reads, or counsels its own managed pane.
 
 The persistent Librarian is a non-agent Guild Hall character. Click him—or
 press `?` anywhere—to open the same five-page handbook. Use left/right to page
@@ -290,7 +323,11 @@ channel, so it never changes an agent title, status label, focus or task.
 
 `rows` replaces the corresponding Herdr sidebar rows: merge this example with
 any existing sidebar customisation, then run `herdr config check` and reload
-the configuration by the method appropriate for your Herdr server. Questmancer
+the viewing client configuration using its reload-config shortcut. See the
+[conditional sidebar proposal](docs/design/questmancer-sidebar-09.md) for 0.9
+state and waiting-time emphasis, and the
+[class-sigil recipe](docs/design/questmancer-sidebar-class-sigils.md) for readable
+class colours beside adventurer names. Questmancer
 does not use `rows_by_agent`; its dynamic personas remain presentation data.
 
 ### Letting Herdr sort its own agent list by urgency
@@ -301,7 +338,7 @@ needs a human — the same ranking `!` uses inside Questmancer. It is off by
 default because it changes shared Herdr UI, it sorts without ever filtering so
 no agent is hidden, and it is released when Questmancer closes.
 
-Requires Herdr `0.7.5` or newer.
+Available within the current Herdr `0.9.0` / protocol `22` requirement.
 
 ## The guild's standing
 
@@ -344,38 +381,50 @@ agent processes or persistent state:
 just storybook
 ```
 
-It contains twenty-five fixed production stories, each owned exactly once:
+It contains thirty-four fixed production stories, with each asset owned once:
 
-- Guild Hall
-- Delve
-- all eight classic world masters
-- the Barbarian v2 legacy comparison and complete semantic pose family
-- all eight classic portrait masters
-- native class-led Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender and Wizard card portraits with authored-sprite fallbacks
-- Goblin world and portrait Easter egg
-- persistent Librarian world and Ledger fallback sprites
-- selected adventurer
-- counsel parchment
-- search parchment
-- scrying parchment
-- Librarian's Ledger
-- narrow viewport
+- two worlds: Guild Hall and Delve;
+- ten asset galleries: classic world and portrait masters, Barbarian, Wizard
+  and Ranger poses, persona palettes, five roster silhouette families, custom
+  class masters, Goblin sprites and Librarian sprites;
+- fourteen native class cards: Artificer, Barbarian, Bard, Cleric, Druid, Mage,
+  Paladin, Pathseeker, Ranger, Rogue, Runewright, Sorcerer, Testmender and Wizard;
+- two reserved event-art cards: Goblin and Orc;
+- six interactions: selected adventurer, counsel, search, scrying, Librarian's
+  Ledger and narrow parchment.
 
-Use `j`/`k` or arrow keys to move through stories and `q` to exit. Run its
+Use `j`/`k` or Up/Down within a category, `h`/`l` or Left/Right to change
+category, `Enter` to inspect, `Esc` to return, and `q` to exit. Run its
 focused checks with `just storybook-test`. The Storybook header reports
 `native Kitty`, `native Sixel`, `native iTerm2`, or `authored sprite fallback`
 so the active card rendering path is explicit.
 
+Wizard, Ranger and Barbarian now use the approved stocky proportions and
+class-specific book, map and tool rituals. Working uses two 500 ms frames;
+a fresh blocked episode raises the counsel signal once for 600 ms, then waits
+still. Returned spoils are placed after one second and become quiet by three
+seconds. Reduced/still motion preserves a static meaningful pose. Counsel
+confirmation briefly seals the existing notice; only a later Herdr presence
+update resumes work. See the [production pilot review](docs/design/reviews/2026-09-05-party-pilot/README.md)
+for pose sheets and fixture playback. Their card fallbacks now reuse those
+exact personalised world sprites inside the existing portrait canvas; see the
+[card comparison](docs/design/reviews/2026-09-05-card-fallbacks/README.md).
+
+The Storybook uses fixed fixture time and shows authored pose galleries. Its
+world stories do not play a live animation timeline; the review GIFs sample
+the production renderer at explicit times.
+
 Native Kitty portraits inside a Herdr-managed pane also require Herdr's
-experimental graphics bridge:
+graphics bridge (enabled by default in 0.9):
 
 ```toml
-[experimental]
+[terminal]
 kitty_graphics = true
 ```
 
-After changing that setting, validate it with `herdr config check` and reload
-the server configuration with `herdr server reload-config`. Without the bridge,
+The legacy `experimental.kitty_graphics` key is still accepted; an explicit
+false remains respected. Validate changes with `herdr config check` and follow
+the transport refresh procedure linked below. Without the bridge,
 Questmancer deliberately uses its authored RGB sprite; the outer terminal being
 Kitty-compatible is not sufficient on its own.
 
@@ -411,7 +460,7 @@ herdr pane release-agent "$PANE_ID" \
   --seq 3
 ```
 
-Herdr `0.7.4` can report `idle`, `working`, `blocked` and `unknown`; it cannot
+Herdr `0.9.0` can report `idle`, `working`, `blocked` and `unknown`; it cannot
 synthesize an explicit `done` transition. Do not claim live completion-state
 acceptance from this recipe.
 
@@ -422,11 +471,12 @@ Visual decisions and unreviewed states are recorded separately in the
 
 ## Releasing
 
-Versions and changelog come from `release-plz`; binaries come from the tagged
-release workflow. See [docs/release-process.md](docs/release-process.md) for the
-sequence, including the one manual step — running
-`scripts/sync-plugin-version.sh` on the release branch, because release-plz
-bumps `Cargo.toml` and Herdr reads `herdr-plugin.toml`.
+`release-plz` proposes version bumps and tags merged release commits; changelog
+entries are written by hand. The release-pr workflow runs
+`scripts/sync-plugin-version.sh` automatically on its release branch to keep
+`Cargo.toml` and `herdr-plugin.toml` aligned. The tagged release workflow builds
+four archives and `SHA256SUMS`. See [the release process](docs/release-process.md)
+for publication status, token requirements and dispatch recovery.
 
 ## Contributor checks
 

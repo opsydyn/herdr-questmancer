@@ -1,0 +1,72 @@
+{
+  "source_version": "0.1.9",
+  "native_visual_acceptance": "pending",
+  "exports": [
+    {
+      "group": "librarian",
+      "file": "../2026-09-05-librarian/01-librarian-proportions.png",
+      "matches_previous_export": true,
+      "sha256": "b5daf8a68131367cbe2f2608c7611c93b07b9ac30f28bbd63e7cd9e6536bfb8f"
+    },
+    {
+      "group": "librarian",
+      "file": "librarian-02-librarian-context.png",
+      "matches_previous_export": false,
+      "sha256": "a11aef98b729f2d1d84d3d502c76400d9943d4bcd2b152d5397eab691ddb62f1"
+    },
+    {
+      "group": "party-pilot",
+      "file": "../2026-09-05-party-pilot/01-production-poses.png",
+      "matches_previous_export": true,
+      "sha256": "9ecd17e6c221d8d017e9776b388ea08b02e59d3688f34a194e0533b2c5e00d6b"
+    },
+    {
+      "group": "party-pilot",
+      "file": "party-pilot-02-rooms-and-viewports.png",
+      "matches_previous_export": false,
+      "sha256": "8ea100a0ac7ec19bd83e46b0bd7ac5df41b35c8e893c3012c741f86ed6c14d2a"
+    },
+    {
+      "group": "party-pilot",
+      "file": "party-pilot-03-ritual-timeline.png",
+      "matches_previous_export": false,
+      "sha256": "bc5613ba23f9456dc7d36906dbdcab6dd317ade55c208ec8f43ef767c29b7274"
+    },
+    {
+      "group": "party-pilot",
+      "file": "../2026-09-05-party-pilot/04-counsel-outcomes.png",
+      "matches_previous_export": true,
+      "sha256": "23192b415870a01306379e5f0e94550476263c609f0244010d4461df4b7add0c"
+    },
+    {
+      "group": "party-pilot",
+      "file": "party-pilot-05-card-and-delve-check.png",
+      "matches_previous_export": false,
+      "sha256": "9e1a8651b762a488aba756a6ecdd2898bc52dcf25dcef41feb0811b289b7360d"
+    },
+    {
+      "group": "party-pilot",
+      "file": "party-pilot-party-journey.gif",
+      "matches_previous_export": false,
+      "sha256": "d9ae5f8144e83ea8ac0b6119ee90c9336de6c330821b17778224b4ab971cd4ec"
+    },
+    {
+      "group": "party-pilot",
+      "file": "party-pilot-working-loop.gif",
+      "matches_previous_export": false,
+      "sha256": "e33cb275e7d7d2f4dd177122738efdf1a8054f4c2d541a97cd4df0de621f4104"
+    },
+    {
+      "group": "card-fallbacks",
+      "file": "../2026-09-05-card-fallbacks/01-fallback-before-after.png",
+      "matches_previous_export": true,
+      "sha256": "f379b1b0825e222a1718b201c8693bb7a2fc242f852cdf10a16492881b1bc256"
+    },
+    {
+      "group": "card-fallbacks",
+      "file": "card-fallbacks-02-cards-in-context.png",
+      "matches_previous_export": false,
+      "sha256": "3357c8c2238d7bb956b6fd628da21b0fc412e48e3eaacb41c7c3a2cb4e51283f"
+    }
+  ]
+}

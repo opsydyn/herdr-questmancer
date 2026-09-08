@@ -520,10 +520,11 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     // Re-pinned again when nine dungeon tropes were furnished into the rooms
     // the previous change revealed: cobwebs, stalactites, dripping water,
     // hanging chains, a sarcophagus, a broken statue, glowing mushrooms, a
-    // lever and a rat.
+    // lever and a rat. The party pilot removes transient completion decoration
+    // from this still-motion fixture and uses the reviewed class masters.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "94e4687749234aeb932630723fe6582281d183d1b3306be219fb724a4f646f13"
+        "2d1ef68371620b01dbd75b39254b4ceda3392840a6eca120cd19b952e2b05cda"
     );
 
     let non_clear = first

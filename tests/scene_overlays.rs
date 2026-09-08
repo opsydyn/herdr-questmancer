@@ -1,12 +1,14 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use questmancer::{
-    app::{ConnectionState, CounselPhase, CounselRequest, Model, OutputPreview, View},
+    app::{ConnectionState, CounselPhase, CounselRequest, Model, View},
+    command::{AgentCommand, CommandResult},
     domain::{
         AdventurerPersona, Agent, AgentKey, Campaign, Chronicle, ChronicleEntry, ChronicleEvent,
         DomainState, GuildAttention, PaneId, PersonaKey, Presence, TabId, Timestamp, WorkspaceId,
     },
     interaction::reduce_action,
+    runtime_loop::apply_command_result,
     scene::{
         SceneActorRegion, SceneFrame, pixel::PixelRect, presentation::ScenePresentation,
         stage::WorldScene,
@@ -61,6 +63,30 @@ fn model() -> Model {
     model
 }
 
+fn open_scrying_with_output(model: &mut Model, text: String) {
+    let effects = reduce_action(model, Action::Refresh);
+    let [
+        AgentCommand::LoadOutput {
+            pane_id, request, ..
+        },
+    ] = effects.commands.as_slice()
+    else {
+        panic!("opening scrying must request the selected output");
+    };
+    assert!(render(model, 120, 36).contains("clouding"));
+    apply_command_result(
+        model,
+        CommandResult::OutputLoaded {
+            pane_id: pane_id.clone(),
+            request: *request,
+            revision: 1,
+            text,
+            truncated: false,
+        },
+        Timestamp::from_millis(2_000),
+    );
+}
+
 fn render(model: &Model, width: u16, height: u16) -> String {
     let backend = TestBackend::new(width, height);
     let mut terminal = Terminal::new(backend).unwrap();
@@ -100,6 +126,109 @@ fn a_notice_reaches_the_frame_and_not_only_the_model() {
         frame.contains("Counsel issued."),
         "the notice never reached the frame:\n{frame}"
     );
+}
+
+#[test]
+fn only_correlated_confirmed_counsel_receives_a_parchment_seal() {
+    use questmancer::app::CharacterSet;
+
+    for (character_set, seal) in [(CharacterSet::Unicode, "◆ "), (CharacterSet::Ascii, "(*) ")] {
+        for closed in [false, true] {
+            for outcome in 0..4 {
+                let mut model = model();
+                model
+                    .domain_mut()
+                    .agents
+                    .values_mut()
+                    .next()
+                    .unwrap()
+                    .presence = Presence::Blocked;
+                let mut preferences = *model.preferences();
+                preferences.character_set = character_set;
+                model.set_preferences(preferences);
+                // Text that happens to resemble a confirmation is not proof.
+                model.set_action_feedback("Counsel issued.".to_owned());
+                assert!(
+                    !render(&model, 80, 24)
+                        .lines()
+                        .last()
+                        .unwrap()
+                        .starts_with(seal)
+                );
+                let _ = reduce_action(&mut model, Action::Counsel);
+                let _ = reduce_action(&mut model, Action::TypeCharacter('x'));
+                let _ = reduce_action(&mut model, Action::Submit);
+                let CounselPhase::Sending { request, pane_id } =
+                    model.counsel_phase().unwrap().clone()
+                else {
+                    panic!("counsel should be in flight")
+                };
+                assert!(
+                    !render(&model, 80, 24)
+                        .lines()
+                        .last()
+                        .unwrap()
+                        .starts_with(seal)
+                );
+                if closed {
+                    let _ = reduce_action(&mut model, Action::Dismiss);
+                }
+                apply_command_result(
+                    &mut model,
+                    CommandResult::CounselSent {
+                        request: CounselRequest(request.0 + 10),
+                        pane_id: pane_id.clone(),
+                    },
+                    Timestamp::from_millis(1_000),
+                );
+                assert!(
+                    !render(&model, 80, 24)
+                        .lines()
+                        .last()
+                        .unwrap()
+                        .starts_with(seal)
+                );
+                let result = match outcome {
+                    0 => CommandResult::CounselSent { request, pane_id },
+                    1 => CommandResult::CounselTextFailed {
+                        request,
+                        message: "rejected".to_owned(),
+                    },
+                    2 => CommandResult::CounselTextUncertain {
+                        request,
+                        pane_id,
+                        message: "unconfirmed".to_owned(),
+                    },
+                    _ => CommandResult::CounselSubmissionFailed {
+                        request,
+                        pane_id,
+                        message: "submit failed".to_owned(),
+                    },
+                };
+                apply_command_result(&mut model, result, Timestamp::from_millis(1_000));
+                let text = render(&model, 80, 24);
+                assert_eq!(
+                    text.lines().last().unwrap().starts_with(seal),
+                    outcome == 0,
+                    "{character_set:?} closed={closed} outcome={outcome}"
+                );
+                assert_eq!(
+                    model.selected_agent().unwrap().presence,
+                    Presence::Blocked,
+                    "a seal never resumes the adventurer"
+                );
+                model.set_now(Timestamp::from_millis(7_001));
+                assert!(
+                    !render(&model, 80, 24)
+                        .lines()
+                        .last()
+                        .unwrap()
+                        .starts_with(seal),
+                    "the seal expires with its existing action notice"
+                );
+            }
+        }
+    }
 }
 
 /// A send in flight is a state the parchment can show, which is the whole
@@ -183,14 +312,7 @@ fn search_and_scrying_are_contextual_overlays() {
     assert!(render(&model, 120, 36).contains("SEARCH THE GUILD"));
 
     model.dismiss_modal();
-    model.set_output_preview(Some(OutputPreview {
-        pane_id: PaneId::new("w1:p1"),
-        revision: 1,
-        text: "cargo test passed".to_owned(),
-        loading: false,
-        error: None,
-    }));
-    let _ = reduce_action(&mut model, Action::Refresh);
+    open_scrying_with_output(&mut model, "cargo test passed".to_owned());
     let screen = render(&model, 120, 36);
     assert!(screen.contains("SCRYING"));
     assert!(screen.contains("cargo test passed"));
@@ -460,6 +582,79 @@ fn a_crowded_party_keeps_a_nameplate_for_every_adventurer() {
 }
 
 #[test]
+fn roster_labels_preserve_the_rgb_state_cue_in_final_terminal_cells() {
+    use questmancer::{
+        app::{CharacterSet, ColorMode},
+        scene::{
+            pixel::{PixelSize, Rgb, RgbBuffer},
+            render_scene_for_world,
+            snapshot::SceneSnapshot,
+        },
+        ui::scene_adapter::flush_rgb,
+    };
+    for world in [View::Guild, View::Delve] {
+        for colour in [ColorMode::Xterm256, ColorMode::Ansi16] {
+            for characters in [CharacterSet::Unicode, CharacterSet::Ascii] {
+                let mut model = model();
+                model.switch_to(world);
+                let mut preferences = *model.preferences();
+                preferences.character_set = characters;
+                model.set_preferences(preferences);
+                let mut pixels = RgbBuffer::filled(0, 0, Rgb::BLACK);
+                let scene = render_scene_for_world(
+                    &SceneSnapshot::from_model(&model),
+                    &ScenePresentation::from_model(&model),
+                    PixelSize::new(60, 30),
+                    &mut pixels,
+                );
+                let body = scene.actors[0].bounds;
+                assert_eq!(body.width, 8);
+                let mut terminal = Terminal::new(TestBackend::new(60, 15)).unwrap();
+                terminal
+                    .draw(|frame| {
+                        let area = frame.area();
+                        flush_rgb(frame.buffer_mut(), area, &pixels, Rgb::BLACK, colour);
+                    })
+                    .unwrap();
+                let before = terminal.backend().buffer().clone();
+                terminal
+                    .draw(|frame| {
+                        let area = frame.area();
+                        flush_rgb(frame.buffer_mut(), area, &pixels, Rgb::BLACK, colour);
+                        render_scene_identity_labels(frame, &model, &scene);
+                    })
+                    .unwrap();
+                let after = terminal.backend().buffer();
+                for y in (body.y - 5).div_euclid(2)..(body.y + 1).div_euclid(2) {
+                    for x in body.x + 2..body.x + 7 {
+                        let position = (u16::try_from(x).unwrap(), u16::try_from(y).unwrap());
+                        assert_eq!(
+                            before.cell(position),
+                            after.cell(position),
+                            "{world:?}/{colour:?}/{characters:?}: label covers the state cue"
+                        );
+                    }
+                }
+                for y in (body.y + 12).div_euclid(2)..(body.y + 16).div_euclid(2) {
+                    for x in body.x + 1..body.x + 7 {
+                        let position = (u16::try_from(x).unwrap(), u16::try_from(y).unwrap());
+                        assert_eq!(
+                            before.cell(position),
+                            after.cell(position),
+                            "label covers the selection ring"
+                        );
+                    }
+                }
+                assert!(
+                    after.content.iter().any(|cell| cell.symbol().contains('W')),
+                    "working nameplate must still fit below the actor"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn command_ribbon_expires_after_three_seconds() {
     let mut model = model();
     // Visible from the start: see `the_ribbon_greets_someone_who_has_not_
@@ -593,14 +788,7 @@ fn scrying_can_be_scrolled_to_reach_output_below_the_fold() {
         .map(|index| format!("output line {index}"))
         .collect::<Vec<_>>()
         .join("\n");
-    model.set_output_preview(Some(OutputPreview {
-        pane_id: PaneId::new("w1:p1"),
-        revision: 1,
-        text,
-        loading: false,
-        error: None,
-    }));
-    let _ = reduce_action(&mut model, Action::Refresh);
+    open_scrying_with_output(&mut model, text);
 
     let top = render(&model, 100, 26);
     assert!(
@@ -632,14 +820,7 @@ fn scrying_can_be_scrolled_to_reach_output_below_the_fold() {
 #[test]
 fn scrolling_stops_at_the_end_of_the_text() {
     let mut model = model();
-    model.set_output_preview(Some(OutputPreview {
-        pane_id: PaneId::new("w1:p1"),
-        revision: 1,
-        text: "one\ntwo\nthree".to_owned(),
-        loading: false,
-        error: None,
-    }));
-    let _ = reduce_action(&mut model, Action::Refresh);
+    open_scrying_with_output(&mut model, "one\ntwo\nthree".to_owned());
 
     for _ in 0..50 {
         let _ = reduce_action(&mut model, Action::ScrollDown);
@@ -658,17 +839,13 @@ fn scrolling_stops_at_the_end_of_the_text() {
 #[test]
 fn a_reopened_parchment_starts_at_the_top() {
     let mut model = model();
-    model.set_output_preview(Some(OutputPreview {
-        pane_id: PaneId::new("w1:p1"),
-        revision: 1,
-        text: (0..30)
+    open_scrying_with_output(
+        &mut model,
+        (0..30)
             .map(|i| i.to_string())
             .collect::<Vec<_>>()
             .join("\n"),
-        loading: false,
-        error: None,
-    }));
-    let _ = reduce_action(&mut model, Action::Refresh);
+    );
     for _ in 0..5 {
         let _ = reduce_action(&mut model, Action::ScrollDown);
     }
@@ -752,4 +929,94 @@ fn a_narrow_room_drops_the_badge_rather_than_the_scene() {
     let model = model();
     let rendered = render(&model, 12, 10);
     assert!(!rendered.contains("Novice"), "{rendered}");
+}
+
+#[test]
+fn ascii_roster_labels_use_ascii_separators_truncation_and_state_glyphs() {
+    use questmancer::app::CharacterSet;
+    for presence in [
+        Presence::Working,
+        Presence::Blocked,
+        Presence::Idle,
+        Presence::Unknown,
+        Presence::Done,
+    ] {
+        let mut model = model();
+        let mut preferences = *model.preferences();
+        preferences.character_set = CharacterSet::Ascii;
+        model.set_preferences(preferences);
+        let key = model.selected_agent_key().unwrap().clone();
+        let agent = model.domain_mut().agents.get_mut(&key).unwrap();
+        agent.presence = presence;
+        agent.name = "a-very-long-adventurer-name-for-truncation".to_owned();
+        let scene = SceneFrame {
+            world: WorldScene::GuildHall,
+            next_frame_in: None,
+            actors: vec![SceneActorRegion {
+                agent: key,
+                bounds: PixelRect::new(1, 7, 8, 12),
+            }],
+            interactables: Vec::new(),
+        };
+        let mut terminal = Terminal::new(TestBackend::new(40, 15)).unwrap();
+        terminal
+            .draw(|frame| render_scene_identity_labels(frame, &model, &scene))
+            .unwrap();
+        let text = terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect::<String>();
+        assert!(
+            text.is_ascii(),
+            "{presence:?}: authored label ignores ASCII mode: {text:?}"
+        );
+        assert!(!text.trim().is_empty());
+    }
+}
+
+#[test]
+fn campaign_crest_is_visible_on_the_adventurers_parchment() {
+    let mut model = model();
+    model.show_adventurer_card();
+    let screen = render(&model, 120, 36);
+    assert!(screen.contains("Campaign: Questmancer"));
+    assert!(
+        screen.contains("Crest:"),
+        "the campaign needs a matching table/card crest"
+    );
+}
+
+#[test]
+fn campaign_crest_keeps_the_same_named_identity_in_ascii_and_both_rooms() {
+    use questmancer::{
+        app::{CharacterSet, ColorMode},
+        scene::heraldry::CampaignCrest,
+    };
+    for view in [View::Guild, View::Delve] {
+        for characters in [CharacterSet::Unicode, CharacterSet::Ascii] {
+            let mut model = model();
+            let _ = reduce_action(&mut model, Action::Switch(view));
+            let mut preferences = *model.preferences();
+            preferences.character_set = characters;
+            preferences.color_mode = ColorMode::Ansi16;
+            model.set_preferences(preferences);
+            model.show_adventurer_card();
+            let workspace = model.selected_agent().unwrap().workspace_id.clone();
+            let crest = CampaignCrest::for_workspace(&workspace);
+            let expected = format!(
+                "Crest: {} {} {}",
+                crest.charge.symbol(characters == CharacterSet::Ascii),
+                crest.field.name(),
+                crest.charge.name()
+            );
+            let screen = render(&model, 120, 36);
+            assert!(screen.contains(&expected));
+            if characters == CharacterSet::Ascii {
+                assert!(expected.is_ascii());
+            }
+        }
+    }
 }

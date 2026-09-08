@@ -1,6 +1,6 @@
 use crate::{
     app::{Modal, Model, View},
-    domain::AgentKey,
+    domain::{AgentKey, Timestamp},
     scene::stage::WorldScene,
 };
 
@@ -19,6 +19,8 @@ pub struct ScenePresentation {
     pub world: WorldScene,
     pub selected_agent: Option<AgentKey>,
     pub overlay: SceneOverlay,
+    /// Socket-lifetime cutoff for one-shot theatre, without changing summons.
+    pub transition_floor: Option<Timestamp>,
     /// Whether the goblin outbreak is currently running.
     ///
     /// This rides on the presentation rather than the scene snapshot on
@@ -36,6 +38,7 @@ impl ScenePresentation {
                 View::Delve => WorldScene::Delve,
             },
             selected_agent: model.selected_agent_key().cloned(),
+            transition_floor: model.scene_transition_floor(),
             goblin_outbreak: model.goblins().is_visible(model.now()),
             overlay: match model.modal() {
                 Modal::None => SceneOverlay::None,

@@ -9,13 +9,10 @@ use crate::{
     domain::Presence,
     scene::{
         SceneActorRegion, SceneFrame,
-        assets::{
-            adventurer::adventurer_animation_frame,
-            delve::{
-                CHEST_GOLD, DEEP_BLUE_BLACK, DelveAsset, FLOOR_DARK, FLOOR_MID, MINERAL_VIOLET,
-                MOSS_DARK, MOSS_LIGHT, STONE_DARK, STONE_LIGHT, STONE_MID, TEAL_GLOW, TEAL_LIGHT,
-                TORCH_AMBER, frame,
-            },
+        assets::delve::{
+            CHEST_GOLD, DEEP_BLUE_BLACK, DelveAsset, FLOOR_DARK, FLOOR_MID, MINERAL_VIOLET,
+            MOSS_DARK, MOSS_LIGHT, STONE_DARK, STONE_LIGHT, STONE_MID, TEAL_GLOW, TEAL_LIGHT,
+            TORCH_AMBER, frame,
         },
         pixel::{PixelPoint, PixelRect, PixelSize, Rgb, RgbBuffer},
         snapshot::{SceneAgent, SceneConnection, SceneSnapshot},
@@ -31,8 +28,8 @@ use super::interaction::{self, paint_selection_marker};
 #[cfg(test)]
 use super::painted_sprite_is_visible;
 use super::{
-    actor_animation_phase, actor_origin, earliest_deadline, effect_animation_phase, is_visible,
-    lighting, next_frame_delay, roster,
+    actor_frame, actor_next_frame_delay, actor_origin, earliest_deadline, effect_animation_phase,
+    is_visible, lighting, next_frame_delay, roster,
 };
 
 pub const WIDTH: i32 = 160;
@@ -347,11 +344,12 @@ fn paint_roster(
     // and tinting over the party would cost exactly the local contrast this
     // tier exists to provide.
     let regions = roster::paint_party(snapshot, plan, target, block_top, DEEP_BLUE_BLACK);
-    paint_connection_fact(snapshot, target, PixelPoint::new(0, 0));
+    let next_frame_in = roster::paint_effects(snapshot, plan, target, &regions);
+    roster::paint_connection_fact(snapshot, target);
 
     SceneFrame {
         world: plan.world,
-        next_frame_in: None,
+        next_frame_in,
         actors: regions,
         interactables: Vec::new(),
     }
@@ -825,6 +823,7 @@ fn paint_depth_sorted(
     items.sort_by_key(|item| item.foot_row());
 
     let mut regions = Vec::new();
+    let mut next_frame_in = None;
     for item in items {
         match item {
             DepthItem::Actor { placement, anchor } => {
@@ -835,25 +834,28 @@ fn paint_depth_sorted(
                 else {
                     continue;
                 };
-                let elapsed = agent.presence_since.elapsed_until(snapshot.now);
-                let animation = actor_animation_phase(snapshot.motion, placement.pose, elapsed);
-                let sprite = adventurer_animation_frame(&agent.persona, placement.pose, animation);
-                let actor_origin = actor_origin(origin, anchor, &sprite);
+                let animation = actor_frame(snapshot, plan, agent, placement.pose);
+                let sprite = &animation.sprite;
+                let actor_origin = actor_origin(origin, anchor, sprite);
                 let bounds = PixelRect::new(
                     actor_origin.x,
                     actor_origin.y,
                     sprite.size().width,
                     sprite.size().height,
                 );
+                if let Some(delay) = actor_next_frame_delay(&animation, actor_origin, target.size())
+                {
+                    next_frame_in = Some(earliest_deadline(next_frame_in, delay));
+                }
                 // The dungeon is cold and dark, so the delving party grounds
                 // against the deepest stone value rather than the Hall's warm
                 // shadow. Blocked adventurers carry the same authored marker
                 // in both worlds.
                 interaction::paint_actor_grounding(target, bounds, placement.pose, DEEP_BLUE_BLACK);
                 if placement.pose == ScenePose::Unknown {
-                    blit_uncertain(&sprite, actor_origin, target);
+                    blit_uncertain(sprite, actor_origin, target);
                 } else {
-                    blit(&sprite, actor_origin, target);
+                    blit(sprite, actor_origin, target);
                 }
                 interaction::paint_actor_state_marker(target, bounds, placement.pose);
                 if placement.selected {
@@ -872,7 +874,7 @@ fn paint_depth_sorted(
             }
         }
     }
-    (None, regions)
+    (next_frame_in, regions)
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -1253,7 +1255,7 @@ mod tests {
         scene::{
             assets::adventurer::adventurer_animation_frame,
             snapshot::{SceneConnection, SceneSnapshot},
-            stage::{ActorPlacement, SceneCadence, SceneCamera, ScenePlan, WorldScene},
+            stage::{ActorPlacement, SceneCamera, ScenePlan, WorldScene},
         },
     };
 
@@ -1331,7 +1333,7 @@ mod tests {
             camera: SceneCamera::WholeRoom,
             actors,
             effects: Vec::new(),
-            cadence: SceneCadence::EventDriven,
+            transition_floor: None,
             goblin_outbreak: false,
         };
         let anchors = actor_anchors(&plan);
@@ -1411,7 +1413,7 @@ mod tests {
             camera: SceneCamera::WholeRoom,
             actors,
             effects: Vec::new(),
-            cadence: SceneCadence::EventDriven,
+            transition_floor: None,
             goblin_outbreak: false,
         };
 
@@ -1589,7 +1591,7 @@ mod tests {
             camera: SceneCamera::WholeRoom,
             actors: Vec::new(),
             effects: Vec::new(),
-            cadence: SceneCadence::EventDriven,
+            transition_floor: None,
             goblin_outbreak: false,
         };
         paint_depth_sorted(&snapshot, &empty_plan, &mut composed, origin);

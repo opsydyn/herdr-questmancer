@@ -20,8 +20,8 @@ fn pong_tolerates_unknown_fields() {
 
     assert_eq!(response.id, "req-1");
     assert_eq!(response.result.kind, "pong");
-    assert_eq!(response.result.version, "0.7.3");
-    assert_eq!(response.result.protocol, 19);
+    assert_eq!(response.result.version, "0.9.0");
+    assert_eq!(response.result.protocol, 22);
 }
 
 #[test]
@@ -31,7 +31,7 @@ fn snapshot_tolerates_unknown_fields() {
             .expect("valid snapshot");
 
     assert_eq!(response.result.kind, "session_snapshot");
-    assert_eq!(response.result.snapshot.protocol, 19);
+    assert_eq!(response.result.snapshot.protocol, 22);
     assert_eq!(response.result.snapshot.workspaces[0].workspace_id, "w1");
     assert_eq!(response.result.snapshot.panes[0].revision, 7);
     assert_eq!(

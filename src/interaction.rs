@@ -163,7 +163,7 @@ fn refresh_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     match selected_pane_state(model) {
         SelectedPane::Available(pane_id) => {
             model.open_scrying();
-            commands.push(load_output(model, pane_id));
+            commands.extend(load_output(model, pane_id));
         }
         SelectedPane::Managed => model.set_action_feedback(
             "The scrying table cannot observe the Questmancer's own managed pane.".to_owned(),
@@ -291,6 +291,22 @@ fn mark_read(model: &mut Model) {
 }
 
 fn submit_counsel(model: &mut Model, commands: &mut Vec<AgentCommand>) {
+    if let Some(pane_id) = model.uncertain_counsel_pane() {
+        commands.push(AgentCommand::FocusPane(pane_id));
+        model.set_action_feedback(
+            "Inspect the adventurer before abandoning or reissuing this counsel.".to_owned(),
+        );
+        return;
+    }
+    if matches!(
+        model.counsel_phase(),
+        Some(crate::app::CounselPhase::SubmissionFailed { .. })
+    ) {
+        if let Some((pane_id, request)) = model.retry_counsel_submission() {
+            commands.push(AgentCommand::SubmitCounsel { pane_id, request });
+        }
+        return;
+    }
     let Some(draft) = model.counsel_draft().map(str::to_owned) else {
         return;
     };
@@ -364,9 +380,9 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     }
     let total = matched.len();
     let before = selected_pane(model);
+    let first = matched[0].clone();
     model.set_search_results(query.clone(), matched);
-    model.domain_mut().selected_agent = None;
-    model.cycle_search_result(true);
+    model.select_agent(&first);
     model.show_adventurer_card();
     let after = selected_pane(model);
     model.dismiss_modal();
@@ -378,7 +394,7 @@ fn submit_search(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     if after != before
         && let Some(pane_id) = after
     {
-        commands.push(load_output(model, pane_id));
+        commands.extend(load_output(model, pane_id));
     }
 }
 
@@ -403,7 +419,7 @@ fn cycle_search(model: &mut Model, forward: bool, commands: &mut Vec<AgentComman
     if after != before
         && let Some(pane_id) = after
     {
-        commands.push(load_output(model, pane_id));
+        commands.extend(load_output(model, pane_id));
     }
 }
 
@@ -449,6 +465,13 @@ fn visible_presence_terms(agent: &Agent) -> &'static [&'static str] {
 fn dismiss(model: &mut Model) {
     if model.modal() == &Modal::None {
         model.dismiss_adventurer_card();
+        return;
+    }
+    if model.abandon_uncertain_counsel() {
+        model.dismiss_modal();
+        model.set_action_feedback(
+            "Unconfirmed counsel abandoned. Inspect before issuing it again.".to_owned(),
+        );
         return;
     }
     let kept = model.keep_counsel_draft();
@@ -519,7 +542,7 @@ fn select_next_campaign(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         if after != before
             && let Some(pane_id) = after
         {
-            commands.push(load_output(model, pane_id));
+            commands.extend(load_output(model, pane_id));
         }
     } else {
         model.set_action_feedback("The party is all on one campaign.".to_owned());
@@ -540,7 +563,7 @@ fn select_next_urgent(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         if after != before
             && let Some(pane_id) = after
         {
-            commands.push(load_output(model, pane_id));
+            commands.extend(load_output(model, pane_id));
         }
     } else {
         model.set_action_feedback("No adventurer is waiting on you.".to_owned());
@@ -557,7 +580,7 @@ fn select_agent(model: &mut Model, select: fn(&mut Model), commands: &mut Vec<Ag
     if after != before
         && let Some(pane_id) = after
     {
-        commands.push(load_output(model, pane_id));
+        commands.extend(load_output(model, pane_id));
     }
 }
 
@@ -572,13 +595,15 @@ fn select_agent_key(
     if after != before
         && let Some(pane_id) = after
     {
-        commands.push(load_output(model, pane_id));
+        commands.extend(load_output(model, pane_id));
     }
 }
 
-fn load_output(model: &Model, pane_id: crate::domain::PaneId) -> AgentCommand {
-    AgentCommand::LoadOutput {
+fn load_output(model: &mut Model, pane_id: crate::domain::PaneId) -> Option<AgentCommand> {
+    let request = model.begin_output_request(&pane_id)?;
+    Some(AgentCommand::LoadOutput {
         pane_id,
         lines: model.settings().output_preview_lines.get(),
-    }
+        request,
+    })
 }

@@ -1,171 +1,182 @@
 # Questmancer plan
 
-Questmancer turns a Herdr session into a living adventurers' guild. The user is
-the Questmancer; workspaces are campaigns; agents are adventurers; blocked work
-raises Summons; completed work returns as spoils.
+Questmancer turns a Herdr session into an adventurers' guild. The user is the
+Questmancer, workspaces are campaigns, agents are adventurers, blocked work
+raises summons, and explicit completion returns spoils. Herdr owns live facts;
+Questmancer owns presentation and a small amount of durable local intent.
 
-The v0.1 product is one Rust package, one domain model, and two Ratatui
-projections: the operational **Guild Hall** and the spatial **Delve**. Herdr
-owns live session facts. Questmancer owns only presentation and durable local
-intent.
+## Current status — 2026-09-08
 
-## Compatibility boundary
+Source baseline: Questmancer `0.1.9`, minimum Herdr `0.9.0`, supported protocol
+`22`, Rust `1.90.0`. The original v0.1 engineering scope is complete; do not
+reopen the retired dashboard, legacy renderer or old branding milestones.
+The checkout contains approved follow-on work and existing changes that must
+be preserved. Work inline unless the user requests isolation.
 
-- Herdr `0.7.4`, protocol `16`
-- `session.snapshot` plus scoped lifecycle and agent-status subscriptions
-- Separate socket connections for ordinary requests and the subscription loop
-- `HERDR_BIN_PATH` and Herdr-provided plugin config/state directories
-- Synthetic agent states limited to `idle`, `working`, `blocked`, and `unknown`;
-  `done` acceptance requires a real agent or fixture coverage
+[A party worth knowing](docs/plans/2026-09-05-party-delight.md) owns the current
+creative and correctness sequence:
 
-## Architecture
+| Slice | Status |
+| --- | --- |
+| Three-class storyboard and long-torso correction | Visually approved 2026-09-05; direction implemented in the production pilot |
+| Scrying result ordering (2a) | Implemented and verified; stale reads/failures cannot replace current output |
+| Roster state cues and bounded completion (2b) | Implemented, verified and visually approved 2026-09-05 |
+| Operating-guidance reconciliation (2c) | Complete 2026-09-05; current source and dated publication checks are documented |
+| Librarian proportion refresh | Implemented; world and independent Ledger fallback await visual approval |
+| Three-class production pilot | Implemented; production pose, playback and counsel review awaiting visual approval |
+| Pilot card fallback continuity | Implemented, verified and visually approved 2026-09-05; cards reuse the new personalised sprites at native size |
+| Terminal resize pass | Storybook correction and 70 passing executable PTY resize checks approved 2026-09-06; native Ghostty visual review blocked by Computer Use |
+| Herdr 0.8.2 release preflight (2026-09-06) | Historical isolated compatibility, package and published 0.1.3 archive checks; release dispatch repair remains local |
+| Herdr 0.9 upgrade | Installed 0.9.0 / protocol 22; subscription baseline and status reconciliation updated; isolated production-client checks passed; conditional sidebar recipe proposed |
+| Campaign heraldry | Implemented: deterministic table crests and matching card identity; final visual sign-off deferred |
+| Keepsakes, guild memory and remaining classes | Follow-on candidates; not part of the heraldry slice |
+
+The [storyboard](docs/design/reviews/2026-09-05-party-storyboard/README.md) and
+[production roster sheets](docs/design/reviews/2026-09-05-roster-states/README.md)
+record the two earlier visual approvals. The [production pilot pack](docs/design/reviews/2026-09-05-party-pilot/README.md)
+and Librarian refresh await their own approval. The latest full `just verify`
+passed on 2026-09-08: **570 Rust tests across 51 test runs, 28 shell tests,
+formatting, Clippy with warnings denied and script syntax**. This covers the
+current checkout with preserved earlier edits. Fixture inspection and automated
+checks do not certify live Herdr transitions, native transport or the eventual
+release commit.
+
+The [Herdr upgrade and release receipt](docs/reviews/2026-09-06-release-readiness/README.md)
+records the historical 0.8.2 binary, isolated compatibility checks and distribution
+preflight. The [0.9 upgrade](docs/plans/2026-09-08-herdr-090-upgrade.md) records
+the current protocol and sidebar proposal. Native room captures and acceptance from a clean release commit
+remain pending.
+
+## Implemented architecture and capabilities
 
 ```text
 Herdr snapshot + events
-          |
-          v
- pure reducer / shared model ----> debounced state + Chronicle JSONL
-          |
-          +----> Guild Hall
-          +----> Delve
-          |
-          +----> commands: observe, counsel, output, optional Spoils inspection
+  -> protocol clients + reconnecting supervisor
+  -> typed events + pure reducer
+  -> shared Model
+       -> SceneSnapshot (live facts)
+       -> ScenePlan + presentation intent
+       -> Guild Hall or Delve RGB painter
+       -> half-block adapter + contextual overlays
+  -> explicit focus, counsel, output and optional Reviewr commands
+  -> debounced state.json + append-only chronicle.jsonl
 ```
 
-Presence and attention are distinct. Rendering never owns domain truth. The
-selected adventurer's output is loaded lazily, never on animation frames.
-Animation derives deterministic frames and the next semantic deadline from one
-injected monotonic clock. Persistence stores versioned user intent without
-copying Herdr topology, agent output, or live state.
+- One RGB production renderer with contextual selection, counsel, search,
+  scrying, Chronicle and Librarian's Ledger overlays. There is no second
+  dashboard or scene-preview binary.
+- Protocol 22 request/subscription clients, bounded reconnect, fresh snapshots,
+  managed-pane exclusion, and truthful unknown/exited handling.
+- Typed presence and attention, stable persona generations, campaigns,
+  bounded Chronicle history, summons acknowledgement/snooze and urgency jumps.
+- Correlated counsel text/submit outcomes, per-adventurer drafts, bounded
+  selected-output reads and independent counsel work. No output request or
+  persistence write originates from an animation wake.
+- Fourteen classes with distinct `16x24` world masters, `24x32` portrait
+  fallbacks and native class cards; five `8x12` roster families plus dedicated
+  pilot roster masters. Wizard, Ranger and Barbarian have authored working,
+  counsel and spoils sequences with shared render deadlines. Their card
+  fallbacks now centre the same personalised world sprite in the existing
+  `24x32` canvas without stretching.
+  Native graphics are confined to cards and the Ledger illustration.
+- Original Hall/dungeon architecture, material lighting, selected floor rings,
+  semantic completion effects and a bounded hidden goblin interaction.
+- Eleven sidebar tokens, optional Herdr-owned urgency sorting, and local guild
+  standing awarded only for recorded spoils/campaign closure.
+- Atomic versioned user intent, debounced persistence, acknowledged shutdown
+  flushes, and terminal restoration after normal exit, error, signal or panic.
+- Thirty-four Storybook stories through production paths: two worlds,
+  twenty-six asset views and six interactions. Current `j`/`k` navigation
+  remains category-local; `h`/`l` changes category.
 
-## v0.1 milestones
+The Librarian is an independent help NPC. Canonical and compact Halls reserve
+its complete clickable sprite; smaller tiers retain keyboard access to the
+Ledger. The [Librarian refresh](docs/design/reviews/2026-09-05-librarian/README.md)
+adds a stocky world sprite and independent Ledger fallback; visual approval
+is pending.
 
-### 1. Executable and lifecycle — complete
+## Responsive contracts
 
-- Rust 2024 binary, verified Herdr manifest, and singleton pane controller
-- Safe terminal setup, structured shutdown, and offline layout mode
-- Responsive empty Guild Hall and Delve projections
+All sizes below are RGB pixels; two pixel rows occupy one terminal row.
 
-### 2. Herdr protocol — complete
+| Room | Current selection of layout |
+| --- | --- |
+| Guild Hall | Canonical at least `160x90` with at most eleven adventurers; otherwise capacity-checked compact at least `64x40`, then authored roster at least `20x27`, then a single `16x24` vignette, then status-only |
+| Delve | Authored camera crop; below width `100` or height `56`, use roster when at least `20x27` and the whole party fits; otherwise retain crop and independent station overflow |
 
-- Protocol-16 environment validation and schema-derived fixtures
-- Newline-delimited request and subscription clients
-- Capped reconnect, resubscription, and fresh snapshots without discarding the
-  last useful visible state
+The Hall's vignette prioritises explicit selection, then blocked presence.
+Neither room shrinks a world master to make it fit. Roster states use shared
+shape cues; full-motion fresh spoils stop at three seconds and leave a stable
+completed cue. Reduced/still rosters have no decorative or cleanup timer.
+Newer facts and socket boundaries interrupt old completion theatre.
 
-### 3. Domain core — complete
+## Distribution and release gates
 
-- Typed identities, presence, attention, campaigns, adventurers, personas,
-  Chronicle entries, and timestamps
-- Pure reducer with explicit command effects
-- Stable persona generation, deterministic campaign rollups, and bounded event
-  deduplication
+The [current publication check](docs/release-process.md#distribution-status--2026-09-06)
+found the public repository and published `v0.1.0` and `v0.1.3` releases.
+Latest `v0.1.3` lists four platform archives and `SHA256SUMS`. The September 6 check found public `main` at `0.1.8`, with no published
+`v0.1.8` release. This checkout now prepares the unused `0.1.9` candidate. Current default plugin installation therefore lacks its
+matching archive; use the documented source-link workflow for this checkout.
+The four published 0.1.3 archives now pass checksum, layout and architecture
+checks; its macOS ARM64 installation passes in a temporary directory.
 
-### 4. Guild Hall — complete
+The release workflow now has a locally verified explicit dispatch after tagging;
+its live execution remains unverified. Closing distribution
+requires a matching published release, not another historical `v0.1.0` tag.
+Use [the release process](docs/release-process.md) and verify:
 
-- Quest board, party, Summons, Chronicle, selected adventurer, and scrying table
-- Selection, search, observation, counsel, acknowledgement, output refresh, and
-  optional Reviewr integration
-- Wide, narrow, ASCII, ANSI-16, reduced-motion, and reconnect-safe projections
+1. The intended clean commit passes `just verify`, `cargo build --release`,
+   package checks and diff hygiene.
+2. The tag matches both `Cargo.toml` and `herdr-plugin.toml`.
+3. Four archives contain a root-level executable and match `SHA256SUMS`:
+   x86_64/aarch64 Linux GNU and x86_64/aarch64 macOS.
+4. `herdr/install.sh` installs that published version successfully.
+5. Guarded Herdr `0.9.0` acceptance is repeated from that release commit,
+   with current Guild Hall and Delve captures.
+6. Optional Reviewr is tested only when `persiyanov.reviewr.open` is available.
+7. Real-agent resting and completion are recorded only when actually observed.
+   `herdr pane report-agent` supports idle, working, blocked and unknown;
+   it cannot synthesize done.
 
-### 5. Delve — complete
+Registry publication is separately gated. A crates.io API check returned 404
+for Questmancer; registration, credentials and the live publish gate require
+separate verification. Local tests do not establish registry availability.
 
-- Connected deterministic dungeon geometry per campaign
-- State-specific adventurer silhouettes, chambers, props, and selected profile
-- Action parity with the Guild Hall at wide, compact, and tiny sizes
-- Bounded semantic effects and event-driven static/no-motion rendering
+## Approved next sequence — 2026-09-08
 
-### 6. Persistence and hardening — complete
+The Questmancer approved the sequence, then explicitly moved visual sign-off to
+last so engineering can progress. Current state:
 
-- User-owned typed configuration with explicit precedence
-- Atomic versioned `state.json` and tolerant append-only `chronicle.jsonl`
-- Debounced writes, unchanged-state suppression, bounded diagnostics, and
-  shutdown flush
-- Property tests for domain and persistence invariants
-- Managed-pane exclusion and goblin overlays that cannot corrupt UI truth
+1. Operating notes corrected; four-row sidebar applied with the original backed up.
+2. Librarian and three-class pilot remain implemented; their visual decisions
+   are collected in the final review rather than blocking the next slice.
+3. Local release preparation passes full verification, release build and
+   packaged-source verification. Clean-commit, archive/installer and publication
+   acceptance remain separate.
+4. Campaign heraldry is implemented; see the
+   [slice record](docs/plans/2026-09-08-campaign-heraldry.md).
+5. Complete the [final review queue](docs/reviews/2026-09-08-final-review.md), then
+   qualify the eventual clean release candidate and publish only when authorised.
 
-### 7. Product art and voice — complete
+## Remaining product review and backlog
 
-- Original fantasy silhouettes with independent ancestry, class, and keepsake
-  recognition anchors
-- Guild architecture, dungeon scenery, rare deterministic goblin sightings,
-  and a bounded hidden outbreak interaction
-- Warm but precise copy that keeps operational states truthful
-
-### 8. Documentation and release — complete
-
-- Source-first Herdr `0.7.4` setup, migration, operation, configuration,
-  fake-agent, privacy, recovery, and cleanup guidance
-- Four-target GitHub Actions release matrix with root-level `questmancer`
-  archives and a release-wide `SHA256SUMS`
-- Installer asset selection and checksum flow aligned with published names
-- CI gates for formatting, Clippy warnings, all-target/all-feature tests, shell
-  behavior and syntax, release build, and diff hygiene
-
-### 9. Scene-first production cutover — complete
-
-- One RGB scene renderer now owns the Guild Hall and Delve in production
-- Contextual parchment overlays preserve selection, observation, counsel,
-  search, scrying, acknowledgement and Reviewr actions
-- The legacy text renderer and standalone scene-preview binary were removed
-- Storybook now reviews eleven fixed stories through production render paths
-
-## Release acceptance
-
-The v0.1 release candidate is ready only when all of the following are true:
-
-1. `cargo fmt --all --check` is clean.
-2. Clippy passes for all targets and features with warnings denied.
-3. All Rust and shell tests pass.
-4. Lifecycle scripts pass Bash syntax checks.
-5. `cargo build --release` produces executable `target/release/questmancer`.
-6. Current user and release surfaces contain no superseded product identity.
-7. The release workflow names exactly four supported target archives and builds
-   `SHA256SUMS` after downloading them.
-8. The README does not claim Herdr `0.7.4` can synthesize `done`.
-
-## Backlog and release closure
-
-The v0.1 product scope above is feature-complete. The following work is either
-release closure or an explicitly post-v0.1 enhancement; it does not reopen the
-core Guild Hall, Delve, persistence, or Storybook milestones.
-
-### Release closure
-
-- Repeat the guarded Herdr `0.7.4` smoke from current `main` after the RGB
-  production cutover; visual approval is recorded, while live interaction and
-  transition acceptance remain separate evidence.
-- Publish the intended `opsydyn/herdr-questmancer` repository, tag `v0.1.0`, and
-  verify all four archives, `SHA256SUMS`, and `herdr/install.sh` against the
-  published release. Until then, source linking remains the supported path.
-- Capture a current Guild Hall and Delve screenshot or terminal recording for
-  the first release page.
-
-### Post-v0.1 product backlog
-
-- Implement the approved Guild Hall readability and art-direction pass in
-  [`docs/design/guild-hall-art-direction.md`](docs/design/guild-hall-art-direction.md).
-  Preserve the scene-first renderer and current action flows; begin production
-  work only after the station, hierarchy and Storybook review gate are accepted.
-- Make Storybook `j` / `k` and Up / Down traverse its visibly flat story list
-  across category boundaries. Keep `h` / `l` and Left / Right as category jumps,
-  and keep navigation clamped at the first and last story.
-- Verify the opt-in Herdr `0.7.4` workspace and agent sidebar marginalia in a
-  guarded live session after adding the user-owned configuration described in
-  the README. The implementation is display-only and does not modify Herdr
-  configuration itself.
-- Repeat the optional Reviewr integration smoke when
-  `persiyanov.reviewr.open` is installed, without making Reviewr a dependency.
-- Capture a real-agent resting and returned-spoils transition when available;
-  Herdr `0.7.4` cannot synthesize an explicit `done` report, so fixture coverage
-  remains the honest v0.1 proof for those projections.
+- Complete the [approved party sequence](docs/plans/2026-09-05-party-delight.md)
+  in bounded slices. Review the revised Librarian and three-class production
+  pilot sheets and playback in the deferred final visual review.
+- Review remaining [Hall station and hierarchy work](docs/design/guild-hall-art-direction.md)
+  independently; the roster approval does not approve an entire room redesign.
+- Storybook flat-list navigation across categories remains a proposed change;
+  current category-local navigation is documented, not silently reimplemented.
+- Repeat guarded sidebar-token and optional urgency-order acceptance, retaining
+  the user's global configuration and every unrelated pane/server.
+- Keep mementos and expanded class rituals in the backlog
+  until explicitly promoted.
 
 ## Engineering rules
 
-- No unsafe Rust, telemetry, cloud service, database, copied product assets, or
-  terminal image protocol in v0.1.
-- Start behavior changes with a failing test.
-- Keep documentation, operational recipes, and release checks in the same slice
-  as the behavior they describe.
-- Never poll selected output or write persistence on an animation wake.
-- Restore the terminal after normal exit, error, signal, and panic.
+No unsafe Rust, telemetry, cloud service, database or copied product art.
+No manual sprite controls or persisted live topology/output. Native image
+capabilities never replace the RGB world renderer. Start behaviour changes
+with a focused failing test; keep documentation and operational recipes in
+that slice. Visual, terminal, live, persistence and release evidence remain
+separate. Follow [AGENTS.md](AGENTS.md) for ownership and guarded testing.

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use questmancer::{
-    app::CounselRequest,
+    app::{CounselRequest, OutputRequest},
     command::{AgentCommand, CommandExecutor, CommandResult},
     domain::PaneId,
     herdr::client::HerdrClient,
@@ -62,15 +62,35 @@ async fn output_load_returns_a_ui_ready_preview() {
         .execute(AgentCommand::LoadOutput {
             pane_id: PaneId::new("w1:p1"),
             lines: 80,
+            request: OutputRequest(7),
         })
         .await;
 
     assert!(matches!(
         result,
-        CommandResult::OutputLoaded { pane_id, revision: 12, text, .. }
+        CommandResult::OutputLoaded { pane_id, request: OutputRequest(7), revision: 12, text, .. }
             if pane_id == PaneId::new("w1:p1") && text == "done"
     ));
     server.await.unwrap();
+}
+
+#[tokio::test]
+async fn output_failure_preserves_request_identity() {
+    let directory = tempfile::tempdir().unwrap();
+    let executor = CommandExecutor::new(
+        HerdrClient::new(directory.path().join("missing.sock")),
+        None,
+    );
+    let result = executor
+        .execute(AgentCommand::LoadOutput {
+            pane_id: PaneId::new("w1:p1"),
+            lines: 80,
+            request: OutputRequest(9),
+        })
+        .await;
+    assert!(matches!(result, CommandResult::OutputFailed {
+        pane_id, request: OutputRequest(9), message
+    } if pane_id == PaneId::new("w1:p1") && !message.is_empty()));
 }
 
 #[tokio::test]
@@ -242,6 +262,104 @@ async fn reply_sends_the_composed_text_and_submits_it() {
 }
 
 #[tokio::test]
+async fn enter_failure_is_not_reported_as_safe_to_resend_the_text() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        let (mut first, _) = listener.accept().await.unwrap();
+        let text = request(&mut first).await;
+        assert_eq!(text["method"], "pane.send_text");
+        respond(&mut first, &text, json!({"type": "ok"})).await;
+
+        let (mut second, _) = listener.accept().await.unwrap();
+        let keys = request(&mut second).await;
+        assert_eq!(keys["method"], "pane.send_keys");
+        let failure = json!({"id": keys["id"], "error": {
+            "code": "pane_busy", "message": "enter was not accepted"
+        }});
+        second
+            .write_all(serde_json::to_string(&failure).unwrap().as_bytes())
+            .await
+            .unwrap();
+        second.write_all(b"\n").await.unwrap();
+    });
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
+
+    let result = executor
+        .execute(AgentCommand::SendCounsel {
+            pane_id: PaneId::new("w1:p1"),
+            text: "use jsonb".into(),
+            request: CounselRequest(8),
+        })
+        .await;
+
+    assert!(matches!(
+        result,
+        CommandResult::CounselSubmissionFailed { pane_id, request, message }
+            if pane_id == PaneId::new("w1:p1")
+                && request == CounselRequest(8)
+                && message.contains("enter was not accepted")
+    ));
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn lost_send_text_response_is_not_reported_as_safe_to_resend() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let text = request(&mut stream).await;
+        assert_eq!(text["method"], "pane.send_text");
+        // Dropping the stream after receiving the complete request models a
+        // lost response: the caller cannot know whether Herdr applied it.
+    });
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
+
+    let result = executor
+        .execute(AgentCommand::SendCounsel {
+            pane_id: PaneId::new("w1:p1"),
+            text: "use jsonb".into(),
+            request: CounselRequest(9),
+        })
+        .await;
+
+    assert!(matches!(
+        result,
+        CommandResult::CounselTextUncertain { pane_id, request, .. }
+            if pane_id == PaneId::new("w1:p1") && request == CounselRequest(9)
+    ));
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn submission_retry_presses_enter_without_writing_text_again() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let keys = request(&mut stream).await;
+        assert_eq!(keys["method"], "pane.send_keys");
+        assert_eq!(keys["params"]["keys"][0], "enter");
+        respond(&mut stream, &keys, json!({"type": "ok"})).await;
+    });
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
+
+    let result = executor
+        .execute(AgentCommand::SubmitCounsel {
+            pane_id: PaneId::new("w1:p1"),
+            request: CounselRequest(8),
+        })
+        .await;
+
+    assert_eq!(
+        result,
+        CommandResult::CounselSent {
+            pane_id: PaneId::new("w1:p1"),
+            request: CounselRequest(8),
+        }
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn snapshot_refresh_returns_a_domain_ready_snapshot() {
     let (_directory, path, listener) = listener();
     let server = tokio::spawn(async move {
@@ -258,7 +376,7 @@ async fn snapshot_refresh_returns_a_domain_ready_snapshot() {
 
     assert!(matches!(
         result,
-        CommandResult::SnapshotLoaded(snapshot) if snapshot.protocol == 19
+        CommandResult::SnapshotLoaded(snapshot) if snapshot.protocol == 22
     ));
     server.await.unwrap();
 }
@@ -398,7 +516,7 @@ async fn managed_pane_effects_are_refused_before_socket_io() {
         .await;
     assert!(matches!(
         refused,
-        CommandResult::CounselFailed { request, message }
+        CommandResult::CounselTextFailed { request, message }
             if request == CounselRequest(1)
                 && message == "refused operation on the Questmancer guild pane"
     ));
@@ -417,11 +535,12 @@ async fn managed_pane_effects_are_refused_before_socket_io() {
         .execute(AgentCommand::LoadOutput {
             pane_id: managed.clone(),
             lines: 80,
+            request: OutputRequest(7),
         })
         .await;
     assert!(matches!(
         output,
-        CommandResult::OutputFailed { pane_id, message }
+        CommandResult::OutputFailed { pane_id, request: OutputRequest(7), message }
             if pane_id == managed && message == "refused operation on the Questmancer guild pane"
     ));
 }

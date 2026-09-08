@@ -2,8 +2,8 @@
 //!
 //! Every `[ui.sidebar]` example we shipped was rejected by Herdr, and the
 //! first attempt to fix them was rejected too. The rules below come from
-//! feeding candidate rows to `herdr config check` on the 0.8.0 binary we
-//! target, not from reading the published documentation:
+//! feeding candidate rows to `herdr config check` on the original 0.8.0
+//! baseline, not from reading the published documentation:
 //!
 //! - a row element is a token name, or an inline table keyed `token`;
 //!   `value =` is rejected, and so is a table with styling but no token;

@@ -217,6 +217,7 @@ fn selection_movement_clamps_at_the_boundaries() {
 #[test]
 fn the_counsel_modal_is_explicit_app_state() {
     let mut model = Model::new(View::Guild);
+    model.replace_domain(domain_state());
     model.open_counsel();
     model.push_counsel_character('h');
     model.push_counsel_character('i');

@@ -7,8 +7,8 @@ older plan or historical review.
 
 ## Product truth
 
-Questmancer is a Herdr `0.7.4` plugin that turns coding-agent state into a cozy,
-16-bit adventurers' guild. The user is the **Questmancer**. Herdr workspaces are
+Questmancer `0.1.9` is a Herdr `0.9.0` / protocol `22` plugin that turns
+coding-agent state into a cozy, 16-bit adventurers' guild. The user is the **Questmancer**. Herdr workspaces are
 **campaigns** and agents are **adventurers**.
 
 There are two views of the same live state:
@@ -53,7 +53,7 @@ Herdr socket
   -> pure domain reducer
   -> shared Model
        -> SceneSnapshot (live facts only)
-       -> ScenePlan (world, camera, stations, effects, cadence)
+       -> ScenePlan (world, camera, stations, effects)
        -> Guild Hall or Delve RGB renderer
        -> RgbBuffer
        -> Ratatui half-block adapter
@@ -98,8 +98,9 @@ deterministic for a fixed snapshot, viewport and time.
 
 - World sprites use authored masters at their native scale; never shrink them
   into illegible tokens.
-- Animation is semantic and bounded. Static or no-motion scenes must not wake
-  merely to redraw.
+- Animation is semantic and bounded. `SceneFrame.next_frame_in` owns render
+  deadlines; authored frame counts and timing live with the assets. Static or
+  no-motion scenes must not wake merely to redraw.
 - Return hit regions only for complete, visible actors.
 - Connection state changes lighting or diagnostic facts without destroying the
   authored room.
@@ -108,22 +109,40 @@ deterministic for a fixed snapshot, viewport and time.
 
 The two rooms deliberately have different small-viewport contracts:
 
-- The canonical Guild Hall is `160x90` RGB pixels. Smaller viewports recompose
-  the room: a capacity-checked compact whole-party layout, then a single
-  priority-adventurer vignette, then status-only rendering when a `16x24`
-  adventurer cannot fit. A blocked adventurer has priority unless the user has
-  an explicit selection. Do not restore camera cropping for the Guild Hall.
-- The Delve retains an authored camera-crop model. Its station capacity and
-  overflow behaviour are tested independently.
+- The canonical Guild Hall is `160x90` RGB pixels with eleven party slots.
+  It falls through capacity-checked compact `16x24` actors (minimum `64x40`),
+  authored `8x12` roster actors (minimum `20x27`), a single `16x24` priority
+  vignette, then status-only rendering. Selection wins vignette priority;
+  otherwise a blocked adventurer wins. Do not restore Hall camera cropping.
+- The Delve keeps its authored camera crop, but below `100` pixels wide or
+  `56` pixels high it uses the same roster tier when the viewport is at least
+  `20x27` and the entire party fits. Otherwise it keeps the crop and its
+  independently tested station/overflow contract; it has no Hall vignette.
+- Both rosters retain static tool, lantern, Z, check and question-mark state
+  cues when names cannot fit. Full-motion fresh spoils end at three seconds;
+  reduced/still rosters require no decorative or cleanup wake.
+- The Librarian is visible and clickable in canonical and compact Halls. The
+  roster, single-adventurer vignette and status-only tiers omit that actor;
+  `?` still opens the Ledger. The revised Librarian has a stocky `16x24`
+  world sprite and an independently authored `24x32` Ledger fallback. Its
+  production visual review remains separate from class-art approval.
 
 ## Sidebar marginalia
 
 Herdr owns the sidebar and the user's global sidebar configuration. Questmancer
-only reports its three namespaced display tokens through Herdr metadata:
+reports eleven namespaced tokens through Herdr metadata:
 
-- `$quest_role`: derived ancestry and class;
-- `$quest_omen`: truthful presence in guild language;
-- `$quest_campaign`: live party and summons aggregate.
+- agent display: `$quest_sigil`, `$quest_role`, `$quest_epithet`,
+  `$quest_condition`, `$quest_omen`, `$quest_trinket`, `$quest_vigil`,
+  `$quest_hoard`;
+- campaign display: `$quest_campaign`, `$quest_party`, `$quest_hoard`;
+- internal ordering: `$quest_rank`, derived urgency rather than display copy.
+
+With the user-enabled `sidebar_urgency_order = true` setting (default false),
+Questmancer also requests Herdr's transient `agent.view.set` sort. It never
+filters agents; it reissues the sort after reconnect and attempts to clear its
+own view on shutdown. Metadata display and opt-in ordering are separate
+capabilities. Neither changes the user's global sidebar configuration.
 
 The plugin uses source `plugin:opsydyn.questmancer`, never writes `title`,
 `display_agent`, `state_labels`, focus or task data, and never edits
@@ -138,18 +157,22 @@ explicit licensing and design decision.
 
 ## Portrait rendering
 
-Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender
-and Wizard cards have native PNG portraits selected by class. Goblin and Orc
-art is reserved for future event/NPC storytelling and must not replace an
+All fourteen classes have distinct world masters, portrait fallbacks and
+native PNG cards: Artificer, Barbarian, Bard, Cleric, Druid, Mage, Paladin,
+Pathseeker, Ranger, Rogue, Runewright, Sorcerer, Testmender and Wizard. Cards
+are selected by class. Wizard, Ranger and Barbarian card fallbacks reuse their
+current personalised `16x24` world sprite, centred without scaling inside the
+existing `24x32` card canvas. These card fallbacks were visually approved on
+2026-09-05. Other classes keep their independent portrait fallbacks. Goblin and Orc art is reserved for future event/NPC storytelling and must not replace an
 ordinary adventurer's class portrait. The
 Librarian's Ledger has a separate native illustration. All paths must retain a
 non-empty authored RGB sprite fallback.
 
 Native images inside a Herdr-managed pane require both a compatible terminal
-and Herdr's experimental graphics bridge:
+and Herdr's graphics bridge (enabled by default in 0.9):
 
 ```toml
-[experimental]
+[terminal]
 kitty_graphics = true
 ```
 
@@ -223,9 +246,16 @@ without Herdr, agent processes or persistent state:
 just storybook
 ```
 
-It owns twenty-five fixed production stories. `j`/`k` select stories, `Enter`
-enters inspection mode, `Esc` returns and `q` exits. Resize Ghostty while viewing
-`World / Guild Hall` to review canonical, compact and vignette compositions.
+It owns thirty-four fixed production stories: two worlds, twenty-six asset
+views and six interactions. `j`/`k` and Up/Down select within the current
+category; `h`/`l` and Left/Right change category. `Enter` enters inspection,
+`Esc` returns and `q` exits. Resize Ghostty while viewing `World / Guild Hall`
+to review canonical, compact, roster, vignette and status-only compositions;
+review the Delve crop and roster independently. In inspection mode, world,
+card and interaction stories reach every positive production size. Sprite
+galleries retain their `80x28` minimum. The 2026-09-06 PTY resize receipt does
+not establish native visual acceptance; Computer Use currently refuses
+Ghostty access for safety reasons.
 
 Visual approval is a product gate. Passing rendering tests proves invariants,
 not art quality. Compare against `reference-art/questmancer-option-a-north-star.png`
@@ -233,7 +263,7 @@ and the direction in `docs/design/questmancer-sprite-art-direction.md`.
 
 ## Local Herdr workflow
 
-Requirements are Herdr `0.7.4`, protocol `16` and Rust `1.90.0`.
+Requirements are Herdr `0.9.0`, protocol `22` and Rust `1.90.0`.
 
 For a source-linked checkout:
 
@@ -270,7 +300,7 @@ to reuse.
 - Restore the original focus when the pane still exists.
 - Inspect plugin logs and final `git status` before claiming restoration.
 
-Herdr `0.7.4` can synthesize `idle`, `working`, `blocked` and `unknown`. It
+Herdr `0.9.0` can synthesize `idle`, `working`, `blocked` and `unknown`. It
 cannot synthesize an explicit `done` transition. Fixture coverage is the honest
 automated proof for completion visuals; it is not live acceptance.
 
@@ -300,14 +330,35 @@ Remaining release work is evidence and distribution:
 
 - repeat guarded Herdr acceptance from the eventual clean release commit;
 - capture current Guild Hall and Delve release visuals;
-- publish/tag the intended repository and verify four platform archives plus
-  `SHA256SUMS` and the installer;
+- close the current release gap: the public repository's manifest is `0.1.8`,
+  while the latest published release checked on 2026-09-06 is `v0.1.3` with
+  four archives and `SHA256SUMS`. Those archives and its temporary macOS ARM64
+  installation passed the [release preflight](docs/reviews/2026-09-06-release-readiness/README.md).
+  A matching `v0.1.8` release is absent. Verify
+  the eventual release archives, checksums and installer end to end;
 - optionally smoke Reviewr when `persiyanov.reviewr.open` is installed;
 - retain real-agent resting/completion transitions as unverified until they are
   actually observed.
 
-Post-v0.1 ideas belong in the backlog unless the user explicitly promotes them
-into the active slice. Sidebar marginalia is the current approved exception.
+Post-v0.1 ideas belong in the backlog unless the user promotes them. The
+approved current sequence is recorded in `docs/plans/2026-09-05-party-delight.md`:
+three-class storyboard approved, scrying ordering complete, roster state cues
+implemented and visually approved. The Librarian refresh and three-class
+production pilot are implemented; both await production visual approval. The pilot uses 500 ms working frames, one
+600 ms counsel gesture and spoils that settle within three seconds. Confirmed
+counsel seals the existing notice without changing Herdr presence. Sidebar
+marginalia, optional urgency sorting and guild standing are already implemented.
+
+## Current sequence override — 2026-09-08
+
+The Questmancer explicitly deferred visual sign-off until last. The four-row
+sidebar is applied and campaign heraldry is implemented: native-scale crests
+below the canonical Hall's campaign-table actors, with the same named identity
+on adventurer cards. It is derived only from workspace IDs and adds no durable
+state or wakeups. Table crest sets are omitted when all cannot fit; smaller
+Hall tiers omit them. The current full gate is 570 Rust tests / 51 runs and
+28 shell tests. All new visuals remain unapproved until the final review.
+See `docs/reviews/2026-09-08-final-review.md`. Publication is a separate gate.
 
 ## Source-of-truth order
 

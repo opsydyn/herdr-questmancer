@@ -1,0 +1,572 @@
+{
+  "kind": "isolated PTY executable check; not native terminal visual acceptance",
+  "binary_sha256": "60b73e3a7f7115f8f9da98bf59a9b2f90048f88dec3beeb32816c239c0915436",
+  "cases": [
+    {
+      "story": "world.guild",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 34550,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.guild",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 14094,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.guild",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 6420,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.guild",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 2814,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.guild",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 1982,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.guild",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 629,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.guild",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 34546,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.delve",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 38202,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.delve",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 17181,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.delve",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 4632,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.delve",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 2502,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.delve",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 1662,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.delve",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 865,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "world.delve",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 38198,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-wizard-portrait",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 30442,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-wizard-portrait",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 10654,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-wizard-portrait",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 3675,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-wizard-portrait",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 2850,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-wizard-portrait",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 1990,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-wizard-portrait",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 629,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-wizard-portrait",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 30438,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-ranger-portrait",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 30546,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-ranger-portrait",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 10806,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-ranger-portrait",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 3675,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-ranger-portrait",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 2909,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-ranger-portrait",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 2034,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-ranger-portrait",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 629,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-ranger-portrait",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 30542,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-barbarian-portrait",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 30469,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-barbarian-portrait",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 10634,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-barbarian-portrait",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 3675,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-barbarian-portrait",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 2846,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-barbarian-portrait",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 1990,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-barbarian-portrait",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 629,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.native-barbarian-portrait",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 30446,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "interaction.librarian-ledger",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 30186,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "interaction.librarian-ledger",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 9922,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "interaction.librarian-ledger",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 2647,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "interaction.librarian-ledger",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 1389,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "interaction.librarian-ledger",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 1131,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "interaction.librarian-ledger",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 575,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "interaction.librarian-ledger",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 30182,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.librarian",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 22875,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.librarian",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 10194,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.librarian",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 85,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.librarian",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 85,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.librarian",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 80,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.librarian",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 60,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.librarian",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 22871,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.wizard-poses",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 25002,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.wizard-poses",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 12225,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.wizard-poses",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 85,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.wizard-poses",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 85,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.wizard-poses",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 80,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.wizard-poses",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 60,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.wizard-poses",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 24998,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.ranger-poses",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 25354,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.ranger-poses",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 12773,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.ranger-poses",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 85,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.ranger-poses",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 85,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.ranger-poses",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 80,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.ranger-poses",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 60,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.ranger-poses",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 25350,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.barbarian-poses",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 24990,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.barbarian-poses",
+      "columns": 100,
+      "rows": 30,
+      "bytes": 12193,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.barbarian-poses",
+      "columns": 64,
+      "rows": 20,
+      "bytes": 85,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.barbarian-poses",
+      "columns": 30,
+      "rows": 15,
+      "bytes": 85,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.barbarian-poses",
+      "columns": 24,
+      "rows": 13,
+      "bytes": 80,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.barbarian-poses",
+      "columns": 16,
+      "rows": 9,
+      "bytes": 60,
+      "minimum_message": true,
+      "cursor_positions_in_bounds": true
+    },
+    {
+      "story": "asset.barbarian-poses",
+      "columns": 160,
+      "rows": 45,
+      "bytes": 24986,
+      "minimum_message": false,
+      "cursor_positions_in_bounds": true
+    }
+  ],
+  "fallback_confirmed": true,
+  "exit_code": 0,
+  "terminal_modes_restored": true,
+  "alternate_screen_left": true,
+  "cursor_restored": true,
+  "result": "passed"
+}

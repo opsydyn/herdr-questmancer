@@ -5,14 +5,21 @@ adding `ratatui-image` portraits to Questmancer's expanded Adventurer card.
 It applies to terminal images rendered inside a Herdr-managed pane, where the
 outer terminal and Herdr form one graphics transport.
 
-## Confirmed working result
+## Current scope and historical evidence
 
-The native-card path is confirmed for Barbarian, Rogue, Wizard and Goblin
-through Ghostty and Herdr 0.7.4 using Kitty graphics. Artificer, Bard, Cleric, Druid, Paladin, Ranger, Testmender and Orc
-are registered with the same transparent PNG contract and automated coverage;
-their live native render remains a manual-review item. The world remains rendered by
-Questmancer's RGB half-block scene adapter. Only the expanded card uses the
-native image protocol.
+Questmancer `0.1.9` requires Herdr `0.9.0` / protocol `22`. All fourteen
+classes have native PNG cards and authored `24x32` portrait fallbacks;
+`src/portrait.rs` owns the exact routes. The Librarian's Ledger has a separate
+native illustration and an independently authored `24x32` Ledger fallback.
+Goblin and Orc illustrations are reserved event art, not ordinary ancestry
+routes. Native protocols are used for cards and the Ledger illustration;
+both worlds use the RGB half-block renderer.
+
+Historical acceptance recorded Barbarian, Rogue, Wizard and Goblin native art
+through Ghostty and Herdr `0.7.4` with Kitty graphics. Preserve that evidence
+as historical: it does not certify all current cards or the current Herdr
+transport. Repeat current live acceptance separately from decoding and
+fallback tests.
 
 Current implementation:
 
@@ -20,7 +27,10 @@ Current implementation:
 - `image` 0.25.6 with PNG decoding only;
 - embedded assets under `src/assets/portraits/*-card.png`;
 - capability and prepared-protocol owner: `src/portrait.rs`; and
-- canonical fallback: the class's authored 24x32 RGB portrait master.
+- canonical fallback: authored class RGB art in the `24x32` portrait canvas.
+  Wizard, Ranger and Barbarian reuse their new personalised `16x24` world
+  sprite at native size, centred with four-pixel margins. Other classes use
+  their independent portrait masters.
 
 ## Failure symptom
 
@@ -68,30 +78,34 @@ authoritative. Questmancer must not upgrade a Halfblocks result based on
 - Missing PNG for a class: render its authored RGB sprite.
 - No capability combination may leave the portrait region empty.
 
-The fallback deliberately does not use `ratatui-image`'s Halfblocks renderer.
-Questmancer already owns a higher-quality, deterministic portrait master for
-that path.
+The fallback uses Questmancer's authored RGB portrait through its scene
+adapter, rather than `ratatui-image`'s Halfblocks renderer. The Librarian uses
+its independently authored `24x32` Ledger fallback.
 
 ## Herdr configuration
 
-Herdr's local Kitty bridge is experimental and disabled by default. Enable it
-in `~/.config/herdr/config.toml`:
+Herdr 0.9 enables the Kitty bridge by default. The current setting in
+`~/.config/herdr/config.toml` is:
 
 ```toml
-[experimental]
+[terminal]
 kitty_graphics = true
 ```
 
-Validate and apply the configuration without stopping the persistent server:
+The legacy `experimental.kitty_graphics` key is accepted, including an explicit
+false; `terminal.kitty_graphics` takes precedence. Preserve intentional settings.
+Run `herdr config check` before applying changes. Herdr's 0.9 configuration
+reference requires a server restart or client reattach after changing graphics.
+For remote sessions, server configuration controls parsing/API availability and
+local client configuration controls outer-terminal output. A successful config
+reload alone is not proof of graphics transport.
 
-```bash
-herdr config check
-herdr server reload-config
-herdr status
-```
+Obtain the owner's approval before changing or restarting a shared server.
+Reattach the viewing client first when diagnosing outer-terminal output; test
+native rendering afterward. Do not restart a shared server without approval.
 
-The reload returned `status: applied`, but the already-attached Herdr client
-continued to expose its previous graphics capability. Exit only the attached
+In the historical `0.7.4` failure, reload returned `status: applied`, but the
+already-attached Herdr client continued to expose its previous capability. Exit only the attached
 client, leave the persistent server running, then attach again from Ghostty:
 
 ```bash
@@ -129,17 +143,20 @@ Both final log records should be `succeeded` with empty stderr.
 ## Guarded smoke test
 
 1. Confirm Herdr client and server are compatible with `herdr status`.
-2. Confirm `experimental.kitty_graphics = true` and run `herdr config check`.
+2. Confirm `terminal.kitty_graphics = true` and run `herdr config check`.
 3. Attach a fresh Herdr client after enabling the bridge.
 4. Open Questmancer and create disposable agents only; never repurpose an
    unrelated live agent for testing.
-5. Select an Artificer, Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Testmender, Wizard, Goblin or Orc adventurer with an embedded
-   portrait.
+5. Review each of the fourteen class cards in Storybook. For live checks, use
+   only an observed disposable adventurer's derived class; there are no manual
+   persona controls. Review reserved Goblin/Orc art in Storybook separately.
 6. Confirm the card shows the transparent PNG while the Guild Hall remains the
    RGB half-block world.
 7. Disable or bypass native capability in Storybook and confirm the authored
    sprite occupies the same card region.
-8. Confirm classes without a PNG still show their authored portrait master.
+8. Open the Librarian's Ledger and confirm its native illustration and
+   fallback independently. All current classes have PNGs; decode/preparation
+   failure must still leave a non-empty authored fallback.
 9. Release synthetic agent reports and close only test-created panes after
    acceptance.
 
@@ -162,7 +179,7 @@ When a native portrait is missing, inspect in this order:
 1. **Empty or fallback?** Empty suggests a false-positive native protocol;
    fallback suggests capability detection or asset preparation declined native
    rendering safely.
-2. **Herdr bridge:** confirm `experimental.kitty_graphics = true`.
+2. **Herdr bridge:** confirm `terminal.kitty_graphics = true`.
 3. **Fresh attachment:** reattach the Herdr client after enabling the bridge.
 4. **Binary selection:** confirm the release binary was rebuilt.
 5. **Asset contract:** confirm the PNG decodes and the class is mapped.

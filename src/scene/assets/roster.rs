@@ -8,16 +8,74 @@
 //! per-adventurer identity that the family cannot.
 //!
 //! Pose is not authored at this scale. A roster adventurer's state is carried
-//! by its grounding, counsel marker and nameplate, never by the sprite.
+//! by its grounding, shared state marker and nameplate, never by the sprite.
 
 use std::sync::OnceLock;
 
-use crate::{domain::AdventurerClass, scene::pixel::Rgb, scene::sprite::SpriteFrame};
+use crate::{
+    domain::AdventurerClass,
+    scene::{pixel::Rgb, sprite::SpriteFrame, stage::ScenePose},
+};
 
 use super::{IndexedPaletteEntry, indexed_sprite};
 
 pub const WIDTH: u16 = 8;
 pub const HEIGHT: u16 = 12;
+pub const STATE_MARKER_SIZE: u16 = 5;
+
+/// The approved five-pixel tool, lantern, rest, completion and unknown cues.
+/// Their silhouettes carry meaning even when palettes collapse to ANSI 16.
+pub fn state_marker(pose: ScenePose) -> &'static SpriteFrame {
+    static MARKERS: OnceLock<[SpriteFrame; 5]> = OnceLock::new();
+    let markers = MARKERS.get_or_init(|| {
+        use super::palette::{AMBER_LIGHT, FLAME, PARCHMENT_LIGHT, STEEL};
+        let palette = [
+            IndexedPaletteEntry {
+                key: 'm',
+                colour: Some(STEEL),
+            },
+            IndexedPaletteEntry {
+                key: 'M',
+                colour: Some(PARCHMENT_LIGHT),
+            },
+            IndexedPaletteEntry {
+                key: 'd',
+                colour: Some(AMBER_LIGHT),
+            },
+            IndexedPaletteEntry {
+                key: 'o',
+                colour: Some(AMBER_LIGHT),
+            },
+            IndexedPaletteEntry {
+                key: 'l',
+                colour: Some(FLAME),
+            },
+            IndexedPaletteEntry {
+                key: 'P',
+                colour: Some(PARCHMENT_LIGHT),
+            },
+            IndexedPaletteEntry {
+                key: 'z',
+                colour: Some(PARCHMENT_LIGHT),
+            },
+        ];
+        [
+            ["mmMMM", "..d..", "..d..", "..d..", "....."],
+            ["..o..", ".ooo.", ".lPl.", ".lPl.", ".ooo."],
+            [".zzz.", "...z.", "..z..", ".zzz.", "....."],
+            ["....l", "...ll", "l.ll.", ".ll..", "....."],
+            [".ooo.", "o...o", "...o.", "..o..", "..o.."],
+        ]
+        .map(|rows| indexed_sprite(&rows, &palette).expect("authored roster cue is valid"))
+    });
+    &markers[match pose {
+        ScenePose::Working => 0,
+        ScenePose::SeekingCounsel => 1,
+        ScenePose::Resting => 2,
+        ScenePose::ReturningWithSpoils | ScenePose::Settled => 3,
+        ScenePose::Unknown => 4,
+    }]
+}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum RosterFamily {

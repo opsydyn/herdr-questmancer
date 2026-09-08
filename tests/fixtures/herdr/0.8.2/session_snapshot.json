@@ -1,0 +1,97 @@
+{
+  "id": "capture-6",
+  "result": {
+    "type": "session_snapshot",
+    "snapshot": {
+      "version": "0.8.2",
+      "protocol": 20,
+      "focused_workspace_id": "w1",
+      "focused_tab_id": "w1:t1",
+      "focused_pane_id": "w1:p1",
+      "workspaces": [
+        {
+          "workspace_id": "w1",
+          "number": 1,
+          "label": "Questmancer protocol capture",
+          "focused": true,
+          "pane_count": 1,
+          "tab_count": 1,
+          "active_tab_id": "w1:t1",
+          "agent_status": "working"
+        }
+      ],
+      "tabs": [
+        {
+          "tab_id": "w1:t1",
+          "workspace_id": "w1",
+          "number": 1,
+          "label": "1",
+          "focused": true,
+          "pane_count": 1,
+          "agent_status": "working"
+        }
+      ],
+      "panes": [
+        {
+          "pane_id": "w1:p1",
+          "terminal_id": "term_protocol_capture",
+          "workspace_id": "w1",
+          "tab_id": "w1:t1",
+          "focused": true,
+          "cwd": "/tmp/questmancer-protocol-capture",
+          "foreground_cwd": "/tmp/questmancer-protocol-capture",
+          "agent": "fixture",
+          "agent_status": "working",
+          "scroll": {
+            "offset_from_bottom": 0,
+            "max_offset_from_bottom": 0,
+            "viewport_rows": 39
+          },
+          "revision": 0
+        }
+      ],
+      "layouts": [
+        {
+          "workspace_id": "w1",
+          "tab_id": "w1:t1",
+          "zoomed": false,
+          "area": {
+            "x": 26,
+            "y": 1,
+            "width": 94,
+            "height": 39
+          },
+          "focused_pane_id": "w1:p1",
+          "panes": [
+            {
+              "pane_id": "w1:p1",
+              "focused": true,
+              "rect": {
+                "x": 26,
+                "y": 1,
+                "width": 94,
+                "height": 39
+              }
+            }
+          ],
+          "splits": []
+        }
+      ],
+      "agents": [
+        {
+          "terminal_id": "term_protocol_capture",
+          "agent": "fixture",
+          "agent_status": "working",
+          "workspace_id": "w1",
+          "tab_id": "w1:t1",
+          "pane_id": "w1:p1",
+          "focused": true,
+          "state_change_seq": 1,
+          "cwd": "/tmp/questmancer-protocol-capture",
+          "foreground_cwd": "/tmp/questmancer-protocol-capture",
+          "revision": 0
+        }
+      ]
+    }
+  }
+}

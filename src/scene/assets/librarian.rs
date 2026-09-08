@@ -9,6 +9,8 @@ pub const WORLD_HEIGHT: u16 = 24;
 pub const PORTRAIT_WIDTH: u16 = 24;
 pub const PORTRAIT_HEIGHT: u16 = 32;
 
+// Orangutan fur, low gold spectacles, purple robe and carried books. The
+// Librarian is a static help NPC; these assets have no animation clock.
 const PALETTE: &[IndexedPaletteEntry] = &[
     IndexedPaletteEntry {
         key: 'o',
@@ -16,63 +18,111 @@ const PALETTE: &[IndexedPaletteEntry] = &[
     },
     IndexedPaletteEntry {
         key: 'b',
-        colour: Some(Rgb::new(82, 43, 29)),
+        colour: Some(Rgb::new(91, 51, 33)),
     },
     IndexedPaletteEntry {
         key: 'B',
-        colour: Some(Rgb::new(142, 76, 42)),
+        colour: Some(Rgb::new(180, 91, 37)),
     },
     IndexedPaletteEntry {
         key: 'H',
-        colour: Some(Rgb::new(195, 116, 59)),
+        colour: Some(Rgb::new(233, 142, 56)),
     },
     IndexedPaletteEntry {
         key: 's',
-        colour: Some(Rgb::new(225, 166, 102)),
+        colour: Some(Rgb::new(185, 170, 143)),
     },
     IndexedPaletteEntry {
         key: 'P',
-        colour: Some(Rgb::new(242, 218, 163)),
+        colour: Some(Rgb::new(248, 225, 170)),
     },
     IndexedPaletteEntry {
         key: 'p',
-        colour: Some(Rgb::new(91, 49, 111)),
+        colour: Some(Rgb::new(99, 55, 119)),
     },
     IndexedPaletteEntry {
         key: 'g',
-        colour: Some(Rgb::new(218, 164, 55)),
+        colour: Some(Rgb::new(222, 172, 66)),
     },
     IndexedPaletteEntry {
         key: 'r',
-        colour: Some(Rgb::new(130, 37, 52)),
+        colour: Some(Rgb::new(146, 48, 48)),
+    },
+    IndexedPaletteEntry {
+        key: 'G',
+        colour: Some(Rgb::new(49, 104, 71)),
+    },
+    IndexedPaletteEntry {
+        key: 'U',
+        colour: Some(Rgb::new(43, 82, 117)),
+    },
+    IndexedPaletteEntry {
+        key: 'D',
+        colour: Some(Rgb::new(103, 68, 40)),
     },
 ];
 
 const WORLD_ROWS: &[&str] = &[
     "................",
-    ".....oooo.......",
-    "...oobbbboo.....",
-    "..obBBBBBBbo....",
-    ".obBBHBBHBBbo...",
-    ".obBssssssBbo...",
-    ".obsoPooPosbo...",
-    "..bsosssosb.....",
-    "..obBssssBbo....",
-    "...obBBBBbo.....",
-    "..oobppppboo....",
-    ".obbbpggpbbbo...",
-    "obBbbpPPpbbBbo..",
-    "obBbbppppbbBbo..",
-    "obBbbpggpbbBbo..",
-    "obBbbbbbbbbBbo..",
-    ".oBbbbrrbbbBo...",
-    ".obbbrrrrbbbo...",
-    "..obbbbbbbbo....",
-    "..obb....bbo....",
-    ".obb......bbo...",
-    ".ob........bo...",
-    "..oo......oo....",
+    "......oHo.......",
+    "....ooHHBoo.....",
+    "...oBHHHBBBoo...",
+    "..oBHHBBBBBBBo..",
+    "..oBBssssssBBo..",
+    ".oBBsggssggsBBo.",
+    ".oBBgPoggoPgBBo.",
+    ".oBBsgssssgsBBo.",
+    "..oBBssoossBBo..",
+    "..oBBssssssBBo..",
+    "...oBBHHBBBo....",
+    "..ooBpggpBoo....",
+    ".opppgGGgpppo...",
+    "oBBrroggoppppo..",
+    "oBrPPrrgoUUppo..",
+    "oBrPPrrgoUPpBo..",
+    "oBBrrrrgoUUoBo..",
+    ".oppppggpppppo..",
+    "..opppppppppo...",
+    "...obbboobbbo...",
+    "...oooo.oooo....",
     "................",
+    "................",
+];
+
+// Independently authored face, book spines and robe for the Ledger canvas.
+const PORTRAIT_ROWS: &[&str] = &[
+    "........................",
+    "...........HH...........",
+    ".........oHHHBo.........",
+    ".......ooBHHHBBoo.......",
+    "......oBBHHHHBBBBo......",
+    ".....oBBHHBBBBBBBBo.....",
+    "....oBBBssssssssBBBo....",
+    "....oBBssssssssssBBo....",
+    "...oBBBsgggssgggsBBBo...",
+    "...oBBsgPooggooPgsBBo...",
+    "...oBBBsgggssgggsBBBo...",
+    "...oBBBssoossoossBBBo...",
+    "....oBBssssssssssBBo....",
+    "....oBBBsssoosssBBBo....",
+    ".....oBBBssssssBBBo.....",
+    ".....ooBBHHHHBBBoo......",
+    "...oopppBggggBppppoo....",
+    "..opppppgGGGGgppppppo...",
+    "..opppppgGGGGgppppppo...",
+    ".oBBrrrpgGGGGgppUUpppo..",
+    ".oBrPPrrgGGGGgpUPUpppo..",
+    ".oBrPPrrgDDDDgpUPUppBo..",
+    ".oBBrrrpgDggDgpUUUppBo..",
+    ".oBGGGGpgDggDgpppppBBo..",
+    ".oBgPPGgppggpppppppBo...",
+    "..oBGGGgppppppppppppo...",
+    "...opppppppppppppppo....",
+    "....opppppppppppppo.....",
+    ".....obbbbbooobbbo......",
+    ".....oooooo.oooooo......",
+    "........................",
+    "........................",
 ];
 
 #[must_use]
@@ -87,18 +137,7 @@ pub fn world() -> &'static SpriteFrame {
 pub fn ledger_portrait() -> &'static SpriteFrame {
     static FRAME: OnceLock<SpriteFrame> = OnceLock::new();
     FRAME.get_or_init(|| {
-        let source = world();
-        let mut pixels = vec![None; usize::from(PORTRAIT_WIDTH) * usize::from(PORTRAIT_HEIGHT)];
-        for y in 0..WORLD_HEIGHT {
-            for x in 0..WORLD_WIDTH {
-                let source_index = usize::from(y) * usize::from(WORLD_WIDTH) + usize::from(x);
-                let target_x = x + 4;
-                let target_y = y + 4;
-                let target_index =
-                    usize::from(target_y) * usize::from(PORTRAIT_WIDTH) + usize::from(target_x);
-                pixels[target_index] = source.pixels()[source_index];
-            }
-        }
-        SpriteFrame::from_pixels(PORTRAIT_WIDTH, PORTRAIT_HEIGHT, pixels)
+        indexed_sprite(PORTRAIT_ROWS, PALETTE)
+            .expect("built-in Librarian portrait art must be valid")
     })
 }

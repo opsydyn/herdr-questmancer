@@ -52,6 +52,26 @@ impl HerdrClient {
         Ok(result.snapshot)
     }
 
+    pub async fn get_pane(&self, pane_id: impl Into<String>) -> Result<PaneInfo, ClientError> {
+        let pane_id = pane_id.into();
+        let result: PaneInfoResult = self
+            .request(
+                "pane.get",
+                PaneTarget {
+                    pane_id: pane_id.clone(),
+                },
+                "pane_info",
+            )
+            .await?;
+        if result.pane.pane_id != pane_id {
+            return Err(ClientError::MismatchedPane {
+                expected: pane_id,
+                actual: result.pane.pane_id,
+            });
+        }
+        Ok(result.pane)
+    }
+
     pub async fn focus_pane(&self, pane_id: impl Into<String>) -> Result<PaneInfo, ClientError> {
         let result: PaneInfoResult = self
             .request(
@@ -327,6 +347,8 @@ pub enum ClientError {
     Server { code: String, message: String },
     #[error("response id {actual:?} did not match request id {expected:?}")]
     MismatchedId { expected: String, actual: String },
+    #[error("response pane {actual:?} did not match requested pane {expected:?}")]
+    MismatchedPane { expected: String, actual: String },
     #[error("expected result type {expected:?}, received {actual:?}")]
     UnexpectedResult {
         expected: &'static str,

@@ -43,7 +43,7 @@ fn every_core_archetype_uses_a_world_master() {
 }
 
 #[test]
-fn every_core_archetype_has_an_independent_portrait_master() {
+fn every_core_archetype_has_a_portrait_canvas() {
     for class in CORE_ARCHETYPES {
         let mut persona =
             AdventurerPersona::for_key(PersonaKey::new(format!("core-portrait-{class:?}")));
@@ -53,6 +53,43 @@ fn every_core_archetype_has_an_independent_portrait_master() {
             .unwrap_or_else(|| panic!("{class:?} has no portrait master"));
 
         assert_eq!(frame.size(), PixelSize::new(24, 32), "{class:?}");
+    }
+}
+
+#[test]
+fn pilot_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching() {
+    for class in [
+        AdventurerClass::Wizard,
+        AdventurerClass::Ranger,
+        AdventurerClass::Barbarian,
+    ] {
+        for (skin, hair) in [
+            (SkinTone::Porcelain, HairTone::Black),
+            (SkinTone::Ebony, HairTone::Gold),
+        ] {
+            let mut persona = AdventurerPersona::for_key(PersonaKey::new("card-continuity"));
+            persona.class = class;
+            persona.appearance.skin_tone = skin;
+            persona.appearance.hair_tone = hair;
+            let world = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+            let card = adventurer_portrait_frame(&persona).expect("authored card fallback");
+
+            assert_eq!(card.size(), PixelSize::new(24, 32));
+            for y in 0..32 {
+                for x in 0..24 {
+                    let expected = if (4..20).contains(&x) && (4..28).contains(&y) {
+                        world.pixels()[(y - 4) * 16 + x - 4]
+                    } else {
+                        None
+                    };
+                    assert_eq!(
+                        card.pixels()[y * 24 + x],
+                        expected,
+                        "{class:?} {skin:?} card pixel ({x}, {y}) must retain the current sprite"
+                    );
+                }
+            }
+        }
     }
 }
 

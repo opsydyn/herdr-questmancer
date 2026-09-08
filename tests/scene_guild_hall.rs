@@ -647,6 +647,7 @@ fn render_with_presentation_frame(
     let presentation = questmancer::scene::presentation::ScenePresentation {
         world,
         selected_agent: None,
+        transition_floor: None,
         overlay: questmancer::scene::presentation::SceneOverlay::None,
         goblin_outbreak,
     };
@@ -931,6 +932,7 @@ fn minimum_door_crop_keeps_incompatible_versions_visible_over_the_room() {
 #[test]
 fn fresh_spoils_effect_ends_exactly_once_at_three_seconds() {
     let mut fresh = mixed_snapshot();
+    fresh.motion = Motion::Full;
     fresh
         .agents
         .retain(|agent| agent.presence == Presence::Done);
@@ -1046,11 +1048,11 @@ fn campaign_table_motion_is_authored_and_does_not_wake_static_classes() {
     let (first, first_frame) = render_with_frame(&snapshot, VIEWPORT);
     assert_eq!(
         first_frame.next_frame_in,
-        Some(Duration::from_millis(167)),
+        Some(Duration::from_millis(500)),
         "the authored working Barbarian pose should schedule its next frame"
     );
 
-    snapshot.now = Timestamp::from_millis(1_167);
+    snapshot.now = Timestamp::from_millis(1_500);
     let (second, second_frame) = render_with_frame(&snapshot, VIEWPORT);
     assert_ne!(
         first.pixels(),
@@ -1065,4 +1067,41 @@ fn campaign_table_motion_is_authored_and_does_not_wake_static_classes() {
         static_frame.next_frame_in, None,
         "a static class master must not keep the Guild Hall render loop awake"
     );
+}
+
+#[test]
+fn canonical_campaign_pennants_reach_the_rgb_frame_without_covering_actors() {
+    use questmancer::scene::heraldry::{CampaignCrest, table_pennants};
+    let snapshot = mixed_snapshot();
+    let (pixels, frame) = render_with_frame(&snapshot, VIEWPORT);
+    let pennants = table_pennants(&snapshot);
+    assert_eq!(pennants.len(), 2);
+    for pennant in &pennants {
+        for actor in &frame.actors {
+            let r = actor.bounds;
+            assert!(
+                pennant.origin.x + 7 <= r.x
+                    || r.x + i32::from(r.width) <= pennant.origin.x
+                    || pennant.origin.y + 8 <= r.y
+                    || r.y + i32::from(r.height) <= pennant.origin.y
+            );
+        }
+    }
+    // The lower table strip is outside the warm-light pools, so its authored pixels
+    // can be compared exactly with the shared card/table identity's asset.
+    let left = &pennants[0];
+    let badge = CampaignCrest::for_workspace(&left.workspace).frame();
+    for y in 0..8 {
+        for x in 0..7 {
+            if let Some(colour) = badge.pixels()[y * 7 + x] {
+                assert_eq!(
+                    pixels.get(
+                        left.origin.x + i32::try_from(x).unwrap(),
+                        left.origin.y + i32::try_from(y).unwrap()
+                    ),
+                    Some(colour)
+                );
+            }
+        }
+    }
 }

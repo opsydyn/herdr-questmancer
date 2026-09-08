@@ -9,8 +9,9 @@ use std::time::Duration;
 use crate::app::Motion;
 use crate::scene::{
     SceneFrame,
+    assets::adventurer::{AdventurerFrame, adventurer_at},
     pixel::{PixelPoint, PixelRect, PixelSize, RgbBuffer},
-    snapshot::SceneSnapshot,
+    snapshot::{SceneAgent, SceneConnection, SceneSnapshot},
     sprite::SpriteFrame,
     stage::{ScenePlan, ScenePose},
 };
@@ -45,65 +46,56 @@ pub(crate) fn earliest_deadline(current: Option<Duration>, candidate: Duration) 
     current.map_or(candidate, |current| current.min(candidate))
 }
 
-pub(crate) const fn actor_animation_fps(motion: Motion, pose: ScenePose) -> Option<u8> {
-    match (motion, pose) {
-        (Motion::Full, ScenePose::ReturningWithSpoils) => Some(8),
-        (Motion::Full, ScenePose::Working) => Some(6),
-        (Motion::Full, ScenePose::SeekingCounsel) => Some(2),
-        (Motion::Full | Motion::Reduced, ScenePose::Resting) => Some(1),
-        _ => None,
-    }
-}
-
-pub(crate) fn actor_animation_phase(motion: Motion, pose: ScenePose, elapsed: Duration) -> u8 {
-    let Some(fps) = actor_animation_fps(motion, pose) else {
-        return 0;
-    };
-    let steps = elapsed.as_millis().saturating_mul(u128::from(fps)) / 1_000;
-    u8::try_from(steps % 3).unwrap_or(0)
-}
-
-pub(crate) fn actor_next_frame_delay(
-    motion: Motion,
+/// Select the same authored pose and age in every world. Rendering retained
+/// blocked/done facts after a socket boundary cannot restart their gesture.
+pub(crate) fn actor_frame(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    agent: &SceneAgent,
     pose: ScenePose,
-    elapsed: Duration,
-) -> Option<Duration> {
-    let fps = u128::from(actor_animation_fps(motion, pose)?);
-    let elapsed_millis = elapsed.as_millis();
-    let completed_steps = elapsed_millis.saturating_mul(fps) / 1_000;
-    let current_phase = u8::try_from(completed_steps % 3).unwrap_or(0);
-    let current_visual_phase = actor_visual_phase(pose, current_phase);
-
-    for steps_ahead in 1..=3_u128 {
-        let next_phase = u8::try_from((completed_steps + steps_ahead) % 3).unwrap_or(0);
-        if actor_visual_phase(pose, next_phase) != current_visual_phase {
-            let boundary = (completed_steps + steps_ahead)
-                .saturating_mul(1_000)
-                .div_ceil(fps);
-            let delay = boundary.saturating_sub(elapsed_millis).max(1);
-            return Some(Duration::from_millis(
-                u64::try_from(delay).unwrap_or(u64::MAX),
-            ));
-        }
-    }
-
-    None
+) -> AdventurerFrame {
+    let since = if pose == ScenePose::ReturningWithSpoils {
+        agent
+            .transition
+            .map_or(agent.presence_since, |transition| transition.since)
+    } else {
+        agent.presence_since
+    };
+    let may_animate = snapshot.connection == SceneConnection::Connected
+        && since <= snapshot.now
+        && (pose == ScenePose::Working || plan.transition_floor.is_none_or(|floor| since > floor));
+    adventurer_at(
+        &agent.persona,
+        pose,
+        snapshot.motion,
+        may_animate.then(|| since.elapsed_until(snapshot.now)),
+    )
 }
 
-const fn actor_visual_phase(pose: ScenePose, animation_phase: u8) -> u8 {
-    match pose {
-        // Each working frame has authored sprite pixels of its own.
-        ScenePose::Working => animation_phase,
-        // These poses share their base sprite. Only the middle frame rises by one pixel.
-        ScenePose::SeekingCounsel | ScenePose::ReturningWithSpoils | ScenePose::Resting => {
-            if animation_phase == 1 {
-                1
-            } else {
-                0
-            }
-        }
-        ScenePose::Settled | ScenePose::Unknown => 0,
-    }
+/// A cropped static head must not wake to animate hands outside the viewport.
+pub(crate) fn actor_next_frame_delay(
+    sample: &AdventurerFrame,
+    origin: PixelPoint,
+    viewport: PixelSize,
+) -> Option<Duration> {
+    let (delay, next) = sample.next.as_ref()?;
+    let width = usize::from(sample.sprite.size().width);
+    let visible_change = sample
+        .sprite
+        .pixels()
+        .iter()
+        .zip(next.pixels())
+        .enumerate()
+        .any(|(index, (current, next))| {
+            let x = origin.x + i32::try_from(index % width).unwrap_or(i32::MAX);
+            let y = origin.y + i32::try_from(index / width).unwrap_or(i32::MAX);
+            current != next
+                && x >= 0
+                && y >= 0
+                && x < i32::from(viewport.width)
+                && y < i32::from(viewport.height)
+        });
+    visible_change.then_some(*delay)
 }
 
 pub(crate) fn effect_animation_phase(motion: Motion, elapsed: Duration) -> u128 {

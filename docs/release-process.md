@@ -5,8 +5,44 @@ Three things cut a release, and each owns one job.
 | Stage | Owner | Produces |
 | --- | --- | --- |
 | Version | `release-plz` on `main` | a release pull request, then the `vX.Y.Z` tag |
-| Binaries | `release.yml` on the tag | four archives and `SHA256SUMS` on a GitHub release |
-| Registry | `release.yml`, gated | a crates.io publish — **currently off** |
+| Binaries | `release.yml`, explicitly dispatched after tagging | four archives and `SHA256SUMS` on a GitHub release |
+| Registry | `release.yml`, gated | a crates.io publish when `PUBLISH_TO_CRATES=true`; live setting unverified |
+
+## Distribution status — 2026-09-06
+
+Read-only GitHub API checks still find only published `v0.1.0` and
+[`v0.1.3`](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.3).
+The latest published release is `v0.1.3`. All four archives now have verified
+SHA-256 matches, one root-level executable, and the expected platform/CPU.
+The current installer also installed the published `0.1.3` manifest into a
+temporary directory and its macOS ARM64 binary reported `questmancer 0.1.3`.
+The other platform binaries were inspected, not executed on this host.
+
+At that inspection, the checkout and public `main` declared Questmancer `0.1.8`, and a `v0.1.8`
+tag exists at `a594845f040d54dcc2f175524d4720e8008f8773`, but no matching release
+is published. The tagged commit is historical; it does not contain the current
+candidate work. The verified `0.1.3` install does not establish a working
+`0.1.8` install. Use the documented source-link workflow for this checkout.
+
+The [2026-08-11 tagging run](https://github.com/opsydyn/herdr-questmancer/actions/runs/31478542616)
+reported `releases_created: true` for `v0.1.8`, with an empty
+`RELEASE_PLZ_TOKEN` condition. No later `Release` run exists. This confirms the
+old tag-to-build handoff failure. Reading current repository secret names and
+variables returned HTTP 403, so their present settings and the registry gate
+remain unverified. No credentials or repository settings were changed.
+
+The workflow repair below remains local. No new tag, workflow run,
+GitHub release or registry publication was created during this pass.
+The [local preflight receipt](reviews/2026-09-06-release-readiness/README.md)
+records verification, packaging, archive checks and remaining acceptance gates.
+
+## Local candidate — 2026-09-08
+
+The current candidate is `0.1.9`, requiring Herdr `0.9.0` / protocol `22`.
+Its [qualification receipt](reviews/2026-09-08-release-candidate/README.md)
+and [consolidated visual review](design/reviews/2026-09-08-consolidated/README.md)
+track local checks separately from native approval and published distribution.
+The historical `v0.1.8` tag remains untouched.
 
 ## Cutting one
 
@@ -23,10 +59,11 @@ Three things cut a release, and each owns one job.
    missed twice — fixed by hand once, broken again by the next bump. A manual
    step inside an automated pipeline is a step that eventually does not happen.
    `tests/scripts.sh` still fails when the two disagree, as a backstop.
-3. Merge the release pull request. The `release` job tags the merged commit.
-   That job was missing at first: `release-pr` opens the version pull request
-   and nothing tags it, so the first merged one bumped the version and stopped,
-   and `release.yml` — which triggers on the tag — never ran.
+3. Merge the release pull request after the release candidate is approved.
+   The `release` job tags the commit with `GITHUB_TOKEN`, validates the emitted
+   single-package stable release, and explicitly dispatches `release.yml` for
+   that tag. The dispatch step has `actions: write`; a failed dispatch fails
+   the job and remains recoverable with the manual command below.
 4. `release.yml` builds four targets, checks the packaged crate, verifies the
    tag matches both manifests, takes the release body from the first section of
    `CHANGELOG.md` that has content, and publishes the GitHub release with
@@ -43,55 +80,44 @@ matching GitHub release. So a version in that manifest with no published
 release is not an untidy loose end — it is a broken install for every user,
 returning 404 from the download.
 
-That is the state v0.1.1 and v0.1.2 are in: release-plz tagged them, nothing
-built them, and the manifest points at a release that does not exist. It is
-also why the release job below matters more than it looks.
+This was observed for v0.1.1 and v0.1.2: release-plz tagged them and no build
+followed. The current distribution check above records which releases are
+published now; a historical tag is not a current installer target.
 
-## The tag has to come from a personal access token
+## Explicit dispatch closes the tag-to-build gap
 
-GitHub does not start workflows from events created with `GITHUB_TOKEN`; it
-blocks that to stop a workflow triggering itself. release-plz tags with exactly
-that token, so a merged release pull request creates the tag and `release.yml`
-— which triggers on tags — never runs. v0.1.0, v0.1.1 and v0.1.2 were all
-tagged this way; only v0.1.0 was ever built, because it was dispatched by hand.
+GitHub suppresses ordinary workflow-triggering events created with
+`GITHUB_TOKEN`, including tag pushes. It explicitly permits
+`workflow_dispatch` and `repository_dispatch` to start another workflow.
+See [GitHub's trigger documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
 
-That is not cosmetic. `herdr/install.sh` builds its download URL from
-`herdr-plugin.toml`, so a version with no release means every
-`herdr plugin install` 404s.
+`release-plz.yml` now tags using `GITHUB_TOKEN` and runs
+`scripts/dispatch-tagged-release.sh` only when `releases_created` is true.
+The helper accepts exactly one `questmancer` release with a stable `X.Y.Z`
+version and a matching `vX.Y.Z` tag. Malformed, ambiguous, prerelease and
+mismatched outputs fail before calling GitHub. The release job alone gains
+`actions: write`; tag creation continues to use `contents: write`.
 
-### Creating the token
+The helper requests `release.yml` from `main`, passing the emitted tag. Every
+release job checks out that tag and the existing full gate validates both
+manifests, the packaged crate, four archives and checksums before publishing.
+Dispatch acknowledgement is not evidence that those later jobs succeeded.
 
-The workflow reads an optional `RELEASE_PLZ_TOKEN` secret and falls back to
-`GITHUB_TOKEN`, so nothing breaks while it is absent — tags are still created,
-they simply have to be dispatched by hand.
+A personal access token is no longer required or read by this workflow.
+Existing repository secrets were not removed. Using `GITHUB_TOKEN` for the tag
+also avoids a second build arriving from a personal-token push alongside the
+explicit dispatch.
 
-1. **Create a fine-grained personal access token.**
-   GitHub → Settings → Developer settings → Personal access tokens →
-   Fine-grained tokens → **Generate new token**.
-   - Resource owner: `opsydyn`
-   - Repository access: **Only select repositories** → `herdr-questmancer`
-   - Repository permissions: **Contents → Read and write**. Nothing else.
-   - Expiration: set one, and put a reminder in the calendar. A release
-     pipeline that stops working on a date nobody wrote down is worse than one
-     that never worked.
-2. **Copy the token.** It is shown once.
-3. **Add it as a repository secret.**
-   Repository → Settings → Secrets and variables → Actions → **New repository
-   secret**, named `RELEASE_PLZ_TOKEN`.
-4. **Check it works** on the next release: the `release` job's summary stops
-   printing the "will not build on its own" warning, and a `Release` run
-   appears against the new tag without anyone dispatching it.
-
-The token is a repository secret rather than an environment secret because the
-`release` job is not gated behind an environment; `CARGO_REGISTRY_TOKEN` is the
-one that lives in the `crates-io` environment.
-
-Until then, and for re-running a release whose build failed, `release.yml`
-accepts a manual dispatch with the tag to release:
+For an approved recovery of an existing tag whose build never ran or failed:
 
 ```bash
-gh workflow run release.yml -f tag=v0.1.0
+gh workflow run release.yml --repo opsydyn/herdr-questmancer --ref main -f tag=v0.1.8
 ```
+
+That command publishes the historical `v0.1.8` source after its gates pass; it
+cannot publish the current uncommitted work. Do not move an existing tag to
+include newer changes. The eventual clean candidate needs its own reviewed
+version and tag. This recovery command has not been run during preparation.
 
 ## Why the changelog is not generated
 
@@ -111,8 +137,9 @@ version nobody could install.
 
 ## crates.io
 
-The publish job is written, contracted and gated off behind the repository
-variable `PUBLISH_TO_CRATES`. Two things are outstanding:
+The publish job is written and contracted, and runs only when the repository
+variable `PUBLISH_TO_CRATES` is `true`. Its live value was not inspected in
+this documentation pass. Registry setup still needs verification of:
 
 - a `CARGO_REGISTRY_TOKEN` secret in a `crates-io` GitHub environment;
 - confirmation that the crate name is free.
@@ -138,4 +165,7 @@ lives in `reference-art/`, and `Cargo.toml` excludes repository material.
   hardcode `0.1.0`, so the first automated bump would have failed it with a
   message pointing at the release rather than at the test.
 - `tests/workflow_contract.rb` — job graph, action pins, the crates.io gate,
-  and the release-plz settings this document depends on.
+  tag checkout in every release job, and the explicit release-plz dispatch,
+  conditional and token permissions.
+- Dispatch behaviour tests use a fake `gh` executable: the exact tag is sent
+  once; invalid outputs never reach GitHub; a rejected dispatch stays failed.

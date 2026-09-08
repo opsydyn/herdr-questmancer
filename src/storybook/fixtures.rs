@@ -2,12 +2,14 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::{
     app::{ConnectionState, Model, OutputPreview, View},
+    command::{AgentCommand, CommandResult},
     domain::{
         AdventurerClass, AdventurerPersona, Agent, AgentKey, Ancestry, Campaign, Chronicle,
         DomainState, GuildAttention, GuildSummons, PaneId, PersonaKey, Presence, TabId, Timestamp,
         WorkspaceId,
     },
     interaction::reduce_action,
+    runtime_loop::apply_command_result,
     ui::input::Action,
 };
 
@@ -33,7 +35,7 @@ pub enum StoryFixture {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ArchetypeGallery {
     WorldMasters,
-    BarbarianV2Poses,
+    RitualPoses(AdventurerClass),
     PersonaPalettes,
     RosterFamilies,
     CustomClassMasters,
@@ -42,8 +44,8 @@ pub enum ArchetypeGallery {
     Librarian,
 }
 
-pub const fn barbarian_v2_pose_fixture() -> StoryFixture {
-    StoryFixture::ArchetypeGallery(ArchetypeGallery::BarbarianV2Poses)
+pub const fn ritual_pose_fixture(class: AdventurerClass) -> StoryFixture {
+    StoryFixture::ArchetypeGallery(ArchetypeGallery::RitualPoses(class))
 }
 
 pub const CORE_ARCHETYPES: [AdventurerClass; 8] = [
@@ -172,7 +174,34 @@ pub fn search_interaction_fixture(context: StoryContext) -> Model {
 }
 
 pub fn scrying_interaction_fixture(context: StoryContext) -> Model {
-    interaction_fixture(context, Action::Refresh, "")
+    let mut model = guild_world_fixture(context);
+    let preview = model
+        .output_preview()
+        .cloned()
+        .expect("authored scrying output");
+    let effects = reduce_action(&mut model, Action::Refresh);
+    let [
+        AgentCommand::LoadOutput {
+            pane_id, request, ..
+        },
+    ] = effects.commands.as_slice()
+    else {
+        unreachable!("the connected fixture selects a live adventurer");
+    };
+    // Settle the authored response through the same request boundary as live
+    // scrying; Storybook never executes the socket command.
+    apply_command_result(
+        &mut model,
+        CommandResult::OutputLoaded {
+            pane_id: pane_id.clone(),
+            request: *request,
+            revision: preview.revision,
+            text: preview.text,
+            truncated: false,
+        },
+        context.now,
+    );
+    model
 }
 
 pub fn librarian_ledger_fixture(context: StoryContext) -> Model {

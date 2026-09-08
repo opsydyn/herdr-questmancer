@@ -38,8 +38,8 @@
 //! needs is absent, and the plugin's launcher resolves its binary from inside
 //! the plugin directory rather than from `PATH`.
 //!
-//! Requires Herdr `0.8.0`, which speaks protocol `19`. Herdr refuses a client
-//! whose protocol differs, so the plugin and the server move together.
+//! Requires Herdr `0.9.0`, which speaks protocol `22`. Questmancer requires this exact
+//! tested JSON protocol version; Herdr endpoint compatibility is a separate contract.
 //!
 //! # The two rooms
 //!

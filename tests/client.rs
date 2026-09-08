@@ -40,6 +40,31 @@ fn fixture(name: &str) -> Value {
 }
 
 #[tokio::test]
+async fn pane_metadata_cannot_return_a_different_target() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let request = read_request(&mut stream).await;
+        assert_eq!(request["method"], "pane.get");
+        assert_eq!(request["params"], json!({"pane_id": "w1:p1"}));
+        let mut pane =
+            fixture("0.9.0/session_snapshot.json")["result"]["snapshot"]["panes"][0].clone();
+        pane["pane_id"] = json!("w1:p2");
+        write_response(
+            &mut stream,
+            &json!({"id": request["id"], "result": {"type": "pane_info", "pane": pane}}),
+        )
+        .await;
+    });
+    let result = HerdrClient::new(path).get_pane("w1:p1").await;
+    assert!(
+        result.is_err(),
+        "metadata from a different pane cannot reconcile the requested adventurer: {result:?}"
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn each_ordinary_request_uses_a_new_connection() {
     let (_directory, path, listener) = listener();
     let server = tokio::spawn(async move {
@@ -66,7 +91,7 @@ async fn each_ordinary_request_uses_a_new_connection() {
     });
     let client = HerdrClient::new(path);
 
-    assert_eq!(client.ping().await.unwrap().protocol, 19);
+    assert_eq!(client.ping().await.unwrap().protocol, 22);
     assert_eq!(client.snapshot().await.unwrap().agents.len(), 1);
     server.await.unwrap();
 }
