@@ -8,6 +8,17 @@ This assessment checks the current source and tests against `PLAN.md`, the
 party-delight plan and the complete candidate review. It does not promote or
 implement another feature.
 
+## Subsequent phase closure
+
+The user approved commit, push and release. [Version 0.1.9 is now published](2026-09-08-published-release/README.md)
+from clean `98f557d`, with 600 Rust / 28 shell tests, isolated Herdr qualification,
+four verified archives/checksums and the actual installer check complete. Current
+Hall/Delve/sidebar and the restored native illustrations were user-approved.
+The dated assessment below precedes these results. Its first three recommended
+steps are closed for this release; remaining bounded evidence is listed in the
+publication receipt. Chronicle capture-semantics design is the next recommended
+slice and still needs approval.
+
 ## Roadmap position
 
 | Area | Assessment |

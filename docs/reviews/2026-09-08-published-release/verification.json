@@ -1,0 +1,159 @@
+{
+  "release": {
+    "tag": "v0.1.9",
+    "commit": "98f557d66b2ff939dbc24b1277477d62264456cc",
+    "case": "/tmp/qm-published-019-wdvdzbo4",
+    "status": "passed",
+    "assets": [
+      {
+        "name": "questmancer-v0.1.9-aarch64-apple-darwin.tar.gz",
+        "sha256": "af9db59c1db401c6320fd5e0e0e0c4fe6e915d9c940c2a6ac3944088539db569",
+        "bytes": 6387952,
+        "binary_format": "Mach-O 64-bit executable arm64",
+        "executed_version": "questmancer 0.1.9"
+      },
+      {
+        "name": "questmancer-v0.1.9-x86_64-apple-darwin.tar.gz",
+        "sha256": "60dd3072700414967bde5bc7d401ad21ed4846e1d71c0a53b9b0e01dd815fe6a",
+        "bytes": 6487928,
+        "binary_format": "Mach-O 64-bit executable x86_64"
+      },
+      {
+        "name": "questmancer-v0.1.9-aarch64-unknown-linux-gnu.tar.gz",
+        "sha256": "497ee3db259d75fc9b3c4b4af0b6d870eacaa4b0b0f975967da4304326111df6",
+        "bytes": 6384822,
+        "binary_format": "ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=74701b97ad51a2a014cdbdea0000a1eaf0aeb594, stripped"
+      },
+      {
+        "name": "questmancer-v0.1.9-x86_64-unknown-linux-gnu.tar.gz",
+        "sha256": "13622b171d64d17ad4c151a2d0c48f3c54932fcb899e0253b2cf823781492209",
+        "bytes": 6568376,
+        "binary_format": "ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=3da210a98c598e1cb952be72bad222a30a5b0d25, stripped"
+      }
+    ],
+    "url": "https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.9",
+    "published_at": "2026-09-08T22:18:41Z",
+    "installer": {
+      "command": "herdr plugin install opsydyn/herdr-questmancer --ref v0.1.9 --yes",
+      "storage": "isolated temporary XDG directories",
+      "binary": "/tmp/qm-published-019-wdvdzbo4/config/herdr/plugins/github/opsydyn.questmancer-829cb1c436b2/bin/questmancer",
+      "version": "questmancer 0.1.9",
+      "binary_matches_release_archive": true,
+      "shared_registration_changed": false
+    },
+    "unverified": [
+      "execution of Linux and Intel macOS binaries on their native hosts",
+      "real-agent completion",
+      "optional Reviewr"
+    ]
+  },
+  "qualification": {
+    "commit": "98f557d66b2ff939dbc24b1277477d62264456cc",
+    "started_utc": "2026-09-08T22:08:53Z",
+    "status": "passed",
+    "checks": [
+      {
+        "name": "just-verify",
+        "command": [
+          "just",
+          "verify"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "release-build",
+        "command": [
+          "cargo",
+          "build",
+          "--release"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "clean-package",
+        "command": [
+          "cargo",
+          "package",
+          "--locked",
+          "--offline"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "isolated-runtime",
+        "command": [
+          "python3",
+          "docs/reviews/2026-09-08-release-candidate/isolated_plugin_check.py"
+        ],
+        "exit_code": 0
+      }
+    ],
+    "tests": {
+      "rust": 600,
+      "runs": 54,
+      "shell": 28
+    },
+    "package": {
+      "bytes": 4970598,
+      "sha256": "10dbbdaaca9f142c20742df30082f0444ab6f13733d6d28f8adbb8dda11650f8",
+      "files": 206,
+      "vcs": {
+        "git": {
+          "sha1": "98f557d66b2ff939dbc24b1277477d62264456cc"
+        },
+        "path_in_vcs": ""
+      },
+      "production_source_and_png_files_matched": 102
+    },
+    "isolated_runtime": {
+      "status": "passed",
+      "cleanup": "passed",
+      "receipt": "isolated-runtime.json",
+      "binary_sha256": "9713481d680195f3a75838df844fda4143a144fbaa5fb3d0412d2cc3bae9e257"
+    },
+    "final_worktree": "clean",
+    "unverified": [
+      "real-agent resting and explicit completion",
+      "optional Reviewr",
+      "published 0.1.9 archives checksums installer and live workflow",
+      "registry settings"
+    ]
+  },
+  "workflow": {
+    "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/34284545689",
+    "head_sha": "98f557d66b2ff939dbc24b1277477d62264456cc",
+    "conclusion": "success",
+    "event": "push",
+    "jobs": [
+      {
+        "name": "Verify tagged commit",
+        "conclusion": "success"
+      },
+      {
+        "name": "Build aarch64-unknown-linux-gnu",
+        "conclusion": "success"
+      },
+      {
+        "name": "Build x86_64-apple-darwin",
+        "conclusion": "success"
+      },
+      {
+        "name": "Build x86_64-unknown-linux-gnu",
+        "conclusion": "success"
+      },
+      {
+        "name": "Build aarch64-apple-darwin",
+        "conclusion": "success"
+      },
+      {
+        "name": "Publish release",
+        "conclusion": "success"
+      },
+      {
+        "name": "Publish to crates.io",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "full_logs": "/tmp/questmancer-019-release-qualification"
+}

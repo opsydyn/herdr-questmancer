@@ -31,16 +31,17 @@ creative and correctness sequence:
 | Campaign heraldry | Implemented and visually approved 2026-09-08 |
 | Keepsakes, cat reaction and Chronicle chapters | Implemented, verified and visually approved 2026-09-08 |
 | All fourteen class rituals and matching card fallbacks | Implemented, verified and visually approved 2026-09-08 |
-| Complete 0.1.9 candidate preparation | Reviewed, verified and packaged; clean-commit and distribution gates remain |
+| Questmancer 0.1.9 release | Published from clean `98f557d`; four archives, checksums and actual installer verified |
 
 The [complete candidate review](docs/reviews/2026-09-08-party-candidate/README.md)
 indexes every current approval and records this expanded candidate's checks.
-The latest `just verify` passed on 2026-09-08: **593 Rust tests across 54 runs,
-28 shell tests, formatting, Clippy with warnings denied and script syntax**.
-The release build and verified dirty-source package pass. The source package
-also builds Storybook with its production assets. All current review-pack art
-is approved; native room captures, real-agent transitions and acceptance from
-the eventual clean release commit remain separate gates.
+The final clean release commit `98f557d` passed **600 Rust tests across 54 runs,
+28 shell tests, formatting, Clippy with warnings denied and script syntax**,
+the release build, clean source-package build and isolated Herdr qualification.
+All current review-pack art is approved. The user also accepted current
+Hall/Delve/sidebar appearance and restored native Artificer, Bard and Librarian
+illustrations. See the [published release record](docs/reviews/2026-09-08-published-release/README.md)
+for separate workflow, archive and actual installer evidence.
 
 ## Implemented architecture and capabilities
 
@@ -108,36 +109,21 @@ shape cues; full-motion fresh spoils stop at three seconds and leave a stable
 completed cue. Reduced/still rosters have no decorative or cleanup timer.
 Newer facts and socket boundaries interrupt old completion theatre.
 
-## Distribution and release gates
+## Distribution and remaining evidence
 
-The [2026-09-08 publication check](docs/release-process.md#local-candidate--2026-09-08)
-found only published `v0.1.0` and `v0.1.3`; the latest still has four platform
-archives and `SHA256SUMS`. No `v0.1.9` tag exists in the checked remote.
-The September 6 historical check found public `main` at `0.1.8` without a
-matching release. Use the source-link workflow for this 0.1.9 checkout.
-Earlier 0.1.3 archive and temporary installer checks are historical evidence.
+[Questmancer v0.1.9](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.9)
+is published from clean commit `98f557d`. Both manifests match the tag. The
+release workflow passed all gates and four target builds; the downloaded
+macOS/Linux Intel/ARM archives each contain one root-level executable and match
+`SHA256SUMS`. The actual Herdr installer passed in temporary storage and its
+macOS ARM64 binary reports `questmancer 0.1.9`. See the
+[publication receipt](docs/reviews/2026-09-08-published-release/README.md).
+This closes the historical manifest/archive distribution gap.
 
-The release workflow now has a locally verified explicit dispatch after tagging;
-its live execution remains unverified. Closing distribution
-requires a matching published release, not another historical `v0.1.0` tag.
-Use [the release process](docs/release-process.md) and verify:
-
-1. The intended clean commit passes `just verify`, `cargo build --release`,
-   package checks and diff hygiene.
-2. The tag matches both `Cargo.toml` and `herdr-plugin.toml`.
-3. Four archives contain a root-level executable and match `SHA256SUMS`:
-   x86_64/aarch64 Linux GNU and x86_64/aarch64 macOS.
-4. `herdr/install.sh` installs that published version successfully.
-5. Guarded Herdr `0.9.0` acceptance is repeated from that release commit,
-   with current Guild Hall and Delve captures.
-6. Optional Reviewr is tested only when `persiyanov.reviewr.open` is available.
-7. Real-agent resting and completion are recorded only when actually observed.
-   `herdr pane report-agent` supports idle, working, blocked and unknown;
-   it cannot synthesize done.
-
-Registry publication is separately gated. A crates.io API check returned 404
-for Questmancer; registration, credentials and the live publish gate require
-separate verification. Local tests do not establish registry availability.
+Remaining evidence is bounded: execution of the other three binaries on their
+native hosts, exhaustive terminal resize/native-card coverage, optional Reviewr,
+and real-agent resting/completion. Synthetic Herdr reports cannot express done.
+The crates.io job was skipped; registry setup/publication remains separate.
 
 ## Native acceptance regression — 2026-09-08
 
@@ -151,8 +137,8 @@ loaded and the user confirmed restored native Artificer, Bard and Librarian
 illustrations in Ghostty. The record tracks that result separately.
 The earlier 593-test candidate preparation remains historical above.
 
-Before distribution, commit and qualify this repair on top of `9ea8501`. No further class-art or feature expansion is
-needed to resolve this regression.
+The repair was clean-qualified and published as `v0.1.9` at `98f557d`. No further
+class-art or feature expansion is needed to resolve this regression.
 
 ## Approved sequence and remaining work — 2026-09-08
 
@@ -168,10 +154,8 @@ assessment on 2026-09-08. Preparation evidence is retained as a dated receipt;
 clean-commit qualification is recorded separately after the commit. See the
 [current roadmap assessment](docs/reviews/2026-09-08-roadmap-assessment.md).
 
-Next: close clean-commit qualification and native/live acceptance, then seek
-release authorisation. Publication is a separate gate.
-Native transport/room captures, four-platform archives, checksums and the
-published installer retain their own acceptance requirements above.
+This phase is complete and published. The next recommended bounded work is a
+Chronicle capture-semantics design, subject to the Questmancer's approval.
 
 Keep these unpromoted ideas in the backlog:
 

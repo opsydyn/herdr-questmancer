@@ -336,27 +336,20 @@ See `docs/reviews/2026-09-08-party-candidate/README.md` for the approval index,
 review findings and current candidate evidence. Storybook has 45 stories:
 two worlds, 37 asset views and six interactions.
 
-The expanded 0.1.9 candidate preparation passed 593 Rust tests across 54 runs,
-28 shell tests, the release build, verified dirty-source packaging and the
-packaged Storybook build. Review packs remain in Git but are excluded from
-the crate to keep it under the existing 10 MiB package gate. Isolated runtime
-qualification is recorded in the candidate receipt; it is separate from native
-appearance and real-agent completion acceptance. The earlier clean qualification
-at `c3720a9` does not qualify these later changes as a clean commit.
+Questmancer `v0.1.9` is published from clean commit `98f557d`. Qualification
+passed 600 Rust tests across 54 runs, 28 shell tests, the release build, verified
+clean-source packaging and fresh isolated Herdr runtime/cleanup. The GitHub
+workflow passed all four builds; downloaded archives match `SHA256SUMS`, and
+the actual Herdr installer passed in temporary storage on macOS ARM64. Review
+packs remain in Git and are excluded from the crate's existing 10 MiB limit.
+See `docs/reviews/2026-09-08-published-release/README.md` and its receipt.
 
-Remaining release work is evidence and distribution:
-
-- the complete local candidate commit was authorised on 2026-09-08; repeat
-  clean-commit verification, package and guarded Herdr qualification. Consult
-  `docs/reviews/2026-09-08-roadmap-assessment.md` for the post-commit receipt
-  location and do not treat preparation logs as clean-commit evidence;
-- capture current Guild Hall and Delve release visuals through native transport;
-- publish only when authorised, then verify four platform archives, checksums
-  and the installer end to end. The 2026-09-08 read-only remote check found
-  latest release `v0.1.3` and no `v0.1.9` tag. Historical 0.1.3 archive checks
-  do not qualify the new candidate;
-- optionally smoke Reviewr when `persiyanov.reviewr.open` is installed;
-- retain real-agent resting/completion transitions as unverified until observed.
+The user approved Hall/Delve/sidebar appearance and confirmed restored native
+Artificer, Bard and Librarian illustrations. Exhaustive resize/native-card
+coverage, execution of other platform binaries on native hosts, optional Reviewr
+and real-agent resting/completion remain unverified. The crates.io job was
+skipped; registry publication remains separate. The phase is complete; recommend
+Chronicle capture-semantics design next, but do not start it without approval.
 
 ## Native portrait regression repair — 2026-09-08
 
@@ -373,8 +366,8 @@ build. A fresh managed-plugin probe prepares all fourteen native cards and the
 Librarian. The user confirmed restored Artificer, Bard and Librarian illustrations
 in Ghostty after reopening the repaired binary; consult
 `docs/reviews/2026-09-08-native-portrait-regression/README.md` and its receipt for
-that result. This source follows clean commit `9ea8501` and needs its own commit
-and clean qualification. Earlier clean receipts do not cover the repair.
+that result. The repair was subsequently committed, clean-qualified and published
+at `98f557d` as `v0.1.9`; consult the publication receipt for final evidence.
 
 ## Current presentation contracts — 2026-09-08
 

@@ -456,7 +456,8 @@ personalised world sprites at native size, completing continuity for all
 fourteen classes. The [final card comparison](docs/design/reviews/2026-09-08-mage-sorcerer-card-fallbacks/README.md)
 was visually approved on 2026-09-08. Native illustrations and roster families remain in use.
 See the [complete candidate review](docs/reviews/2026-09-08-party-candidate/README.md)
-for current verification and the remaining release gates.
+for the approval index, and the [published 0.1.9 record](docs/reviews/2026-09-08-published-release/README.md)
+for clean qualification, archive checks and the actual installer result.
 
 The Storybook uses fixed fixture time and shows authored pose galleries. Its
 world stories do not play a live animation timeline; the review GIFs sample

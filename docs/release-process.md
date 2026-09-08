@@ -8,7 +8,19 @@ Three things cut a release, and each owns one job.
 | Binaries | `release.yml`, explicitly dispatched after tagging | four archives and `SHA256SUMS` on a GitHub release |
 | Registry | `release.yml`, gated | a crates.io publish when `PUBLISH_TO_CRATES=true`; live setting unverified |
 
-## Distribution status — 2026-09-06
+## Current distribution — 2026-09-08
+
+[Questmancer v0.1.9](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.9)
+is published from clean commit `98f557d`. The normal authenticated tag push
+started the successful release workflow. All four downloaded archives and
+checksums passed verification; the actual Herdr installer passed in temporary
+storage on macOS ARM64. The crates.io job was skipped. See the
+[publication receipt](reviews/2026-09-08-published-release/README.md).
+
+The dated preparation sections below describe earlier states and are superseded
+by this publication record. Keep their evidence distinct from the final release.
+
+## Historical distribution status — 2026-09-06
 
 Read-only GitHub API checks still find only published `v0.1.0` and
 [`v0.1.3`](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.3).
