@@ -1,0 +1,52 @@
+{
+  "old_runtime": {
+    "pane_id": "w8:pA",
+    "pid": 85490,
+    "started_at": 1788903538,
+    "initial_view": "guild"
+  },
+  "original_focus": "w8:pA",
+  "view": "guild",
+  "actions": [
+    {
+      "action_id": "close",
+      "command": [
+        "bash",
+        "herdr/control.sh",
+        "close"
+      ],
+      "exit_code": 0,
+      "finished_unix_ms": 1788904585007,
+      "log_id": "plugin-log-9",
+      "plugin_id": "opsydyn.questmancer",
+      "started_unix_ms": 1788904584709,
+      "status": "succeeded",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "action_id": "guild",
+      "command": [
+        "bash",
+        "herdr/control.sh",
+        "guild"
+      ],
+      "exit_code": 0,
+      "finished_unix_ms": 1788904585146,
+      "log_id": "plugin-log-10",
+      "plugin_id": "opsydyn.questmancer",
+      "started_unix_ms": 1788904585115,
+      "status": "succeeded",
+      "stderr": "",
+      "stdout": ""
+    }
+  ],
+  "new_runtime": {
+    "pane_id": "w8:pH",
+    "pid": 1838,
+    "started_at": 1788904585,
+    "initial_view": "guild"
+  },
+  "other_panes_preserved": true,
+  "release_sha256": "9713481d680195f3a75838df844fda4143a144fbaa5fb3d0412d2cc3bae9e257"
+}

@@ -1,0 +1,87 @@
+{
+  "case": "/tmp/qm-native-probe-mzzqama8",
+  "cleanup_errors": [],
+  "original_focus": "w8:pA",
+  "created": {
+    "type": "tab_created",
+    "tab": {
+      "tab_id": "w8:t6",
+      "workspace_id": "w8",
+      "number": 6,
+      "label": "Portrait startup diagnostic",
+      "focused": false,
+      "pane_count": 1,
+      "agent_status": "unknown"
+    },
+    "root_pane": {
+      "pane_id": "w8:pC",
+      "terminal_id": "term_65aff988dc9d3c",
+      "workspace_id": "w8",
+      "tab_id": "w8:t6",
+      "focused": false,
+      "cwd": "/private/tmp/qm-native-probe-mzzqama8",
+      "foreground_cwd": "/private/tmp/qm-native-probe-mzzqama8",
+      "agent_status": "unknown",
+      "scroll": {
+        "offset_from_bottom": 0,
+        "max_offset_from_bottom": 0,
+        "viewport_rows": 54
+      },
+      "revision": 0
+    }
+  },
+  "picker_at_spawn": "PortraitGallery { capability: Kitty, classes: [Class(Barbarian), Class(Bard), Class(Cleric), Class(Druid), Class(Paladin), Class(Ranger), Class(Rogue), Class(Wizard), Class(Artificer), Class(Runewright), Class(Testmender), Class(Pathseeker), Class(Mage), Class(Sorcerer)], librarian: true, diagnostic: None }\n",
+  "owned_pane": "w8:pC",
+  "picker_before": "PortraitGallery { capability: Kitty, classes: [Class(Barbarian), Class(Bard), Class(Cleric), Class(Druid), Class(Paladin), Class(Ranger), Class(Rogue), Class(Wizard), Class(Artificer), Class(Runewright), Class(Testmender), Class(Pathseeker), Class(Mage), Class(Sorcerer)], librarian: true, diagnostic: None }\n",
+  "raw": {
+    "env": {
+      "TERM": "xterm-256color",
+      "TERM_PROGRAM": "ghostty",
+      "HERDR_ENV": "1"
+    },
+    "winsize": [
+      54,
+      207,
+      1656,
+      972
+    ],
+    "queries": [
+      {
+        "query": "combined",
+        "response": "\u001b_Gi=31;OK\u001b\\\u001b[?62;22c\u001b[6;18;8t\u001b[0n",
+        "hex": "1b5f47693d33313b4f4b1b5c1b5b3f36323b3232631b5b363b31383b38741b5b306e"
+      },
+      {
+        "query": "cell",
+        "response": "\u001b[6;18;8t",
+        "hex": "1b5b363b31383b3874"
+      },
+      {
+        "query": "kitty",
+        "response": "\u001b_Gi=31;OK\u001b\\",
+        "hex": "1b5f47693d33313b4f4b1b5c"
+      }
+    ]
+  },
+  "graphics_info": {
+    "type": "pane_graphics_info",
+    "cell_width_px": 8,
+    "cell_height_px": 18,
+    "pane_visible": false,
+    "file_frame_directory": "/var/tmp/herdr-pane-graphics-501/server-74534-1788903371047597000/source",
+    "file_frame_formats": [
+      "rgba",
+      "bgra"
+    ],
+    "file_frame_max_bytes": 16777216,
+    "file_frame_direct_max_bytes": 419430400,
+    "file_frame_damage": true,
+    "max_layers_per_pane": 16,
+    "pixel_mouse": true,
+    "file_frame_transport": "direct-kitty"
+  },
+  "picker_after": "PortraitGallery { capability: Kitty, classes: [Class(Barbarian), Class(Bard), Class(Cleric), Class(Druid), Class(Paladin), Class(Ranger), Class(Rogue), Class(Wizard), Class(Artificer), Class(Runewright), Class(Testmender), Class(Pathseeker), Class(Mage), Class(Sorcerer)], librarian: true, diagnostic: None }\n",
+  "owned_pane_closed": true,
+  "baseline_panes_preserved": true,
+  "focus_unchanged": true
+}

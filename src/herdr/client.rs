@@ -16,10 +16,10 @@ use super::{
     framing::{FramingError, read_json_line, write_json_line},
     protocol::{
         AgentViewBuiltinSortField, AgentViewClearParams, AgentViewSetParams, AgentViewSort,
-        AgentViewSortField, AgentViewSortOrder, EmptyParams, ErrorResponse, OkResult, PaneInfo,
-        PaneInfoResult, PaneReadParams, PaneReadResult, PaneReadResultEnvelope,
-        PaneReportMetadataParams, PaneSendKeysParams, PaneSendTextParams, PaneTarget,
-        PluginActionInfo, PluginActionInvokeParams, PluginActionInvokedResult,
+        AgentViewSortField, AgentViewSortOrder, EmptyParams, ErrorResponse, OkResult,
+        PaneGraphicsInfo, PaneInfo, PaneInfoResult, PaneReadParams, PaneReadResult,
+        PaneReadResultEnvelope, PaneReportMetadataParams, PaneSendKeysParams, PaneSendTextParams,
+        PaneTarget, PluginActionInfo, PluginActionInvokeParams, PluginActionInvokedResult,
         PluginActionListParams, PluginActionListResult, PluginInvocationContext, Pong, ReadFormat,
         ReadSource, Request, SessionSnapshot, SessionSnapshotResult, SuccessResponse,
         WorkspaceReportMetadataParams,
@@ -70,6 +70,21 @@ impl HerdrClient {
             });
         }
         Ok(result.pane)
+    }
+
+    /// Read host cell geometry without creating a graphics layer or changing focus.
+    pub async fn pane_graphics_info(
+        &self,
+        pane_id: impl Into<String>,
+    ) -> Result<PaneGraphicsInfo, ClientError> {
+        self.request(
+            "pane.graphics.info",
+            PaneTarget {
+                pane_id: pane_id.into(),
+            },
+            "pane_graphics_info",
+        )
+        .await
     }
 
     pub async fn focus_pane(&self, pane_id: impl Into<String>) -> Result<PaneInfo, ClientError> {

@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.64s
+     Running unittests src/lib.rs (target/debug/deps/questmancer-a2afdf5be81c7803)
+
+running 15 tests
+test portrait::tests::every_class_has_an_embedded_native_portrait ... ok
+test portrait::transport::tests::an_empty_terminal_grid_cannot_get_invented_pixels ... ok
+test portrait::tests::no_two_classes_share_a_card_portrait ... ok
+test portrait::transport::tests::only_missing_pixel_axes_are_completed ... ok
+test portrait::transport::tests::zero_or_overflowing_host_sizes_are_rejected ... ok
+test portrait::tests::intermediary_capability_result_preserves_the_authored_sprite_fallback ... ok
+test portrait::tests::invalid_png_data_cannot_displace_the_sprite_fallback ... ok
+test portrait::transport::tests::existing_pixels_require_no_socket_request_or_change ... ok
+test portrait::transport::tests::an_unresponsive_host_cannot_hold_up_startup_indefinitely ... ok
+test portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid ... ok
+test portrait::transport::tests::invalid_or_denied_graphics_responses_preserve_missing_pixels ... ok
+test portrait::tests::every_native_portrait_is_a_decodable_transparent_three_by_four_png ... ok
+test portrait::tests::ancestry_portraits_are_reserved_and_never_selected_for_regular_adventurers ... ok
+test portrait::tests::native_class_portraits_take_priority_over_ancestry_portraits ... ok
+test portrait::tests::native_picker_prepares_every_approved_asset_and_leaves_other_classes_unmapped ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.71s

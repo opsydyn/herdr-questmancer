@@ -139,6 +139,21 @@ Registry publication is separately gated. A crates.io API check returned 404
 for Questmancer; registration, credentials and the live publish gate require
 separate verification. Local tests do not establish registry availability.
 
+## Native acceptance regression — 2026-09-08
+
+The user accepted current sidebar, Hall and Delve appearance in Ghostty, while
+identifying a regression in native adventurer/Librarian artwork. The
+[repair record](docs/reviews/2026-09-08-native-portrait-regression/README.md)
+reproduces missing pixel geometry specifically in managed-plugin panes. The
+implemented startup repair passes 600 Rust tests across 54 runs, 28 shell tests,
+the release build and native preparation in a managed plugin. It has been
+loaded and the user confirmed restored native Artificer, Bard and Librarian
+illustrations in Ghostty. The record tracks that result separately.
+The earlier 593-test candidate preparation remains historical above.
+
+Before distribution, commit and qualify this repair on top of `9ea8501`. No further class-art or feature expansion is
+needed to resolve this regression.
+
 ## Approved sequence and remaining work — 2026-09-08
 
 The consolidated review was approved and the earlier candidate was qualified

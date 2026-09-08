@@ -1,0 +1,7 @@
+   Compiling rustix v1.1.4
+   Compiling crossterm v0.29.0
+   Compiling ratatui-crossterm v0.1.2
+   Compiling ratatui v0.30.2
+   Compiling ratatui-image v11.0.6
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `release` profile [optimized] target(s) in 15.35s

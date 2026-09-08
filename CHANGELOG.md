@@ -8,6 +8,11 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- Restore native card and Librarian illustrations in Herdr 0.9 managed panes
+  that acknowledge Kitty but omit pixel geometry. Obtain missing pixel sizes
+  from Herdr before the existing capability query; preserve the grid, known
+  dimensions and authored fallback on unsupported or failed transports.
+
 - Exclude repository review packs from the crate archive. The expanded art had
   exceeded the existing 10 MiB package gate; production assets remain included.
 

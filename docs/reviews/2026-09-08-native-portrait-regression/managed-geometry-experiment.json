@@ -1,0 +1,70 @@
+{
+  "case": "/tmp/qm-native-plugin-k_t2va2k",
+  "plugin": "opsydyn.portrait-probe-k-t2va2k",
+  "cleanup_errors": [],
+  "original_focus": "w8:pA",
+  "opened": {
+    "id": "cli:plugin",
+    "result": {
+      "plugin_pane": {
+        "entrypoint": "probe",
+        "pane": {
+          "agent_status": "unknown",
+          "cwd": "/private/tmp/qm-native-plugin-k_t2va2k",
+          "focused": false,
+          "foreground_cwd": "/private/tmp/qm-native-plugin-k_t2va2k",
+          "label": "Portrait startup probe",
+          "pane_id": "w8:pF",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 54
+          },
+          "tab_id": "w8:t9",
+          "terminal_id": "term_65affa9ca2323f",
+          "workspace_id": "w8"
+        },
+        "plugin_id": "opsydyn.portrait-probe-k-t2va2k"
+      },
+      "type": "plugin_pane_opened"
+    }
+  },
+  "pane_id": "w8:pF",
+  "size": {
+    "graphics_info": {
+      "type": "pane_graphics_info",
+      "cell_width_px": 8,
+      "cell_height_px": 18,
+      "pane_visible": false,
+      "file_frame_directory": "/var/tmp/herdr-pane-graphics-501/server-74534-1788903371047597000/source",
+      "file_frame_formats": [
+        "rgba",
+        "bgra"
+      ],
+      "file_frame_max_bytes": 16777216,
+      "file_frame_direct_max_bytes": 419430400,
+      "file_frame_damage": true,
+      "max_layers_per_pane": 16,
+      "pixel_mouse": true,
+      "file_frame_transport": "direct-kitty"
+    },
+    "before": [
+      54,
+      205,
+      0,
+      0
+    ],
+    "after": [
+      54,
+      205,
+      1640,
+      972
+    ]
+  },
+  "gallery": "PortraitGallery { capability: Kitty, classes: [Class(Barbarian), Class(Bard), Class(Cleric), Class(Druid), Class(Paladin), Class(Ranger), Class(Rogue), Class(Wizard), Class(Artificer), Class(Runewright), Class(Testmender), Class(Pathseeker), Class(Mage), Class(Sorcerer)], librarian: true, diagnostic: None }\n",
+  "pane_closed": true,
+  "link_removed": true,
+  "other_panes_preserved": true,
+  "focus_unchanged": true
+}

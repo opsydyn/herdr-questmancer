@@ -1,3 +1,5 @@
+mod transport;
+
 use std::{collections::BTreeMap, fmt};
 
 use image::DynamicImage;
@@ -66,6 +68,33 @@ impl PortraitGallery {
             Ok(picker) => Self::from_picker(&picker),
             Err(error) => Self::fallback(format!("portrait capability detection failed: {error}")),
         }
+    }
+
+    /// Prepare managed-pane geometry before the authoritative terminal query.
+    /// Herdr 0.9 plugin panes can acknowledge Kitty while omitting pixel size.
+    /// Supplying host-reported pixels does not select or force a graphics protocol.
+    pub async fn detect_in_herdr(
+        environment: Option<&crate::herdr::environment::HerdrEnvironment>,
+        pane_id: Option<&crate::domain::PaneId>,
+    ) -> Self {
+        let geometry_error = if let (Some(environment), Some(pane_id)) = (environment, pane_id) {
+            transport::supply_missing_pixel_size(environment, pane_id, &std::io::stdout())
+                .await
+                .err()
+        } else {
+            None
+        };
+        let mut gallery = Self::detect();
+        if !gallery.capability.is_native()
+            && let Some(error) = geometry_error
+        {
+            let detail = format!("portrait geometry unavailable: {error}");
+            gallery.diagnostic = Some(match gallery.diagnostic {
+                Some(existing) => format!("{existing}; {detail}"),
+                None => detail,
+            });
+        }
+        gallery
     }
 
     #[must_use]

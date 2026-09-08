@@ -59,3 +59,12 @@ None of these is required to finish the approved party-delight sequence.
 Old dashboard, cybercafe and alternate-renderer milestones remain retired.
 The historical handoff in the party-delight plan is now explicitly labelled;
 it must not reopen class art, keepsakes or chapters that are already approved.
+
+## Subsequent native regression
+
+The Questmancer then accepted the current sidebar/Hall/Delve screenshots while
+reporting missing native card and Librarian illustrations in Ghostty. The
+[regression repair](2026-09-08-native-portrait-regression/README.md) is the next
+release prerequisite. Its new source is outside `9ea8501` qualification; its
+record owns verification and user visual confirmation. Native Artificer, Bard
+and Librarian restoration was subsequently confirmed with Ghostty screenshots.

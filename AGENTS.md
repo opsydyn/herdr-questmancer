@@ -358,6 +358,24 @@ Remaining release work is evidence and distribution:
 - optionally smoke Reviewr when `persiyanov.reviewr.open` is installed;
 - retain real-agent resting/completion transitions as unverified until observed.
 
+## Native portrait regression repair — 2026-09-08
+
+The Questmancer accepted the sidebar, Hall and Delve screenshots, but reported
+native card and Librarian art regressing to fallbacks. Herdr 0.9 managed-plugin
+panes acknowledged Kitty while omitting CSI 16t replies and PTY pixel dimensions.
+Plain panes did not reproduce the failure. Startup now fills missing PTY pixel
+axes from the own-pane `pane.graphics.info` response before the existing Picker
+query. It preserves the character grid/known axes, rejects zero/overflow and
+bounds the request to 500 ms. It never forces a protocol or adds frame requests.
+
+The repair passes 600 Rust tests across 54 runs, 28 shell tests and the release
+build. A fresh managed-plugin probe prepares all fourteen native cards and the
+Librarian. The user confirmed restored Artificer, Bard and Librarian illustrations
+in Ghostty after reopening the repaired binary; consult
+`docs/reviews/2026-09-08-native-portrait-regression/README.md` and its receipt for
+that result. This source follows clean commit `9ea8501` and needs its own commit
+and clean qualification. Earlier clean receipts do not cover the repair.
+
 ## Current presentation contracts — 2026-09-08
 
 The four-row sidebar is applied. Campaign heraldry uses native-scale crests

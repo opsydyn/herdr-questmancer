@@ -28,11 +28,36 @@ Current implementation:
 - embedded assets under `src/assets/portraits/*-card.png`;
 - capability and prepared-protocol owner: `src/portrait.rs`; and
 - canonical fallback: authored class RGB art in the `24x32` portrait canvas.
-  Wizard, Ranger and Barbarian reuse their new personalised `16x24` world
-  sprite at native size, centred with four-pixel margins. Other classes use
-  their independent portrait masters.
+  All fourteen classes reuse their personalised `16x24` world sprite at native
+  size, centred with four-pixel margins.
 
-## Failure symptom
+## Herdr 0.9 managed-pane regression — 2026-09-08
+
+The user reported native illustrations regressing to sprite fallbacks in
+Ghostty, for both the adventurer card and Librarian. Reopening the plugin did
+not recover them. Fresh, test-owned panes isolated the difference:
+
+- a plain pane answered Kitty and CSI 16t, with 8x18 host cells;
+- a managed-plugin pane answered Kitty but omitted CSI 16t and had zero PTY
+  pixel dimensions despite a valid character grid;
+- `ratatui-image` therefore discarded the native capability when it could not
+  determine font size. All embedded PNGs still decoded and prepared normally.
+
+Before querying graphics, Questmancer now requests `pane.graphics.info` for its
+own managed pane only when PTY pixel geometry is missing. It fills missing
+pixel axes from the host-reported cell size, preserving the latest character
+grid and every already-known pixel axis. Zero/overflowing sizes are rejected,
+and the local request is capped at 500 ms. No terminal-name heuristic or
+forced graphics protocol is introduced: the subsequent Picker query remains
+authoritative. Failure retains the authored fallback.
+
+This is startup transport preparation, not a per-frame request. It does not
+change Herdr configuration, focus, agents, persistent state or the scene
+renderer. See the [regression receipt](../reviews/2026-09-08-native-portrait-regression/README.md)
+for reproduction, validation and the separate visual result. Earlier clean
+qualification at `9ea8501` predates this repair.
+
+## Historical empty-region failure
 
 The Adventurer parchment and text rendered correctly, but the portrait region
 was completely empty. Earlier runs showed the authored RGB sprite in the same
@@ -43,7 +68,7 @@ reserves its cells so Ratatui does not paint ordinary content over the image.
 If an intermediary then discards the native graphics escape sequence, neither
 the image nor the fallback is visible.
 
-## Root cause
+## Historical root cause
 
 `TERM_PROGRAM=ghostty` described the outer terminal, but did not prove that the
 complete pane transport supported Kitty graphics. Questmancer temporarily used
@@ -179,13 +204,15 @@ When a native portrait is missing, inspect in this order:
 1. **Empty or fallback?** Empty suggests a false-positive native protocol;
    fallback suggests capability detection or asset preparation declined native
    rendering safely.
-2. **Herdr bridge:** confirm `terminal.kitty_graphics = true`.
-3. **Fresh attachment:** reattach the Herdr client after enabling the bridge.
-4. **Binary selection:** confirm the release binary was rebuilt.
-5. **Asset contract:** confirm the PNG decodes and the class is mapped.
-6. **Capability query:** trust the query result; do not add terminal-name
+2. **Managed pane geometry:** check the current repair and its receipt above;
+   a Kitty acknowledgement without CSI 16t or PTY pixels reproduces this regression.
+3. **Herdr bridge:** confirm `terminal.kitty_graphics = true`.
+4. **Fresh attachment:** reattach the Herdr client after enabling the bridge.
+5. **Binary selection:** confirm the release binary was rebuilt.
+6. **Asset contract:** confirm the PNG decodes and the class is mapped.
+7. **Capability query:** trust the query result; do not add terminal-name
    heuristics.
-7. **Action ordering:** ensure the plugin close completed before reopening it.
+8. **Action ordering:** ensure the plugin close completed before reopening it.
 
 This sequence produced the confirmed native portrait path while retaining a
 non-blank fallback for every unsupported identity and transport.

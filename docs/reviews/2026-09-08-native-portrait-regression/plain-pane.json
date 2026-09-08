@@ -1,0 +1,86 @@
+{
+  "case": "/tmp/qm-native-probe-zcgf_n5z",
+  "cleanup_errors": [],
+  "original_focus": "w8:p1",
+  "created": {
+    "type": "tab_created",
+    "tab": {
+      "tab_id": "w8:t3",
+      "workspace_id": "w8",
+      "number": 3,
+      "label": "Portrait diagnostic",
+      "focused": false,
+      "pane_count": 1,
+      "agent_status": "unknown"
+    },
+    "root_pane": {
+      "pane_id": "w8:p9",
+      "terminal_id": "term_65aff85be7f4e9",
+      "workspace_id": "w8",
+      "tab_id": "w8:t3",
+      "focused": false,
+      "cwd": "/private/tmp/qm-native-probe-zcgf_n5z",
+      "foreground_cwd": "/private/tmp/qm-native-probe-zcgf_n5z",
+      "agent_status": "unknown",
+      "scroll": {
+        "offset_from_bottom": 0,
+        "max_offset_from_bottom": 0,
+        "viewport_rows": 54
+      },
+      "revision": 0
+    }
+  },
+  "owned_pane": "w8:p9",
+  "picker_before": "Ok(Picker { font_size: FontSize { width: 8, height: 18 }, protocol_type: Kitty, background_color: None, is_tmux: false, capabilities: [Kitty, CellSize(Some((8, 18)))] })\n",
+  "raw": {
+    "env": {
+      "TERM": "xterm-256color",
+      "TERM_PROGRAM": "ghostty",
+      "HERDR_ENV": "1"
+    },
+    "winsize": [
+      54,
+      207,
+      1656,
+      972
+    ],
+    "queries": [
+      {
+        "query": "combined",
+        "response": "\u001b_Gi=31;OK\u001b\\\u001b[?62;22c\u001b[6;18;8t\u001b[0n",
+        "hex": "1b5f47693d33313b4f4b1b5c1b5b3f36323b3232631b5b363b31383b38741b5b306e"
+      },
+      {
+        "query": "cell",
+        "response": "\u001b[6;18;8t",
+        "hex": "1b5b363b31383b3874"
+      },
+      {
+        "query": "kitty",
+        "response": "\u001b_Gi=31;OK\u001b\\",
+        "hex": "1b5f47693d33313b4f4b1b5c"
+      }
+    ]
+  },
+  "graphics_info": {
+    "type": "pane_graphics_info",
+    "cell_width_px": 8,
+    "cell_height_px": 18,
+    "pane_visible": false,
+    "file_frame_directory": "/var/tmp/herdr-pane-graphics-501/server-74534-1788903371047597000/source",
+    "file_frame_formats": [
+      "rgba",
+      "bgra"
+    ],
+    "file_frame_max_bytes": 16777216,
+    "file_frame_direct_max_bytes": 419430400,
+    "file_frame_damage": true,
+    "max_layers_per_pane": 16,
+    "pixel_mouse": true,
+    "file_frame_transport": "direct-kitty"
+  },
+  "picker_after": "Ok(Picker { font_size: FontSize { width: 8, height: 18 }, protocol_type: Kitty, background_color: None, is_tmux: false, capabilities: [Kitty, CellSize(Some((8, 18)))] })\n",
+  "owned_pane_closed": true,
+  "baseline_panes_preserved": true,
+  "focus_unchanged": true
+}

@@ -1,0 +1,59 @@
+{
+  "date": "2026-09-08",
+  "base_commit": "9ea8501f1cc0cab991a6fd00df93b6f028b5b242",
+  "source_state": "uncommitted regression repair",
+  "root_cause": "Herdr 0.9 managed-plugin PTY has zero pixel geometry and omits CSI 16t; Kitty acknowledgement alone is insufficient for ratatui-image Picker",
+  "visual_approval": {
+    "sidebar_hall_delve": "accepted by user with supplied Ghostty screenshots",
+    "native_illustrations_after_repair": "confirmed restored by user on 2026-09-08; supplied Ghostty screenshots show native Artificer, Bard and Librarian illustrations"
+  },
+  "tests": {
+    "focused_portrait": 15,
+    "rust": 600,
+    "rust_runs": 54,
+    "shell": 28,
+    "full_verify": "passed",
+    "release_build": "passed"
+  },
+  "live_probe": "fresh managed plugin prepares all 14 native cards and Librarian with compiled production repair",
+  "cleanup": "all test-created panes and plugin links removed; pre-existing panes and focus preserved",
+  "reopen": "new release binary reopened using ordered normal plugin actions",
+  "shared_server_restarted": false,
+  "release_binary_sha256": "9713481d680195f3a75838df844fda4143a144fbaa5fb3d0412d2cc3bae9e257",
+  "source_sha256": {
+    "Cargo.toml": "edd2c765a375030d1d9ff981b6f437d926246453073c3307185f1739a134866d",
+    "Cargo.lock": "3bc010eaefb6563a537f1271c21884684efa1718f76db9dee741a0780f436bde",
+    "src/portrait.rs": "87e282fde4d349b251b2ae3b02eaa608a0f886d4ebb9acdaac985e8463b12f7e",
+    "src/portrait/transport.rs": "2fc3d7b729b4b49cc6a0e03d53bb03376e5a1d576c6fd0abf331b102b368686d",
+    "src/terminal.rs": "494b5121113d888295b377d01b2df2e2c0587f5dcc8e7dec2a619376c3fd3aea",
+    "src/herdr/client.rs": "bc996c87616042494ac755a75a5ddead57284711f562cf2f8f2d017d4543d5d2",
+    "src/herdr/protocol.rs": "0a0b92d9516fb1d41a5a0272ad36675b6a797a49102bc703c66c78f4a1656ef6"
+  },
+  "evidence_sha256": {
+    "plain-pane.json": "43886a7abee2c1bdef47007576148eba03f555dcb0c7ee3ee17fe87541ea8f2b",
+    "plain-tui-startup.json": "1f3ca3a5f3177982a060966beafcb41e84c96492595c050176fd22289a5db09c",
+    "managed-before.json": "54c405dc68940246f022618748d6208762f501bb367f22984d28b1f19d248d39",
+    "managed-raw-replies.json": "34e27be5820e565de281716ffd03f66f8a51d7fd83a6211da57659ed3767ee73",
+    "managed-geometry-experiment.json": "8a8667eee81785c2c723895d55280b511e68e004f9087b26c89e3bf9533d1db9",
+    "managed-production-fixed.json": "a14a389d4b561da75b7125a62e0c1445b4772d10ad8c8ffb2b566e8fc9987c05",
+    "reopen-before-fix.json": "2054fd852fe24eb6ccf609ff2e42ba8a28b8363363f90d4c9c3f2f57ce33b932",
+    "reopen-fixed-build.json": "a07643178623308d6107e75e1b06cfd017da676356eca801c86adfe1b656afff",
+    "focused-red.log": "9e7b86bf8b83f7b155bb40adb0d436ba2f9323528c9addb16af44d7446997279",
+    "focused-green.log": "28f0e189989631a241aebc207276e5e5b083e4e999ca438fb8b620e5c8b5ca78",
+    "just-verify.log": "206f22742c39625417ad5f28790a50ff8093dcdf1849a035bf5953c8574850d0",
+    "release-build.log": "68b5701b3237edccddbc6eea26a90452156166924bc5570dbf301e4438c5d711",
+    "package.log": "21ec49e2713c03f2933418b1e156c4bdc4b70a2dcc514386f3b3543e6ddd84f1"
+  },
+  "unverified": [
+    "user-visible native restoration after repair",
+    "clean-commit qualification of repaired source",
+    "real-agent explicit completion",
+    "published 0.1.9 artifacts and installer"
+  ],
+  "package": {
+    "command": "cargo package --allow-dirty --locked --offline",
+    "verification": "passed",
+    "bytes": 4970088,
+    "sha256": "e1109412a91587eab5b04e43ad56fc884c7b65c872193011fb32b454d1e06966"
+  }
+}

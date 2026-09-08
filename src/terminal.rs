@@ -328,11 +328,12 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
             return terminal_result.and(lifecycle_result);
         }
     };
-    let portraits = PortraitGallery::detect();
     let managed_pane_id = std::env::var("HERDR_PANE_ID")
         .ok()
         .filter(|value| !value.is_empty())
         .map(PaneId::new);
+    let portraits =
+        PortraitGallery::detect_in_herdr(environment.as_ref(), managed_pane_id.as_ref()).await;
     let mut model = bootstrap_model(startup.model, environment.as_ref());
     model.set_managed_pane_id(managed_pane_id);
     if let Some(diagnostic) = collected_diagnostics.last() {

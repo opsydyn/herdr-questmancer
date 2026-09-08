@@ -190,7 +190,11 @@ herdr pane report-agent "$PANE_ID" \
 ```
 
 Confirm the blocked pose, summons marker, search result, selected-output read and
-counsel parchment. Then release the same identity:
+counsel parchment. These synthetic reports are fixed: counsel delivery does
+not change presence by itself. To test submission, use a disposable plain pane
+with a non-executing line receiver; confirm the exact text and Enter arrive,
+then explicitly report the next synthetic state. Never send test counsel to a
+real, unknown or managed Questmancer pane. Then release the same identity:
 
 ```bash
 herdr pane report-agent "$PANE_ID" \

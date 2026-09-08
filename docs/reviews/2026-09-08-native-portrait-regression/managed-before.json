@@ -1,0 +1,44 @@
+{
+  "case": "/tmp/qm-native-plugin-ooei315t",
+  "plugin": "opsydyn.portrait-probe-ooei315t",
+  "cleanup_errors": [],
+  "original_focus": "w8:pA",
+  "opened": {
+    "id": "cli:plugin",
+    "result": {
+      "plugin_pane": {
+        "entrypoint": "probe",
+        "pane": {
+          "agent_status": "unknown",
+          "cwd": "/private/tmp/qm-native-plugin-ooei315t",
+          "focused": false,
+          "foreground_cwd": "/private/tmp/qm-native-plugin-ooei315t",
+          "label": "Portrait startup probe",
+          "pane_id": "w8:pD",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 51
+          },
+          "tab_id": "w8:t7",
+          "terminal_id": "term_65affa1437146d",
+          "workspace_id": "w8"
+        },
+        "plugin_id": "opsydyn.portrait-probe-ooei315t"
+      },
+      "type": "plugin_pane_opened"
+    }
+  },
+  "pane_id": "w8:pD",
+  "tty": {
+    "stdin": true,
+    "stdout": true,
+    "stderr": true
+  },
+  "gallery": "PortraitGallery { capability: Unsupported, classes: [], librarian: false, diagnostic: None }\n",
+  "pane_closed": true,
+  "link_removed": true,
+  "other_panes_preserved": true,
+  "focus_unchanged": true
+}

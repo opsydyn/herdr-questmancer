@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.28s
+     Running unittests src/lib.rs (target/debug/deps/questmancer-a2afdf5be81c7803)
+
+running 1 test
+test portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid ... FAILED
+
+failures:
+
+---- portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid stdout ----
+
+thread 'portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid' panicked at src/portrait/transport.rs:45:9:
+assertion `left == right` failed
+  left: (0, 0)
+ right: (1640, 972)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 39 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--lib`

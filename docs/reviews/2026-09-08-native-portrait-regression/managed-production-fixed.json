@@ -1,0 +1,44 @@
+{
+  "case": "/tmp/qm-native-plugin-nfp5dsf7",
+  "plugin": "opsydyn.portrait-probe-nfp5dsf7",
+  "cleanup_errors": [],
+  "original_focus": "w8:pA",
+  "opened": {
+    "id": "cli:plugin",
+    "result": {
+      "plugin_pane": {
+        "entrypoint": "probe",
+        "pane": {
+          "agent_status": "unknown",
+          "cwd": "/private/tmp/qm-native-plugin-nfp5dsf7",
+          "focused": false,
+          "foreground_cwd": "/private/tmp/qm-native-plugin-nfp5dsf7",
+          "label": "Portrait startup probe",
+          "pane_id": "w8:pG",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 54
+          },
+          "tab_id": "w8:tA",
+          "terminal_id": "term_65affccab569f10",
+          "workspace_id": "w8"
+        },
+        "plugin_id": "opsydyn.portrait-probe-nfp5dsf7"
+      },
+      "type": "plugin_pane_opened"
+    }
+  },
+  "pane_id": "w8:pG",
+  "tty": {
+    "stdin": true,
+    "stdout": true,
+    "stderr": true
+  },
+  "gallery": "PortraitGallery { capability: Kitty, classes: [Class(Barbarian), Class(Bard), Class(Cleric), Class(Druid), Class(Paladin), Class(Ranger), Class(Rogue), Class(Wizard), Class(Artificer), Class(Runewright), Class(Testmender), Class(Pathseeker), Class(Mage), Class(Sorcerer)], librarian: true, diagnostic: None }\n",
+  "pane_closed": true,
+  "link_removed": true,
+  "other_panes_preserved": true,
+  "focus_unchanged": true
+}

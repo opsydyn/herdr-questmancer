@@ -58,6 +58,21 @@ crate; they remain in Git for audit and art review. Runtime code, production
 assets and Storybook remain packaged. The candidate receipt records the exact
 archive size, hash, verified build and packaged Storybook build.
 
+## Approved 0.1.9 publication — 2026-09-08
+
+The Questmancer approved committing, pushing and creating the release after
+confirming restored native Artificer, Bard and Librarian illustrations. The
+counsel investigation also closed: the unchanged status belonged to a fixed
+synthetic adventurer; isolated typing and delivery passed.
+
+This candidate already has matching 0.1.9 manifests and curated release notes.
+Qualify its clean commit, then push `main` and its new `v0.1.9` tag. A normal
+user-authenticated tag push starts `release.yml`; use explicit dispatch only
+if no matching run starts. Do not move an existing tag. Confirm workflow
+success, all four published archives, checksums and the installer in a temporary
+directory before recording distribution complete. Keep the published receipts
+outside the checkout so qualification remains tied to a clean commit.
+
 ## Cutting one
 
 1. Write the change into `CHANGELOG.md` under `## [Unreleased]` as part of the

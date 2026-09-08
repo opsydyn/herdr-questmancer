@@ -23,6 +23,13 @@ impl<P> Request<P> {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct EmptyParams {}
 
+/// Authoritative attached-client geometry from `pane.graphics.info`.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+pub struct PaneGraphicsInfo {
+    pub cell_width_px: u32,
+    pub cell_height_px: u32,
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct SuccessResponse<T> {
     pub id: String,
