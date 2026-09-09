@@ -7,7 +7,7 @@ test('launch page preserves the approved content contract', async () => {
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
   assert.doesNotMatch(html, /ascii-title/);
   assert.match(html, /fonts\.googleapis\.com\/css2\?family=Press\+Start\+2P.*family=DotGothic16/);
-  assert.equal((html.match(/loading="eager"/g) ?? []).length, 7);
+  assert.equal((html.match(/loading="eager"/g) ?? []).length, 9);
   assert.equal((html.match(/<svg\b/g) ?? []).length, 4);
   const gallery = await readFile(new URL('../src/components/EvidenceGallery.astro', import.meta.url), 'utf8');
   assert.match(gallery, /import\s+\{\s*Image\s*\}\s+from\s+['"]astro:assets['"]/);
@@ -38,7 +38,7 @@ test('launch page preserves the approved content contract', async () => {
     'herdr plugin action invoke opsydyn.questmancer.open',
   ]) assert.ok(html.includes(phrase), 'missing approved phrase: ' + phrase);
   assert.match(html, /Prerequisite/);
-  assert.match(html, /Install Herdr first/);
+  assert.match(html, /Install Herdr 0\.9\.0/);
   assert.match(html, /href="https:\/\/herdr\.dev\/docs\/install\/"[^>]*target="_blank"/);
   assert.doesNotMatch(html, /cargo install questmancer/i);
   // `herdr plugin install` is how a Herdr user installs a plugin: one command,

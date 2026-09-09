@@ -123,7 +123,7 @@ herdr plugin action invoke opsydyn.questmancer.open
 herdr plugin action invoke opsydyn.questmancer.open
 ```
 
-Confirm the version matches the current `herdr-plugin.toml` (`0.1.9` at this
+Confirm the version matches the current `herdr-plugin.toml` (`0.1.10` at this
 revision), local source, all five actions, and exactly one
 Questmancer pane after the repeated `open`.
 

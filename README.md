@@ -46,6 +46,19 @@ compositions that keep the Guild Hall useful when the party gets busy.
 | --- | --- |
 | ![Compact Guild Hall composition showing a small party](site/src/assets/screenshots/compact-party.png) | ![Warm compact party composition in the Guild Hall](site/src/assets/screenshots/compact-party-warm.png) |
 
+## Chronicle observations
+
+`c` opens an adventurer's retained records; `Tab` requests a last-hour guild
+chapter. Snapshot observations say what was seen locally, without inventing
+missing transitions or awarding XP. Reconnects establish a quiet baseline.
+
+| Adventurer records | Last-hour guild chapter |
+| --- | --- |
+| ![Chronicle records with local observation times and unchanged legacy events](site/src/assets/screenshots/chronicle-records.png) | ![Chronicle chapter with a fixed UTC window and separate observation counts](site/src/assets/screenshots/chronicle-chapter.png) |
+
+Approved production render reconstructions, using fictional records; these are
+not native terminal screenshots. [Review all six screens](docs/design/reviews/2026-09-09-chronicle-capture/README.md).
+
 ## Before the first quest
 
 - Herdr `0.9.0`, protocol `22`
@@ -64,13 +77,10 @@ Herdr fetches the repository, reads `herdr-plugin.toml`, and runs the plugin's
 own build step, which downloads the prebuilt binary for your platform and
 verifies it against the release checksums. No clone, no Rust toolchain.
 
-This command requires a release matching the fetched manifest. Checked on
-2026-09-06: public `main` declares `0.1.8`, but the latest published release is
-[`v0.1.3`](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.3).
-There is no published `v0.1.8` release, so the current default install cannot
-download its matching binary. Use [source linking](#link-a-local-guild) for
-this checkout until that release gap is closed. See the
-[dated distribution check](docs/release-process.md#distribution-status--2026-09-06).
+The installer selects the archives matching `herdr-plugin.toml` and verifies
+`SHA256SUMS`. Release archives cover macOS and Linux on ARM64 and x86-64.
+See the [release process](docs/release-process.md) for dated verification and
+[source linking](#link-a-local-guild) when developing from this checkout.
 
 ## Build the binary (optional)
 
@@ -251,7 +261,7 @@ current qualification limits.
 Composed socket/file checks and isolated synthetic metadata observations pass;
 see the [C3 receipt](docs/reviews/2026-09-09-chronicle-c3/README.md). The
 [changed Chronicle screens](docs/design/reviews/2026-09-09-chronicle-capture/README.md)
-were visually approved on 2026-09-09. These local changes remain unreleased.
+were visually approved on 2026-09-09 and are included in `0.1.10`.
 
 `Tab` moves the selection into the next campaign's party and wraps. With the
 whole party on one campaign it stays put and says so.
@@ -379,8 +389,8 @@ continuity, so the guild is what keeps the score.
 
 Standing is shown as a badge in the top-right corner of the room and in full on
 the Guild's Standing page of the Librarian's Ledger (`?`). It is earned by work
-the Chronicle recorded: spoils returned, and campaigns closed. Nothing else
-earns. An adventurer arriving, setting out or resting is worth nothing, and so
+confirmed by current pane metadata: spoils returned. Snapshot observations and
+campaign removal earn no XP. Previously saved standing is retained. An adventurer arriving, setting out or resting is worth nothing, and so
 is an adventurer asking for counsel — that records somebody getting stuck, and
 paying for it would reward agents for blocking.
 

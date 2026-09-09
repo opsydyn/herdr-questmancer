@@ -7,7 +7,7 @@ Questmancer owns presentation and a small amount of durable local intent.
 
 ## Current status — 2026-09-08
 
-Source baseline: Questmancer `0.1.9`, minimum Herdr `0.9.0`, supported protocol
+Source baseline: Questmancer `0.1.10`, minimum Herdr `0.9.0`, supported protocol
 `22`, Rust `1.90.0`. The original v0.1 engineering scope is complete; do not
 reopen the retired dashboard, legacy renderer or old branding milestones.
 The checkout contains approved follow-on work and existing changes that must
@@ -108,6 +108,14 @@ Neither room shrinks a world master to make it fit. Roster states use shared
 shape cues; full-motion fresh spoils stop at three seconds and leave a stable
 completed cue. Reduced/still rosters have no decorative or cleanup timer.
 Newer facts and socket boundaries interrupt old completion theatre.
+
+## 0.1.10 release preparation — 2026-09-09
+
+Chronicle C1–C3 is committed at `d3e5308` and its screen pack is visually approved.
+The user authorised preparing a release after updating documentation and images.
+The 0.1.10 candidate updates the README, launch-page gallery and handbook, retains
+the v1/v2 downgrade notice, and requires fresh clean-commit qualification before
+tagging. Archive, checksum and installer verification follow publication.
 
 ## Distribution and remaining evidence
 

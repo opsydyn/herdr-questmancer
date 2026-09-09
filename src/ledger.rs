@@ -90,6 +90,7 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
             title: "Keeping a Safe Chronicle",
             body: &[
                 "Questmancer stays local. Herdr owns topology and live agent facts; Questmancer stores only small durable intent and its Chronicle.",
+                "New Chronicle records say when a fact was observed locally. Reconnects add no backfilled history; old records keep their wording.",
                 "In the Chronicle, Tab requests a last-hour guild chapter or returns to records. Chapters count retained events and keep their UTC window fixed until requested again; missing history is not inferred.",
                 "The managed Questmancer pane is never an adventurer and cannot receive focus, counsel, output or Reviewr commands.",
                 "Guarded tests use disposable panes and fresh IDs. Herdr 0.9.0 cannot synthesize an explicit done transition.",
@@ -125,8 +126,9 @@ pub fn page_body(id: LedgerPageId) -> Vec<String> {
 pub fn standing_page_body(experience: u64) -> Vec<String> {
     let mut lines = crate::rank::ledger_lines(experience);
     lines.push(String::new());
-    lines.push("Standing is earned by work the Chronicle recorded:".to_owned());
-    lines.push("spoils returned, and campaigns closed.".to_owned());
+    lines.push("Standing is earned by status-confirmed spoils.".to_owned());
+    lines.push("Snapshot observations and campaign removal earn no XP.".to_owned());
+    lines.push("Previously saved standing is retained.".to_owned());
     lines.push(String::new());
     lines.push("It is one score for this Questmancer, not one per".to_owned());
     lines.push("adventurer: parties change, the guild endures. It".to_owned());

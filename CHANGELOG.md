@@ -4,6 +4,11 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-09-09
+
+The Chronicle now records qualified observations without inventing unseen
+transitions. Reconnects stay quiet, and existing history remains readable.
+
 ### Fixed
 
 - Qualify snapshot refreshes by connection, request, live-fact generation and
@@ -38,6 +43,26 @@ All notable changes to this project will be documented here.
 - Terminal replacement invalidates old scrying ownership and the cat's party
   comparison, even when the persona key, pane and revision match. Capture keeps
   raw terminal/session identity ephemeral and persists only an incarnation digest.
+
+### Documentation and screens
+
+- Updated the README and in-app handbook to distinguish status-confirmed spoils
+  from zero-XP snapshot observations and campaign removal.
+- Added the approved Chronicle record and chapter images to the README and
+  launch-page gallery; retained the full six-screen review and synthetic evidence.
+- Removed the obsolete installation-gap notice. Herdr 0.9.0 / protocol 22 remains
+  the runtime requirement.
+
+### Upgrade note
+
+New Chronicle writes use v2 JSONL records; old v1 records remain unchanged.
+Downgrading to 0.1.9 skips v2 records with diagnostics. Keep a copy of your local
+Chronicle before downgrading if you need to read those records later. This release
+adds no upstream event replay or reconstruction of unseen work.
+
+![Chronicle observations: approved production reconstruction](https://raw.githubusercontent.com/opsydyn/herdr-questmancer/v0.1.10/site/src/assets/screenshots/chronicle-records.png)
+
+![Last-hour guild chapter: approved production reconstruction](https://raw.githubusercontent.com/opsydyn/herdr-questmancer/v0.1.10/site/src/assets/screenshots/chronicle-chapter.png)
 
 ## [0.1.9] - 2026-09-08
 

@@ -8,7 +8,22 @@ Three things cut a release, and each owns one job.
 | Binaries | `release.yml`, explicitly dispatched after tagging | four archives and `SHA256SUMS` on a GitHub release |
 | Registry | `release.yml`, gated | a crates.io publish when `PUBLISH_TO_CRATES=true`; live setting unverified |
 
-## Current distribution — 2026-09-08
+## 0.1.10 candidate — 2026-09-09
+
+The user authorised the Chronicle release after documentation and screenshot
+updates. C1–C3 is committed at `d3e5308`, with its screen pack visually approved.
+Both manifests and Cargo.lock now declare 0.1.10. The README and launch-page
+gallery show approved Chronicle production reconstructions, and the handbook
+explains which observations earn no XP. The release notes retain the v2 JSONL
+downgrade limitation.
+
+Qualify the final clean release commit, then push its new `v0.1.10` tag through
+the existing four-platform workflow. Verify downloaded checksums and the actual
+Herdr installer in isolated storage. Do not change the crates.io gate. The
+previously published release below remains the distribution baseline until this
+new release finishes.
+
+## Published distribution — 2026-09-08
 
 [Questmancer v0.1.9](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.9)
 is published from clean commit `98f557d`. The normal authenticated tag push

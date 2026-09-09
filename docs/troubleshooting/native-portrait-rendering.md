@@ -7,7 +7,7 @@ outer terminal and Herdr form one graphics transport.
 
 ## Current scope and historical evidence
 
-Questmancer `0.1.9` requires Herdr `0.9.0` / protocol `22`. All fourteen
+Questmancer `0.1.10` requires Herdr `0.9.0` / protocol `22`. All fourteen
 classes have native PNG cards and authored `24x32` portrait fallbacks;
 `src/portrait.rs` owns the exact routes. The Librarian's Ledger has a separate
 native illustration and an independently authored `24x32` Ledger fallback.

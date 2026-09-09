@@ -5,6 +5,9 @@ import adventurer from '../assets/screenshots/adventurer.png';
 import compactParty from '../assets/screenshots/compact-party.png';
 import compactPartyWarm from '../assets/screenshots/compact-party-warm.png';
 
+import chronicleRecords from '../assets/screenshots/chronicle-records.png';
+import chronicleChapter from '../assets/screenshots/chronicle-chapter.png';
+
 const evidence = [
   {
     src: ledger,
@@ -33,6 +36,20 @@ const evidence = [
     title: 'Warm compact composition',
     body: 'A smaller room keeps the party readable and present.',
     className: 'evidence-card--compact',
+  },
+  {
+    src: chronicleRecords,
+    alt: 'Chronicle records showing local observation times alongside retained legacy events',
+    title: 'Chronicle observations',
+    body: 'What the guild observed, without filling unseen gaps. Approved production reconstruction.',
+    className: 'evidence-card--chronicle',
+  },
+  {
+    src: chronicleChapter,
+    alt: 'Last-hour Chronicle chapter with a fixed UTC window and separate observation counts',
+    title: 'Last-hour guild chapter',
+    body: 'Press Tab in the Chronicle for a recap with retained sources. Approved production reconstruction.',
+    className: 'evidence-card--chronicle',
   },
 ];
 ---

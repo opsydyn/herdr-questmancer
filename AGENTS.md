@@ -7,7 +7,7 @@ older plan or historical review.
 
 ## Product truth
 
-Questmancer `0.1.9` is a Herdr `0.9.0` / protocol `22` plugin that turns
+Questmancer `0.1.10` is a Herdr `0.9.0` / protocol `22` plugin that turns
 coding-agent state into a cozy, 16-bit adventurers' guild. The user is the **Questmancer**. Herdr workspaces are
 **campaigns** and agents are **adventurers**.
 
