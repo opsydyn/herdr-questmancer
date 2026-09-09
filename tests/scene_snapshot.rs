@@ -15,6 +15,7 @@ use questmancer::{
 
 fn agent(key: &str, workspace: &str, presence: Presence, focused: bool) -> Agent {
     Agent {
+        capture_identity: questmancer::domain::CaptureIdentity::default(),
         key: AgentKey::new(key),
         pane_id: PaneId::new(format!("pane-{key}")),
         workspace_id: WorkspaceId::new(workspace),
@@ -65,6 +66,7 @@ fn model() -> Model {
         ..DisplayPreferences::default()
     });
     model.replace_domain(DomainState {
+        capture: questmancer::domain::CaptureClock::default(),
         campaigns,
         agents,
         selected_agent: Some(AgentKey::new("alpha")),

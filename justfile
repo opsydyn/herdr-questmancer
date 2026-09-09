@@ -31,8 +31,9 @@ delve-test:
 persistence-test:
     cargo test --test config --test persisted_state --test atomic_state --test chronicle_persistence --test persistence_worker --test startup
 
+# The count is positional: just property-test 4096
 property-test cases="1024":
-    PROPTEST_CASES={{cases}} cargo test --test property_domain --test persisted_state
+    PROPTEST_CASES={{cases}} cargo test --test property_domain --test persisted_state --test chronicle_capture
 
 persistence-verify: verify persistence-test property-test release-check
 

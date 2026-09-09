@@ -6,11 +6,13 @@ use crate::{
 #[derive(Clone, Debug, PartialEq)]
 pub enum AppEvent {
     SnapshotReplaced {
-        snapshot: SessionSnapshot,
+        purpose: crate::snapshot_refresh::SnapshotPurpose,
+        snapshot: Box<SessionSnapshot>,
         observed_at: Timestamp,
         excluded_pane: Option<PaneId>,
     },
     AgentStatusChanged {
+        identity: crate::domain::CaptureIdentity,
         pane_id: PaneId,
         status: AgentStatus,
         custom_status: Option<String>,
@@ -18,11 +20,12 @@ pub enum AppEvent {
         occurred_at: Timestamp,
     },
     PaneExited {
+        identity: crate::domain::CaptureIdentity,
         pane_id: PaneId,
         revision: u64,
         occurred_at: Timestamp,
     },
-    WorkspaceClosed(WorkspaceId),
+    WorkspaceCloseHint(WorkspaceId),
     DeferSummons {
         agent_key: crate::domain::AgentKey,
         until: Timestamp,

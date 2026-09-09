@@ -63,7 +63,7 @@ async fn assert_path_remains_absent(path: &std::path::Path) {
 }
 
 fn chronicle_entry(id: &str) -> ChronicleEntry {
-    ChronicleEntry {
+    questmancer::domain::LegacyChronicleEntry {
         id: EventId::new(id),
         occurred_at: Timestamp::from_millis(1_000),
         adventurer: None,
@@ -73,6 +73,7 @@ fn chronicle_entry(id: &str) -> ChronicleEntry {
         event: ChronicleEvent::SpoilsReturned,
         summary: format!("entry {id}"),
     }
+    .into()
 }
 
 #[tokio::test(start_paused = true)]
@@ -272,7 +273,9 @@ async fn quit_lifecycle_stops_real_runtime_then_flushes_writer() {
     lifecycle
         .connection_mut()
         .unwrap()
-        .schedule([AgentCommand::RefreshSnapshot]);
+        .schedule([AgentCommand::RefreshSnapshot(
+            questmancer::snapshot_refresh::SnapshotRequest::default(),
+        )]);
     let mut model = Model::new(View::Guild);
 
     let reduction = reduce_action(&mut model, Action::Switch(View::Delve));

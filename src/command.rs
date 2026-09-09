@@ -12,6 +12,7 @@ use crate::{
         protocol::SessionSnapshot,
     },
     sidebar::{SIDEBAR_SOURCE, SidebarProjection},
+    snapshot_refresh::SnapshotRequest,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -33,7 +34,7 @@ pub enum AgentCommand {
         lines: u32,
         request: OutputRequest,
     },
-    RefreshSnapshot,
+    RefreshSnapshot(SnapshotRequest),
     DiscoverReviewr {
         qualified_id: String,
     },
@@ -92,7 +93,14 @@ pub enum CommandResult {
     MarginaliaFailed {
         message: String,
     },
-    SnapshotLoaded(Box<SessionSnapshot>),
+    SnapshotLoaded {
+        request: SnapshotRequest,
+        snapshot: Box<SessionSnapshot>,
+    },
+    SnapshotFailed {
+        request: SnapshotRequest,
+        message: String,
+    },
     Failed {
         operation: &'static str,
         message: String,
@@ -183,6 +191,19 @@ impl CommandExecutor {
         }
     }
 
+    async fn refresh_snapshot(&self, request: SnapshotRequest) -> CommandResult {
+        match self.client.snapshot().await {
+            Ok(snapshot) => CommandResult::SnapshotLoaded {
+                request,
+                snapshot: Box::new(snapshot),
+            },
+            Err(error) => CommandResult::SnapshotFailed {
+                request,
+                message: error.to_string(),
+            },
+        }
+    }
+
     pub async fn execute(&self, command: AgentCommand) -> CommandResult {
         match command {
             AgentCommand::FocusPane(pane_id) => {
@@ -246,10 +267,7 @@ impl CommandExecutor {
                     Err(error) => failed("discover reviewr", error),
                 }
             }
-            AgentCommand::RefreshSnapshot => match self.client.snapshot().await {
-                Ok(snapshot) => CommandResult::SnapshotLoaded(Box::new(snapshot)),
-                Err(error) => failed("refresh snapshot", error),
-            },
+            AgentCommand::RefreshSnapshot(request) => self.refresh_snapshot(request).await,
             AgentCommand::InspectSpoils {
                 pane_id,
                 qualified_id,

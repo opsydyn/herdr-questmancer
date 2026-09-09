@@ -1,0 +1,518 @@
+{
+  "version": "0.9.0",
+  "protocol": 22,
+  "focused_workspace_id": "w1",
+  "focused_tab_id": "w1:t3",
+  "focused_pane_id": "w1:p3",
+  "workspaces": [
+    {
+      "workspace_id": "w1",
+      "number": 1,
+      "label": "Review campaign 1",
+      "focused": true,
+      "pane_count": 2,
+      "tab_count": 2,
+      "active_tab_id": "w1:t3",
+      "agent_status": "working",
+      "tokens": {
+        "quest_hoard": "\u25c8 empty",
+        "quest_party": "\u271a",
+        "quest_campaign": "1 adventurer"
+      }
+    },
+    {
+      "workspace_id": "w2",
+      "number": 2,
+      "label": "Review campaign 2",
+      "focused": false,
+      "pane_count": 1,
+      "tab_count": 1,
+      "active_tab_id": "w2:t1",
+      "agent_status": "blocked",
+      "tokens": {
+        "quest_hoard": "\u25c8 empty",
+        "quest_party": "\u266a",
+        "quest_campaign": "1 adventurer \u00b7 1 summons"
+      }
+    },
+    {
+      "workspace_id": "w3",
+      "number": 3,
+      "label": "Review campaign 3",
+      "focused": false,
+      "pane_count": 1,
+      "tab_count": 1,
+      "active_tab_id": "w3:t1",
+      "agent_status": "idle",
+      "tokens": {
+        "quest_hoard": "\u25c8 empty",
+        "quest_campaign": "1 adventurer",
+        "quest_party": "\u263c"
+      }
+    },
+    {
+      "workspace_id": "w4",
+      "number": 4,
+      "label": "Review campaign 4",
+      "focused": false,
+      "pane_count": 1,
+      "tab_count": 1,
+      "active_tab_id": "w4:t1",
+      "agent_status": "unknown",
+      "tokens": {
+        "quest_campaign": "1 adventurer",
+        "quest_party": "\u263c",
+        "quest_hoard": "\u25c8 empty"
+      }
+    }
+  ],
+  "tabs": [
+    {
+      "tab_id": "w1:t1",
+      "workspace_id": "w1",
+      "number": 1,
+      "label": "1",
+      "focused": false,
+      "pane_count": 1,
+      "agent_status": "working"
+    },
+    {
+      "tab_id": "w1:t3",
+      "workspace_id": "w1",
+      "number": 3,
+      "label": "2",
+      "focused": true,
+      "pane_count": 1,
+      "agent_status": "unknown"
+    },
+    {
+      "tab_id": "w2:t1",
+      "workspace_id": "w2",
+      "number": 1,
+      "label": "1",
+      "focused": false,
+      "pane_count": 1,
+      "agent_status": "blocked"
+    },
+    {
+      "tab_id": "w3:t1",
+      "workspace_id": "w3",
+      "number": 1,
+      "label": "1",
+      "focused": false,
+      "pane_count": 1,
+      "agent_status": "idle"
+    },
+    {
+      "tab_id": "w4:t1",
+      "workspace_id": "w4",
+      "number": 1,
+      "label": "1",
+      "focused": false,
+      "pane_count": 1,
+      "agent_status": "unknown"
+    }
+  ],
+  "panes": [
+    {
+      "pane_id": "w1:p1",
+      "terminal_id": "term_65b0a0e60e6f11",
+      "workspace_id": "w1",
+      "tab_id": "w1:t1",
+      "focused": false,
+      "cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "foreground_cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "agent": "pi",
+      "agent_status": "working",
+      "tokens": {
+        "quest_sigil": "\u271a",
+        "quest_epithet": "Delver of Forgotten Modules",
+        "quest_trinket": "\u2756 Mug",
+        "quest_omen": "on expedition",
+        "quest_rank": "3",
+        "quest_condition": "Concentrating",
+        "quest_hoard": "\u25c8 empty",
+        "quest_role": "Orc Cleric"
+      },
+      "agent_session": {
+        "source": "herdr:pi",
+        "agent": "pi",
+        "kind": "id",
+        "value": "ecf36988-0621-4afc-9f9c-15a2896743df"
+      },
+      "scroll": {
+        "offset_from_bottom": 0,
+        "max_offset_from_bottom": 0,
+        "viewport_rows": 60
+      },
+      "revision": 6
+    },
+    {
+      "pane_id": "w1:p3",
+      "terminal_id": "term_65b0a0eb1bdd26",
+      "workspace_id": "w1",
+      "tab_id": "w1:t3",
+      "focused": true,
+      "cwd": "/Users/alancurrie/Projects/herdr-web-master",
+      "foreground_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+      "label": "Questmancer",
+      "agent_status": "unknown",
+      "scroll": {
+        "offset_from_bottom": 0,
+        "max_offset_from_bottom": 0,
+        "viewport_rows": 60
+      },
+      "revision": 0
+    },
+    {
+      "pane_id": "w2:p1",
+      "terminal_id": "term_65b0a0e6adfdb2",
+      "workspace_id": "w2",
+      "tab_id": "w2:t1",
+      "focused": false,
+      "cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "foreground_cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "agent": "pi",
+      "agent_status": "blocked",
+      "tokens": {
+        "quest_sigil": "\u266a",
+        "quest_omen": "seeks counsel",
+        "quest_epithet": "Reader of Runes",
+        "quest_role": "Dwarf Bard",
+        "quest_rank": "0",
+        "quest_vigil": "\u25cf\u25cb\u25cb\u25cb\u25cb\u25cb",
+        "quest_hoard": "\u25c8 empty",
+        "quest_condition": "Restrained",
+        "quest_trinket": "\u2756 Ribbon"
+      },
+      "agent_session": {
+        "source": "herdr:pi",
+        "agent": "pi",
+        "kind": "id",
+        "value": "66213bc1-8ab9-46d3-8d53-69e1b89ed227"
+      },
+      "scroll": {
+        "offset_from_bottom": 0,
+        "max_offset_from_bottom": 0,
+        "viewport_rows": 60
+      },
+      "revision": 3
+    },
+    {
+      "pane_id": "w3:p1",
+      "terminal_id": "term_65b0a0e74c1ba3",
+      "workspace_id": "w3",
+      "tab_id": "w3:t1",
+      "focused": false,
+      "cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "foreground_cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "agent": "pi",
+      "agent_status": "idle",
+      "tokens": {
+        "quest_trinket": "\u2756 Tiny Familiar",
+        "quest_omen": "at the hearth",
+        "quest_rank": "3",
+        "quest_role": "Human Sorcerer",
+        "quest_epithet": "Reader of Runes",
+        "quest_hoard": "\u25c8 empty",
+        "quest_sigil": "\u263c",
+        "quest_condition": "Resting"
+      },
+      "agent_session": {
+        "source": "herdr:pi",
+        "agent": "pi",
+        "kind": "id",
+        "value": "f2c71ec2-63c7-44c6-b241-cf4b48d3f9d6"
+      },
+      "scroll": {
+        "offset_from_bottom": 0,
+        "max_offset_from_bottom": 0,
+        "viewport_rows": 60
+      },
+      "revision": 1
+    },
+    {
+      "pane_id": "w4:p1",
+      "terminal_id": "term_65b0a0e7e68564",
+      "workspace_id": "w4",
+      "tab_id": "w4:t1",
+      "focused": false,
+      "cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "foreground_cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "agent": "pi",
+      "agent_status": "unknown",
+      "tokens": {
+        "quest_omen": "whereabouts unknown",
+        "quest_trinket": "\u2756 Mug",
+        "quest_sigil": "\u263c",
+        "quest_hoard": "\u25c8 empty",
+        "quest_rank": "3",
+        "quest_epithet": "Delver of Forgotten Modules",
+        "quest_role": "Dwarf Sorcerer",
+        "quest_condition": "Blinded"
+      },
+      "agent_session": {
+        "source": "herdr:pi",
+        "agent": "pi",
+        "kind": "id",
+        "value": "e741fc5e-716d-464b-a46a-2025b5ca3a8e"
+      },
+      "scroll": {
+        "offset_from_bottom": 0,
+        "max_offset_from_bottom": 0,
+        "viewport_rows": 60
+      },
+      "revision": 1
+    }
+  ],
+  "layouts": [
+    {
+      "workspace_id": "w1",
+      "tab_id": "w1:t1",
+      "zoomed": false,
+      "area": {
+        "x": 0,
+        "y": 0,
+        "width": 180,
+        "height": 60
+      },
+      "focused_pane_id": "w1:p1",
+      "panes": [
+        {
+          "pane_id": "w1:p1",
+          "focused": true,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 180,
+            "height": 60
+          }
+        }
+      ],
+      "splits": []
+    },
+    {
+      "workspace_id": "w1",
+      "tab_id": "w1:t3",
+      "zoomed": false,
+      "area": {
+        "x": 0,
+        "y": 0,
+        "width": 180,
+        "height": 60
+      },
+      "focused_pane_id": "w1:p3",
+      "panes": [
+        {
+          "pane_id": "w1:p3",
+          "focused": true,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 180,
+            "height": 60
+          }
+        }
+      ],
+      "splits": []
+    },
+    {
+      "workspace_id": "w2",
+      "tab_id": "w2:t1",
+      "zoomed": false,
+      "area": {
+        "x": 0,
+        "y": 0,
+        "width": 180,
+        "height": 60
+      },
+      "focused_pane_id": "w2:p1",
+      "panes": [
+        {
+          "pane_id": "w2:p1",
+          "focused": true,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 180,
+            "height": 60
+          }
+        }
+      ],
+      "splits": []
+    },
+    {
+      "workspace_id": "w3",
+      "tab_id": "w3:t1",
+      "zoomed": false,
+      "area": {
+        "x": 0,
+        "y": 0,
+        "width": 180,
+        "height": 60
+      },
+      "focused_pane_id": "w3:p1",
+      "panes": [
+        {
+          "pane_id": "w3:p1",
+          "focused": true,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 180,
+            "height": 60
+          }
+        }
+      ],
+      "splits": []
+    },
+    {
+      "workspace_id": "w4",
+      "tab_id": "w4:t1",
+      "zoomed": false,
+      "area": {
+        "x": 0,
+        "y": 0,
+        "width": 180,
+        "height": 60
+      },
+      "focused_pane_id": "w4:p1",
+      "panes": [
+        {
+          "pane_id": "w4:p1",
+          "focused": true,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 180,
+            "height": 60
+          }
+        }
+      ],
+      "splits": []
+    }
+  ],
+  "agents": [
+    {
+      "terminal_id": "term_65b0a0e60e6f11",
+      "agent": "pi",
+      "agent_status": "working",
+      "screen_detection_skipped": true,
+      "tokens": {
+        "quest_rank": "3",
+        "quest_epithet": "Delver of Forgotten Modules",
+        "quest_trinket": "\u2756 Mug",
+        "quest_condition": "Concentrating",
+        "quest_hoard": "\u25c8 empty",
+        "quest_sigil": "\u271a",
+        "quest_role": "Orc Cleric",
+        "quest_omen": "on expedition"
+      },
+      "agent_session": {
+        "source": "herdr:pi",
+        "agent": "pi",
+        "kind": "id",
+        "value": "ecf36988-0621-4afc-9f9c-15a2896743df"
+      },
+      "workspace_id": "w1",
+      "tab_id": "w1:t1",
+      "pane_id": "w1:p1",
+      "focused": false,
+      "state_change_seq": 8,
+      "cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "foreground_cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "revision": 6
+    },
+    {
+      "terminal_id": "term_65b0a0e6adfdb2",
+      "agent": "pi",
+      "agent_status": "blocked",
+      "screen_detection_skipped": true,
+      "tokens": {
+        "quest_hoard": "\u25c8 empty",
+        "quest_rank": "0",
+        "quest_epithet": "Reader of Runes",
+        "quest_omen": "seeks counsel",
+        "quest_role": "Dwarf Bard",
+        "quest_vigil": "\u25cf\u25cb\u25cb\u25cb\u25cb\u25cb",
+        "quest_condition": "Restrained",
+        "quest_trinket": "\u2756 Ribbon",
+        "quest_sigil": "\u266a"
+      },
+      "agent_session": {
+        "source": "herdr:pi",
+        "agent": "pi",
+        "kind": "id",
+        "value": "66213bc1-8ab9-46d3-8d53-69e1b89ed227"
+      },
+      "workspace_id": "w2",
+      "tab_id": "w2:t1",
+      "pane_id": "w2:p1",
+      "focused": false,
+      "state_change_seq": 2,
+      "cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "foreground_cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "revision": 3
+    },
+    {
+      "terminal_id": "term_65b0a0e74c1ba3",
+      "agent": "pi",
+      "agent_status": "idle",
+      "screen_detection_skipped": true,
+      "tokens": {
+        "quest_trinket": "\u2756 Tiny Familiar",
+        "quest_epithet": "Reader of Runes",
+        "quest_condition": "Resting",
+        "quest_omen": "at the hearth",
+        "quest_role": "Human Sorcerer",
+        "quest_sigil": "\u263c",
+        "quest_rank": "3",
+        "quest_hoard": "\u25c8 empty"
+      },
+      "agent_session": {
+        "source": "herdr:pi",
+        "agent": "pi",
+        "kind": "id",
+        "value": "f2c71ec2-63c7-44c6-b241-cf4b48d3f9d6"
+      },
+      "workspace_id": "w3",
+      "tab_id": "w3:t1",
+      "pane_id": "w3:p1",
+      "focused": false,
+      "state_change_seq": 3,
+      "cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "foreground_cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "revision": 1
+    },
+    {
+      "terminal_id": "term_65b0a0e7e68564",
+      "agent": "pi",
+      "agent_status": "unknown",
+      "screen_detection_skipped": true,
+      "tokens": {
+        "quest_omen": "whereabouts unknown",
+        "quest_trinket": "\u2756 Mug",
+        "quest_condition": "Blinded",
+        "quest_rank": "3",
+        "quest_hoard": "\u25c8 empty",
+        "quest_epithet": "Delver of Forgotten Modules",
+        "quest_sigil": "\u263c",
+        "quest_role": "Dwarf Sorcerer"
+      },
+      "agent_session": {
+        "source": "herdr:pi",
+        "agent": "pi",
+        "kind": "id",
+        "value": "e741fc5e-716d-464b-a46a-2025b5ca3a8e"
+      },
+      "workspace_id": "w4",
+      "tab_id": "w4:t1",
+      "pane_id": "w4:p1",
+      "focused": false,
+      "state_change_seq": 0,
+      "cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "foreground_cwd": "/private/tmp/qm-c3-i_eyfpyh",
+      "revision": 1
+    }
+  ]
+}

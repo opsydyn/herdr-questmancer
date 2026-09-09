@@ -154,12 +154,26 @@ assessment on 2026-09-08. Preparation evidence is retained as a dated receipt;
 clean-commit qualification is recorded separately after the commit. See the
 [current roadmap assessment](docs/reviews/2026-09-08-roadmap-assessment.md).
 
-This phase is complete and published. The next recommended bounded work is a
-Chronicle capture-semantics design, subject to the Questmancer's approval.
+The 0.1.9 phase is complete and published. On 2026-09-09 the Questmancer approved
+C1 in the [Chronicle capture plan](docs/plans/2026-09-09-chronicle-capture.md).
+Snapshot freshness, correlation, coalescing and subscription-baseline qualification
+are implemented locally; [the receipt](docs/reviews/2026-09-09-chronicle-c1/README.md)
+records verification and limits. The user subsequently approved C2: typed
+observations, incarnation qualification, compatible v1/v2 replay and readable
+Chronicle copy are implemented locally; see the
+[C2 receipt](docs/reviews/2026-09-09-chronicle-c2/README.md). Snapshot observations
+and campaign removal earn zero XP; connection baselines remain quiet.
+C3 was approved; complete capture composition and isolated synthetic acceptance
+passed. See the [C3 receipt](docs/reviews/2026-09-09-chronicle-c3/README.md).
+The [Chronicle screens](docs/design/reviews/2026-09-09-chronicle-capture/README.md)
+were visually approved on 2026-09-09. C1–C3 are complete locally. The next
+recommended step is to commit the approved capture slice, then qualify that exact
+clean commit before any separately authorised release.
+Real-agent completion and publication remain separate gates.
 
 Keep these unpromoted ideas in the backlog:
 
-- snapshot-only Chronicle event capture and clearer identity/closure semantics;
+- further Chronicle scope beyond the approved C1–C3 capture plan;
 - durable mementos or a trophy shelf with a separate persistence design;
 - additional Hall station/hierarchy redesign;
 - Storybook navigation across categories;

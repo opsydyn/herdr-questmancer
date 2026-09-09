@@ -1,0 +1,40 @@
+{
+  "source_head": "a26386c",
+  "source_dirty": true,
+  "method": "Production RGB and Ratatui cell reconstruction; no native terminal screenshot",
+  "visual_approval": "approved",
+  "screens": {
+    "chapter": {
+      "columns": 120,
+      "rows": 36,
+      "sha256": "26c5ccf3366ec0966a29ddaa5bb54103693e9fc0b5de5655959ba8b3fcccf074"
+    },
+    "compact": {
+      "columns": 80,
+      "rows": 24,
+      "sha256": "4ab81c7d6007d78d3bd516ce2cc44ee6fd5855a9494dcdd55b8434e6076b3bb5"
+    },
+    "empty": {
+      "columns": 120,
+      "rows": 36,
+      "sha256": "0c59ff77c5f4444d91810047767f2cda9ca3097a8a8086d5087468b581328c81"
+    },
+    "narrow": {
+      "columns": 40,
+      "rows": 18,
+      "sha256": "b073a853a680b118cbc0984a923c0ea8e0d81060eb65f1cdbccf72bd498828a0"
+    },
+    "records": {
+      "columns": 120,
+      "rows": 36,
+      "sha256": "f986f62a98ec833b58cf2bb73703bb260cedff5590b2be0de499ee446e591ba0"
+    },
+    "sources": {
+      "columns": 120,
+      "rows": 36,
+      "sha256": "375b670e20285e74ab0704c8772842b86ad36ffa5190fd1a1a2c59af0299ea6a"
+    }
+  },
+  "visual_approval_date": "2026-09-09",
+  "visual_approval_scope": "User approval of the displayed production reconstruction screen pack; native screenshots and release publication remain separate."
+}

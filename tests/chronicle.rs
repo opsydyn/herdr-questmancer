@@ -68,7 +68,7 @@ fn a_repeated_event_is_worth_standing_only_once() {
     let mut earned = 0_u64;
     for _ in 0..5 {
         if chronicle.append(entry.clone()) {
-            earned += entry.event.experience();
+            earned += entry.event().experience();
         }
     }
 
@@ -103,7 +103,7 @@ fn the_chronicle_forgets_but_standing_must_not() {
     let derived_from_history: u64 = chronicle
         .entries()
         .iter()
-        .map(|entry| entry.event.experience())
+        .map(|entry| entry.event().experience())
         .sum();
     let actually_earned = 10 * ChronicleEvent::SpoilsReturned.experience();
 

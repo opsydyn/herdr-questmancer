@@ -15,7 +15,7 @@ enum ReplayRecord {
 }
 
 fn entry(id: &str, occurred_at: i64) -> ChronicleEntry {
-    ChronicleEntry {
+    questmancer::domain::LegacyChronicleEntry {
         id: EventId::new(id),
         occurred_at: Timestamp::from_millis(occurred_at),
         adventurer: None,
@@ -25,6 +25,7 @@ fn entry(id: &str, occurred_at: i64) -> ChronicleEntry {
         event: ChronicleEvent::SpoilsReturned,
         summary: format!("entry {id}"),
     }
+    .into()
 }
 
 fn jsonl(entries: &[ChronicleEntry]) -> Vec<u8> {
@@ -38,7 +39,7 @@ fn jsonl(entries: &[ChronicleEntry]) -> Vec<u8> {
 
 fn replay_entry() -> impl Strategy<Value = ChronicleEntry> {
     (0_u8..16, any::<i64>(), any::<u16>()).prop_map(|(id, occurred_at, pane_revision)| {
-        ChronicleEntry {
+        questmancer::domain::LegacyChronicleEntry {
             id: EventId::new(format!("event-{id}")),
             occurred_at: Timestamp::from_millis(occurred_at),
             adventurer: None,
@@ -48,6 +49,7 @@ fn replay_entry() -> impl Strategy<Value = ChronicleEntry> {
             event: ChronicleEvent::SpoilsReturned,
             summary: format!("entry {id}"),
         }
+        .into()
     })
 }
 
@@ -252,4 +254,184 @@ proptest! {
         prop_assert!(chronological);
         prop_assert_eq!(replay.chronicle, expected);
     }
+}
+
+fn observation(ordinal: u64, at: i64) -> ChronicleEntry {
+    use questmancer::{
+        domain::{
+            CaptureRunId, CapturedObservation, ObservationEvidence, ObservationStamp,
+            ObservationSubject, RemovalEvidence, SnapshotObservation, WorkspaceId,
+        },
+        snapshot_refresh::{
+            ConnectionEpoch, LiveFactGeneration, SnapshotRequest, SnapshotRequestId,
+        },
+    };
+    ChronicleEntry::observed(
+        Timestamp::from_millis(at),
+        CapturedObservation {
+            stamp: ObservationStamp {
+                run: CaptureRunId::new("replay-fixture"),
+                epoch: ConnectionEpoch(1),
+                ordinal,
+            },
+            subject: ObservationSubject::Campaign {
+                id: WorkspaceId::new("campaign-a"),
+                name: "Archive".into(),
+            },
+            evidence: ObservationEvidence::Snapshot {
+                request: SnapshotRequest {
+                    epoch: ConnectionEpoch(1),
+                    id: SnapshotRequestId(1),
+                    generation: LiveFactGeneration(1),
+                },
+                observation: SnapshotObservation::CampaignRemoved {
+                    evidence: RemovalEvidence::NoLongerVisible,
+                },
+            },
+        },
+    )
+    .unwrap()
+}
+
+#[test]
+fn mixed_v1_v2_replay_preserves_legacy_ids_wording_and_observation_evidence() {
+    // Use an independently formed flat legacy record: do not infer its meaning
+    // from the old joined category or reinterpret its summary on replay.
+    let legacy_wire = serde_json::json!({"id":"old-joined-id","occurred_at":100,"adventurer":null,"campaign":null,"pane":null,"pane_revision":0,"event":"adventurer_joined","summary":"whereabouts unknown"});
+    let legacy: ChronicleEntry = serde_json::from_value(legacy_wire).unwrap();
+    let observed = observation(1, 200);
+    let bytes = jsonl(&[
+        legacy.clone(),
+        observed.clone(),
+        legacy.clone(),
+        observed.clone(),
+    ]);
+    let replay = replay_chronicle(Path::new("chronicle.jsonl"), &bytes, 500);
+    assert!(replay.diagnostics.is_empty());
+    assert_eq!(
+        replay
+            .chronicle
+            .entries()
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>(),
+        vec![legacy, observed]
+    );
+    assert_eq!(replay.chronicle.entries()[0].id.as_str(), "old-joined-id");
+    assert_eq!(replay.chronicle.entries()[0].summary, "whereabouts unknown");
+    assert_eq!(
+        replay.chronicle.entries()[0].event(),
+        ChronicleEvent::AdventurerJoined
+    );
+    assert!(replay.chronicle.entries()[1].observation().is_some());
+    assert_eq!(replay.chronicle.entries()[1].event().experience(), 0);
+}
+
+#[test]
+fn a_v2_envelope_cannot_silently_decode_as_a_reward_bearing_v1_record() {
+    let value = serde_json::to_value(observation(1, 100)).unwrap();
+    assert_eq!(value["record_version"], 2);
+    assert!(value.get("occurred_at").is_none());
+    assert!(value.get("event").is_none());
+    assert!(serde_json::from_value::<questmancer::domain::LegacyChronicleEntry>(value).is_err());
+}
+
+#[test]
+fn unknown_v2_versions_payloads_and_invalid_source_context_are_bounded_diagnostics() {
+    let valid = observation(1, 100);
+    let mut bytes = jsonl(std::slice::from_ref(&valid));
+    let baseline = serde_json::to_value(&valid).unwrap();
+    let mut rejected = Vec::new();
+    let mut value = baseline.clone();
+    value["record_version"] = 3.into();
+    rejected.push(value);
+    let mut value = baseline.clone();
+    value["observation"]["evidence"]["observation"]["kind"] = "future_observation".into();
+    rejected.push(value);
+    let mut value = baseline.clone();
+    value["observation"]["evidence"]["source"] = "future_source".into();
+    rejected.push(value);
+    let mut value = baseline.clone();
+    value["observation"]["stamp"]["epoch"] = 0.into();
+    rejected.push(value);
+    let mut value = baseline.clone();
+    value["observation"]["stamp"]["ordinal"] = 0.into();
+    rejected.push(value);
+    let mut value = baseline.clone();
+    value["observation"]["evidence"]["request"]["epoch"] = 2.into();
+    rejected.push(value);
+    let mut value = baseline;
+    value["id"] = "recomputed-from-the-clock".into();
+    rejected.push(value);
+    for value in rejected {
+        bytes.extend(serde_json::to_vec(&value).unwrap());
+        bytes.push(b'\n');
+    }
+    let last = observation(2, 200);
+    bytes.extend(jsonl(std::slice::from_ref(&last)));
+    bytes.extend(b"{\"record_version\":2");
+    let replay = replay_chronicle(Path::new("chronicle.jsonl"), &bytes, 500);
+    assert_eq!(
+        replay
+            .chronicle
+            .entries()
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>(),
+        vec![valid, last]
+    );
+    assert_eq!(replay.diagnostics.len(), 6);
+    assert_eq!(replay.diagnostics[0].line, Some(2));
+    assert!(
+        replay.diagnostics[5]
+            .source_message
+            .contains("3 additional rejected")
+    );
+}
+
+#[tokio::test]
+async fn appending_v2_after_legacy_records_does_not_rewrite_the_existing_bytes() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("chronicle.jsonl");
+    let old_bytes = b"{\"id\":\"old\",\"occurred_at\":50,\"adventurer\":null,\"campaign\":null,\"pane\":null,\"pane_revision\":0,\"event\":\"adventurer_joined\",\"summary\":\"whereabouts unknown\"}\n{\"record_version\":99}\n";
+    tokio::fs::write(&path, old_bytes).await.unwrap();
+    let observed = observation(1, 100);
+    append_chronicle(&path, &observed).await.unwrap();
+    let after = tokio::fs::read(&path).await.unwrap();
+    assert!(after.starts_with(old_bytes));
+    let replay = load_chronicle(&path, 500).await;
+    assert_eq!(replay.chronicle.entries().len(), 2);
+    assert_eq!(replay.chronicle.entries()[1], observed);
+    assert_eq!(replay.diagnostics.len(), 1);
+    assert_eq!(tokio::fs::read(&path).await.unwrap(), after);
+}
+
+#[test]
+fn immutable_v2_identity_survives_timestamp_and_summary_changes() {
+    let original = observation(1, 100);
+    let at_other_time = observation(1, -10_000);
+    assert_eq!(original.id, at_other_time.id);
+    let mut renamed = original.clone();
+    renamed.summary = "A captured summary remains independent of identity".into();
+    let decoded: ChronicleEntry =
+        serde_json::from_slice(&serde_json::to_vec(&renamed).unwrap()).unwrap();
+    assert_eq!(decoded.id, original.id);
+    assert_eq!(decoded.summary, renamed.summary);
+    assert_eq!(decoded.observation(), original.observation());
+}
+
+#[test]
+fn new_observation_categories_cannot_be_written_or_read_as_flat_legacy_records() {
+    let fake_legacy = ChronicleEntry::new(
+        Timestamp::from_millis(1),
+        None,
+        None,
+        None,
+        0,
+        ChronicleEvent::PresenceObserved,
+        "unqualified",
+    );
+    assert!(serde_json::to_vec(&fake_legacy).is_err());
+    let flat = br#"{"id":"new","occurred_at":1,"adventurer":null,"campaign":null,"pane":null,"pane_revision":0,"event":"presence_observed","summary":"unqualified"}"#;
+    assert!(serde_json::from_slice::<ChronicleEntry>(flat).is_err());
 }

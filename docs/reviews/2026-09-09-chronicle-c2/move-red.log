@@ -1,0 +1,22 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running tests/chronicle_capture.rs (target/debug/deps/chronicle_capture-806b1e9b541a702f)
+
+running 1 test
+test moving_the_same_terminal_cannot_reset_its_revision_boundary ... FAILED
+
+failures:
+
+---- moving_the_same_terminal_cannot_reset_its_revision_boundary stdout ----
+
+thread 'moving_the_same_terminal_cannot_reset_its_revision_boundary' panicked at tests/chronicle_capture.rs:236:5:
+assertion failed: effects.agent_commands.iter().any(|command|
+        matches!(command, AgentCommand::RefreshSnapshot(_)))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    moving_the_same_terminal_cannot_reset_its_revision_boundary
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test chronicle_capture`

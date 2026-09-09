@@ -8,6 +8,8 @@ use super::{Agent, AgentKey, Campaign, Chronicle, PaneId, Timestamp, WorkspaceId
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DomainState {
+    #[serde(skip)]
+    pub capture: super::CaptureClock,
     pub campaigns: BTreeMap<WorkspaceId, Campaign>,
     pub agents: BTreeMap<AgentKey, Agent>,
     pub selected_agent: Option<AgentKey>,
@@ -39,7 +41,10 @@ impl DomainState {
             }
             let workspace = workspace_by_id.get(source.workspace_id.as_str()).copied();
             let root = workspace.and_then(workspace_root);
-            let agent = Agent::from_snapshot(source, root, observed_at);
+            let mut agent = Agent::from_snapshot(source, root, observed_at);
+            if state.agents.contains_key(&agent.key) {
+                agent.capture_identity = super::CaptureIdentity::Unqualified;
+            }
             state.agents.insert(agent.key.clone(), agent);
         }
 

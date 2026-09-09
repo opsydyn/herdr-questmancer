@@ -6,8 +6,8 @@ use std::collections::BTreeMap;
 use proptest::prelude::*;
 use questmancer::{
     domain::{
-        AdventurerPersona, Campaign, CampaignStatus, ChronicleEntry, ChronicleEvent, DomainState,
-        GuildSummons, PersonaKey, Presence, WorkspaceId,
+        AdventurerPersona, Campaign, CampaignStatus, ChronicleEntry, DomainState, GuildSummons,
+        PersonaKey, Presence, WorkspaceId,
     },
     update::{AppEvent, Command, update},
 };
@@ -80,7 +80,10 @@ proptest! {
         status in support::agent_status(),
         revision_delta in 0_u64..100,
     ) {
-        let current_revision = state.agents.values().next().unwrap().pane_revision;
+        let current = state.agents.values().next().unwrap();
+        let current_revision = current.pane_revision;
+        let conflicts = revision_delta == 0 && Presence::from(status) != current.presence;
+        let original = state.clone();
         let event = support::status_event(
             &state,
             current_revision + revision_delta,
@@ -93,8 +96,16 @@ proptest! {
         prop_assert_eq!(&same_first_commands, &first_commands);
 
         let (twice, duplicate_commands) = update(once.clone(), event);
-        prop_assert_eq!(twice, once);
-        prop_assert!(duplicate_commands.is_empty());
+        prop_assert_eq!(&twice, &once);
+        if conflicts {
+            // Conflicting equal revisions remain unresolved until fresh evidence
+            // arrives. Repeats preserve facts and only request coalesced recovery.
+            prop_assert_eq!(first_commands, vec![Command::RequestSnapshot]);
+            prop_assert_eq!(duplicate_commands, vec![Command::RequestSnapshot]);
+            prop_assert_eq!(once, original);
+        } else {
+            prop_assert!(duplicate_commands.is_empty());
+        }
     }
 
     #[test]
@@ -204,30 +215,29 @@ fn assert_topology_commands(
             prop_assert_eq!(commands, [Command::PersistState]);
         }
         AppEvent::PaneExited {
-            pane_id, revision, ..
+            pane_id,
+            revision,
+            identity,
+            ..
         } => {
             let Some(agent_key) = state.agent_key_for_pane(pane_id) else {
                 prop_assert_eq!(commands, [Command::RequestSnapshot]);
                 return Ok(());
             };
             let agent = &state.agents[agent_key];
-            if *revision < agent.pane_revision || agent.presence == Presence::Exited {
+            if !agent.capture_identity.same_incarnation(identity) {
+                prop_assert_eq!(commands, [Command::RequestSnapshot]);
+            } else if *revision <= agent.pane_revision || agent.presence == Presence::Exited {
                 prop_assert!(commands.is_empty());
             } else {
-                prop_assert_eq!(commands.len(), 2);
-                let Command::AppendChronicle(entry) = &commands[0] else {
-                    prop_assert!(false, "real pane exit must append Chronicle history");
-                    return Ok(());
-                };
-                prop_assert_eq!(entry.event, ChronicleEvent::AdventurerDeparted);
-                prop_assert_eq!(entry.pane.as_ref(), Some(pane_id));
-                prop_assert_eq!(entry.pane_revision, *revision);
-                prop_assert_eq!(&commands[1], &Command::PersistState);
+                // This topology generator has no capture run. Even corroborated
+                // live changes must stay quiet without observation ownership.
+                prop_assert_eq!(commands, [Command::PersistState]);
             }
         }
-        AppEvent::WorkspaceClosed(workspace_id) => {
+        AppEvent::WorkspaceCloseHint(workspace_id) => {
             if state.campaigns.contains_key(workspace_id) {
-                prop_assert_eq!(commands, [Command::PersistState]);
+                prop_assert_eq!(commands, [Command::RequestSnapshot]);
             } else {
                 prop_assert!(commands.is_empty());
             }

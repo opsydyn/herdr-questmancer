@@ -1,0 +1,951 @@
+cargo fmt --all --check
+cargo clippy --all-targets --all-features -- -D warnings
+    Checking questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.45s
+cargo test --all-targets --all-features
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.61s
+     Running unittests src/lib.rs (target/debug/deps/questmancer-c2c4e26639e1cf91)
+
+running 54 tests
+test portrait::tests::every_class_has_an_embedded_native_portrait ... ok
+test portrait::tests::no_two_classes_share_a_card_portrait ... ok
+test portrait::transport::tests::an_empty_terminal_grid_cannot_get_invented_pixels ... ok
+test portrait::tests::invalid_png_data_cannot_displace_the_sprite_fallback ... ok
+test portrait::tests::intermediary_capability_result_preserves_the_authored_sprite_fallback ... ok
+test portrait::transport::tests::only_missing_pixel_axes_are_completed ... ok
+test portrait::transport::tests::zero_or_overflowing_host_sizes_are_rejected ... ok
+test runtime_loop::tests::shutdown_cancels_a_supervisor_blocked_on_a_saturated_update_channel ... ok
+test portrait::transport::tests::existing_pixels_require_no_socket_request_or_change ... ok
+test portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid ... ok
+test runtime_loop::tests::shutdown_clears_last_published_marginalia ... ok
+test portrait::transport::tests::an_unresponsive_host_cannot_hold_up_startup_indefinitely ... ok
+test scene::assets::tests::dungeon_floors_read_as_floors_against_their_walls ... ok
+test runtime_loop::tests::resubscription_discards_the_old_channel_and_obtains_a_post_subscribe_baseline ... ok
+test portrait::transport::tests::invalid_or_denied_graphics_responses_preserve_missing_pixels ... ok
+test scene::render::delve::tests::actual_opaque_foreground_paint_blocking_a_doorway_fails_validation ... ok
+test scene::assets::tests::garb_and_cloth_masses_contrast_with_world_materials ... ok
+test scene::assets::adventurer::tests::persona_role_colours_are_unique_within_every_master_palette ... ok
+test scene::render::delve::tests::duplicate_background_owner_writes_are_rejected ... ok
+test scene::assets::tests::the_selection_rune_colour_is_reserved_for_selection ... ok
+test scene::render::delve::tests::exit_slots_keep_authored_masters_inside_the_world ... ok
+test scene::render::delve::tests::duplicate_opaque_foreground_owner_writes_are_rejected ... ok
+test scene::render::delve::tests::dungeon_material_scatters_evenly_instead_of_drawing_lines ... ok
+test scene::render::delve::tests::station_population_above_visible_capacity_uses_an_in_region_overflow_marker ... ok
+test scene::render::delve::tests::both_deterministic_rubble_variants_have_valid_final_compositions ... ok
+test scene::render::delve::tests::transparent_arch_pixels_do_not_block_the_floor_beneath_them ... ok
+test scene::render::tests::authored_masters_share_the_station_foot_line ... ok
+test scene::stage::tests::forced_delve_maps_blocked_agents_to_the_sealed_gate ... ok
+test storybook::runtime::tests::event_stream_end_requests_a_clean_exit ... ok
+test storybook::runtime::tests::event_wins_without_replacing_the_interrupt_listener_then_interrupt_exits ... ok
+test storybook::runtime::tests::preflight_rejects_invalid_catalogue_validation ... ok
+test storybook::runtime::tests::preflight_returns_the_catalogue_and_fixed_context ... ok
+test storybook::runtime::tests::quit_event_requests_a_clean_exit ... ok
+test terminal::tests::moving_the_terminal_guard_does_not_duplicate_its_restore_action ... ok
+test terminal::tests::panic_restore_and_guard_drop_share_one_exactly_once_gate ... ok
+test terminal::tests::sequential_terminal_sessions_each_restore_once ... ok
+test terminal::tests::shutdown_observes_a_requested_signal ... ok
+test scene::render::delve::tests::final_architecture_painter_leaves_every_named_doorway_visually_open ... ok
+test scene::render::delve::tests::unknown_station_is_ambient_only_while_active_station_has_a_local_pool ... ok
+test terminal::tests::terminal_guard_runs_its_restore_action_exactly_once_on_drop ... ok
+test ui::scene_overlays::tests::full_labels_pass_through_untouched ... ok
+test ui::scene_overlays::tests::lanes_too_narrow_for_a_name_fall_back_to_the_state_glyph ... ok
+test ui::scene_overlays::tests::truncation_shortens_the_name_and_never_the_state ... ok
+test ui::scene_overlays::tests::urgent_labels_keep_badge_and_elapsed_over_the_name ... ok
+test terminal::tests::signal_shutdown_flushes_state_after_an_acknowledged_append ... ok
+test scene::render::delve::tests::maximum_station_parties_have_unique_bounded_sprite_anchors ... ok
+test runtime_loop::tests::snapshot_cancellation_does_not_cancel_counsel_or_selected_output ... ok
+test runtime_loop::tests::output_refresh_bursts_coalesce_without_blocking_counsel ... ok
+test runtime_loop::tests::disconnect_cancels_only_output_and_drops_its_pending_refresh ... ok
+test runtime_loop::tests::snapshot_scheduling_keeps_one_active_and_only_the_latest_pending_read ... ok
+test portrait::tests::every_native_portrait_is_a_decodable_transparent_three_by_four_png ... ok
+test portrait::tests::native_class_portraits_take_priority_over_ancestry_portraits ... ok
+test portrait::tests::native_picker_prepares_every_approved_asset_and_leaves_other_classes_unmapped ... ok
+test portrait::tests::ancestry_portraits_are_reserved_and_never_selected_for_regular_adventurers ... ok
+
+test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+
+     Running unittests src/main.rs (target/debug/deps/questmancer-91dbc9b2bf2329af)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/questmancer_storybook.rs (target/debug/deps/questmancer_storybook-11c89fb5406dcc85)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/actions.rs (target/debug/deps/actions-6ed1ac889325061c)
+
+running 5 tests
+test sends_reply_text_without_mutating_it ... ok
+test lists_actions_with_qualified_ids ... ok
+test focuses_an_exact_pane ... ok
+test reads_recent_unwrapped_text_with_a_line_cap ... ok
+test invokes_a_plugin_action_with_focused_pane_context ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/app.rs (target/debug/deps/app-322cf1d1340ef81a)
+
+running 13 tests
+test counsel_editing_can_backspace_clear_and_cancel ... ok
+test action_feedback_retires_itself_instead_of_living_forever ... ok
+test ledger_opens_fresh_clamps_navigation_and_remains_transient ... ok
+test new_model_has_no_managed_pane ... ok
+test notices_retain_their_origin_and_connection_clear_is_selective ... ok
+test managed_pane_round_trips_through_model ... ok
+test expiry_touches_action_feedback_and_nothing_else ... ok
+test starts_in_requested_view ... ok
+test switches_views ... ok
+test typed_notice_origins_coexist_and_clear_independently ... ok
+test domain_replacement_keeps_a_valid_selection ... ok
+test selection_movement_clamps_at_the_boundaries ... ok
+test the_counsel_modal_is_explicit_app_state ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-f647978a6683c240)
+
+running 16 tests
+test every_class_has_an_authored_roster_master_at_the_small_tier ... ok
+test barbarian_v2_has_truthful_pose_specific_world_frames ... ok
+test roster_silhouette_families_are_pairwise_distinct ... ok
+test every_core_archetype_uses_a_world_master ... ok
+test persona_substitution_preserves_the_authored_silhouette ... ok
+test persona_substitution_is_deterministic_for_a_fixed_persona ... ok
+test every_core_archetype_has_a_portrait_canvas ... ok
+test garb_changes_the_sprite_without_changing_the_class ... ok
+test no_two_classes_share_a_world_or_portrait_master ... ok
+test same_family_personas_stay_distinguishable_at_roster_scale ... ok
+test same_class_personas_with_different_appearance_render_distinct_world_masters ... ok
+test returning_and_resting_change_every_class_sprite ... ok
+test core_archetype_masters_are_pairwise_distinct_at_both_scales ... ok
+test pose_decorations_leave_most_of_the_class_master_intact ... ok
+test every_domain_class_routes_to_authored_world_and_portrait_assets ... ok
+test ritual_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/atomic_state.rs (target/debug/deps/atomic_state-0b688bf625cefbe7)
+
+running 17 tests
+test malformed_json_reports_the_path_and_one_based_line ... ok
+test mismatched_embedded_persona_key_fails_closed ... ok
+test seen_attention_persona_missing_from_the_map_fails_closed ... ok
+test selected_persona_missing_from_the_map_fails_closed ... ok
+test missing_state_file_loads_as_none ... ok
+test unsupported_schema_version_fails_closed ... ok
+test valid_v1_bytes_parse ... ok
+test arbitrary_bytes_never_parse_as_an_unvalidated_state ... ok
+test non_missing_read_failure_is_a_path_bearing_diagnostic ... ok
+test invalid_state_file_is_preserved_exactly ... ok
+test temporary_file_creation_failure_retains_the_prior_destination ... ok
+test publication_reuses_and_cleans_up_a_leftover_temporary_file ... ok
+test publication_writes_pretty_json_with_a_trailing_newline ... ok
+test publication_creates_a_missing_parent_directory ... ok
+test read_only_parent_rename_failure_retains_the_prior_destination ... ok
+test publication_atomically_replaces_an_existing_valid_document ... ok
+test atomic_publication_never_exposes_partial_json ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.81s
+
+     Running tests/cat_reaction.rs (target/debug/deps/cat_reaction-e11bbc68b98ffc31)
+
+running 8 tests
+test authored_cat_frames_end_at_the_exact_deadlines_and_keep_native_bounds ... ok
+test stale_status_events_cannot_trigger_or_restart_the_reaction ... ok
+test the_whole_party_must_rest_and_departure_cancels_a_running_reaction ... ok
+test reaction_cancels_when_work_resumes_or_connection_is_lost ... ok
+test unknown_empty_changed_parties_and_connection_baselines_do_not_trigger ... ok
+test reaction_does_not_change_domain_projection_persistence_or_pixels_outside_the_cat ... ok
+test the_last_resting_transition_gets_one_bounded_cat_reaction ... ok
+test reduced_still_delve_and_small_halls_do_not_schedule_cat_wakes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/chronicle.rs (target/debug/deps/chronicle-f968031cf15e3322)
+
+running 5 tests
+test duplicate_entries_are_rejected ... ok
+test a_repeated_event_is_worth_standing_only_once ... ok
+test entries_remain_chronological_and_evict_the_oldest ... ok
+test event_id_is_stable_for_the_documented_identity_fields ... ok
+test the_chronicle_forgets_but_standing_must_not ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/chronicle_chapter.rs (target/debug/deps/chronicle_chapter-62ce9c81b11b3cfb)
+
+running 7 tests
+test chapter_uses_inclusive_explicit_bounds_and_never_counts_future_events ... ok
+test bounded_history_and_empty_windows_make_no_claim_of_completeness ... ok
+test timestamp_extremes_are_saturating_and_honest ... ok
+test unknown_whereabouts_are_not_rewritten_as_an_arrival ... ok
+test every_event_type_has_a_factual_template_and_traceable_source ... ok
+test repeats_count_events_and_source_order_is_stable_across_arrival_order ... ok
+test long_recorded_names_remain_complete_across_scrollable_lines ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/chronicle_persistence.rs (target/debug/deps/chronicle_persistence-edb281503d3bb068)
+
+running 10 tests
+test non_newline_terminated_final_record_is_rejected_as_truncated ... ok
+test schema_invalid_json_and_malformed_utf8_do_not_hide_valid_history ... ok
+test replay_folds_diagnostics_after_five_rejected_records ... ok
+test replay_preserves_chronicle_order_deduplication_and_bound ... ok
+test absent_chronicle_loads_as_empty_without_diagnostics ... ok
+test append_failure_reports_the_chronicle_path ... ok
+test append_writes_one_compact_record_and_one_newline ... ok
+test append_creates_missing_parent_directories ... ok
+test multiple_appends_remain_in_write_order ... ok
+test arbitrary_record_interleavings_match_a_chronicle_fold ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/cli.rs (target/debug/deps/cli-03ac1087861fc3f0)
+
+running 3 tests
+test omits_the_initial_view_by_default ... ok
+test accepts_guild_and_delve_as_initial_views ... ok
+test rejects_removed_initial_view_aliases ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/client.rs (target/debug/deps/client-625c5dd74a3d8c60)
+
+running 5 tests
+test rejects_an_unexpected_result_kind ... ok
+test retains_server_error_code_and_message ... ok
+test rejects_a_mismatched_response_id ... ok
+test pane_metadata_cannot_return_a_different_target ... ok
+test each_ordinary_request_uses_a_new_connection ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/command.rs (target/debug/deps/command-930de0a68dff50ca)
+
+running 14 tests
+test non_splittable_reviewr_action_is_unavailable_and_invocation_fails_non_fatally ... ok
+test managed_pane_effects_are_refused_before_socket_io ... ok
+test output_failure_preserves_request_identity ... ok
+test reviewr_discovery_checks_the_exact_qualified_action ... ok
+test server_failure_becomes_a_non_blocking_result ... ok
+test marginalia_clear_removes_only_questmancer_tokens ... ok
+test opening_reviewr_focuses_the_agent_before_invocation ... ok
+test output_load_returns_a_ui_ready_preview ... ok
+test enter_failure_is_not_reported_as_safe_to_resend_the_text ... ok
+test reply_sends_the_composed_text_and_submits_it ... ok
+test marginalia_publishes_only_questmancer_owned_tokens ... ok
+test lost_send_text_response_is_not_reported_as_safe_to_resend ... ok
+test submission_retry_presses_enter_without_writing_text_again ... ok
+test snapshot_refresh_returns_a_domain_ready_snapshot ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/config.rs (target/debug/deps/config-6fe6e3422e3c9e8b)
+
+running 15 tests
+test accepts_every_color_mode_value ... ok
+test accepts_chronicle_entry_bounds ... ok
+test accepts_every_character_set_value ... ok
+test accepts_every_view_value ... ok
+test accepts_every_motion_value ... ok
+test accepts_output_preview_line_bounds ... ok
+test discovers_each_plugin_directory_independently ... ok
+test empty_configuration_uses_complete_defaults ... ok
+test empty_reviewr_action_rejects_the_whole_file ... ok
+test malformed_toml_rejects_the_whole_file ... ok
+test missing_plugin_directories_disable_only_their_own_paths ... ok
+test parses_a_complete_configuration ... ok
+test rejects_chronicle_entries_outside_bounds ... ok
+test rejects_output_preview_lines_outside_bounds ... ok
+test arbitrary_config_bytes_never_panic ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running tests/domain_types.rs (target/debug/deps/domain_types-070538363250f151)
+
+running 7 tests
+test bounded_settings_cannot_be_built_out_of_range ... ok
+test identifier_newtypes_carry_the_traits_callers_expect ... ok
+test ids_keep_their_types_while_serializing_as_strings ... ok
+test marking_attention_read_retains_summons_and_original_time ... ok
+test timestamp_elapsed_is_deterministic_and_saturating ... ok
+test urgency_digits_follow_the_same_order_as_the_enum ... ok
+test protocol_status_converts_to_domain_presence ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/environment.rs (target/debug/deps/environment-50b23ef02087f1de)
+
+running 3 tests
+test parses_required_plugin_paths ... ok
+test requires_binary_path ... ok
+test requires_socket_path ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/event_adapter.rs (target/debug/deps/event_adapter-ee736b8c8f296fae)
+
+running 13 tests
+test connected_update_carries_managed_pane_exclusion ... ok
+test dotted_agent_status_becomes_a_typed_transition ... ok
+test explicit_stale_revision_is_preserved_for_the_domain_reducer ... ok
+test managed_status_and_exit_events_are_ignored ... ok
+test incomplete_topology_event_requests_a_snapshot ... ok
+test connected_update_sets_connection_and_replaces_snapshot ... ok
+test revisionless_duplicate_status_and_custom_status_are_inert ... ok
+test reconnect_updates_remain_app_state_not_domain_state ... ok
+test unknown_event_is_a_non_blocking_diagnostic ... ok
+test pane_exit_uses_the_current_revision_boundary ... ok
+test lifecycle_workspace_close_becomes_a_domain_event ... ok
+test metadata_updates_are_inert_display_refreshes ... ok
+test unknown_non_managed_pane_still_requests_snapshot ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/framing.rs (target/debug/deps/framing-585bd56fab95979f)
+
+running 7 tests
+test optional_reader_returns_none_at_eof ... ok
+test blank_line_is_an_error ... ok
+test invalid_json_is_an_error ... ok
+test writes_one_flushed_json_line ... ok
+test required_reader_reports_eof ... ok
+test reads_several_messages_from_one_write ... ok
+test reads_a_message_split_across_writes ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/heraldry.rs (target/debug/deps/heraldry-c2eeeb1b9670525b)
+
+running 3 tests
+test crests_follow_workspace_keys_not_names_order_time_or_connection ... ok
+test shared_table_pennants_are_separate_or_omitted_as_a_whole_set ... ok
+test all_charges_remain_distinct_without_colour_and_have_ascii_names ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/input.rs (target/debug/deps/input-d5d376222b0b8db2)
+
+running 11 tests
+test clicking_a_rendered_adventurer_selects_only_that_agent ... ok
+test clicking_empty_world_space_dismisses_the_adventurer_card ... ok
+test counsel_modal_treats_global_shortcuts_as_composed_text ... ok
+test guild_hall_navigation_and_actions_have_explicit_keys ... ok
+test ledger_modal_accepts_only_navigation_and_dismissal_keys ... ok
+test number_and_function_keys_switch_views ... ok
+test global_keys_map_to_explicit_actions ... ok
+test resize_requests_a_redraw ... ok
+test scene_targets_keep_librarian_hits_distinct_from_agents ... ok
+test scrying_modal_accepts_only_refresh_scrolling_and_dismissal ... ok
+test unrelated_keys_are_ignored ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/interaction.rs (target/debug/deps/interaction-09ec7d8cd8bf930a)
+
+running 59 tests
+test cycling_without_a_search_explains_itself ... ok
+test clicking_librarian_opens_fresh_ledger_without_selecting_or_commanding_an_agent ... ok
+test clicking_the_selected_adventurer_toggles_its_card_closed ... ok
+test counsel_success_after_dismissal_spends_the_original_draft ... ok
+test configured_runtime_settings_drive_output_and_reviewr_commands ... ok
+test counsel_submit_sends_the_exact_draft_to_the_selected_pane ... ok
+test a_counsel_draft_survives_dismissing_the_parchment ... ok
+test a_sent_counsel_leaves_no_draft_behind ... ok
+test a_set_aside_summons_returns_when_its_time_is_up ... ok
+test a_deferred_summons_is_skipped_until_it_expires ... ok
+test counsel_drafts_do_not_follow_the_selection_to_another_adventurer ... ok
+test acknowledgement_claims_success_only_for_an_unread_summons ... ok
+test delve_search_reuses_selection_and_single_output_load_boundary ... ok
+test delve_selection_reuses_the_guild_commands_and_loads_once_per_change ... ok
+test dismissing_an_empty_parchment_says_nothing ... ok
+test display_preferences_can_be_changed_while_running_and_persist ... ok
+test delve_counsel_and_acknowledgement_reuse_the_existing_local_and_command_boundaries ... ok
+test empty_counsel_stays_open_while_clear_and_cancel_are_local ... ok
+test guild_and_delve_switching_preserves_selection ... ok
+test ledger_opens_pages_toggles_and_blocks_normal_model_actions ... ok
+test empty_search_does_not_select_the_first_agent ... ok
+test first_and_last_select_boundaries_and_load_only_changed_selection ... ok
+test mark_seen_keeps_the_newly_selected_distinct_persona_selected ... ok
+test delve_visit_refresh_and_optional_reviewr_reuse_typed_guild_commands ... ok
+test quit_is_an_explicit_typed_loop_outcome ... ok
+test motion_cycles_through_every_setting ... ok
+test mark_seen_uses_the_domain_reducer_for_the_selected_agent ... ok
+test navigation_with_only_the_managed_pane_has_no_output_effect ... ok
+test pointer_selection_never_observes_or_sends_counsel ... ok
+test navigation_does_not_load_output_for_a_managed_pane ... ok
+test refresh_loads_only_the_selected_output ... ok
+test relative_selection_loads_one_preview_per_change ... ok
+test managed_pane_selection_never_emits_effect_commands ... ok
+test repeated_urgency_jumps_cycle_every_waiting_adventurer ... ok
+test retry_after_submission_failure_does_not_write_the_counsel_again ... ok
+test search_keeps_every_match_and_n_walks_them ... ok
+test reviewr_opens_only_when_available_for_a_selection ... ok
+test search_modal_supports_edit_clear_and_cancel ... ok
+test search_no_match_stays_editable_with_visible_status ... ok
+test search_results_drop_adventurers_who_have_gone ... ok
+test selected_adventurer_card_can_be_dismissed_without_clearing_selection ... ok
+test selection_changes_persist_but_noops_and_animation_redraws_do_not ... ok
+test setting_a_summons_aside_takes_it_out_of_the_urgency_cycle ... ok
+test setting_aside_keeps_the_summons_rather_than_clearing_it ... ok
+test tab_moves_the_selection_into_the_next_campaign ... ok
+test setting_aside_nothing_says_so ... ok
+test tab_says_so_when_the_whole_party_is_on_one_campaign ... ok
+test search_is_case_insensitive_across_agent_fields ... ok
+test the_chronicle_scopes_to_the_selected_adventurer ... ok
+test the_chronicle_swallows_keys_that_would_move_the_party ... ok
+test shift_n_walks_the_matches_in_reverse ... ok
+test the_chronicle_view_shows_what_the_guild_recorded ... ok
+test view_switch_is_reduced_without_effect_commands ... ok
+test unchanged_idle_room_emits_no_output_load_or_persistence_effects ... ok
+test uncertain_text_delivery_has_no_automatic_retry_path ... ok
+test visit_focuses_selected_pane_and_empty_selection_is_contextual ... ok
+test the_urgency_jump_reaches_a_blocked_adventurer_in_one_press ... ok
+test urgency_order_puts_the_unanswered_and_longest_waiting_first ... ok
+test search_matches_visible_presence_class_and_ancestry_terms ... ok
+
+test result: ok. 59 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/keepsake_assets.rs (target/debug/deps/keepsake_assets-9057e551c53c6b4e)
+
+running 1 test
+test all_saved_keepsakes_have_distinct_complete_static_card_art ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/keymap.rs (target/debug/deps/keymap-0e412d34f617e4f4)
+
+running 4 tests
+test authored_ledger_pages_are_untouched ... ok
+test every_documented_binding_is_still_reachable ... ok
+test the_ledger_keyring_page_is_generated_from_the_bindings ... ok
+test every_bound_key_is_documented ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/librarian_assets.rs (target/debug/deps/librarian_assets-c23aff3195ab6c09)
+
+running 4 tests
+test librarian_world_master_is_native_scale_and_non_empty ... ok
+test librarian_ledger_fallback_fills_a_readable_portrait_canvas ... ok
+test librarian_art_is_grounded_and_the_ledger_uses_its_larger_canvas ... ok
+test embedded_librarian_art_is_a_decodable_png ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/no_legacy_renderer.rs (target/debug/deps/no_legacy_renderer-7638252cc9937f97)
+
+running 1 test
+test repository_has_one_production_renderer ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/normalization.rs (target/debug/deps/normalization-2117ee765179c428)
+
+running 5 tests
+test campaign_status_uses_the_required_priority ... ok
+test empty_campaign_is_abandoned ... ok
+test managed_pane_is_excluded_from_snapshot_normalization ... ok
+test agent_keys_and_personas_stay_stable_across_pane_changes_with_a_session ... ok
+test snapshot_normalizes_campaigns_agents_attention_and_personas ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/persisted_state.rs (target/debug/deps/persisted_state-1ee5628f350d8941)
+
+running 21 tests
+test a_state_file_without_standing_still_loads_with_its_personas ... ok
+test capture_contains_only_durable_intent ... ok
+test overlay_restores_matching_persona_selection_and_seen_episode ... ok
+test legacy_seen_attention_with_transport_revision_still_deserializes ... ok
+test different_summons_does_not_inherit_stored_acknowledgement ... ok
+test overlay_restores_seen_summons_when_snapshot_revision_changes ... ok
+test observed_domain_without_summons_removes_stored_acknowledgement ... ok
+test failed_seed_is_atomic_and_cannot_cross_persona_identities ... ok
+test new_state_json_omits_transport_revision_from_seen_attention ... ok
+test standing_is_captured_and_seeded_back ... ok
+test standing_is_monotonic_and_saturates ... ok
+test overlay_marks_only_unread_attention_as_read ... ok
+test overlay_retains_learned_personas_that_are_not_live ... ok
+test overlay_keeps_a_valid_snapshot_selection_when_persona_is_ambiguous ... ok
+test validation_rejects_a_mismatched_embedded_persona_key ... ok
+test v1_state_without_persona_generation_loads_and_keeps_its_recorded_classes ... ok
+test validation_rejects_a_seen_episode_referencing_a_missing_persona ... ok
+test validation_rejects_a_selected_persona_missing_from_the_map ... ok
+test validation_rejects_an_unsupported_schema_version ... ok
+test valid_state_json_round_trips ... ok
+test overlay_cannot_replace_live_facts ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running tests/persistence_worker.rs (target/debug/deps/persistence_worker-0df4f1d6af44dde0)
+
+running 19 tests
+test disabled_paths_are_successful_no_ops ... ok
+test bounded_runtime_shutdown_returns_filesystem_failure_after_worker_exit ... ok
+test failed_state_write_is_non_fatal_and_only_a_distinct_state_retries ... ok
+test diagnostic_queue_remains_bounded_under_repeated_failures ... ok
+test acknowledged_append_survives_restart_after_a_truncated_chronicle_tail ... ok
+test coalesces_state_to_the_latest_value_after_250_milliseconds ... ok
+test chronicle_append_is_acknowledged_after_the_record_is_durable ... ok
+test flush_publishes_dirty_state_without_waiting_for_the_debounce ... ok
+test flush_acknowledges_after_an_earlier_append_and_dirty_state_are_durable ... ok
+test malformed_state_survives_initial_snapshot_flush_while_chronicle_stays_writable ... ok
+test bounded_runtime_shutdown_flushes_latest_state_after_prior_append ... ok
+test quit_lifecycle_stops_real_runtime_then_flushes_writer ... ok
+test offline_view_change_preserves_restored_selection_for_reconnect ... ok
+test saturated_diagnostic_queue_retains_the_latest_failure ... ok
+test unchanged_state_is_not_staged_or_republished ... ok
+test runtime_dispatch_durably_appends_before_staging_the_following_state ... ok
+test shutdown_publishes_dirty_state_and_exits ... ok
+test an_expired_state_deadline_precedes_sustained_queued_appends ... ok
+test a_later_distinct_state_resets_the_debounce_deadline ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+
+     Running tests/persona.rs (target/debug/deps/persona-3099b72f215102a2)
+
+running 9 tests
+test druid_and_living_staff_have_stable_wire_names ... ok
+test generated_personas_have_meaningful_trait_diversity ... ok
+test legacy_persona_records_default_to_the_original_generation_without_reclassing ... ok
+test native_agent_session_is_the_strongest_persona_identity ... ok
+test persona_generation_is_stable_and_independent_of_pane_moves ... ok
+test workspace_and_pane_are_the_last_identity_fallback ... ok
+test workspace_root_and_agent_name_survive_pane_changes ... ok
+test classic_and_questmancer_classes_are_reachable ... ok
+test goblins_are_possible_but_rare ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/property_domain.rs (target/debug/deps/property_domain-71f143b078ae39e3)
+
+running 8 tests
+test marking_attention_read_is_idempotent ... ok
+test managed_pane_is_absent_from_the_delve_model_and_rendered_surface ... ok
+test chronicle_event_ids_are_stable_for_equal_identity_inputs ... ok
+test stale_revisions_never_regress_state ... ok
+test persona_key_and_appearance_are_deterministic ... ok
+test duplicate_semantic_events_are_idempotent ... ok
+test campaign_status_priority_is_independent_of_agent_insertion_order ... ok
+test arbitrary_topology_changes_keep_selection_valid ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+
+     Running tests/protocol.rs (target/debug/deps/protocol-8a8fed5538bff938)
+
+running 5 tests
+test request_serializes_schema_shape ... ok
+test mixed_and_unknown_events_decode_without_loss ... ok
+test error_response_retains_code_and_message ... ok
+test pong_tolerates_unknown_fields ... ok
+test snapshot_tolerates_unknown_fields ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/reducer.rs (target/debug/deps/reducer-7924a94089d182c7)
+
+running 15 tests
+test unknown_pane_requests_a_fresh_snapshot ... ok
+test unknown_status_records_adventurer_joined_summary ... ok
+test snapshot_replacement_preserves_seen_attention_and_persona ... ok
+test blocked_to_done_replaces_attention_with_completion ... ok
+test done_status_records_spoils_returned_summary ... ok
+test blocked_status_records_counsel_requested_summary ... ok
+test idle_status_records_adventurer_rested_summary ... ok
+test marking_done_attention_seen_is_local_and_persisted ... ok
+test duplicate_or_stale_status_is_ignored ... ok
+test blocked_to_idle_clears_attention ... ok
+test pane_exit_becomes_attention_and_history ... ok
+test snapshot_replacement_excludes_managed_pane_and_preserves_selection ... ok
+test working_status_records_delve_began_summary ... ok
+test working_to_blocked_creates_unread_counsel_summons ... ok
+test workspace_close_removes_its_campaign_and_agents ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/runtime.rs (target/debug/deps/runtime-aad716c9b62903ea)
+
+running 2 tests
+test registration_writes_the_resolved_effective_view_and_cleans_it_on_drop ... ok
+test registration_does_not_delete_newer_pane_state ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/runtime_loop.rs (target/debug/deps/runtime_loop-6ae06065b0485258)
+
+running 54 tests
+test available_reviewr_discovery_clears_the_prior_typed_integration_notice ... ok
+test connection_bootstrap_updates_model_and_lazily_loads_selected_output ... ok
+test a_pending_read_cannot_populate_the_managed_pane ... ok
+test an_exit_event_invalidates_the_pending_read_without_loading_the_exited_pane ... ok
+test available_reviewr_discovery_preserves_a_newer_adapter_diagnostic ... ok
+test connection_snapshot_excludes_the_managed_webmaster_pane ... ok
+test disconnect_preserves_the_last_connected_snapshot ... ok
+test conflicting_equal_revision_status_requests_snapshot_without_history ... ok
+test a_refresh_from_before_disconnect_cannot_replace_the_new_connection_baseline ... ok
+test conflicting_equal_revision_snapshot_requires_reconciliation ... ok
+test blocked_transition_routes_history_and_state_to_persistence ... ok
+test even_the_latest_output_request_cannot_regress_the_current_revision ... ok
+test connected_clears_only_connection_notice ... ok
+test explicit_duplicate_and_stale_status_updates_have_no_runtime_effects ... ok
+test disconnected_refresh_does_not_read_a_retained_agent_snapshot ... ok
+test failed_enter_becomes_a_submission_only_retry ... ok
+test duplicate_and_late_results_cannot_complete_a_new_snapshot_request ... ok
+test marginalia_failure_is_an_integration_diagnostic_not_an_action_error ... ok
+test leaving_and_reselecting_an_adventurer_invalidates_the_old_output_request ... ok
+test only_finished_work_is_worth_standing ... ok
+test matching_snapshot_failure_releases_only_one_coalesced_pending_request ... ok
+test operational_results_use_approved_guild_copy ... ok
+test offline_and_unsolicited_snapshot_results_cannot_establish_a_baseline ... ok
+test output_failure_is_scoped_to_the_selected_scrying_preview ... ok
+test older_output_result_cannot_overwrite_a_newer_selected_preview ... ok
+test output_and_discovery_results_update_app_state ... ok
+test local_interaction_and_marginalia_do_not_supersede_snapshot_work ... ok
+test output_result_must_match_both_request_and_pane ... ok
+test replacing_the_selected_agent_on_the_same_pane_invalidates_output ... ok
+test runtime_domain_update_keeps_the_newly_selected_distinct_persona_selected ... ok
+test selected_status_change_refreshes_only_that_output ... ok
+test resync_does_not_launch_a_competing_command_snapshot ... ok
+test removal_and_recreation_of_a_pane_cannot_revive_its_old_output_request ... ok
+test refresh_with_unsubscribed_panes_requires_a_quiet_new_baseline ... ok
+test startup_with_plugin_environment_begins_connecting ... ok
+test runtime_clock_advances_from_one_epoch_sample_using_tokio_time ... ok
+test snapshot_result_excludes_the_managed_webmaster_pane ... ok
+test stale_output_failure_preserves_newer_text_and_feedback ... ok
+test startup_without_plugin_environment_is_usefully_offline ... ok
+test terminal_runtime_is_async ... ok
+test snapshot_result_preserves_persistence_effect_after_durable_overlay ... ok
+test superseded_output_does_not_settle_a_newer_pending_read_even_at_a_higher_revision ... ok
+test unsolicited_output_results_are_ignored_without_a_selected_request ... ok
+test snapshot_refresh_bursts_coalesce_and_pending_work_uses_installed_facts ... ok
+test every_connection_boundary_rejects_old_reads_and_reloads_unchanged_selection ... ok
+test the_urgency_view_is_only_requested_when_the_user_asked_for_it ... ok
+test the_urgency_view_is_requested_again_after_reconnecting ... ok
+test topology_hints_supersede_refreshes_before_the_new_party_is_known ... ok
+test runtime_connection_exposes_owned_work_as_typed_events ... ok
+test reconnect_does_not_replay_completion_but_a_new_done_event_can ... ok
+test runtime_shutdown_cancels_supervisor_and_command_tasks ... ok
+test unsupported_and_ambiguous_snapshots_never_replace_the_qualified_party ... ok
+test two_overtaken_refreshes_resubscribe_without_rolling_back_or_backfilling ... ok
+test party_counsel_gestures_follow_presence_episodes_across_reports_and_reconnects ... ok
+
+test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/scene_adapter.rs (target/debug/deps/scene_adapter-2015e53173d50ddc)
+
+running 5 tests
+test flushes_an_odd_final_pixel_row_with_the_explicit_fallback_colour ... ok
+test flush_ignores_zero_sized_areas_and_source_pixels_outside_the_requested_width ... ok
+test flushes_a_two_pixel_column_as_one_half_block_cell ... ok
+test ansi16_mode_emits_indexed_colours_instead_of_truecolour ... ok
+test flushes_relative_to_a_nonzero_destination_area_and_clips_to_target ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scene_delve.rs (target/debug/deps/scene_delve-c922b6971cf5c9c9)
+
+running 14 tests
+test a_narrow_delve_recomposes_the_party_instead_of_cropping_it ... ok
+test delve_has_its_indexed_environment_families_in_order ... ok
+test truthful_station_regions_intersect_their_authored_actors_and_exited_is_absent ... ok
+test delvers_at_one_station_never_overlap ... ok
+test the_unknown_treatment_drains_identity_without_draining_light ... ok
+test minimum_viewport_is_a_camera_crop_of_the_same_canonical_dungeon ... ok
+test narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible ... ok
+test reduced_and_still_delve_actors_have_no_invisible_cadence ... ok
+test no_motion_delve_is_byte_identical_across_fresh_completion_timestamps ... ok
+test reconnecting_preserves_the_authored_dungeon_under_connection_light ... ok
+test unknown_delvers_stay_legible_against_the_floor_they_stand_on ... ok
+test unknown_dimming_preserves_transparent_sprite_pixels ... ok
+test every_authored_floor_pixel_doorway_and_named_region_is_connected ... ok
+test canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/scene_guild_hall.rs (target/debug/deps/scene_guild_hall-d26e6e18da989493)
+
+running 29 tests
+test a_narrow_pane_keeps_the_whole_party_visible_instead_of_one_adventurer ... ok
+test canonical_room_contains_every_owned_landmark_signature ... ok
+test a_party_too_large_for_the_roster_still_falls_back_to_the_priority_vignette ... ok
+test campaign_adventurers_have_unique_anchors_per_physical_table_across_three_campaigns ... ok
+test campaign_tables_show_full_adventurer_identity_instead_of_colour_tokens ... ok
+test actors_occupy_truthful_station_bounds_with_unique_final_anchors ... ok
+test canonical_hearth_keeps_three_resting_adventurers_inside_the_room ... ok
+test canonical_hall_never_stacks_complete_adventurer_footprints ... ok
+test compact_and_vignette_halls_keep_a_seamless_quiet_stage_behind_the_party ... ok
+test canonical_campaign_pennants_reach_the_rgb_frame_without_covering_actors ... ok
+test a_full_canonical_hall_recomposes_before_hiding_adventurers ... ok
+test compact_guild_hall_degrades_to_the_roster_before_hiding_adventurers ... ok
+test librarian_yields_vignette_and_status_only_halls_to_live_status ... ok
+test minimum_door_crop_keeps_incompatible_versions_visible_over_the_room ... ok
+test compact_guild_hall_keeps_the_whole_party_visible_and_clickable ... ok
+test focused_campaign_crop_uses_the_same_physical_table_as_its_actor ... ok
+test minimum_guild_hall_shows_one_complete_priority_adventurer ... ok
+test roster_actors_never_share_a_silhouette_edge ... ok
+test a_blocked_adventurer_carries_the_authored_counsel_marker_at_every_scale ... ok
+test librarian_has_one_complete_non_agent_station_in_canonical_and_compact_halls ... ok
+test campaign_table_motion_is_authored_and_reduced_motion_does_not_wake ... ok
+test exited_agents_have_no_actor_pixels ... ok
+test the_guild_entrance_is_built_rather_than_left_flat ... ok
+test goblins_never_stand_where_an_adventurer_stands ... ok
+test fresh_spoils_effect_ends_exactly_once_at_three_seconds ... ok
+test canonical_room_meets_density_colour_and_byte_determinism_floors ... ok
+test static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps ... ok
+test releasing_goblins_actually_puts_goblins_in_the_room ... ok
+test connection_states_change_the_door_without_replacing_the_room ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/scene_interaction.rs (target/debug/deps/scene_interaction-50e27803540eba3f)
+
+running 4 tests
+test presentation_keeps_ui_state_outside_scene_truth ... ok
+test rendered_adventurer_exposes_a_terminal_hit_region ... ok
+test explicit_world_render_marks_only_the_selected_adventurer ... ok
+test model_view_explicitly_selects_the_rendered_world ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/scene_overlays.rs (target/debug/deps/scene_overlays-21ba64546bb175f1)
+
+running 35 tests
+test a_narrow_room_drops_the_badge_rather_than_the_scene ... ok
+test a_nameplate_never_paints_through_another_adventurer ... ok
+test a_notice_reaches_the_frame_and_not_only_the_model ... ok
+test ascii_roster_labels_use_ascii_separators_truncation_and_state_glyphs ... ok
+test a_failed_send_keeps_the_draft_and_says_so ... ok
+test a_crowded_party_keeps_a_nameplate_for_every_adventurer ... ok
+test a_reopened_parchment_starts_at_the_top ... ok
+test every_visible_sprite_has_an_agent_state_nameplate ... ok
+test an_empty_chronicle_says_so ... ok
+test counsel_uses_a_centered_parchment_without_replacing_the_world ... ok
+test nameplate_truncation_shortens_the_name_and_keeps_the_state_word ... ok
+test chapter_requests_are_local_frozen_in_time_and_return_to_the_existing_records ... ok
+test librarian_ledger_is_the_single_responsive_help_surface ... ok
+test neighbouring_nameplates_never_touch ... ok
+test scrolling_stops_at_the_end_of_the_text ... ok
+test overlays_are_safe_at_zero_and_minimum_viewports ... ok
+test search_and_scrying_are_contextual_overlays ... ok
+test scrying_can_be_scrolled_to_reach_output_below_the_fold ... ok
+test selected_adventurer_does_not_force_the_card_open ... ok
+test selected_adventurer_card_exposes_fantasy_and_system_identity ... ok
+test campaign_crest_is_visible_on_the_adventurers_parchment ... ok
+test the_adventurer_card_does_not_cover_the_standing_badge ... ok
+test long_live_labels_cannot_displace_card_status_keepsake_or_controls ... ok
+test keepsake_art_changes_only_its_reserved_card_section ... ok
+test the_chronicle_parchment_shows_recorded_events_over_the_world ... ok
+test the_counsel_parchment_reports_a_send_in_flight ... ok
+test the_ribbon_greets_someone_who_has_not_pressed_anything ... ok
+test the_ledger_shows_the_whole_keyring ... ok
+test command_ribbon_expires_after_three_seconds ... ok
+test the_standing_badge_sits_in_the_top_right_corner ... ok
+test campaign_crest_keeps_the_same_named_identity_in_ascii_and_both_rooms ... ok
+test roster_labels_preserve_the_rgb_state_cue_in_final_terminal_cells ... ok
+test an_on_demand_chapter_counts_events_and_exposes_timestamped_sources ... ok
+test only_correlated_confirmed_counsel_receives_a_parchment_seal ... ok
+test keepsake_details_follow_the_saved_assignment_without_crowding_card_facts ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/scene_party.rs (target/debug/deps/scene_party-f5f648ab6055e30e)
+
+running 7 tests
+test every_ritual_pose_keeps_its_foot_anchor_and_native_dimensions ... ok
+test expanded_rituals_preserve_persona_masks_and_gear ... ok
+test a_counsel_gesture_settles_once_and_leaves_the_blocked_adventurer_still ... ok
+test both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class ... ok
+test each_return_places_its_spoils_then_settles_at_the_exact_three_second_deadline ... ok
+test newer_quiet_states_and_disconnect_interrupt_expanded_rituals_in_both_rooms ... ok
+test reduced_and_still_party_states_do_not_change_pixels_at_cleanup_deadlines ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.10s
+
+     Running tests/scene_pixel.rs (target/debug/deps/scene_pixel-5b7b0a9a6c5f2690)
+
+running 7 tests
+test blit_skips_unrepresentable_extreme_destination_coordinates ... ok
+test blit_preserves_transparency_when_clipped_at_negative_and_positive_edges ... ok
+test buffer_clear_and_clipped_fill_are_opaque ... ok
+test ensure_size_reuses_capacity_at_the_same_size ... ok
+test mirrored_blit_reverses_source_columns_without_writing_transparent_pixels ... ok
+test mirrored_blit_skips_unrepresentable_extreme_destination_coordinates ... ok
+test scaled_blit_uses_nearest_neighbour_blocks_and_preserves_transparency ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scene_pixel_properties.rs (target/debug/deps/scene_pixel_properties-49542f5d34b4df0d)
+
+running 2 tests
+test clipped_fills_never_resize_or_change_pixels_outside_the_rectangle ... ok
+test blits_never_resize_or_change_uncovered_destination_pixels ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running tests/scene_roster.rs (target/debug/deps/scene_roster-13c9836e8e43ec39)
+
+running 8 tests
+test reduced_and_still_rosters_keep_one_stable_completion_cue ... ok
+test roster_completion_moves_then_stops_at_its_three_second_deadline ... ok
+test label_free_rosters_distinguish_every_live_presence ... ok
+test final_roster_frame_disarms_the_real_animation_scheduler ... ok
+test full_roster_rows_keep_cues_selection_and_complete_hits_clear_of_each_other ... ok
+test newer_presence_cancels_stale_completion_theatre ... ok
+test a_disconnected_roster_cannot_perform_completion_theatre ... ok
+test roster_state_shapes_remain_distinct_after_ansi16_half_block_conversion ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/scene_runtime.rs (target/debug/deps/scene_runtime-602df2b10891b9c7)
+
+running 2 tests
+test production_draw_uses_explicit_world_and_contextual_overlays ... ok
+test normal_binary_uses_the_interactive_scene_first_runtime ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scene_snapshot.rs (target/debug/deps/scene_snapshot-b2f40a92a15f77c3)
+
+running 5 tests
+test snapshot_ignores_legacy_ui_persistence_and_goblin_state ... ok
+test snapshot_changes_for_each_herdr_reported_scene_fact ... ok
+test snapshot_collapses_attention_read_state_and_deferred_until ... ok
+test snapshot_preserves_connection_details_motion_time_and_stable_ordering ... ok
+test snapshot_preserves_every_connection_variant ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scene_stage.rs (target/debug/deps/scene_stage-d82c919cd779afd1)
+
+running 14 tests
+test focus_changes_only_emphasis_and_crop_not_station_or_identity ... ok
+test completion_theatre_is_fresh_before_but_not_at_three_seconds ... ok
+test guild_hall_places_each_truthful_actor_once_and_keeps_departures_as_effects ... ok
+test quiet_motion_projects_settled_completion_without_transient_effects ... ok
+test fresh_spoils_deadline_requires_a_visible_animated_pixel ... ok
+test automatic_delve_places_supported_states_at_truthful_stations ... ok
+test automatic_world_choice_uses_the_locked_priority ... ok
+test camera_uses_room_threshold_and_small_view_priority ... ok
+test static_authored_actor_never_requests_an_animation_deadline ... ok
+test static_actor_frames_do_not_schedule_camera_dependent_deadlines ... ok
+test static_and_no_motion_frames_have_no_idle_rendering_cost ... ok
+test reduced_authored_actors_are_still_while_full_motion_spoils_remain_bounded ... ok
+test viewport_matrix_preserves_exact_targets_and_world_specific_viewport_contracts ... ok
+test one_target_buffer_is_reused_for_one_thousand_fixed_frames ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.31s
+
+     Running tests/scene_stage_properties.rs (target/debug/deps/scene_stage_properties-37851e77b7895207)
+
+running 8 tests
+test changing_legacy_selection_cannot_change_the_snapshot ... ok
+test snapshot_and_stage_projection_do_not_persist_camera_or_station_state ... ok
+test chosen_world_places_every_non_exited_agent_exactly_once ... ok
+test fixed_snapshot_viewport_and_time_are_deterministic_and_never_panic ... ok
+test input_vector_order_does_not_change_the_plan ... ok
+test responsive_guild_hall_never_returns_a_cropped_actor_region ... ok
+test arbitrary_delve_crops_match_authored_origins_within_reference_bounds ... ok
+test both_world_renderers_accept_arbitrary_viewports_without_resizing_or_leaking_clear_pixels ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.82s
+
+     Running tests/sidebar.rs (target/debug/deps/sidebar-8007fd7089800204)
+
+running 7 tests
+test marginalia_projects_a_character_sheet_for_each_adventurer ... ok
+test the_ascii_character_set_keeps_every_token_readable ... ok
+test marginalia_keeps_departed_adventurers_truthful_and_out_of_the_party_count ... ok
+test the_rank_token_orders_agents_the_way_the_urgency_jump_does ... ok
+test marginalia_projects_roles_truthful_omens_and_campaign_summons ... ok
+test an_unanswered_summons_deepens_its_vigil_over_time ... ok
+test the_rank_token_is_always_one_digit ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sidebar_documentation.rs (target/debug/deps/sidebar_documentation-6cefca3e8a91c457)
+
+running 5 tests
+test every_documented_config_is_valid_toml ... ok
+test documented_rows_name_only_tokens_that_exist ... ok
+test documented_rows_never_request_faint ... ok
+test documented_rows_use_the_styling_keys_herdr_accepts ... ok
+test documented_colours_clear_the_contrast_floor ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/startup.rs (target/debug/deps/startup-fe6a4aa1774b9a5e)
+
+running 12 tests
+test view_precedence_is_explicit_then_persisted_then_configured_then_desk ... ok
+test plugin_disabled_startup_is_in_memory_only ... ok
+test startup_data_has_no_settings_owner_outside_the_model ... ok
+test unreadable_state_disables_only_state_publication ... ok
+test absent_files_use_defaults_without_diagnostics ... ok
+test malformed_chronicle_records_report_diagnostics_and_preserve_valid_records ... ok
+test missing_config_directory_does_not_block_valid_state ... ok
+test missing_state_directory_does_not_block_valid_config ... ok
+test future_state_is_ignored_without_hiding_valid_chronicle_history ... ok
+test invalid_config_uses_safe_runtime_defaults_but_keeps_valid_state ... ok
+test valid_files_restore_state_preferences_history_and_config_only_settings ... ok
+test arbitrary_startup_files_never_panic ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/storybook.rs (target/debug/deps/storybook-fdb6108a60d2c033)
+
+running 6 tests
+test catalogue_contains_every_production_scene_interaction_once ... ok
+test every_production_story_owns_one_asset_exactly_once ... ok
+test scrying_story_contains_settled_output_without_live_io ... ok
+test core_master_galleries_name_every_reviewed_archetype ... ok
+test every_production_story_renders_at_its_minimum_viewport ... ok
+test scene_inspection_reaches_small_production_layouts_while_asset_galleries_keep_their_minimum ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/subscription.rs (target/debug/deps/subscription-11fea995bdf65f49)
+
+running 5 tests
+test request_contains_global_events_and_one_status_subscription_per_pane ... ok
+test rejects_an_unexpected_ack_kind ... ok
+test clean_disconnect_returns_none ... ok
+test preserves_an_error_ack ... ok
+test streams_coalesced_lifecycle_dotted_and_unknown_events ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/supervisor.rs (target/debug/deps/supervisor-4bca06d1d78acaba)
+
+running 18 tests
+test backoff_doubles_and_caps ... ok
+test rejects_an_incompatible_protocol_without_subscribing ... ok
+test bootstraps_herdr_090_capture_with_protocol_22 ... ok
+test failed_status_reconciliation_reconnects_without_forwarding_stale_text ... ok
+test a_failed_post_subscription_baseline_never_publishes_discovery ... ok
+test bootstrap_uses_the_snapshot_taken_after_subscription_acknowledgement ... ok
+test bootstraps_in_order_and_forwards_events ... ok
+test bootstrap_rebuilds_subscriptions_if_the_party_changed_before_the_baseline ... ok
+test queued_unversioned_completion_is_reconciled_before_reaching_the_model ... ok
+test rejects_the_previous_herdr_082_capture ... ok
+test rejects_a_changed_protocol_in_the_initial_snapshot_without_subscribing ... ok
+test shutdown_cancels_a_pending_status_read ... ok
+test reconnects_with_a_fresh_snapshot_after_disconnect ... ok
+test topology_snapshot_refresh_failure_disconnects_the_subscription ... ok
+test topology_event_resnapshots_without_reconnect_backoff ... ok
+test bootstrap_rejects_an_unsupported_post_subscription_snapshot ... ok
+test a_topology_refresh_cannot_switch_to_an_unsupported_protocol ... ok
+test replayed_topology_event_with_unchanged_panes_keeps_the_subscription_open ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
+
+bash tests/scripts.sh
+workflow contracts: valid
+scripts: 28 passed
+bash -n herdr/install.sh herdr/run.sh herdr/control.sh

@@ -107,6 +107,7 @@ pub mod runtime;
 pub mod runtime_loop;
 pub mod scene;
 pub mod sidebar;
+pub mod snapshot_refresh;
 #[cfg(feature = "storybook")]
 pub mod storybook;
 pub mod terminal;

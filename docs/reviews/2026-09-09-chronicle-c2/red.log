@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.62s
+     Running tests/chronicle_capture.rs (target/debug/deps/chronicle_capture-1b7973a8c551cec4)
+
+running 1 test
+test qualified_working_to_blocked_refresh_records_one_zero_xp_observation ... FAILED
+
+failures:
+
+---- qualified_working_to_blocked_refresh_records_one_zero_xp_observation stdout ----
+
+thread 'qualified_working_to_blocked_refresh_records_one_zero_xp_observation' panicked at tests/chronicle_capture.rs:37:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    qualified_working_to_blocked_refresh_records_one_zero_xp_observation
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test chronicle_capture`

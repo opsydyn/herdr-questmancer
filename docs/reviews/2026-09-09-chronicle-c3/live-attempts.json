@@ -1,0 +1,108 @@
+[
+  {
+    "case": "/tmp/qm-c3-2gn91i3t",
+    "owned_server_pid": 44006,
+    "failure": "AssertionError('Timed out: captured history')",
+    "runtime_checks": null,
+    "cleanup_errors": [],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-2wc9i1zi",
+    "owned_server_pid": 44848,
+    "failure": "AssertionError('synthetic identity not qualified')",
+    "runtime_checks": null,
+    "cleanup_errors": [],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-80ozdayj",
+    "owned_server_pid": 47670,
+    "failure": "AssertionError(('pane.read', {'id': '', 'error': {'code': 'invalid_request', 'message': 'invalid request: unknown variant `viewport`, expected one of `visible`, `recent`, `recent_unwrapped`, `detection` at line 1 column 127'}}))",
+    "runtime_checks": null,
+    "cleanup_errors": [
+      "AssertionError()",
+      "AssertionError()",
+      "AssertionError()",
+      "AssertionError()"
+    ],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-8ntr_3vk",
+    "owned_server_pid": 45268,
+    "failure": "AssertionError('Timed out: production Concentrating')",
+    "runtime_checks": null,
+    "cleanup_errors": [],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-c83jcz29",
+    "owned_server_pid": 46595,
+    "failure": "AssertionError('Timed out: dummy Pi process detected')",
+    "runtime_checks": null,
+    "cleanup_errors": [
+      "AssertionError(('pane.release_agent', {'id': '146', 'error': {'code': 'pane_not_found', 'message': 'pane w1:p1 not found'}}))"
+    ],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-h2__vc7f",
+    "owned_server_pid": 44930,
+    "failure": "AssertionError('Timed out: production Concentrating')",
+    "runtime_checks": null,
+    "cleanup_errors": [],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-i_eyfpyh",
+    "owned_server_pid": 50146,
+    "failure": null,
+    "runtime_checks": "passed",
+    "cleanup_errors": [],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-kblrmbk6",
+    "owned_server_pid": 45599,
+    "failure": "AssertionError('synthetic identity not qualified')",
+    "runtime_checks": null,
+    "cleanup_errors": [],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-mrhmrsm3",
+    "owned_server_pid": 44327,
+    "failure": "AssertionError('Timed out: captured history')",
+    "runtime_checks": null,
+    "cleanup_errors": [],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-tn_eq4br",
+    "owned_server_pid": 46895,
+    "failure": "AssertionError('synthetic identity not qualified')",
+    "runtime_checks": null,
+    "cleanup_errors": [],
+    "server_exit_code": 0,
+    "socket_removed": true
+  },
+  {
+    "case": "/tmp/qm-c3-wlfsp47t",
+    "owned_server_pid": 48057,
+    "failure": null,
+    "runtime_checks": "passed",
+    "cleanup_errors": [],
+    "server_exit_code": 0,
+    "socket_removed": true
+  }
+]

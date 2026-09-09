@@ -1,0 +1,8 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.31s
+     Running tests/runtime_loop.rs (target/debug/deps/runtime_loop-260ac37f4588f076)
+
+running 1 test
+test a_refresh_from_before_disconnect_cannot_replace_the_new_connection_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.00s

@@ -229,7 +229,7 @@ just delve-test
 just protocol-test
 just domain-test
 just persistence-test
-just property-test cases=4096
+just property-test 4096
 just storybook-test
 cargo build --release
 git diff --check
@@ -348,8 +348,33 @@ The user approved Hall/Delve/sidebar appearance and confirmed restored native
 Artificer, Bard and Librarian illustrations. Exhaustive resize/native-card
 coverage, execution of other platform binaries on native hosts, optional Reviewr
 and real-agent resting/completion remain unverified. The crates.io job was
-skipped; registry publication remains separate. The phase is complete; recommend
-Chronicle capture-semantics design next, but do not start it without approval.
+skipped; registry publication remains separate. The 0.1.9 phase is complete.
+On 2026-09-09 the user approved C1 from the Chronicle capture plan. Snapshot
+refreshes now carry an ephemeral connection epoch, request ID and fact generation;
+only current responses with unchanged subscription membership may replace facts.
+Requests coalesce to one active plus one pending; two superseded responses or a
+changed subscription pane set request a quiet baseline through our own supervisor.
+Snapshot cancellation is separate from counsel/focus and selected-output tasks.
+C2 was subsequently approved and implemented. Qualified refreshes now append
+zero-XP observations; startup/reconnect/resync baselines remain quiet. Complete
+session/terminal evidence qualifies subject history; fallback/ambiguous identities
+remain quiet. Workspace-close hints require snapshot confirmation, and campaign
+removal never means successful delivery. New unknown status has an explicit
+whereabouts category. New writes use v2 envelopes with immutable source identity;
+mixed v1/v2 replay preserves legacy records and never re-awards standing. Raw
+session metadata stays ephemeral. Terminal replacement also invalidates scrying
+and same-party cat comparisons. See
+`docs/reviews/2026-09-09-chronicle-c1/README.md`,
+`docs/reviews/2026-09-09-chronicle-c2/README.md`,
+`docs/design/questmancer-chronicle-capture.md` and
+`docs/plans/2026-09-09-chronicle-capture.md`. C3 was approved and qualified with
+four composed socket/runtime/persistence tests and an isolated Herdr server with
+four owned dummy Pi processes. Five v2 metadata observations persisted; repeats
+and restart added no history. The full gate passes 656 Rust tests / 56 runs and
+28 shell tests. See `docs/reviews/2026-09-09-chronicle-c3/README.md`. The changed
+Chronicle screens were visually approved by the user on 2026-09-09. C1–C3
+are complete locally; committing and release qualification are the next separate gates. Real-agent completion, live
+snapshot-only capture and publication remain separate.
 
 ## Native portrait regression repair — 2026-09-08
 
@@ -388,9 +413,11 @@ the baseline.
 
 Tab inside the Chronicle requests a last-hour recap with a fixed UTC window,
 retained-event counts and timestamped sources; Tab returns to records. Chapters
-add no persistence or agent commands. Snapshot refreshes append no history;
-the old joined event also represents unknown whereabouts, so chapters call it
-an identity event. Preserve these evidence limits.
+add no persistence or agent commands. Qualified refreshes now append explicit
+observations; connection baselines remain quiet. The old joined event also
+represented unknown whereabouts, so legacy chapters still call it an identity
+event. New whereabouts, presence, membership and campaign-removal categories are
+counted separately. Preserve these evidence limits.
 
 All fourteen classes use authored rituals with existing persona substitution:
 two 500 ms working frames, one 600 ms counsel gesture, spoils placed at 1000 ms

@@ -2,12 +2,12 @@ use serde::Deserialize;
 
 use crate::{
     app::ConnectionState,
-    domain::{DomainState, PaneId, Presence, Timestamp, WorkspaceId},
+    domain::{CaptureIdentity, DomainState, PaneId, Presence, Timestamp, WorkspaceId},
     update::AppEvent,
 };
 
 use super::{
-    protocol::{AgentStatus, WireEvent},
+    protocol::{AgentSessionInfo, AgentStatus, WireEvent},
     supervisor::ConnectionUpdate,
 };
 
@@ -39,7 +39,8 @@ pub fn adapt_update_excluding(
         ConnectionUpdate::Connected(snapshot) => vec![
             AdapterAction::SetConnection(ConnectionState::Connected),
             AdapterAction::Apply(Box::new(AppEvent::SnapshotReplaced {
-                snapshot,
+                purpose: crate::snapshot_refresh::SnapshotPurpose::Baseline,
+                snapshot: Box::new(snapshot),
                 observed_at,
                 excluded_pane: excluded_pane.cloned(),
             })),
@@ -54,10 +55,11 @@ pub fn adapt_update_excluding(
         ConnectionUpdate::Reconnecting { attempt, .. } => vec![AdapterAction::SetConnection(
             ConnectionState::Reconnecting { attempt },
         )],
-        ConnectionUpdate::Resyncing => vec![
-            AdapterAction::SetConnection(ConnectionState::Connecting),
-            AdapterAction::RequestSnapshot,
-        ],
+        // The supervisor resubscribes before publishing its next baseline.
+        // A parallel command refresh would race that authoritative handshake.
+        ConnectionUpdate::Resyncing => {
+            vec![AdapterAction::SetConnection(ConnectionState::Connecting)]
+        }
         ConnectionUpdate::Incompatible { expected, actual } => vec![AdapterAction::SetConnection(
             ConnectionState::Incompatible { expected, actual },
         )],
@@ -131,10 +133,14 @@ fn adapt_agent_status(
         {
             return Vec::new();
         }
-        None => StatusRevision::Synthetic(agent.pane_revision.saturating_add(1)),
+        None => return vec![AdapterAction::RequestSnapshot],
     };
     vec![AdapterAction::Apply(Box::new(
         AppEvent::AgentStatusChanged {
+            identity: CaptureIdentity::from_parts(
+                data.terminal_id.as_deref().unwrap_or(""),
+                data.agent_session.as_ref(),
+            ),
             pane_id,
             status: data.agent_status,
             custom_status: data.custom_status,
@@ -148,9 +154,9 @@ fn adapt_workspace_closed(event: WireEvent) -> Vec<AdapterAction> {
     let Ok(data) = serde_json::from_value::<WorkspaceData>(event.data) else {
         return vec![AdapterAction::RequestSnapshot];
     };
-    vec![AdapterAction::Apply(Box::new(AppEvent::WorkspaceClosed(
-        WorkspaceId::new(data.workspace_id),
-    )))]
+    vec![AdapterAction::Apply(Box::new(
+        AppEvent::WorkspaceCloseHint(WorkspaceId::new(data.workspace_id)),
+    ))]
 }
 
 fn adapt_pane_exited(
@@ -166,12 +172,20 @@ fn adapt_pane_exited(
     if excluded_pane.is_some_and(|excluded| excluded == &pane_id) {
         return Vec::new();
     }
-    let Some(agent_key) = state.agent_key_for_pane(&pane_id) else {
+    if state.agent_key_for_pane(&pane_id).is_none() {
+        return vec![AdapterAction::RequestSnapshot];
+    }
+    let identity = CaptureIdentity::from_parts(
+        data.terminal_id.as_deref().unwrap_or(""),
+        data.agent_session.as_ref(),
+    );
+    let Some(revision) = data.revision.filter(|_| identity.is_qualified()) else {
         return vec![AdapterAction::RequestSnapshot];
     };
     vec![AdapterAction::Apply(Box::new(AppEvent::PaneExited {
+        identity,
         pane_id,
-        revision: state.agents[agent_key].pane_revision.saturating_add(1),
+        revision,
         occurred_at: observed_at,
     }))]
 }
@@ -179,6 +193,10 @@ fn adapt_pane_exited(
 #[derive(Debug, Deserialize)]
 struct AgentStatusData {
     pane_id: String,
+    #[serde(default)]
+    terminal_id: Option<String>,
+    #[serde(default)]
+    agent_session: Option<AgentSessionInfo>,
     agent_status: AgentStatus,
     #[serde(default)]
     custom_status: Option<String>,
@@ -189,13 +207,12 @@ struct AgentStatusData {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum StatusRevision {
     Explicit(u64),
-    Synthetic(u64),
 }
 
 impl StatusRevision {
     const fn value(self) -> u64 {
         match self {
-            Self::Explicit(revision) | Self::Synthetic(revision) => revision,
+            Self::Explicit(revision) => revision,
         }
     }
 }
@@ -208,4 +225,10 @@ struct WorkspaceData {
 #[derive(Debug, Deserialize)]
 struct PaneData {
     pane_id: String,
+    #[serde(default)]
+    terminal_id: Option<String>,
+    #[serde(default)]
+    agent_session: Option<AgentSessionInfo>,
+    #[serde(default)]
+    revision: Option<u64>,
 }

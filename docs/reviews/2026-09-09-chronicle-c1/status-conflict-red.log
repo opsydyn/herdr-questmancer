@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.61s
+     Running tests/runtime_loop.rs (target/debug/deps/runtime_loop-260ac37f4588f076)
+
+running 1 test
+test conflicting_equal_revision_status_requests_snapshot_without_history ... FAILED
+
+failures:
+
+---- conflicting_equal_revision_status_requests_snapshot_without_history stdout ----
+
+thread 'conflicting_equal_revision_status_requests_snapshot_without_history' panicked at tests/runtime_loop.rs:1480:5:
+assertion `left == right` failed
+  left: DomainState { campaigns: {WorkspaceId("w1"): Campaign { workspace_id: WorkspaceId("w1"), label: "webmaster", cwd: "/tmp/herdr-questmancer", party: [AgentKey("agent-7fe6777b26eb173533e7685f")] }}, agents: {AgentKey("agent-7fe6777b26eb173533e7685f"): Agent { key: AgentKey("agent-7fe6777b26eb173533e7685f"), pane_id: PaneId("w1:p1"), workspace_id: WorkspaceId("w1"), tab_id: TabId("w1:t1"), name: "Codex", custom_status: None, presence: Working, presence_since: Timestamp(2000), attention: Clear, focused: true, pane_revision: 7, persona: AdventurerPersona { key: PersonaKey("persona-7fe6777b26eb173533e7685f"), name: "Lyra Ironjaw", ancestry: Dwarf, class: Rogue, generation: V3, epithet: Epithet("Reader of Runes"), appearance: PersonaAppearance { proportions: Compact, head_shape: Angular, skin_tone: Sand, hair: Crop, hair_tone: Copper, face_detail: None, garb: Doublet, legwear: BootsAndBreeches, footwear: SoftShoes, keepsake: PressedLeaf, accent: Magenta } } }}, selected_agent: Some(AgentKey("agent-7fe6777b26eb173533e7685f")), chronicle: Chronicle { maximum_entries: 500, entries: [ChronicleEntry { id: EventId("event-fd8d4bad9a9ac94fd7f46d55"), occurred_at: Timestamp(2000), adventurer: Some(AgentKey("agent-7fe6777b26eb173533e7685f")), campaign: Some(WorkspaceId("w1")), pane: Some(PaneId("w1:p1")), pane_revision: 7, event: DelveBegan, summary: "Codex began a delve" }], seen: {EventId("event-fd8d4bad9a9ac94fd7f46d55")} } }
+ right: DomainState { campaigns: {WorkspaceId("w1"): Campaign { workspace_id: WorkspaceId("w1"), label: "webmaster", cwd: "/tmp/herdr-questmancer", party: [AgentKey("agent-7fe6777b26eb173533e7685f")] }}, agents: {AgentKey("agent-7fe6777b26eb173533e7685f"): Agent { key: AgentKey("agent-7fe6777b26eb173533e7685f"), pane_id: PaneId("w1:p1"), workspace_id: WorkspaceId("w1"), tab_id: TabId("w1:t1"), name: "Codex", custom_status: Some("which schema?"), presence: Blocked, presence_since: Timestamp(1000), attention: Unread { summons: CounselRequested, since: Timestamp(1000) }, focused: true, pane_revision: 7, persona: AdventurerPersona { key: PersonaKey("persona-7fe6777b26eb173533e7685f"), name: "Lyra Ironjaw", ancestry: Dwarf, class: Rogue, generation: V3, epithet: Epithet("Reader of Runes"), appearance: PersonaAppearance { proportions: Compact, head_shape: Angular, skin_tone: Sand, hair: Crop, hair_tone: Copper, face_detail: None, garb: Doublet, legwear: BootsAndBreeches, footwear: SoftShoes, keepsake: PressedLeaf, accent: Magenta } } }}, selected_agent: Some(AgentKey("agent-7fe6777b26eb173533e7685f")), chronicle: Chronicle { maximum_entries: 500, entries: [], seen: {} } }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    conflicting_equal_revision_status_requests_snapshot_without_history
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test runtime_loop`

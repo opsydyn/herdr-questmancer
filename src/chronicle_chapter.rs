@@ -52,7 +52,7 @@ impl ChapterRequest {
                     && self
                         .adventurer
                         .as_ref()
-                        .is_none_or(|key| entry.adventurer.as_ref() == Some(key))
+                        .is_none_or(|key| entry.adventurer() == Some(key))
                     && seen.insert(&entry.id)
             })
             .collect::<Vec<_>>();
@@ -61,7 +61,7 @@ impl ChapterRequest {
             right
                 .occurred_at
                 .cmp(&left.occurred_at)
-                .then_with(|| left.id.cmp(&right.id))
+                .then_with(|| observation_order(left, right))
         });
         ChronicleChapter {
             request: self,
@@ -78,7 +78,7 @@ impl<'a> ChronicleChapter<'a> {
     pub fn count(&self, event: ChronicleEvent) -> usize {
         self.sources
             .iter()
-            .filter(|entry| entry.event == event)
+            .filter(|entry| entry.event() == event)
             .count()
     }
 
@@ -115,21 +115,27 @@ impl<'a> ChronicleChapter<'a> {
         for source in &self.sources {
             lines.push(format!(
                 "{} {}",
-                source.event.sigil(),
+                source.event().sigil(),
                 timestamp(source.occurred_at)
             ));
             // Preserve recorded names in summaries instead of relabelling history
             // from today's live topology. Empty summaries still expose event/IDs.
             let summary = if source.summary.trim().is_empty() {
-                if source.event == ChronicleEvent::AdventurerJoined {
+                if source.event() == ChronicleEvent::AdventurerJoined {
                     "identity event (summary unavailable)"
                 } else {
-                    source.event.label()
+                    source.event().label()
                 }
             } else {
                 &source.summary
             };
             lines.extend(summary.lines().map(str::to_owned));
+            if let Some(observation) = source.observation() {
+                lines.push(format!(
+                    "Observed locally: {}",
+                    observation.evidence.label()
+                ));
+            }
             lines.push(format!("Source: {}", source.id.as_str()));
             lines.push(String::new());
         }
@@ -168,6 +174,11 @@ const fn event_noun(event: ChronicleEvent) -> &'static str {
         ChronicleEvent::AdventurerRested => "rest",
         ChronicleEvent::AdventurerDeparted => "departure",
         ChronicleEvent::CampaignClosed => "campaign-closure",
+        ChronicleEvent::PresenceObserved => "presence-observation",
+        ChronicleEvent::WhereaboutsUnknown => "unknown-whereabouts",
+        ChronicleEvent::AdventurerObserved => "membership-observation",
+        ChronicleEvent::AdventurerNoLongerVisible => "visibility-loss",
+        ChronicleEvent::CampaignRemoved => "campaign-removal",
     }
 }
 
@@ -187,4 +198,24 @@ fn timestamp(at: Timestamp) -> String {
                 )
             },
         )
+}
+
+fn observation_order(left: &ChronicleEntry, right: &ChronicleEntry) -> std::cmp::Ordering {
+    match (left.observation(), right.observation()) {
+        (Some(left_observation), Some(right_observation)) => left_observation
+            .stamp
+            .run
+            .as_str()
+            .cmp(right_observation.stamp.run.as_str())
+            .then_with(|| {
+                right_observation
+                    .stamp
+                    .ordinal
+                    .cmp(&left_observation.stamp.ordinal)
+            })
+            .then_with(|| left.id.cmp(&right.id)),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (None, None) => left.id.cmp(&right.id),
+    }
 }

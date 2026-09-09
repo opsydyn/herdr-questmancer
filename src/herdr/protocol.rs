@@ -200,7 +200,7 @@ pub struct AgentInfo {
     pub tokens: HashMap<String, String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct AgentSessionInfo {
     pub source: String,
     pub agent: String,

@@ -1,7 +1,7 @@
 use crate::{
     domain::{
-        ChronicleEntry, ChronicleEvent, DomainState, GuildAttention, GuildSummons, PaneId,
-        Presence, Timestamp, WorkspaceId,
+        CaptureIdentity, DomainState, GuildAttention, GuildSummons, ObservationEvidence,
+        ObservationSubject, ObservedPresence, PaneId, Presence, Timestamp, WorkspaceId,
     },
     herdr::protocol::AgentStatus,
 };
@@ -12,11 +12,19 @@ use super::{AppEvent, Command};
 pub fn update(mut state: DomainState, event: AppEvent) -> (DomainState, Vec<Command>) {
     let commands = match event {
         AppEvent::SnapshotReplaced {
+            purpose,
             snapshot,
             observed_at,
             excluded_pane,
-        } => replace_snapshot(&mut state, &snapshot, observed_at, excluded_pane.as_ref()),
+        } => replace_snapshot(
+            &mut state,
+            &snapshot,
+            observed_at,
+            excluded_pane.as_ref(),
+            purpose,
+        ),
         AppEvent::AgentStatusChanged {
+            identity,
             pane_id,
             status,
             custom_status,
@@ -25,17 +33,19 @@ pub fn update(mut state: DomainState, event: AppEvent) -> (DomainState, Vec<Comm
         } => change_status(
             &mut state,
             &pane_id,
+            &identity,
             status,
             custom_status,
             revision,
             occurred_at,
         ),
         AppEvent::PaneExited {
+            identity,
             pane_id,
             revision,
             occurred_at,
-        } => exit_pane(&mut state, &pane_id, revision, occurred_at),
-        AppEvent::WorkspaceClosed(workspace_id) => close_workspace(&mut state, &workspace_id),
+        } => exit_pane(&mut state, &pane_id, &identity, revision, occurred_at),
+        AppEvent::WorkspaceCloseHint(workspace_id) => close_workspace(&mut state, &workspace_id),
         AppEvent::MarkRead(agent_key) => mark_read(&mut state, &agent_key),
         AppEvent::DeferSummons { agent_key, until } => defer_summons(&mut state, &agent_key, until),
     };
@@ -47,6 +57,7 @@ fn replace_snapshot(
     snapshot: &crate::herdr::protocol::SessionSnapshot,
     observed_at: Timestamp,
     excluded_pane: Option<&PaneId>,
+    purpose: crate::snapshot_refresh::SnapshotPurpose,
 ) -> Vec<Command> {
     let mut replacement =
         DomainState::from_snapshot_excluding(snapshot, observed_at, excluded_pane);
@@ -67,13 +78,23 @@ fn replace_snapshot(
         replacement.selected_agent.clone_from(&state.selected_agent);
     }
     replacement.chronicle = state.chronicle.clone();
+    replacement.capture = state.capture.clone();
+    let mut commands = match purpose {
+        crate::snapshot_refresh::SnapshotPurpose::Baseline => Vec::new(),
+        crate::snapshot_refresh::SnapshotPurpose::Refresh(request) => {
+            super::capture::capture_snapshot(state, &mut replacement, request, observed_at)
+        }
+    };
+    replacement.capture.clear_hints();
     *state = replacement;
-    vec![Command::PersistState]
+    commands.push(Command::PersistState);
+    commands
 }
 
 fn change_status(
     state: &mut DomainState,
     pane_id: &PaneId,
+    identity: &CaptureIdentity,
     status: AgentStatus,
     custom_status: Option<String>,
     revision: u64,
@@ -84,10 +105,18 @@ fn change_status(
     };
     let next_presence = Presence::from(status);
     let agent = state.agents.get_mut(&key).expect("agent key came from map");
+    if &agent.capture_identity != identity {
+        return vec![Command::RequestSnapshot];
+    }
     if revision < agent.pane_revision
         || (revision == agent.pane_revision && next_presence == agent.presence)
     {
         return Vec::new();
+    }
+    if revision == agent.pane_revision {
+        // Equal revision and different status is conflicting evidence, not a
+        // newer transition. Let a qualified snapshot resolve it.
+        return vec![Command::RequestSnapshot];
     }
     if next_presence == agent.presence {
         agent.pane_revision = revision;
@@ -99,45 +128,33 @@ fn change_status(
     agent.presence_since = occurred_at;
     agent.pane_revision = revision;
     agent.custom_status = custom_status;
-    let (attention, event, summary) = match next_presence {
-        Presence::Working => (
-            GuildAttention::Clear,
-            ChronicleEvent::DelveBegan,
-            "began a delve",
-        ),
-        Presence::Blocked => (
-            GuildAttention::unread(GuildSummons::CounselRequested, occurred_at),
-            ChronicleEvent::CounselRequested,
-            "requested counsel",
-        ),
-        Presence::Done => (
-            GuildAttention::unread(GuildSummons::SpoilsReturned, occurred_at),
-            ChronicleEvent::SpoilsReturned,
-            "returned with spoils",
-        ),
-        Presence::Idle => (
-            GuildAttention::Clear,
-            ChronicleEvent::AdventurerRested,
-            "made camp",
-        ),
-        Presence::Exited => (
-            GuildAttention::unread(GuildSummons::AdventurerDeparted, occurred_at),
-            ChronicleEvent::AdventurerDeparted,
-            "departed the guild",
-        ),
-        Presence::Unknown => (
-            GuildAttention::Clear,
-            ChronicleEvent::AdventurerJoined,
-            "whereabouts unknown",
-        ),
+    agent.attention = match next_presence {
+        Presence::Blocked => GuildAttention::unread(GuildSummons::CounselRequested, occurred_at),
+        Presence::Done => GuildAttention::unread(GuildSummons::SpoilsReturned, occurred_at),
+        Presence::Exited => GuildAttention::unread(GuildSummons::AdventurerDeparted, occurred_at),
+        Presence::Working | Presence::Idle | Presence::Unknown => GuildAttention::Clear,
     };
-    agent.attention = attention;
-    append_history(state, &key, event, summary, occurred_at)
+    let subject = ObservationSubject::adventurer(agent);
+    let mut commands = Vec::new();
+    if let Some(subject) = subject
+        && let Some(presence) = ObservedPresence::from_presence(next_presence)
+        && let Some(command) = super::capture::append_observation(
+            state,
+            subject,
+            ObservationEvidence::PaneMetadata { presence },
+            occurred_at,
+        )
+    {
+        commands.push(command);
+    }
+    commands.push(Command::PersistState);
+    commands
 }
 
 fn exit_pane(
     state: &mut DomainState,
     pane_id: &PaneId,
+    identity: &CaptureIdentity,
     revision: u64,
     occurred_at: Timestamp,
 ) -> Vec<Command> {
@@ -145,61 +162,36 @@ fn exit_pane(
         return vec![Command::RequestSnapshot];
     };
     let agent = state.agents.get_mut(&key).expect("agent key came from map");
-    if revision < agent.pane_revision || agent.presence == Presence::Exited {
+    if !agent.capture_identity.same_incarnation(identity) {
+        return vec![Command::RequestSnapshot];
+    }
+    if revision <= agent.pane_revision || agent.presence == Presence::Exited {
         return Vec::new();
     }
     agent.presence = Presence::Exited;
     agent.presence_since = occurred_at;
     agent.attention = GuildAttention::unread(GuildSummons::AdventurerDeparted, occurred_at);
     agent.pane_revision = revision;
-    append_history(
+    let subject = ObservationSubject::adventurer(agent).expect("exit identity was qualified");
+    let mut commands = Vec::new();
+    if let Some(command) = super::capture::append_observation(
         state,
-        &key,
-        ChronicleEvent::AdventurerDeparted,
-        "departed the guild",
+        subject,
+        ObservationEvidence::LifecycleDeparture,
         occurred_at,
-    )
-}
-
-fn append_history(
-    state: &mut DomainState,
-    key: &crate::domain::AgentKey,
-    event: ChronicleEvent,
-    summary: &str,
-    occurred_at: Timestamp,
-) -> Vec<Command> {
-    let agent = &state.agents[key];
-    let entry = ChronicleEntry::new(
-        occurred_at,
-        Some(key.clone()),
-        Some(agent.workspace_id.clone()),
-        Some(agent.pane_id.clone()),
-        agent.pane_revision,
-        event,
-        format!("{} {summary}", agent.name),
-    );
-    if state.chronicle.append(entry.clone()) {
-        vec![Command::AppendChronicle(entry), Command::PersistState]
-    } else {
-        Vec::new()
+    ) {
+        commands.push(command);
     }
+    commands.push(Command::PersistState);
+    commands
 }
 
 fn close_workspace(state: &mut DomainState, workspace_id: &WorkspaceId) -> Vec<Command> {
-    if state.campaigns.remove(workspace_id).is_none() {
+    if !state.campaigns.contains_key(workspace_id) {
         return Vec::new();
     }
-    state
-        .agents
-        .retain(|_, agent| &agent.workspace_id != workspace_id);
-    if state
-        .selected_agent
-        .as_ref()
-        .is_some_and(|key| !state.agents.contains_key(key))
-    {
-        state.selected_agent = state.agents.keys().next().cloned();
-    }
-    vec![Command::PersistState]
+    state.capture.note_close(workspace_id.clone());
+    vec![Command::RequestSnapshot]
 }
 
 /// Sets an adventurer's summons aside until a chosen moment.

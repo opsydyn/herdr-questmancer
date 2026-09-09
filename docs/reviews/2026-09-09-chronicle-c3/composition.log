@@ -1,0 +1,11 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.99s
+     Running tests/chronicle_composition.rs (target/debug/deps/chronicle_composition-22ab84b1102c9ebd)
+
+running 4 tests
+test capture_append_failure_returns_the_real_worker_diagnostic ... ok
+test mixed_history_appends_keep_legacy_bytes_and_restart_does_not_reaward_spoils ... ok
+test overtaken_socket_results_trigger_bounded_resync_without_history_backfill ... ok
+test supervisor_probe_cannot_capture_and_command_refresh_persists_qualified_evidence ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s

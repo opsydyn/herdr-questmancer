@@ -1,0 +1,77 @@
+PROPTEST_CASES=4096 cargo test --test property_domain --test persisted_state --test chronicle_capture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
+     Running tests/chronicle_capture.rs (target/debug/deps/chronicle_capture-806b1e9b541a702f)
+
+running 29 tests
+test a_new_terminal_invalidates_scrying_even_when_its_key_pane_and_revision_match ... ok
+test corroborated_same_incarnation_departures_are_zero_xp_and_not_repeated_by_absence ... ok
+test a_confirmed_campaign_removal_absorbs_its_membership_losses_without_awards ... ok
+test a_new_identity_first_observed_done_records_only_membership ... ok
+test an_ambiguous_baseline_suppresses_subject_history_until_identity_is_reestablished ... ok
+test a_quiet_terminal_replacement_cannot_trigger_the_same_party_cat_reaction ... ok
+test changed_terminal_incarnation_baselines_the_subject_without_revision_comparison ... ok
+test chapters_separate_observed_spoils_unknown_whereabouts_and_legacy_identity_events ... ok
+test a_same_session_pane_move_preserves_continuity_without_membership_noise ... ok
+test fallback_identity_changes_are_quiet_and_never_invent_completion ... ok
+test metadata_first_and_matching_snapshot_record_and_reward_only_once ... ok
+test moving_the_same_terminal_cannot_reset_its_revision_boundary ... ok
+test chapter_ties_follow_accepted_observation_order_instead_of_hash_order ... ok
+test campaign_close_hints_do_not_remove_live_parties_and_expire_after_confirmation ... ok
+test obsolete_snapshot_results_remain_quiet_with_capture_enabled ... ok
+test qualified_working_to_blocked_refresh_records_one_zero_xp_observation ... ok
+test new_record_ids_ignore_display_names_and_clock_but_include_campaign_identity ... ok
+test reconnects_and_resyncs_remain_quiet_with_capture_enabled ... ok
+test the_managed_pane_and_render_clock_never_create_observations_or_commands ... ok
+test snapshot_done_never_gains_a_later_metadata_reward_but_a_new_episode_can ... ok
+test two_campaigns_removed_at_one_time_have_distinct_ids_and_stable_ordinals ... ok
+test temporarily_missing_session_evidence_does_not_invent_visibility_loss ... ok
+test unknown_observations_have_an_explicit_category_for_both_sources ... ok
+test timestamp_ties_and_clock_rollback_cannot_collapse_accepted_observations ... ok
+test unversioned_exit_hints_cannot_claim_a_departure ... ok
+test visibility_loss_and_reappearance_are_membership_observations_not_departures ... ok
+test restart_replays_v2_without_awarding_again_and_starts_a_new_capture_run ... ok
+test eviction_does_not_reset_current_fact_duplicate_guards ... ok
+test arbitrary_snapshot_sequences_capture_only_real_differences_without_rewards ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.26s
+
+     Running tests/persisted_state.rs (target/debug/deps/persisted_state-f4be53c44363aae0)
+
+running 21 tests
+test a_state_file_without_standing_still_loads_with_its_personas ... ok
+test capture_contains_only_durable_intent ... ok
+test overlay_marks_only_unread_attention_as_read ... ok
+test legacy_seen_attention_with_transport_revision_still_deserializes ... ok
+test new_state_json_omits_transport_revision_from_seen_attention ... ok
+test overlay_restores_matching_persona_selection_and_seen_episode ... ok
+test overlay_keeps_a_valid_snapshot_selection_when_persona_is_ambiguous ... ok
+test overlay_retains_learned_personas_that_are_not_live ... ok
+test different_summons_does_not_inherit_stored_acknowledgement ... ok
+test overlay_restores_seen_summons_when_snapshot_revision_changes ... ok
+test standing_is_captured_and_seeded_back ... ok
+test observed_domain_without_summons_removes_stored_acknowledgement ... ok
+test standing_is_monotonic_and_saturates ... ok
+test failed_seed_is_atomic_and_cannot_cross_persona_identities ... ok
+test validation_rejects_a_mismatched_embedded_persona_key ... ok
+test validation_rejects_an_unsupported_schema_version ... ok
+test validation_rejects_a_seen_episode_referencing_a_missing_persona ... ok
+test v1_state_without_persona_generation_loads_and_keeps_its_recorded_classes ... ok
+test validation_rejects_a_selected_persona_missing_from_the_map ... ok
+test valid_state_json_round_trips ... ok
+test overlay_cannot_replace_live_facts ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.38s
+
+     Running tests/property_domain.rs (target/debug/deps/property_domain-3af1b1644196f9df)
+
+running 8 tests
+test marking_attention_read_is_idempotent ... ok
+test managed_pane_is_absent_from_the_delve_model_and_rendered_surface ... ok
+test chronicle_event_ids_are_stable_for_equal_identity_inputs ... ok
+test stale_revisions_never_regress_state ... ok
+test persona_key_and_appearance_are_deterministic ... ok
+test duplicate_semantic_events_are_idempotent ... ok
+test campaign_status_priority_is_independent_of_agent_insertion_order ... ok
+test arbitrary_topology_changes_keep_selection_valid ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.86s

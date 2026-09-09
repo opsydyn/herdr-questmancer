@@ -1,0 +1,43 @@
+PROPTEST_CASES=cases=4096 cargo test --test property_domain --test persisted_state
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.57s
+     Running tests/persisted_state.rs (target/debug/deps/persisted_state-a1d4e3330a491c13)
+
+running 21 tests
+test a_state_file_without_standing_still_loads_with_its_personas ... ok
+test capture_contains_only_durable_intent ... ok
+test new_state_json_omits_transport_revision_from_seen_attention ... ok
+test legacy_seen_attention_with_transport_revision_still_deserializes ... ok
+test overlay_marks_only_unread_attention_as_read ... ok
+test different_summons_does_not_inherit_stored_acknowledgement ... ok
+test standing_is_captured_and_seeded_back ... ok
+test overlay_restores_matching_persona_selection_and_seen_episode ... ok
+test observed_domain_without_summons_removes_stored_acknowledgement ... ok
+test failed_seed_is_atomic_and_cannot_cross_persona_identities ... ok
+test standing_is_monotonic_and_saturates ... ok
+test overlay_keeps_a_valid_snapshot_selection_when_persona_is_ambiguous ... ok
+test overlay_retains_learned_personas_that_are_not_live ... ok
+test overlay_restores_seen_summons_when_snapshot_revision_changes ... ok
+test v1_state_without_persona_generation_loads_and_keeps_its_recorded_classes ... ok
+test validation_rejects_a_mismatched_embedded_persona_key ... ok
+test validation_rejects_a_seen_episode_referencing_a_missing_persona ... ok
+test validation_rejects_a_selected_persona_missing_from_the_map ... ok
+test validation_rejects_an_unsupported_schema_version ... ok
+test valid_state_json_round_trips ... ok
+test overlay_cannot_replace_live_facts ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/property_domain.rs (target/debug/deps/property_domain-ce2bace1f98c3ab5)
+
+running 8 tests
+test marking_attention_read_is_idempotent ... ok
+test managed_pane_is_absent_from_the_delve_model_and_rendered_surface ... ok
+test chronicle_event_ids_are_stable_for_equal_identity_inputs ... ok
+test persona_key_and_appearance_are_deterministic ... ok
+test stale_revisions_never_regress_state ... ok
+test duplicate_semantic_events_are_idempotent ... ok
+test campaign_status_priority_is_independent_of_agent_insertion_order ... ok
+test arbitrary_topology_changes_keep_selection_valid ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s

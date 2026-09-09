@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.50s
+     Running tests/chronicle_capture.rs (target/debug/deps/chronicle_capture-806b1e9b541a702f)
+
+running 1 test
+test chapter_ties_follow_accepted_observation_order_instead_of_hash_order ... FAILED
+
+failures:
+
+---- chapter_ties_follow_accepted_observation_order_instead_of_hash_order stdout ----
+
+thread 'chapter_ties_follow_accepted_observation_order_instead_of_hash_order' panicked at tests/chronicle_capture.rs:675:5:
+assertion `left == right` failed
+  left: [2, 3, 4, 5, 1]
+ right: [5, 4, 3, 2, 1]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    chapter_ties_follow_accepted_observation_order_instead_of_hash_order
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test chronicle_capture`

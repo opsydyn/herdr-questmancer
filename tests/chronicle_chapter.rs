@@ -24,7 +24,7 @@ fn request() -> ChapterRequest {
 
 #[test]
 fn chapter_uses_inclusive_explicit_bounds_and_never_counts_future_events() {
-    let mut chronicle = Chronicle::new(10);
+    let mut chronicle = Chronicle::new(ChronicleEvent::ALL.len());
     for (revision, at) in [(-1_i64), 0, 3_600_000, 3_600_001].into_iter().enumerate() {
         chronicle.append(entry(
             ChronicleEvent::SpoilsReturned,
@@ -97,7 +97,7 @@ fn bounded_history_and_empty_windows_make_no_claim_of_completeness() {
 
 #[test]
 fn every_event_type_has_a_factual_template_and_traceable_source() {
-    let mut chronicle = Chronicle::new(10);
+    let mut chronicle = Chronicle::new(ChronicleEvent::ALL.len());
     for (revision, event) in ChronicleEvent::ALL.iter().enumerate() {
         let mut source = entry(*event, "Ari", revision as u64, 500);
         source.summary.clear();
@@ -136,32 +136,20 @@ fn timestamp_extremes_are_saturating_and_honest() {
 
 #[test]
 fn unknown_whereabouts_are_not_rewritten_as_an_arrival() {
-    use questmancer::{
-        domain::DomainState,
-        herdr::protocol::{AgentStatus, SessionSnapshotResult, SuccessResponse},
-        update::{AppEvent, update},
-    };
-    let response: SuccessResponse<SessionSnapshotResult> =
-        serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
-    let domain = DomainState::from_snapshot(&response.result.snapshot, Timestamp::from_millis(0));
-    let (domain, _) = update(
-        domain,
-        AppEvent::AgentStatusChanged {
-            pane_id: PaneId::new("w1:p1"),
-            status: AgentStatus::Unknown,
-            custom_status: None,
-            revision: 8,
-            occurred_at: Timestamp::from_millis(500),
-        },
-    );
+    // A legacy joined category also represented unknown whereabouts. Never
+    // reinterpret its recorded ID, summary or category during chapter projection.
+    let mut chronicle = Chronicle::new(10);
+    let mut legacy = entry(ChronicleEvent::AdventurerJoined, "Codex", 8, 500);
+    legacy.summary = "Codex whereabouts unknown".into();
+    let id = legacy.id.clone();
+    chronicle.append(legacy);
     let request = request();
-    let chapter = request.project(&domain.chronicle);
-    assert_eq!(chapter.sources().len(), 1);
+    let chapter = request.project(&chronicle);
     let text = chapter.lines().join("\n");
+    assert_eq!(chapter.sources().len(), 1);
     assert!(text.contains("whereabouts unknown"));
     assert!(text.contains("1 identity event"));
-    assert!(!text.contains("arrival"));
-    assert!(!text.contains("joined"));
+    assert!(text.contains(id.as_str()));
 }
 
 #[test]

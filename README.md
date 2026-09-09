@@ -227,9 +227,31 @@ Inside the Chronicle, `Tab` requests a guild chapter for the last hour, or
 returns to the record list. The UTC window is fixed when requested. Chapters
 count retained events, preserving recorded names, timestamps and source IDs
 below the recap; scroll with `j`/`k` or the wheel. Retained history can be
-incomplete. Normal Herdr 0.9 status events feed the Chronicle; snapshot-only
-changes do not append events, and chapters never fill gaps from live presence. Source lines wrap at the full chapter width; panes narrower than 80 columns
-clip them horizontally. Widen the terminal to read all wrapped lines.
+incomplete. Accepted Herdr status reports and qualified snapshot differences feed
+the Chronicle. New records label their local observation time; “observed” never
+claims an exact upstream transition time. Startup, reconnect and subscription
+resync establish quiet baselines, and chapters never fill unseen gaps. Missing
+or ambiguous session identity also withholds inferred history. Source lines wrap
+at the full chapter width; panes narrower than 80 columns clip them horizontally.
+Widen the terminal to read all wrapped lines.
+
+Snapshot observations, unknown whereabouts, membership visibility and campaign
+removal earn no XP. A snapshot that first observes spoils does not gain a later
+reward from matching metadata; a subsequent working-to-done status episode can
+still earn the existing ten XP. A campaign-close hint requires snapshot
+confirmation and never means successful delivery.
+
+New Chronicle writes use a v2 JSONL envelope with captured source evidence and
+immutable IDs. Existing flat v1 records retain their IDs, summaries and legacy
+meaning; mixed replay does not rewrite the file or re-award standing. The
+published 0.1.9 reader skips v2 records with diagnostics on downgrade. See the
+[Chronicle capture acceptance recipe](docs/manual-test/chronicle-capture.md) for
+current qualification limits.
+
+Composed socket/file checks and isolated synthetic metadata observations pass;
+see the [C3 receipt](docs/reviews/2026-09-09-chronicle-c3/README.md). The
+[changed Chronicle screens](docs/design/reviews/2026-09-09-chronicle-capture/README.md)
+were visually approved on 2026-09-09. These local changes remain unreleased.
 
 `Tab` moves the selection into the next campaign's party and wraps. With the
 whole party on one campaign it stays put and says so.

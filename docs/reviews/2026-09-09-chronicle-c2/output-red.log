@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.47s
+     Running tests/chronicle_capture.rs (target/debug/deps/chronicle_capture-806b1e9b541a702f)
+
+running 1 test
+test a_new_terminal_invalidates_scrying_even_when_its_key_pane_and_revision_match ... FAILED
+
+failures:
+
+---- a_new_terminal_invalidates_scrying_even_when_its_key_pane_and_revision_match stdout ----
+
+thread 'a_new_terminal_invalidates_scrying_even_when_its_key_pane_and_revision_match' panicked at tests/chronicle_capture.rs:657:165:
+changed incarnation needs its own output read
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_new_terminal_invalidates_scrying_even_when_its_key_pane_and_revision_match
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test chronicle_capture`

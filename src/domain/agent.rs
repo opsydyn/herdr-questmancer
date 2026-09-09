@@ -32,6 +32,8 @@ impl From<AgentStatus> for Presence {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Agent {
+    #[serde(skip)]
+    pub capture_identity: super::CaptureIdentity,
     pub key: AgentKey,
     pub pane_id: PaneId,
     pub workspace_id: WorkspaceId,
@@ -110,6 +112,10 @@ impl Agent {
             }
         };
         Self {
+            capture_identity: super::CaptureIdentity::from_parts(
+                &agent.terminal_id,
+                agent.agent_session.as_ref(),
+            ),
             key,
             pane_id: PaneId::new(&agent.pane_id),
             workspace_id: WorkspaceId::new(&agent.workspace_id),

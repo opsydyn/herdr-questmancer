@@ -344,6 +344,7 @@ pub struct OutputRequest(pub u64);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct OutputContext {
+    identity: crate::domain::CaptureIdentity,
     agent_key: AgentKey,
     pane_id: PaneId,
     pending: Option<OutputRequest>,
@@ -352,7 +353,7 @@ struct OutputContext {
 /// A transient comparison of live party facts, never saved in the model.
 #[derive(Debug)]
 pub(crate) struct PartyActivity {
-    members: Vec<(AgentKey, PaneId)>,
+    members: Vec<(AgentKey, PaneId, crate::domain::CaptureIdentity)>,
     all_resting: bool,
     all_known: bool,
 }
@@ -365,7 +366,13 @@ impl PartyActivity {
             .filter(|agent| agent.presence != Presence::Exited);
         let members = agents
             .clone()
-            .map(|agent| (agent.key.clone(), agent.pane_id.clone()))
+            .map(|agent| {
+                (
+                    agent.key.clone(),
+                    agent.pane_id.clone(),
+                    agent.capture_identity.clone(),
+                )
+            })
             .collect::<Vec<_>>();
         Self {
             all_resting: !members.is_empty()
@@ -380,6 +387,7 @@ impl PartyActivity {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Model {
+    pub(crate) snapshot_refresh: crate::snapshot_refresh::SnapshotRefresh,
     view: View,
     domain: DomainState,
     connection: ConnectionState,
@@ -423,6 +431,7 @@ struct SearchResults {
 impl Model {
     pub fn new(view: View) -> Self {
         Self {
+            snapshot_refresh: crate::snapshot_refresh::SnapshotRefresh::default(),
             view,
             domain: DomainState::default(),
             connection: ConnectionState::Offline,
@@ -469,6 +478,12 @@ impl Model {
     }
 
     pub fn set_connection_at(&mut self, connection: ConnectionState, observed_at: Timestamp) {
+        self.snapshot_refresh
+            .connection_changed(connection == ConnectionState::Connected);
+        self.domain.capture.connection_changed(
+            self.snapshot_refresh.epoch(),
+            connection == ConnectionState::Connected,
+        );
         self.party_rest_since = None;
         // Even Connected -> Connected starts a fresh snapshot lifetime.
         self.invalidate_output();
@@ -804,7 +819,7 @@ impl Model {
             .iter()
             .rev()
             .filter(|entry| {
-                selected.is_none_or(|key| entry.adventurer.as_ref().is_some_and(|had| had == key))
+                selected.is_none_or(|key| entry.adventurer().is_some_and(|had| had == key))
             })
             .take(limit)
             .collect()
@@ -1362,6 +1377,7 @@ impl Model {
         if let Some(context) = &self.output_context {
             let eligible = self.selected_agent().is_some_and(|agent| {
                 agent.key == context.agent_key
+                    && agent.capture_identity == context.identity
                     && agent.pane_id == context.pane_id
                     && agent.presence != Presence::Exited
                     && self.managed_pane_id.as_ref() != Some(&agent.pane_id)
@@ -1385,12 +1401,14 @@ impl Model {
             return None;
         }
         let agent_key = agent.key.clone();
+        let identity = agent.capture_identity.clone();
         self.next_output_request = self.next_output_request.checked_add(1)?;
         let request = OutputRequest(self.next_output_request);
         if self.output_context.is_none() {
             self.output_preview = None;
         }
         self.output_context = Some(OutputContext {
+            identity,
             agent_key,
             pane_id: pane_id.clone(),
             pending: Some(request),

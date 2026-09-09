@@ -472,6 +472,7 @@ async fn run_live_loop(
                 match runtime_event {
                     RuntimeEvent::Connection(update) => {
                         let effects = apply_connection_update(model, update, observed_at);
+                        if effects.resubscribe { connection.resubscribe(); }
                         connection.schedule(effects.agent_commands);
                         record_dispatch_errors(
                             model,
@@ -481,6 +482,7 @@ async fn run_live_loop(
                     }
                     RuntimeEvent::Command(result) => {
                         let effects = apply_command_result(model, result, observed_at);
+                        if effects.resubscribe { connection.resubscribe(); }
                         connection.schedule(effects.agent_commands);
                         record_dispatch_errors(
                             model,
@@ -747,13 +749,14 @@ mod tests {
             Some(&environment),
             WorkerPaths::new(Some(state_path.clone()), Some(chronicle_path.clone())),
         );
-        lifecycle
-            .connection_mut()
-            .unwrap()
-            .schedule([crate::command::AgentCommand::RefreshSnapshot]);
+        lifecycle.connection_mut().unwrap().schedule([
+            crate::command::AgentCommand::RefreshSnapshot(
+                crate::snapshot_refresh::SnapshotRequest::default(),
+            ),
+        ]);
         let model = Model::new(View::Delve);
         let state = PersistedStateV1::capture(&model);
-        let entry = ChronicleEntry {
+        let entry: ChronicleEntry = crate::domain::LegacyChronicleEntry {
             id: EventId::new("signal-shutdown"),
             occurred_at: Timestamp::from_millis(1_000),
             adventurer: None,
@@ -762,7 +765,8 @@ mod tests {
             pane_revision: 1,
             event: ChronicleEvent::SpoilsReturned,
             summary: "completed before signal".to_owned(),
-        };
+        }
+        .into();
         lifecycle
             .persistence_mut()
             .append_chronicle(entry.clone())

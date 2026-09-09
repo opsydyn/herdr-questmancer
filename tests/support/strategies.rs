@@ -214,6 +214,7 @@ pub(crate) fn agent() -> impl Strategy<Value = Agent> {
                 (name, custom_status, presence, presence_since, attention),
                 (focused, pane_revision, persona),
             )| Agent {
+                capture_identity: questmancer::domain::CaptureIdentity::default(),
                 key,
                 pane_id,
                 workspace_id,
@@ -322,6 +323,7 @@ pub(crate) fn domain_with_one_agent() -> impl Strategy<Value = DomainState> {
             },
         );
         DomainState {
+            capture: questmancer::domain::CaptureClock::default(),
             campaigns,
             agents,
             selected_agent: Some(key),
@@ -333,6 +335,13 @@ pub(crate) fn domain_with_one_agent() -> impl Strategy<Value = DomainState> {
 pub(crate) fn status_event(state: &DomainState, revision: u64, status: AgentStatus) -> AppEvent {
     let pane_id = state.agents.values().next().unwrap().pane_id.clone();
     AppEvent::AgentStatusChanged {
+        identity: state
+            .agents
+            .values()
+            .next()
+            .unwrap()
+            .capture_identity
+            .clone(),
         pane_id,
         status,
         custom_status: None,
@@ -382,12 +391,17 @@ pub(crate) fn topology_events() -> impl Strategy<Value = Vec<AppEvent>> {
             .into_iter()
             .flat_map(|snapshot| {
                 let mut events = vec![AppEvent::SnapshotReplaced {
-                    snapshot: snapshot.clone(),
+                    purpose: questmancer::snapshot_refresh::SnapshotPurpose::Baseline,
+                    snapshot: Box::new(snapshot.clone()),
                     observed_at: Timestamp::from_millis(1_000),
                     excluded_pane: None,
                 }];
                 if let Some(agent) = snapshot.agents.first() {
                     let pane_exit = AppEvent::PaneExited {
+                        identity: questmancer::domain::CaptureIdentity::from_parts(
+                            &agent.terminal_id,
+                            agent.agent_session.as_ref(),
+                        ),
                         pane_id: PaneId::new(&agent.pane_id),
                         revision: agent.revision + 1,
                         occurred_at: Timestamp::from_millis(2_000),
@@ -397,16 +411,17 @@ pub(crate) fn topology_events() -> impl Strategy<Value = Vec<AppEvent>> {
                 }
                 if let Some(workspace) = snapshot.workspaces.first() {
                     let workspace_closed =
-                        AppEvent::WorkspaceClosed(WorkspaceId::new(&workspace.workspace_id));
+                        AppEvent::WorkspaceCloseHint(WorkspaceId::new(&workspace.workspace_id));
                     events.push(workspace_closed.clone());
                     events.push(workspace_closed);
                 }
                 events.push(AppEvent::PaneExited {
+                    identity: questmancer::domain::CaptureIdentity::Unqualified,
                     pane_id: PaneId::new("property-missing-pane"),
                     revision: 1,
                     occurred_at: Timestamp::from_millis(3_000),
                 });
-                events.push(AppEvent::WorkspaceClosed(WorkspaceId::new(
+                events.push(AppEvent::WorkspaceCloseHint(WorkspaceId::new(
                     "property-missing-workspace",
                 )));
                 events
@@ -459,6 +474,7 @@ pub(crate) fn domain_state() -> impl Strategy<Value = DomainState> {
                     .push(key.clone());
             }
             DomainState {
+                capture: questmancer::domain::CaptureClock::default(),
                 campaigns,
                 agents,
                 selected_agent,
@@ -524,6 +540,7 @@ pub(crate) fn guild_room_domain() -> impl Strategy<Value = DomainState> {
             (Just(campaigns), Just(agents), selection)
         })
         .prop_map(|(campaigns, agents, selected_agent)| DomainState {
+            capture: questmancer::domain::CaptureClock::default(),
             campaigns,
             agents,
             selected_agent,

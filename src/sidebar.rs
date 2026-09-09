@@ -266,9 +266,9 @@ fn hoard(
     let count = chronicle
         .entries()
         .iter()
-        .filter(|entry| entry.event == ChronicleEvent::SpoilsReturned)
+        .filter(|entry| entry.event() == ChronicleEvent::SpoilsReturned)
         .filter(|entry| match adventurer {
-            Some(key) => entry.adventurer.as_ref() == Some(key),
+            Some(key) => entry.adventurer() == Some(key),
             None => true,
         })
         .count();

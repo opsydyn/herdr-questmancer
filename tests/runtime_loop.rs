@@ -34,6 +34,30 @@ fn snapshot() -> SessionSnapshot {
     response.result.snapshot
 }
 
+fn snapshot_request(commands: &[AgentCommand]) -> questmancer::snapshot_refresh::SnapshotRequest {
+    commands
+        .iter()
+        .find_map(|command| match command {
+            AgentCommand::RefreshSnapshot(request) => Some(*request),
+            _ => None,
+        })
+        .expect("a fresh snapshot request should be scheduled")
+}
+
+fn apply_snapshot(model: &mut Model, snapshot: SessionSnapshot, at: Timestamp) -> RuntimeEffects {
+    let request = snapshot_request(
+        &questmancer::runtime_loop::request_snapshot_refresh(model).agent_commands,
+    );
+    apply_command_result(
+        model,
+        CommandResult::SnapshotLoaded {
+            request,
+            snapshot: Box::new(snapshot),
+        },
+        at,
+    )
+}
+
 fn output_request(commands: &[AgentCommand]) -> OutputRequest {
     commands
         .iter()
@@ -88,10 +112,15 @@ fn model_with_two_distinct_personas() -> Model {
 
 fn connected_model_with_presence(presence: Presence) -> Model {
     let mut model = Model::new(View::Guild);
-    model.replace_domain(DomainState::from_snapshot(
-        &snapshot(),
+    model
+        .domain_mut()
+        .capture
+        .start(questmancer::domain::CaptureRunId::new("runtime-test"));
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(snapshot()),
         Timestamp::from_millis(1_000),
-    ));
+    );
     let agent = model.domain_mut().agents.values_mut().next().unwrap();
     agent.presence = presence;
     agent.attention = GuildAttention::Clear;
@@ -106,6 +135,7 @@ fn status_update_with_revision(status: &str, revision: u64) -> ConnectionUpdate 
             "workspace_id": "w1",
             "agent_status": status,
             "revision": revision,
+            "terminal_id":"terminal-1", "agent_session":{"source":"codex","agent":"codex","kind":"id","value":"session-123"},
         }),
     })
 }
@@ -159,13 +189,21 @@ fn snapshot_result_preserves_persistence_effect_after_durable_overlay() {
     let mut model = connected_model_with_presence(Presence::Working);
     let restored_name = model.selected_agent().unwrap().persona.name.clone();
 
-    let effects = apply_command_result(
+    let effects = apply_snapshot(
         &mut model,
-        CommandResult::SnapshotLoaded(Box::new(snapshot())),
+        changed_snapshot(questmancer::herdr::protocol::AgentStatus::Blocked, 8),
         Timestamp::from_millis(2_000),
     );
 
-    assert_eq!(effects.persistence, vec![Command::PersistState]);
+    assert_eq!(effects.persistence.last(), Some(&Command::PersistState));
+    assert_eq!(
+        effects
+            .persistence
+            .iter()
+            .filter(|command| command.is_chronicle_append())
+            .count(),
+        1
+    );
     assert_eq!(model.selected_agent().unwrap().persona.name, restored_name);
 }
 
@@ -191,6 +229,7 @@ fn marginalia_failure_is_an_integration_diagnostic_not_an_action_error() {
 #[test]
 fn snapshot_result_excludes_the_managed_webmaster_pane() {
     let mut model = Model::new(View::Guild);
+    model.set_connection(ConnectionState::Connected);
     let managed = PaneId::new("w2:p3");
     model.set_managed_pane_id(Some(managed.clone()));
     let mut snapshot = snapshot();
@@ -199,11 +238,12 @@ fn snapshot_result_excludes_the_managed_webmaster_pane() {
     managed_agent.workspace_id = "w2".to_owned();
     snapshot.agents.push(managed_agent);
 
-    apply_command_result(
+    apply_connection_update(
         &mut model,
-        CommandResult::SnapshotLoaded(Box::new(snapshot)),
-        Timestamp::from_millis(2_000),
+        ConnectionUpdate::Connected(snapshot.clone()),
+        Timestamp::from_millis(1_000),
     );
+    apply_snapshot(&mut model, snapshot, Timestamp::from_millis(2_000));
 
     assert!(model.domain().agent_key_for_pane(&managed).is_none());
 }
@@ -467,7 +507,7 @@ fn selected_status_change_refreshes_only_that_output() {
         &mut model,
         ConnectionUpdate::Event(WireEvent {
             event: "pane.agent_status_changed".into(),
-            data: json!({"pane_id": "w1:p1", "workspace_id": "w1", "agent_status": "done"}),
+            data: json!({"pane_id": "w1:p1", "workspace_id": "w1", "agent_status": "done", "revision":8, "terminal_id":"terminal-1", "agent_session":{"source":"codex","agent":"codex","kind":"id","value":"session-123"}}),
         }),
         Timestamp::from_millis(2_000),
     );
@@ -496,7 +536,9 @@ fn runtime_domain_update_keeps_the_newly_selected_distinct_persona_selected() {
             data: json!({
                 "pane_id": "w1:p2",
                 "workspace_id": "w1",
-                "agent_status": "done"
+                "agent_status": "done",
+                "revision":8,
+                "terminal_id":"terminal-1", "agent_session":{"source":"codex","agent":"codex","kind":"id","value":"session-123"}
             }),
         }),
         Timestamp::from_millis(2_000),
@@ -606,20 +648,12 @@ fn removal_and_recreation_of_a_pane_cannot_revive_its_old_output_request() {
     let (mut model, old) = connect_for_output();
     let mut empty = snapshot();
     empty.agents.clear();
-    apply_command_result(
-        &mut model,
-        CommandResult::SnapshotLoaded(Box::new(empty)),
-        Timestamp::from_millis(2_000),
-    );
+    apply_snapshot(&mut model, empty, Timestamp::from_millis(2_000));
     assert!(model.selected_agent().is_none());
     output_loaded(&mut model, old, 100, "removed pane");
     assert!(model.output_preview().is_none());
 
-    let restored = apply_command_result(
-        &mut model,
-        CommandResult::SnapshotLoaded(Box::new(snapshot())),
-        Timestamp::from_millis(3_000),
-    );
+    let restored = apply_snapshot(&mut model, snapshot(), Timestamp::from_millis(3_000));
     let current = output_request(&restored.agent_commands);
     output_loaded(&mut model, old, 100, "old pane incarnation");
     assert!(model.output_preview().unwrap().loading);
@@ -736,7 +770,7 @@ fn an_exit_event_invalidates_the_pending_read_without_loading_the_exited_pane() 
         &mut model,
         ConnectionUpdate::Event(WireEvent {
             event: "pane.exited".into(),
-            data: json!({"pane_id": "w1:p1", "workspace_id": "w1", "revision": 8}),
+            data: json!({"pane_id": "w1:p1", "workspace_id": "w1", "revision": 8, "terminal_id":"terminal-1", "agent_session":{"source":"codex","agent":"codex","kind":"id","value":"session-123"}}),
         }),
         Timestamp::from_millis(3_000),
     );
@@ -1053,7 +1087,7 @@ fn disconnect_preserves_the_last_connected_snapshot() {
         Timestamp::from_millis(2_000),
     );
 
-    assert_eq!(model.domain(), &connected_domain);
+    assert_live_domain_eq(model.domain(), &connected_domain);
     assert_eq!(effects, RuntimeEffects::default());
 }
 
@@ -1064,7 +1098,9 @@ async fn runtime_shutdown_cancels_supervisor_and_command_tasks() {
     let _listener = UnixListener::bind(&socket_path).unwrap();
     let environment = HerdrEnvironment::new(&socket_path, "/usr/bin/herdr");
     let mut connection = RuntimeConnection::start(&environment);
-    connection.schedule([AgentCommand::RefreshSnapshot]);
+    connection.schedule([AgentCommand::RefreshSnapshot(
+        questmancer::snapshot_refresh::SnapshotRequest::default(),
+    )]);
     tokio::task::yield_now().await;
 
     timeout(std::time::Duration::from_secs(1), connection.shutdown())
@@ -1079,14 +1115,14 @@ async fn runtime_connection_exposes_owned_work_as_typed_events() {
     let environment =
         HerdrEnvironment::new(directory.path().join("missing.sock"), "/usr/bin/herdr");
     let mut connection = RuntimeConnection::start(&environment);
-    connection.schedule([AgentCommand::RefreshSnapshot]);
+    connection.schedule([AgentCommand::FocusPane(PaneId::new("w1:p1"))]);
 
     timeout(std::time::Duration::from_secs(1), async {
         loop {
             if matches!(
                 connection.next_event().await,
                 RuntimeEvent::Command(CommandResult::Failed {
-                    operation: "refresh snapshot",
+                    operation: "focus pane",
                     ..
                 })
             ) {
@@ -1205,4 +1241,420 @@ fn only_finished_work_is_worth_standing() {
             "{quiet:?} must not be worth standing"
         );
     }
+}
+
+#[test]
+fn a_refresh_from_before_disconnect_cannot_replace_the_new_connection_baseline() {
+    let (mut model, _) = connect_for_output();
+    let old_snapshot = snapshot();
+    let requested = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Event(WireEvent {
+            event: "pane_created".into(),
+            data: json!({"pane_id": "w1:p9"}),
+        }),
+        Timestamp::from_millis(1_500),
+    );
+    let request = snapshot_request(&requested.agent_commands);
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Disconnected("test disconnect".into()),
+        Timestamp::from_millis(2_000),
+    );
+    let mut fresh = snapshot();
+    fresh.workspaces[0].label = "after reconnect".into();
+    fresh.agents[0].agent_status = questmancer::herdr::protocol::AgentStatus::Working;
+    fresh.agents[0].revision = 20;
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(fresh),
+        Timestamp::from_millis(3_000),
+    );
+    let baseline = model.domain().clone();
+    let experience = model.experience();
+    let effects = apply_command_result(
+        &mut model,
+        CommandResult::SnapshotLoaded {
+            request,
+            snapshot: Box::new(old_snapshot),
+        },
+        Timestamp::from_millis(4_000),
+    );
+    assert_eq!(
+        model.domain(),
+        &baseline,
+        "a prior-connection result rolled back live facts"
+    );
+    assert_eq!(model.experience(), experience);
+    assert_eq!(effects, RuntimeEffects::default());
+}
+
+fn changed_snapshot(
+    status: questmancer::herdr::protocol::AgentStatus,
+    revision: u64,
+) -> SessionSnapshot {
+    let mut next = snapshot();
+    for agent in &mut next.agents {
+        agent.agent_status = status;
+        agent.revision = revision;
+    }
+    for pane in &mut next.panes {
+        pane.agent_status = status;
+        pane.revision = revision;
+    }
+    next
+}
+
+fn begin_snapshot(model: &mut Model) -> questmancer::snapshot_refresh::SnapshotRequest {
+    snapshot_request(&questmancer::runtime_loop::request_snapshot_refresh(model).agent_commands)
+}
+
+fn deliver_snapshot(
+    model: &mut Model,
+    request: questmancer::snapshot_refresh::SnapshotRequest,
+    snapshot: SessionSnapshot,
+) -> RuntimeEffects {
+    apply_command_result(
+        model,
+        CommandResult::SnapshotLoaded {
+            request,
+            snapshot: Box::new(snapshot),
+        },
+        Timestamp::from_millis(5_000),
+    )
+}
+
+#[test]
+fn snapshot_refresh_bursts_coalesce_and_pending_work_uses_installed_facts() {
+    use questmancer::herdr::protocol::AgentStatus;
+    let (mut model, _) = connect_for_output();
+    let first = begin_snapshot(&mut model);
+    for _ in 0..100 {
+        assert_eq!(
+            questmancer::runtime_loop::request_snapshot_refresh(&mut model),
+            RuntimeEffects::default()
+        );
+    }
+    let applied = deliver_snapshot(&mut model, first, changed_snapshot(AgentStatus::Idle, 8));
+    assert_eq!(applied.persistence, vec![Command::PersistState]);
+    assert!(model.domain().chronicle.entries().is_empty());
+    assert_eq!(model.experience(), 0);
+    let pending = snapshot_request(&applied.agent_commands);
+    assert_ne!(pending.id, first.id);
+    assert_ne!(pending.generation, first.generation);
+    let finished = deliver_snapshot(&mut model, pending, changed_snapshot(AgentStatus::Idle, 8));
+    assert!(!finished.resubscribe);
+    assert!(
+        !finished
+            .agent_commands
+            .iter()
+            .any(|command| matches!(command, AgentCommand::RefreshSnapshot(_)))
+    );
+}
+
+#[test]
+fn duplicate_and_late_results_cannot_complete_a_new_snapshot_request() {
+    use questmancer::herdr::protocol::AgentStatus;
+    let (mut model, _) = connect_for_output();
+    let first = begin_snapshot(&mut model);
+    deliver_snapshot(&mut model, first, changed_snapshot(AgentStatus::Idle, 8));
+    let second = begin_snapshot(&mut model);
+    let stable = model.domain().clone();
+    assert_eq!(
+        deliver_snapshot(&mut model, first, changed_snapshot(AgentStatus::Done, 90)),
+        RuntimeEffects::default()
+    );
+    assert_eq!(model.domain(), &stable);
+    let failure = apply_command_result(
+        &mut model,
+        CommandResult::SnapshotFailed {
+            request: first,
+            message: "obsolete".into(),
+        },
+        Timestamp::from_millis(6_000),
+    );
+    assert_eq!(failure, RuntimeEffects::default());
+    assert_eq!(model.action_feedback(), None);
+    deliver_snapshot(
+        &mut model,
+        second,
+        changed_snapshot(AgentStatus::Working, 9),
+    );
+    assert_eq!(model.selected_agent().unwrap().presence, Presence::Working);
+    assert!(model.domain().chronicle.entries().is_empty());
+}
+
+#[test]
+fn two_overtaken_refreshes_resubscribe_without_rolling_back_or_backfilling() {
+    use questmancer::herdr::protocol::AgentStatus;
+    let (mut model, _) = connect_for_output();
+    let first = begin_snapshot(&mut model);
+    apply_connection_update(
+        &mut model,
+        status_update_with_revision("working", 8),
+        Timestamp::from_millis(2_000),
+    );
+    let retry = deliver_snapshot(&mut model, first, snapshot());
+    let second = snapshot_request(&retry.agent_commands);
+    assert_eq!(model.selected_agent().unwrap().presence, Presence::Working);
+    apply_connection_update(
+        &mut model,
+        status_update_with_revision("idle", 9),
+        Timestamp::from_millis(3_000),
+    );
+    let history = model.domain().chronicle.clone();
+    let recovered = deliver_snapshot(
+        &mut model,
+        second,
+        changed_snapshot(AgentStatus::Working, 8),
+    );
+    assert!(recovered.resubscribe);
+    assert!(recovered.agent_commands.is_empty());
+    assert!(recovered.persistence.is_empty());
+    assert_eq!(model.selected_agent().unwrap().presence, Presence::Idle);
+    assert_eq!(model.connection(), &ConnectionState::Connecting);
+    assert_eq!(
+        questmancer::runtime_loop::request_snapshot_refresh(&mut model),
+        RuntimeEffects::default()
+    );
+    let baseline = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(changed_snapshot(AgentStatus::Done, 10)),
+        Timestamp::from_millis(6_000),
+    );
+    assert!(
+        !baseline
+            .persistence
+            .iter()
+            .any(Command::is_chronicle_append)
+    );
+    assert_eq!(model.domain().chronicle, history);
+    assert_eq!(model.experience(), 0);
+    assert_eq!(
+        deliver_snapshot(&mut model, second, snapshot()),
+        RuntimeEffects::default()
+    );
+    assert_eq!(model.selected_agent().unwrap().presence, Presence::Done);
+}
+
+#[test]
+fn local_interaction_and_marginalia_do_not_supersede_snapshot_work() {
+    use questmancer::herdr::protocol::AgentStatus;
+    let (mut model, _) = connect_for_output();
+    let request = begin_snapshot(&mut model);
+    let _ = reduce_action(&mut model, Action::Search);
+    let _ = reduce_action(&mut model, Action::TypeCharacter('x'));
+    model.set_now(Timestamp::from_millis(10_000));
+    for name in ["pane.updated", "workspace.metadata_updated"] {
+        apply_connection_update(
+            &mut model,
+            ConnectionUpdate::Event(WireEvent {
+                event: name.into(),
+                data: json!({}),
+            }),
+            Timestamp::from_millis(4_000),
+        );
+    }
+    let applied = deliver_snapshot(&mut model, request, changed_snapshot(AgentStatus::Idle, 8));
+    assert!(!applied.resubscribe);
+    assert_eq!(applied.persistence, vec![Command::PersistState]);
+    assert_eq!(model.selected_agent().unwrap().presence, Presence::Idle);
+}
+
+#[test]
+fn resync_does_not_launch_a_competing_command_snapshot() {
+    let (mut model, _) = connect_for_output();
+    let request = begin_snapshot(&mut model);
+    let resync = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Resyncing,
+        Timestamp::from_millis(2_000),
+    );
+    assert_eq!(resync, RuntimeEffects::default());
+    assert_eq!(model.connection(), &ConnectionState::Connecting);
+    assert_eq!(
+        deliver_snapshot(&mut model, request, snapshot()),
+        RuntimeEffects::default()
+    );
+}
+
+#[test]
+fn conflicting_equal_revision_snapshot_requires_reconciliation() {
+    use questmancer::herdr::protocol::AgentStatus;
+    let (mut model, _) = connect_for_output();
+    let request = begin_snapshot(&mut model);
+    let before = model.domain().clone();
+    let effects = deliver_snapshot(
+        &mut model,
+        request,
+        changed_snapshot(AgentStatus::Working, 7),
+    );
+    assert_eq!(model.domain(), &before);
+    assert!(effects.persistence.is_empty());
+    assert_ne!(snapshot_request(&effects.agent_commands).id, request.id);
+}
+
+#[test]
+fn conflicting_equal_revision_status_requests_snapshot_without_history() {
+    let (mut model, _) = connect_for_output();
+    let before = model.domain().clone();
+    let effects = apply_connection_update(
+        &mut model,
+        status_update_with_revision("working", 7),
+        Timestamp::from_millis(2_000),
+    );
+    assert_eq!(model.domain(), &before);
+    assert!(effects.persistence.is_empty());
+    let _ = snapshot_request(&effects.agent_commands);
+}
+
+#[test]
+fn topology_hints_supersede_refreshes_before_the_new_party_is_known() {
+    let (mut model, _) = connect_for_output();
+    let first = begin_snapshot(&mut model);
+    let before = model.domain().clone();
+    let queued = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Event(WireEvent {
+            event: "pane_created".into(),
+            data: json!({"pane_id":"w1:p9"}),
+        }),
+        Timestamp::from_millis(2_000),
+    );
+    assert!(
+        queued.agent_commands.is_empty(),
+        "the in-flight read should coalesce the topology refresh"
+    );
+    let retry = deliver_snapshot(&mut model, first, snapshot());
+    assert_eq!(model.domain(), &before);
+    let second = snapshot_request(&retry.agent_commands);
+    assert_ne!(second.id, first.id);
+    assert_ne!(second.generation, first.generation);
+}
+
+#[test]
+fn offline_and_unsolicited_snapshot_results_cannot_establish_a_baseline() {
+    let mut model = Model::new(View::Guild);
+    let before = model.clone();
+    assert_eq!(
+        questmancer::runtime_loop::request_snapshot_refresh(&mut model),
+        RuntimeEffects::default()
+    );
+    assert_eq!(
+        deliver_snapshot(
+            &mut model,
+            questmancer::snapshot_refresh::SnapshotRequest::default(),
+            snapshot()
+        ),
+        RuntimeEffects::default()
+    );
+    assert_eq!(model, before);
+}
+
+#[test]
+fn matching_snapshot_failure_releases_only_one_coalesced_pending_request() {
+    let (mut model, _) = connect_for_output();
+    let first = begin_snapshot(&mut model);
+    for _ in 0..10 {
+        questmancer::runtime_loop::request_snapshot_refresh(&mut model);
+    }
+    let failed = apply_command_result(
+        &mut model,
+        CommandResult::SnapshotFailed {
+            request: first,
+            message: "read failed".into(),
+        },
+        Timestamp::from_millis(2_000),
+    );
+    let next = snapshot_request(&failed.agent_commands);
+    assert_ne!(next.id, first.id);
+    assert_eq!(failed.agent_commands.len(), 1);
+    assert_eq!(
+        model.action_feedback(),
+        Some("refresh snapshot failed: read failed")
+    );
+    let repeated = apply_command_result(
+        &mut model,
+        CommandResult::SnapshotFailed {
+            request: first,
+            message: "obsolete".into(),
+        },
+        Timestamp::from_millis(3_000),
+    );
+    assert_eq!(repeated, RuntimeEffects::default());
+    assert_eq!(
+        model.action_feedback(),
+        Some("refresh snapshot failed: read failed")
+    );
+    assert_eq!(
+        deliver_snapshot(&mut model, next, snapshot()).persistence,
+        vec![Command::PersistState]
+    );
+}
+
+#[test]
+fn unsupported_and_ambiguous_snapshots_never_replace_the_qualified_party() {
+    for ambiguous in [false, true] {
+        let (mut model, _) = connect_for_output();
+        let before = model.domain().clone();
+        let first = begin_snapshot(&mut model);
+        let mut invalid = snapshot();
+        if ambiguous {
+            invalid.agents.push(invalid.agents[0].clone());
+        } else {
+            invalid.protocol = 23;
+        }
+        let retry = deliver_snapshot(&mut model, first, invalid.clone());
+        let second = snapshot_request(&retry.agent_commands);
+        let resync = deliver_snapshot(&mut model, second, invalid);
+        assert!(resync.resubscribe);
+        assert_live_domain_eq(model.domain(), &before);
+        assert!(model.domain().chronicle.entries().is_empty());
+    }
+}
+
+#[test]
+fn refresh_with_unsubscribed_panes_requires_a_quiet_new_baseline() {
+    let (mut model, _) = connect_for_output();
+    let request = begin_snapshot(&mut model);
+    let before = model.domain().clone();
+    let mut changed = snapshot();
+    changed.agents[0].pane_id = "w1:new".into();
+    let effects = deliver_snapshot(&mut model, request, changed.clone());
+    assert!(
+        effects.resubscribe,
+        "new pane facts require a subscription baseline"
+    );
+    assert_live_domain_eq(model.domain(), &before);
+    assert!(effects.persistence.is_empty());
+    assert!(effects.agent_commands.is_empty());
+    apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(changed),
+        Timestamp::from_millis(6_000),
+    );
+    assert_eq!(
+        model
+            .domain()
+            .agents
+            .values()
+            .next()
+            .unwrap()
+            .pane_id
+            .as_str(),
+        "w1:new"
+    );
+    assert!(model.domain().chronicle.entries().is_empty());
+    assert_eq!(model.experience(), 0);
+    let active = begin_snapshot(&mut model);
+    let late = deliver_snapshot(&mut model, request, snapshot());
+    assert_eq!(late, RuntimeEffects::default());
+    assert_ne!(active.epoch, request.epoch);
+}
+
+fn assert_live_domain_eq(actual: &DomainState, expected: &DomainState) {
+    assert_eq!(actual.agents, expected.agents);
+    assert_eq!(actual.campaigns, expected.campaigns);
+    assert_eq!(actual.selected_agent, expected.selected_agent);
+    assert_eq!(actual.chronicle, expected.chronicle);
 }

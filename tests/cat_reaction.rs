@@ -41,11 +41,28 @@ fn connected(status: &str) -> Model {
     model
 }
 
-fn refresh(model: &mut Model, status: &str, revision: u64, now: i64) {
-    model.set_now(Timestamp::from_millis(now));
+fn apply_snapshot(model: &mut Model, snapshot: SessionSnapshot, at: Timestamp) {
+    let effects = questmancer::runtime_loop::request_snapshot_refresh(model);
+    let [questmancer::command::AgentCommand::RefreshSnapshot(request)] =
+        effects.agent_commands.as_slice()
+    else {
+        panic!("expected a snapshot request");
+    };
     apply_command_result(
         model,
-        CommandResult::SnapshotLoaded(Box::new(snapshot(status, revision))),
+        CommandResult::SnapshotLoaded {
+            request: *request,
+            snapshot: Box::new(snapshot),
+        },
+        at,
+    );
+}
+
+fn refresh(model: &mut Model, status: &str, revision: u64, now: i64) {
+    model.set_now(Timestamp::from_millis(now));
+    apply_snapshot(
+        model,
+        snapshot(status, revision),
         Timestamp::from_millis(now),
     );
 }
@@ -129,11 +146,7 @@ fn unknown_empty_changed_parties_and_connection_baselines_do_not_trigger() {
             changed.agents[0].pane_id = "w1:p2".into();
             changed.panes[0].pane_id = "w1:p2".into();
         }
-        apply_command_result(
-            &mut model,
-            CommandResult::SnapshotLoaded(Box::new(changed)),
-            Timestamp::from_millis(2_000),
-        );
+        apply_snapshot(&mut model, changed, Timestamp::from_millis(2_000));
         assert_eq!(model.party_rest_since(), None, "membership changed");
     }
 }
@@ -204,7 +217,7 @@ fn stale_status_events_cannot_trigger_or_restart_the_reaction() {
             &mut model,
             ConnectionUpdate::Event(WireEvent {
                 event: "pane.agent_status_changed".into(),
-                data: serde_json::json!({"pane_id":"w1:p1","workspace_id":"w1","agent_status":"idle","revision":revision}),
+                data: serde_json::json!({"pane_id":"w1:p1","workspace_id":"w1","agent_status":"idle","revision":revision,"terminal_id":"terminal-1", "agent_session":{"source":"codex","agent":"codex","kind":"id","value":"session-123"}}),
             }),
             Timestamp::from_millis(now),
         );
@@ -269,17 +282,13 @@ fn the_whole_party_must_rest_and_departure_cancels_a_running_reaction() {
         Timestamp::from_millis(1_000),
     );
     assert_eq!(model.domain().agents.len(), 2);
-    apply_command_result(
+    apply_snapshot(
         &mut model,
-        CommandResult::SnapshotLoaded(Box::new(party("working", 8))),
+        party("working", 8),
         Timestamp::from_millis(1_500),
     );
     assert_eq!(model.party_rest_since(), None);
-    apply_command_result(
-        &mut model,
-        CommandResult::SnapshotLoaded(Box::new(party("idle", 9))),
-        Timestamp::from_millis(2_000),
-    );
+    apply_snapshot(&mut model, party("idle", 9), Timestamp::from_millis(2_000));
     assert_eq!(
         model.party_rest_since(),
         Some(Timestamp::from_millis(2_000))

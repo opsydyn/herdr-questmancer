@@ -14,11 +14,25 @@ fn snapshot() -> SessionSnapshot {
 }
 
 fn state() -> DomainState {
-    DomainState::from_snapshot(&snapshot(), Timestamp::from_millis(1_000))
+    let mut state = DomainState::from_snapshot(&snapshot(), Timestamp::from_millis(1_000));
+    state
+        .capture
+        .start(questmancer::domain::CaptureRunId::new("reducer-test"));
+    state
+        .capture
+        .connection_changed(questmancer::snapshot_refresh::ConnectionEpoch(1), true);
+    state
 }
 
 fn status(status: AgentStatus, revision: u64, at: i64) -> AppEvent {
     AppEvent::AgentStatusChanged {
+        identity: state()
+            .agents
+            .values()
+            .next()
+            .unwrap()
+            .capture_identity
+            .clone(),
         pane_id: PaneId::new("w1:p1"),
         status,
         custom_status: None,
@@ -43,7 +57,7 @@ fn assert_latest_chronicle_entry(
     expected_summary: &str,
 ) {
     let entry = state.chronicle.entries().back().unwrap();
-    assert_eq!(entry.event, expected_event);
+    assert_eq!(entry.event(), expected_event);
     assert_eq!(entry.summary, expected_summary);
 }
 
@@ -84,11 +98,11 @@ fn idle_status_records_adventurer_rested_summary() {
 }
 
 #[test]
-fn unknown_status_records_adventurer_joined_summary() {
+fn unknown_status_records_explicit_whereabouts() {
     assert_latest_chronicle_entry(
         &transition_to_status(AgentStatus::Unknown),
-        ChronicleEvent::AdventurerJoined,
-        "Codex whereabouts unknown",
+        ChronicleEvent::WhereaboutsUnknown,
+        "Codex's whereabouts became unknown",
     );
 }
 
@@ -110,7 +124,7 @@ fn working_to_blocked_creates_unread_counsel_summons() {
     assert!(commands.iter().any(Command::is_chronicle_append));
     assert_eq!(blocked.chronicle.entries().len(), 2);
     assert_eq!(
-        blocked.chronicle.entries().back().unwrap().event,
+        blocked.chronicle.entries().back().unwrap().event(),
         ChronicleEvent::CounselRequested
     );
 }
@@ -159,6 +173,13 @@ fn pane_exit_becomes_attention_and_history() {
     let (exited, commands) = update(
         state(),
         AppEvent::PaneExited {
+            identity: state()
+                .agents
+                .values()
+                .next()
+                .unwrap()
+                .capture_identity
+                .clone(),
             pane_id: PaneId::new("w1:p1"),
             revision: 8,
             occurred_at: Timestamp::from_millis(2_000),
@@ -180,12 +201,15 @@ fn pane_exit_becomes_attention_and_history() {
 }
 
 #[test]
-fn workspace_close_removes_its_campaign_and_agents() {
-    let (closed, commands) = update(state(), AppEvent::WorkspaceClosed(WorkspaceId::new("w1")));
-
-    assert!(closed.campaigns.is_empty());
-    assert!(closed.agents.is_empty());
-    assert_eq!(commands, vec![Command::PersistState]);
+fn workspace_close_hint_waits_for_snapshot_corroboration() {
+    let before = state();
+    let (pending, commands) = update(
+        before.clone(),
+        AppEvent::WorkspaceCloseHint(WorkspaceId::new("w1")),
+    );
+    assert_eq!(pending.campaigns, before.campaigns);
+    assert_eq!(pending.agents, before.agents);
+    assert_eq!(commands, vec![Command::RequestSnapshot]);
 }
 
 #[test]
@@ -203,6 +227,7 @@ fn duplicate_or_stale_status_is_ignored() {
 #[test]
 fn unknown_pane_requests_a_fresh_snapshot() {
     let event = AppEvent::AgentStatusChanged {
+        identity: questmancer::domain::CaptureIdentity::Unqualified,
         pane_id: PaneId::new("w9:p9"),
         status: AgentStatus::Blocked,
         custom_status: None,
@@ -228,7 +253,8 @@ fn snapshot_replacement_preserves_seen_attention_and_persona() {
     let (replaced, commands) = update(
         seen,
         AppEvent::SnapshotReplaced {
-            snapshot: replacement,
+            purpose: questmancer::snapshot_refresh::SnapshotPurpose::Baseline,
+            snapshot: Box::new(replacement),
             observed_at: Timestamp::from_millis(5_000),
             excluded_pane: None,
         },
@@ -258,7 +284,8 @@ fn snapshot_replacement_excludes_managed_pane_and_preserves_selection() {
     let (replaced, _) = update(
         initial,
         AppEvent::SnapshotReplaced {
-            snapshot: replacement,
+            purpose: questmancer::snapshot_refresh::SnapshotPurpose::Baseline,
+            snapshot: Box::new(replacement),
             observed_at: Timestamp::from_millis(5_000),
             excluded_pane: Some(PaneId::new("w2:p3")),
         },

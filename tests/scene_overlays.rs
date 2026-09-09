@@ -27,6 +27,7 @@ fn model() -> Model {
     agents.insert(
         key.clone(),
         Agent {
+            capture_identity: questmancer::domain::CaptureIdentity::default(),
             key: key.clone(),
             pane_id: PaneId::new("w1:p1"),
             workspace_id: workspace_id.clone(),
@@ -55,6 +56,7 @@ fn model() -> Model {
     model.set_connection(ConnectionState::Connected);
     model.set_now(Timestamp::from_millis(1_000));
     model.replace_domain(DomainState {
+        capture: questmancer::domain::CaptureClock::default(),
         campaigns,
         agents,
         selected_agent: Some(key),
@@ -1245,4 +1247,44 @@ fn chapter_requests_are_local_frozen_in_time_and_return_to_the_existing_records(
     assert!(render(&model, 100, 26).contains("no Chronicle yet"));
     assert_eq!(model.selected_agent_key(), selected.as_ref());
     assert_eq!(PersistedStateV1::capture(&model), before);
+}
+
+#[test]
+fn chronicle_v2_records_label_their_time_as_a_local_observation() {
+    use questmancer::domain::{
+        CaptureRunId, CapturedObservation, ObservationEvidence, ObservationStamp,
+        ObservationSubject, ObservedPresence,
+    };
+    use questmancer::snapshot_refresh::ConnectionEpoch;
+    let mut model = model();
+    let agent = model.selected_agent().unwrap();
+    let subject = ObservationSubject::Adventurer {
+        key: agent.key.clone(),
+        campaign: agent.workspace_id.clone(),
+        pane: agent.pane_id.clone(),
+        incarnation: "fixture-incarnation".into(),
+        revision: 8,
+        name: "Codex".into(),
+    };
+    let entry = ChronicleEntry::observed(
+        Timestamp::from_millis(1_000),
+        CapturedObservation {
+            stamp: ObservationStamp {
+                run: CaptureRunId::new("overlay-test"),
+                epoch: ConnectionEpoch(1),
+                ordinal: 1,
+            },
+            subject,
+            evidence: ObservationEvidence::PaneMetadata {
+                presence: ObservedPresence::Blocked,
+            },
+        },
+    )
+    .unwrap();
+    model.domain_mut().chronicle.append(entry);
+    model.set_now(Timestamp::from_millis(61_000));
+    let _ = reduce_action(&mut model, Action::OpenChronicle);
+    let rendered = render(&model, 100, 26);
+    assert!(rendered.contains("observed 1m ago"), "{rendered}");
+    assert!(rendered.contains("Codex requested counsel"), "{rendered}");
 }

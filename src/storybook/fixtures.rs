@@ -258,6 +258,7 @@ fn fixture_model(context: StoryContext, view: View) -> Model {
         .collect();
     let mut model = Model::new(view);
     model.replace_domain(DomainState {
+        capture: crate::domain::CaptureClock::default(),
         campaigns,
         agents,
         selected_agent: Some(selected),
@@ -286,6 +287,7 @@ fn fixture_agent(
 ) -> Agent {
     let key = AgentKey::new(name);
     Agent {
+        capture_identity: crate::domain::CaptureIdentity::default(),
         key: key.clone(),
         pane_id: PaneId::new(format!("storybook:{name}")),
         workspace_id: workspace_id.clone(),

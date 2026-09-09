@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 85b96fea9ed599ed108a4a72b361d3d4b32b58bf7fa4a339bbbfd930b5fa6889 # historical domain invariant regression seed
+cc afb6f26c021802753da0b87fc13cbcbdbf48af71eadbc5625da9cebf4dcf5519 # equal revision with conflicting presence requests reconciliation

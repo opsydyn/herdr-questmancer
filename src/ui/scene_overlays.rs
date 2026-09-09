@@ -799,13 +799,18 @@ fn render_chronicle_parchment(frame: &mut Frame<'_>, model: &Model) {
     } else {
         for entry in entries {
             let ago = format_elapsed(entry.occurred_at.elapsed_until(model.now()));
-            let sigil = entry.event.sigil();
+            let sigil = entry.event().sigil();
             let summary = if entry.summary.is_empty() {
-                entry.event.label().to_owned()
+                entry.event().label().to_owned()
             } else {
                 entry.summary.clone()
             };
-            lines.push(Line::from(format!("{sigil} {ago:>4} ago  {summary}")));
+            let time_label = if entry.observation().is_some() {
+                format!("observed {ago} ago")
+            } else {
+                format!("{ago:>4} ago")
+            };
+            lines.push(Line::from(format!("{sigil} {time_label}  {summary}")));
         }
     }
     lines.push(Line::from(""));

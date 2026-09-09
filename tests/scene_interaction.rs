@@ -20,6 +20,7 @@ fn model(view: View) -> Model {
     let key = AgentKey::new("codex");
     let workspace_id = WorkspaceId::new("questmancer");
     let agent = Agent {
+        capture_identity: questmancer::domain::CaptureIdentity::default(),
         key: key.clone(),
         pane_id: PaneId::new("w1:p1"),
         workspace_id: workspace_id.clone(),
@@ -48,6 +49,7 @@ fn model(view: View) -> Model {
     model.set_connection(ConnectionState::Connected);
     model.set_now(Timestamp::from_millis(5_000));
     model.replace_domain(DomainState {
+        capture: questmancer::domain::CaptureClock::default(),
         campaigns,
         agents,
         selected_agent: Some(key),

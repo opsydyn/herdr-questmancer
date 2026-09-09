@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.9 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.65s
+     Running tests/runtime_loop.rs (target/debug/deps/runtime_loop-260ac37f4588f076)
+
+running 1 test
+test refresh_with_unsubscribed_panes_requires_a_quiet_new_baseline ... FAILED
+
+failures:
+
+---- refresh_with_unsubscribed_panes_requires_a_quiet_new_baseline stdout ----
+
+thread 'refresh_with_unsubscribed_panes_requires_a_quiet_new_baseline' panicked at tests/runtime_loop.rs:1604:5:
+new pane facts require a subscription baseline
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    refresh_with_unsubscribed_panes_requires_a_quiet_new_baseline
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test runtime_loop`

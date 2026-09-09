@@ -1,3 +1,4 @@
+mod capture;
 mod event;
 mod reducer;
 

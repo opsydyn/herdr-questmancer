@@ -4,6 +4,41 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Qualify snapshot refreshes by connection, request, live-fact generation and
+  current subscription pane set. Obsolete or conflicting snapshots cannot roll
+  back the party. Repeated refreshes coalesce, and bounded recovery establishes
+  a quiet baseline. Snapshot cancellation leaves counsel/focus work independent.
+- Reconcile equal-revision conflicting status evidence instead of recording an
+  alternating transition. Reconnect baselines add no Chronicle history or XP.
+
+### Added
+
+- Qualified snapshot observations of presence, membership and campaign removal,
+  all at zero XP. Unseen transitions and reconnect gaps are never backfilled.
+  Unknown whereabouts now has an explicit category; existing joined records
+  keep their legacy identity-event meaning.
+- Version-two Chronicle envelopes retain source evidence, captured references
+  and immutable IDs. Mixed v1/v2 replay preserves old records and does not
+  re-award standing. Published 0.1.9 readers skip v2 records with diagnostics.
+- Chronicle records label local observation times, and chapters count new
+  observation categories separately from spoils returns and legacy identity
+  events. Equal-time sources use accepted observation order within a capture run.
+
+### Changed
+
+- Workspace-close hints require a qualified snapshot before recording removal.
+  A removed campaign absorbs membership losses caused by that same absence.
+  Unversioned pane-exit hints request reconciliation instead of inventing a
+  departure; terminal/session evidence and a newer revision qualify departures.
+- Status evidence without revision/incarnation context is reconciled against
+  current pane metadata. Snapshot-first spoils never gain retroactive XP from
+  matching metadata; later status-confirmed episodes retain the existing reward.
+- Terminal replacement invalidates old scrying ownership and the cat's party
+  comparison, even when the persona key, pane and revision match. Capture keeps
+  raw terminal/session identity ephemeral and persists only an incarnation digest.
+
 ## [0.1.9] - 2026-09-08
 
 ### Fixed

@@ -38,6 +38,7 @@ blake3 = "1"
 clap = { version = "4", features = ["derive"] }
 crossterm = { version = "0.29", features = ["event-stream"] }
 futures-util = "0.3"
+getrandom = "0.4"
 ratatui = "0.30"
 rustix = { version = "1.1", features = ["termios"] }
 serde = { version = "1", features = ["derive"] }

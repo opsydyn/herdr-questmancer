@@ -68,7 +68,9 @@ fn dotted_agent_status_becomes_a_typed_transition() {
             "pane_id": "w1:p1",
             "workspace_id": "w1",
             "agent_status": "done",
-            "custom_status": "ready to publish"
+            "custom_status": "ready to publish",
+            "revision": 8,
+            "terminal_id":"terminal-1", "agent_session":{"source":"codex","agent":"codex","kind":"id","value":"session-123"}
         }),
     });
 
@@ -83,6 +85,7 @@ fn dotted_agent_status_becomes_a_typed_transition() {
             custom_status: Some(message),
             revision: 8,
             occurred_at,
+            ..
         } if *pane_id == PaneId::new("w1:p1")
             && message == "ready to publish"
             && *occurred_at == Timestamp::from_millis(3_000))
@@ -146,18 +149,18 @@ fn lifecycle_workspace_close_becomes_a_domain_event() {
 
     assert_eq!(
         actions,
-        vec![AdapterAction::Apply(Box::new(AppEvent::WorkspaceClosed(
-            WorkspaceId::new("w1")
-        )))]
+        vec![AdapterAction::Apply(Box::new(
+            AppEvent::WorkspaceCloseHint(WorkspaceId::new("w1"))
+        ))]
     );
 }
 
 #[test]
-fn pane_exit_uses_the_current_revision_boundary() {
+fn pane_exit_requires_explicit_revision_and_incarnation_evidence() {
     let actions = adapt_update(
         ConnectionUpdate::Event(WireEvent {
             event: "pane_exited".into(),
-            data: json!({"type": "pane_exited", "pane_id": "w1:p1", "exit_code": 1}),
+            data: json!({"type": "pane_exited", "pane_id": "w1:p1", "exit_code": 1, "revision":8, "terminal_id":"terminal-1", "agent_session":{"source":"codex","agent":"codex","kind":"id","value":"session-123"}}),
         }),
         &state(),
         Timestamp::from_millis(4_000),

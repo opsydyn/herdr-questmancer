@@ -372,11 +372,15 @@ async fn snapshot_refresh_returns_a_domain_ready_snapshot() {
     });
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
 
-    let result = executor.execute(AgentCommand::RefreshSnapshot).await;
+    let result = executor
+        .execute(AgentCommand::RefreshSnapshot(
+            questmancer::snapshot_refresh::SnapshotRequest::default(),
+        ))
+        .await;
 
     assert!(matches!(
         result,
-        CommandResult::SnapshotLoaded(snapshot) if snapshot.protocol == 22
+        CommandResult::SnapshotLoaded { snapshot, .. } if snapshot.protocol == 22
     ));
     server.await.unwrap();
 }

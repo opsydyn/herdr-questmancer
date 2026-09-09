@@ -44,12 +44,19 @@ impl Default for Backoff {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ConnectionUpdate {
+    /// Authoritative post-subscription baseline, including every reconnect/resync.
     Connected(SessionSnapshot),
     Event(WireEvent),
     Disconnected(String),
-    Reconnecting { attempt: u32, delay: Duration },
+    Reconnecting {
+        attempt: u32,
+        delay: Duration,
+    },
     Resyncing,
-    Incompatible { expected: u32, actual: u32 },
+    Incompatible {
+        expected: u32,
+        actual: u32,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -233,20 +240,24 @@ impl ConnectionSupervisor {
         if !matches!(
             event.event.as_str(),
             "pane.agent_status_changed" | "pane_agent_status_changed"
-        ) || event.data.get("revision").is_some()
+        ) || (event.data.get("revision").is_some()
+            && event.data.get("terminal_id").is_some()
+            && event.data.get("agent_session").is_some())
         {
             return Ok(event);
         }
         let Some(pane_id) = event.data.get("pane_id").and_then(|id| id.as_str()) else {
             return Ok(event);
         };
-        // Unversioned status text may be older than a just-installed snapshot.
-        // Use current metadata rather than inventing a newer revision for it.
+        // Status text without incarnation evidence may predate the baseline or
+        // refer to a reused pane. Obtain current metadata and its identity.
         // This request reads no terminal output and is never driven by a frame.
         let pane = self.client.get_pane(pane_id).await?;
         event.data = json!({
             "pane_id": pane.pane_id,
             "workspace_id": pane.workspace_id,
+            "terminal_id": pane.terminal_id,
+            "agent_session": pane.agent_session,
             "agent_status": pane.agent_status,
             "custom_status": pane.custom_status,
             "revision": pane.revision,
@@ -286,7 +297,7 @@ fn is_topology_event(event: &str) -> bool {
     )
 }
 
-fn pane_subscription_ids(snapshot: &SessionSnapshot) -> BTreeSet<String> {
+pub(crate) fn pane_subscription_ids(snapshot: &SessionSnapshot) -> BTreeSet<String> {
     snapshot
         .panes
         .iter()
