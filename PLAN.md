@@ -5,7 +5,7 @@ Questmancer, workspaces are campaigns, agents are adventurers, blocked work
 raises summons, and explicit completion returns spoils. Herdr owns live facts;
 Questmancer owns presentation and a small amount of durable local intent.
 
-## Current status — 2026-09-08
+## Current status — 2026-09-09
 
 Source baseline: Questmancer `0.1.10`, minimum Herdr `0.9.0`, supported protocol
 `22`, Rust `1.90.0`. The original v0.1 engineering scope is complete; do not
@@ -109,15 +109,18 @@ shape cues; full-motion fresh spoils stop at three seconds and leave a stable
 completed cue. Reduced/still rosters have no decorative or cleanup timer.
 Newer facts and socket boundaries interrupt old completion theatre.
 
-## 0.1.10 release preparation — 2026-09-09
+## 0.1.10 published — 2026-09-09
 
-Chronicle C1–C3 is committed at `d3e5308` and its screen pack is visually approved.
-The user authorised preparing a release after updating documentation and images.
-The 0.1.10 candidate updates the README, launch-page gallery and handbook, retains
-the v1/v2 downgrade notice, and requires fresh clean-commit qualification before
-tagging. Archive, checksum and installer verification follow publication.
+Chronicle C1–C3 and the approved screen pack are published in
+[v0.1.10](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.10) from
+clean `9f2f58f`. README, launch-page gallery, handbook and release notes are current.
+Qualification passed 657 Rust tests / 57 runs, 28 shell tests, verified source
+packaging and fresh isolated Herdr runtime/cleanup. All four release archives,
+checksums and the actual macOS ARM64 installer passed. The website is deployed;
+crates.io was skipped. See the
+[publication receipt](docs/reviews/2026-09-09-published-release/README.md).
 
-## Distribution and remaining evidence
+## Earlier 0.1.9 distribution and remaining evidence
 
 [Questmancer v0.1.9](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.9)
 is published from clean commit `98f557d`. Both manifests match the tag. The
@@ -174,10 +177,10 @@ and campaign removal earn zero XP; connection baselines remain quiet.
 C3 was approved; complete capture composition and isolated synthetic acceptance
 passed. See the [C3 receipt](docs/reviews/2026-09-09-chronicle-c3/README.md).
 The [Chronicle screens](docs/design/reviews/2026-09-09-chronicle-capture/README.md)
-were visually approved on 2026-09-09. C1–C3 are complete locally. The next
-recommended step is to commit the approved capture slice, then qualify that exact
-clean commit before any separately authorised release.
-Real-agent completion and publication remain separate gates.
+were visually approved on 2026-09-09. C1–C3 are complete and published in 0.1.10.
+A guarded real-agent Chronicle acceptance session is the recommended next bounded
+step if approved. Real-agent completion and live snapshot-only capture remain
+separate evidence; no new product scope is promoted by this release.
 
 Keep these unpromoted ideas in the backlog:
 

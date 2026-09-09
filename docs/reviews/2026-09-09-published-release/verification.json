@@ -1,0 +1,1780 @@
+{
+  "qualification": {
+    "commit": "9f2f58fcaefcfaafed45b730950be369868fb0b2",
+    "tests": {
+      "rust": 657,
+      "runs": 57,
+      "shell": 28
+    },
+    "verify": "passed before commit; committed content unchanged",
+    "release_build": "passed",
+    "package": {
+      "bytes": 5010069,
+      "sha256": "30294f4559c16032178df50d8678b60092cbd11526f997604bf0f5e974c43d22",
+      "vcs": {
+        "git": {
+          "sha1": "9f2f58fcaefcfaafed45b730950be369868fb0b2"
+        },
+        "path_in_vcs": ""
+      },
+      "production_files_matched": 106
+    },
+    "isolated_runtime": {
+      "case": "/tmp/qm-c3-4tv4i5jc",
+      "owned_server_pid": 23033,
+      "candidate_version": "0.1.10",
+      "binary_sha256": "7acfd10c7b0606aa2c58e2f40c89b955dc2cd99ea41380b36fbe7c9776aecb5b",
+      "panes": [
+        {
+          "pane_id": "w1:p1",
+          "workspace_id": "w1",
+          "source": "herdr:pi",
+          "agent": "pi",
+          "session": "fd54ba78-4f32-450d-b4d0-66e9ba9c6193",
+          "state": "working",
+          "projected_tokens": {
+            "quest_trinket": "\u2756 Feather",
+            "quest_omen": "on expedition",
+            "quest_sigil": "\u2316",
+            "quest_epithet": "Walker of Worktrees",
+            "quest_condition": "Concentrating",
+            "quest_hoard": "\u25c8 empty",
+            "quest_rank": "3",
+            "quest_role": "Elf Pathseeker"
+          },
+          "release_acknowledgement": {
+            "type": "ok"
+          },
+          "after_release": {
+            "pane_id": "w1:p1",
+            "terminal_id": "term_65b0f5c849d171",
+            "workspace_id": "w1",
+            "tab_id": "w1:t1",
+            "focused": true,
+            "cwd": "/private/tmp/qm-c3-4tv4i5jc",
+            "foreground_cwd": "/private/tmp/qm-c3-4tv4i5jc",
+            "agent": "pi",
+            "agent_status": "working",
+            "agent_session": {
+              "source": "herdr:pi",
+              "agent": "pi",
+              "kind": "id",
+              "value": "fd54ba78-4f32-450d-b4d0-66e9ba9c6193"
+            },
+            "scroll": {
+              "offset_from_bottom": 0,
+              "max_offset_from_bottom": 0,
+              "viewport_rows": 60
+            },
+            "revision": 9
+          },
+          "pane_closed": true
+        },
+        {
+          "pane_id": "w2:p1",
+          "workspace_id": "w2",
+          "source": "herdr:pi",
+          "agent": "pi",
+          "session": "c873fdc6-cadb-4d92-be94-bc052e82543d",
+          "state": "blocked",
+          "projected_tokens": {
+            "quest_vigil": "\u25cf\u25cb\u25cb\u25cb\u25cb\u25cb",
+            "quest_hoard": "\u25c8 empty",
+            "quest_rank": "0",
+            "quest_omen": "seeks counsel",
+            "quest_epithet": "Cartographer of Call Stacks",
+            "quest_trinket": "\u2756 Ribbon",
+            "quest_sigil": "\u271a",
+            "quest_role": "Gnome Cleric",
+            "quest_condition": "Restrained"
+          },
+          "release_acknowledgement": {
+            "type": "ok"
+          },
+          "after_release": {
+            "pane_id": "w2:p1",
+            "terminal_id": "term_65b0f5c8e97962",
+            "workspace_id": "w2",
+            "tab_id": "w2:t1",
+            "focused": true,
+            "cwd": "/private/tmp/qm-c3-4tv4i5jc",
+            "foreground_cwd": "/private/tmp/qm-c3-4tv4i5jc",
+            "agent": "pi",
+            "agent_status": "blocked",
+            "tokens": {
+              "quest_condition": "Restrained",
+              "quest_rank": "0",
+              "quest_vigil": "\u25cf\u25cb\u25cb\u25cb\u25cb\u25cb",
+              "quest_omen": "seeks counsel",
+              "quest_epithet": "Cartographer of Call Stacks",
+              "quest_trinket": "\u2756 Ribbon",
+              "quest_role": "Gnome Cleric",
+              "quest_hoard": "\u25c8 empty",
+              "quest_sigil": "\u271a"
+            },
+            "agent_session": {
+              "source": "herdr:pi",
+              "agent": "pi",
+              "kind": "id",
+              "value": "c873fdc6-cadb-4d92-be94-bc052e82543d"
+            },
+            "scroll": {
+              "offset_from_bottom": 0,
+              "max_offset_from_bottom": 0,
+              "viewport_rows": 60
+            },
+            "revision": 1
+          },
+          "pane_closed": true
+        },
+        {
+          "pane_id": "w3:p1",
+          "workspace_id": "w3",
+          "source": "herdr:pi",
+          "agent": "pi",
+          "session": "00433abc-07be-4309-8eea-a2dadd936b38",
+          "state": "idle",
+          "projected_tokens": {
+            "quest_hoard": "\u25c8 empty",
+            "quest_sigil": "\u2699",
+            "quest_rank": "3",
+            "quest_trinket": "\u2756 Lucky Coin",
+            "quest_omen": "at the hearth",
+            "quest_role": "Elf Artificer",
+            "quest_epithet": "Walker of Worktrees",
+            "quest_condition": "Resting"
+          },
+          "release_acknowledgement": {
+            "type": "ok"
+          },
+          "after_release": {
+            "pane_id": "w3:p1",
+            "terminal_id": "term_65b0f5c988dc33",
+            "workspace_id": "w3",
+            "tab_id": "w3:t1",
+            "focused": true,
+            "cwd": "/private/tmp/qm-c3-4tv4i5jc",
+            "foreground_cwd": "/private/tmp/qm-c3-4tv4i5jc",
+            "agent": "pi",
+            "agent_status": "idle",
+            "tokens": {
+              "quest_trinket": "\u2756 Lucky Coin",
+              "quest_rank": "3",
+              "quest_sigil": "\u2699",
+              "quest_role": "Elf Artificer",
+              "quest_epithet": "Walker of Worktrees",
+              "quest_omen": "at the hearth",
+              "quest_hoard": "\u25c8 empty",
+              "quest_condition": "Resting"
+            },
+            "agent_session": {
+              "source": "herdr:pi",
+              "agent": "pi",
+              "kind": "id",
+              "value": "00433abc-07be-4309-8eea-a2dadd936b38"
+            },
+            "scroll": {
+              "offset_from_bottom": 0,
+              "max_offset_from_bottom": 0,
+              "viewport_rows": 60
+            },
+            "revision": 1
+          },
+          "pane_closed": true
+        },
+        {
+          "pane_id": "w4:p1",
+          "workspace_id": "w4",
+          "source": "herdr:pi",
+          "agent": "pi",
+          "session": "525c561c-0f2c-412d-9739-3806a40074f6",
+          "state": "unknown",
+          "projected_tokens": {
+            "quest_condition": "Blinded",
+            "quest_hoard": "\u25c8 empty",
+            "quest_sigil": "\u2699",
+            "quest_rank": "3",
+            "quest_trinket": "\u2756 Tiny Familiar",
+            "quest_role": "Halfling Artificer",
+            "quest_omen": "whereabouts unknown",
+            "quest_epithet": "Walker of Worktrees"
+          },
+          "release_acknowledgement": {
+            "type": "ok"
+          },
+          "after_release": {
+            "pane_id": "w4:p1",
+            "terminal_id": "term_65b0f5ca286624",
+            "workspace_id": "w4",
+            "tab_id": "w4:t1",
+            "focused": true,
+            "cwd": "/private/tmp/qm-c3-4tv4i5jc",
+            "foreground_cwd": "/private/tmp/qm-c3-4tv4i5jc",
+            "agent": "pi",
+            "agent_status": "unknown",
+            "tokens": {
+              "quest_trinket": "\u2756 Tiny Familiar",
+              "quest_role": "Halfling Artificer",
+              "quest_condition": "Blinded",
+              "quest_rank": "3",
+              "quest_sigil": "\u2699",
+              "quest_hoard": "\u25c8 empty",
+              "quest_epithet": "Walker of Worktrees",
+              "quest_omen": "whereabouts unknown"
+            },
+            "agent_session": {
+              "source": "herdr:pi",
+              "agent": "pi",
+              "kind": "id",
+              "value": "525c561c-0f2c-412d-9739-3806a40074f6"
+            },
+            "scroll": {
+              "offset_from_bottom": 0,
+              "max_offset_from_bottom": 0,
+              "viewport_rows": 60
+            },
+            "revision": 1
+          },
+          "pane_closed": true
+        }
+      ],
+      "actions": [
+        {
+          "action": "open",
+          "response": {
+            "id": "cli:plugin",
+            "result": {
+              "action": {
+                "action_id": "open",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "open"
+                ],
+                "contexts": [
+                  "pane",
+                  "workspace"
+                ],
+                "platforms": [
+                  "macos",
+                  "linux"
+                ],
+                "plugin_id": "opsydyn.questmancer",
+                "title": "Questmancer: open"
+              },
+              "context": {
+                "correlation_id": "cli:plugin",
+                "focused_pane_agent": "pi",
+                "focused_pane_cwd": "/private/tmp/qm-c3-4tv4i5jc",
+                "focused_pane_id": "w1:p1",
+                "focused_pane_status": "working",
+                "invocation_source": "cli",
+                "tab_id": "w1:t1",
+                "tab_label": "1",
+                "workspace_cwd": "/private/tmp/qm-c3-4tv4i5jc",
+                "workspace_id": "w1",
+                "workspace_label": "Review campaign 1"
+              },
+              "log": {
+                "action_id": "open",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "open"
+                ],
+                "log_id": "plugin-log-1",
+                "plugin_id": "opsydyn.questmancer",
+                "started_unix_ms": 1788971397719,
+                "status": "running"
+              },
+              "type": "plugin_action_invoked"
+            }
+          }
+        },
+        {
+          "action": "open",
+          "response": {
+            "id": "cli:plugin",
+            "result": {
+              "action": {
+                "action_id": "open",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "open"
+                ],
+                "contexts": [
+                  "pane",
+                  "workspace"
+                ],
+                "platforms": [
+                  "macos",
+                  "linux"
+                ],
+                "plugin_id": "opsydyn.questmancer",
+                "title": "Questmancer: open"
+              },
+              "context": {
+                "correlation_id": "cli:plugin",
+                "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "focused_pane_id": "w1:p2",
+                "focused_pane_status": "unknown",
+                "invocation_source": "cli",
+                "tab_id": "w1:t2",
+                "tab_label": "2",
+                "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "workspace_id": "w1",
+                "workspace_label": "Review campaign 1"
+              },
+              "log": {
+                "action_id": "open",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "open"
+                ],
+                "log_id": "plugin-log-2",
+                "plugin_id": "opsydyn.questmancer",
+                "started_unix_ms": 1788971398163,
+                "status": "running"
+              },
+              "type": "plugin_action_invoked"
+            }
+          }
+        },
+        {
+          "action": "guild",
+          "response": {
+            "id": "cli:plugin",
+            "result": {
+              "action": {
+                "action_id": "guild",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "guild"
+                ],
+                "contexts": [
+                  "pane",
+                  "workspace"
+                ],
+                "platforms": [
+                  "macos",
+                  "linux"
+                ],
+                "plugin_id": "opsydyn.questmancer",
+                "title": "Questmancer: enter the Guild Hall"
+              },
+              "context": {
+                "correlation_id": "cli:plugin",
+                "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "focused_pane_id": "w1:p2",
+                "focused_pane_status": "unknown",
+                "invocation_source": "cli",
+                "tab_id": "w1:t2",
+                "tab_label": "2",
+                "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "workspace_id": "w1",
+                "workspace_label": "Review campaign 1"
+              },
+              "log": {
+                "action_id": "guild",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "guild"
+                ],
+                "log_id": "plugin-log-3",
+                "plugin_id": "opsydyn.questmancer",
+                "started_unix_ms": 1788971398381,
+                "status": "running"
+              },
+              "type": "plugin_action_invoked"
+            }
+          }
+        },
+        {
+          "action": "delve",
+          "response": {
+            "id": "cli:plugin",
+            "result": {
+              "action": {
+                "action_id": "delve",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "delve"
+                ],
+                "contexts": [
+                  "pane",
+                  "workspace"
+                ],
+                "platforms": [
+                  "macos",
+                  "linux"
+                ],
+                "plugin_id": "opsydyn.questmancer",
+                "title": "Questmancer: enter the Delve"
+              },
+              "context": {
+                "correlation_id": "cli:plugin",
+                "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "focused_pane_id": "w1:p2",
+                "focused_pane_status": "unknown",
+                "invocation_source": "cli",
+                "tab_id": "w1:t2",
+                "tab_label": "2",
+                "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "workspace_id": "w1",
+                "workspace_label": "Review campaign 1"
+              },
+              "log": {
+                "action_id": "delve",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "delve"
+                ],
+                "log_id": "plugin-log-4",
+                "plugin_id": "opsydyn.questmancer",
+                "started_unix_ms": 1788971398386,
+                "status": "running"
+              },
+              "type": "plugin_action_invoked"
+            }
+          }
+        },
+        {
+          "action": "guild",
+          "response": {
+            "id": "cli:plugin",
+            "result": {
+              "action": {
+                "action_id": "guild",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "guild"
+                ],
+                "contexts": [
+                  "pane",
+                  "workspace"
+                ],
+                "platforms": [
+                  "macos",
+                  "linux"
+                ],
+                "plugin_id": "opsydyn.questmancer",
+                "title": "Questmancer: enter the Guild Hall"
+              },
+              "context": {
+                "correlation_id": "cli:plugin",
+                "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "focused_pane_id": "w1:p2",
+                "focused_pane_status": "unknown",
+                "invocation_source": "cli",
+                "tab_id": "w1:t2",
+                "tab_label": "2",
+                "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "workspace_id": "w1",
+                "workspace_label": "Review campaign 1"
+              },
+              "log": {
+                "action_id": "guild",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "guild"
+                ],
+                "log_id": "plugin-log-5",
+                "plugin_id": "opsydyn.questmancer",
+                "started_unix_ms": 1788971398394,
+                "status": "running"
+              },
+              "type": "plugin_action_invoked"
+            }
+          }
+        },
+        {
+          "action": "close",
+          "response": {
+            "id": "cli:plugin",
+            "result": {
+              "action": {
+                "action_id": "close",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "close"
+                ],
+                "contexts": [
+                  "pane",
+                  "workspace"
+                ],
+                "platforms": [
+                  "macos",
+                  "linux"
+                ],
+                "plugin_id": "opsydyn.questmancer",
+                "title": "Questmancer: close"
+              },
+              "context": {
+                "correlation_id": "cli:plugin",
+                "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "focused_pane_id": "w1:p2",
+                "focused_pane_status": "unknown",
+                "invocation_source": "cli",
+                "tab_id": "w1:t2",
+                "tab_label": "2",
+                "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "workspace_id": "w1",
+                "workspace_label": "Review campaign 1"
+              },
+              "log": {
+                "action_id": "close",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "close"
+                ],
+                "log_id": "plugin-log-6",
+                "plugin_id": "opsydyn.questmancer",
+                "started_unix_ms": 1788971399945,
+                "status": "running"
+              },
+              "type": "plugin_action_invoked"
+            }
+          }
+        },
+        {
+          "action": "open",
+          "response": {
+            "id": "cli:plugin",
+            "result": {
+              "action": {
+                "action_id": "open",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "open"
+                ],
+                "contexts": [
+                  "pane",
+                  "workspace"
+                ],
+                "platforms": [
+                  "macos",
+                  "linux"
+                ],
+                "plugin_id": "opsydyn.questmancer",
+                "title": "Questmancer: open"
+              },
+              "context": {
+                "correlation_id": "cli:plugin",
+                "focused_pane_agent": "pi",
+                "focused_pane_cwd": "/private/tmp/qm-c3-4tv4i5jc",
+                "focused_pane_id": "w1:p1",
+                "focused_pane_status": "working",
+                "invocation_source": "cli",
+                "tab_id": "w1:t1",
+                "tab_label": "1",
+                "workspace_cwd": "/private/tmp/qm-c3-4tv4i5jc",
+                "workspace_id": "w1",
+                "workspace_label": "Review campaign 1"
+              },
+              "log": {
+                "action_id": "open",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "open"
+                ],
+                "log_id": "plugin-log-7",
+                "plugin_id": "opsydyn.questmancer",
+                "started_unix_ms": 1788971400254,
+                "status": "running"
+              },
+              "type": "plugin_action_invoked"
+            }
+          }
+        },
+        {
+          "action": "close",
+          "response": {
+            "id": "cli:plugin",
+            "result": {
+              "action": {
+                "action_id": "close",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "close"
+                ],
+                "contexts": [
+                  "pane",
+                  "workspace"
+                ],
+                "platforms": [
+                  "macos",
+                  "linux"
+                ],
+                "plugin_id": "opsydyn.questmancer",
+                "title": "Questmancer: close"
+              },
+              "context": {
+                "correlation_id": "cli:plugin",
+                "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "focused_pane_id": "w1:p3",
+                "focused_pane_status": "unknown",
+                "invocation_source": "cli",
+                "tab_id": "w1:t3",
+                "tab_label": "2",
+                "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+                "workspace_id": "w1",
+                "workspace_label": "Review campaign 1"
+              },
+              "log": {
+                "action_id": "close",
+                "command": [
+                  "bash",
+                  "herdr/control.sh",
+                  "close"
+                ],
+                "log_id": "plugin-log-8",
+                "plugin_id": "opsydyn.questmancer",
+                "started_unix_ms": 1788971401009,
+                "status": "running"
+              },
+              "type": "plugin_action_invoked"
+            }
+          }
+        }
+      ],
+      "native_visual_acceptance": "not exercised",
+      "cleanup_errors": [],
+      "managed_pane": "w1:p2",
+      "runtime_command": "/Users/alancurrie/Projects/herdr-web-master/target/release/questmancer ui",
+      "runtime_pid": 23065,
+      "captured_records": [
+        {
+          "record_version": 2,
+          "id": "observation-6c7ffc165f373234d9c9fcd8d31ecf38fac10dd02baf7b572345b6267d5a1893",
+          "observed_at": 1788971398495,
+          "observation": {
+            "stamp": {
+              "run": "59a8dc68acc270ab199a7059f43c3d1e897ef1d87f7e028d23e868c881beca45",
+              "epoch": 2,
+              "ordinal": 1
+            },
+            "subject": {
+              "kind": "adventurer",
+              "key": "agent-19f1fcee8031884026eeeb86",
+              "campaign": "w1",
+              "pane": "w1:p1",
+              "incarnation": "3bf0feb604a59f97e0ebf61de1d4c79a7898bd44d448ea92e1ec6e9c95a9f496",
+              "revision": 1,
+              "name": "pi"
+            },
+            "evidence": {
+              "source": "pane_metadata",
+              "presence": "blocked"
+            }
+          },
+          "summary": "pi requested counsel"
+        },
+        {
+          "record_version": 2,
+          "id": "observation-5c47f4870dc439dc07e628ab52180fca9ab4a4a3666702bf1dad14088f1bf8eb",
+          "observed_at": 1788971398708,
+          "observation": {
+            "stamp": {
+              "run": "59a8dc68acc270ab199a7059f43c3d1e897ef1d87f7e028d23e868c881beca45",
+              "epoch": 2,
+              "ordinal": 2
+            },
+            "subject": {
+              "kind": "adventurer",
+              "key": "agent-19f1fcee8031884026eeeb86",
+              "campaign": "w1",
+              "pane": "w1:p1",
+              "incarnation": "3bf0feb604a59f97e0ebf61de1d4c79a7898bd44d448ea92e1ec6e9c95a9f496",
+              "revision": 2,
+              "name": "pi"
+            },
+            "evidence": {
+              "source": "pane_metadata",
+              "presence": "working"
+            }
+          },
+          "summary": "pi began a delve"
+        },
+        {
+          "record_version": 2,
+          "id": "observation-0eaa96c0c868a1fe534d110a2f99de67c1f011107752b3362f96152da43dd965",
+          "observed_at": 1788971398816,
+          "observation": {
+            "stamp": {
+              "run": "59a8dc68acc270ab199a7059f43c3d1e897ef1d87f7e028d23e868c881beca45",
+              "epoch": 2,
+              "ordinal": 3
+            },
+            "subject": {
+              "kind": "adventurer",
+              "key": "agent-19f1fcee8031884026eeeb86",
+              "campaign": "w1",
+              "pane": "w1:p1",
+              "incarnation": "3bf0feb604a59f97e0ebf61de1d4c79a7898bd44d448ea92e1ec6e9c95a9f496",
+              "revision": 3,
+              "name": "pi"
+            },
+            "evidence": {
+              "source": "pane_metadata",
+              "presence": "idle"
+            }
+          },
+          "summary": "pi made camp"
+        },
+        {
+          "record_version": 2,
+          "id": "observation-4433cbae378e13a5dbf2a00504adb83efbb7a8f1d50ade13ff6185fe09d66e9a",
+          "observed_at": 1788971398921,
+          "observation": {
+            "stamp": {
+              "run": "59a8dc68acc270ab199a7059f43c3d1e897ef1d87f7e028d23e868c881beca45",
+              "epoch": 2,
+              "ordinal": 4
+            },
+            "subject": {
+              "kind": "adventurer",
+              "key": "agent-19f1fcee8031884026eeeb86",
+              "campaign": "w1",
+              "pane": "w1:p1",
+              "incarnation": "3bf0feb604a59f97e0ebf61de1d4c79a7898bd44d448ea92e1ec6e9c95a9f496",
+              "revision": 4,
+              "name": "pi"
+            },
+            "evidence": {
+              "source": "pane_metadata",
+              "presence": "unknown"
+            }
+          },
+          "summary": "pi's whereabouts became unknown"
+        },
+        {
+          "record_version": 2,
+          "id": "observation-7d542cbfd15bbb2f8023da0c625c76bc9495c841543fa160c2ab0a9c5a98168f",
+          "observed_at": 1788971399033,
+          "observation": {
+            "stamp": {
+              "run": "59a8dc68acc270ab199a7059f43c3d1e897ef1d87f7e028d23e868c881beca45",
+              "epoch": 2,
+              "ordinal": 5
+            },
+            "subject": {
+              "kind": "adventurer",
+              "key": "agent-19f1fcee8031884026eeeb86",
+              "campaign": "w1",
+              "pane": "w1:p1",
+              "incarnation": "3bf0feb604a59f97e0ebf61de1d4c79a7898bd44d448ea92e1ec6e9c95a9f496",
+              "revision": 5,
+              "name": "pi"
+            },
+            "evidence": {
+              "source": "pane_metadata",
+              "presence": "working"
+            }
+          },
+          "summary": "pi began a delve"
+        }
+      ],
+      "restarted_managed_pane": "w1:p3",
+      "restart_history_unchanged": true,
+      "persisted_experience": 0,
+      "runtime_checks": "passed",
+      "plugin_logs": {
+        "id": "cli:plugin",
+        "result": {
+          "logs": [
+            {
+              "action_id": "open",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "open"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971397752,
+              "log_id": "plugin-log-1",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971397719,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "open",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "open"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971398191,
+              "log_id": "plugin-log-2",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971398163,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "guild",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "guild"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971398409,
+              "log_id": "plugin-log-3",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971398381,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "delve",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "delve"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971398478,
+              "log_id": "plugin-log-4",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971398386,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "guild",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "guild"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971398535,
+              "log_id": "plugin-log-5",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971398394,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "close",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "close"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971400253,
+              "log_id": "plugin-log-6",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971399945,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "open",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "open"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971400279,
+              "log_id": "plugin-log-7",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971400254,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            }
+          ],
+          "type": "plugin_log_list"
+        }
+      },
+      "managed_pane_closed": true,
+      "owned_focus_restored": true,
+      "test_link_removed": true,
+      "final_snapshot": {
+        "version": "0.9.0",
+        "protocol": 22,
+        "workspaces": [],
+        "tabs": [],
+        "panes": [],
+        "layouts": [],
+        "agents": []
+      },
+      "final_plugins": {
+        "id": "cli:plugin",
+        "result": {
+          "plugins": [],
+          "type": "plugin_list"
+        }
+      },
+      "plugin_logs_after_cleanup": {
+        "id": "cli:plugin",
+        "result": {
+          "logs": [
+            {
+              "action_id": "open",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "open"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971397752,
+              "log_id": "plugin-log-1",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971397719,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "open",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "open"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971398191,
+              "log_id": "plugin-log-2",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971398163,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "guild",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "guild"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971398409,
+              "log_id": "plugin-log-3",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971398381,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "delve",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "delve"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971398478,
+              "log_id": "plugin-log-4",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971398386,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "guild",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "guild"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971398535,
+              "log_id": "plugin-log-5",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971398394,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "close",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "close"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971400253,
+              "log_id": "plugin-log-6",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971399945,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "open",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "open"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971400279,
+              "log_id": "plugin-log-7",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971400254,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            },
+            {
+              "action_id": "close",
+              "command": [
+                "bash",
+                "herdr/control.sh",
+                "close"
+              ],
+              "exit_code": 0,
+              "finished_unix_ms": 1788971401307,
+              "log_id": "plugin-log-8",
+              "plugin_id": "opsydyn.questmancer",
+              "started_unix_ms": 1788971401009,
+              "status": "succeeded",
+              "stderr": "",
+              "stdout": ""
+            }
+          ],
+          "type": "plugin_log_list"
+        }
+      },
+      "server_exit_code": 0,
+      "socket_removed": true
+    },
+    "site_verify": "passed",
+    "gallery_visual_review": "Chronicle images and captions inspected in local browser"
+  },
+  "publication": {
+    "case": "/tmp/qm-published-0110-1w12aapk",
+    "release": {
+      "assets": [
+        {
+          "apiUrl": "https://api.github.com/repos/opsydyn/herdr-questmancer/releases/assets/553162893",
+          "contentType": "application/gzip",
+          "createdAt": "2026-09-09T16:40:35Z",
+          "digest": "sha256:5a4c47fa5f8dcd260c6d5a8b68595f4d69604b8cb78c6b99e1dd18a93f805e49",
+          "downloadCount": 0,
+          "id": "RA_kwDOTyDI9c4g-JiN",
+          "label": "",
+          "name": "questmancer-v0.1.10-aarch64-apple-darwin.tar.gz",
+          "size": 6467092,
+          "state": "uploaded",
+          "updatedAt": "2026-09-09T16:40:36Z",
+          "url": "https://github.com/opsydyn/herdr-questmancer/releases/download/v0.1.10/questmancer-v0.1.10-aarch64-apple-darwin.tar.gz"
+        },
+        {
+          "apiUrl": "https://api.github.com/repos/opsydyn/herdr-questmancer/releases/assets/553162896",
+          "contentType": "application/gzip",
+          "createdAt": "2026-09-09T16:40:35Z",
+          "digest": "sha256:a13e723b6555b0d89eab39c9b0ddbdb382815e35f3ce85b0c7257a063c8f7395",
+          "downloadCount": 0,
+          "id": "RA_kwDOTyDI9c4g-JiQ",
+          "label": "",
+          "name": "questmancer-v0.1.10-aarch64-unknown-linux-gnu.tar.gz",
+          "size": 6472182,
+          "state": "uploaded",
+          "updatedAt": "2026-09-09T16:40:36Z",
+          "url": "https://github.com/opsydyn/herdr-questmancer/releases/download/v0.1.10/questmancer-v0.1.10-aarch64-unknown-linux-gnu.tar.gz"
+        },
+        {
+          "apiUrl": "https://api.github.com/repos/opsydyn/herdr-questmancer/releases/assets/553162894",
+          "contentType": "application/gzip",
+          "createdAt": "2026-09-09T16:40:35Z",
+          "digest": "sha256:a24a3af50ca36a04f0ddc0e979ce2ded1e30d02eb5939ae56ef4784b5f823e67",
+          "downloadCount": 0,
+          "id": "RA_kwDOTyDI9c4g-JiO",
+          "label": "",
+          "name": "questmancer-v0.1.10-x86_64-apple-darwin.tar.gz",
+          "size": 6582685,
+          "state": "uploaded",
+          "updatedAt": "2026-09-09T16:40:36Z",
+          "url": "https://github.com/opsydyn/herdr-questmancer/releases/download/v0.1.10/questmancer-v0.1.10-x86_64-apple-darwin.tar.gz"
+        },
+        {
+          "apiUrl": "https://api.github.com/repos/opsydyn/herdr-questmancer/releases/assets/553162895",
+          "contentType": "application/gzip",
+          "createdAt": "2026-09-09T16:40:35Z",
+          "digest": "sha256:c857955f333582328309758abb5d2909b879e52b87aed39dcf81e3bd3d31f303",
+          "downloadCount": 0,
+          "id": "RA_kwDOTyDI9c4g-JiP",
+          "label": "",
+          "name": "questmancer-v0.1.10-x86_64-unknown-linux-gnu.tar.gz",
+          "size": 6656108,
+          "state": "uploaded",
+          "updatedAt": "2026-09-09T16:40:36Z",
+          "url": "https://github.com/opsydyn/herdr-questmancer/releases/download/v0.1.10/questmancer-v0.1.10-x86_64-unknown-linux-gnu.tar.gz"
+        },
+        {
+          "apiUrl": "https://api.github.com/repos/opsydyn/herdr-questmancer/releases/assets/553162890",
+          "contentType": "application/octet-stream",
+          "createdAt": "2026-09-09T16:40:35Z",
+          "digest": "sha256:5f6dddb1bfd586754cdaceb4a9eb1542c13497c6964f35eef1419d0fac386e43",
+          "downloadCount": 0,
+          "id": "RA_kwDOTyDI9c4g-JiK",
+          "label": "",
+          "name": "SHA256SUMS",
+          "size": 464,
+          "state": "uploaded",
+          "updatedAt": "2026-09-09T16:40:35Z",
+          "url": "https://github.com/opsydyn/herdr-questmancer/releases/download/v0.1.10/SHA256SUMS"
+        }
+      ],
+      "isDraft": false,
+      "isPrerelease": false,
+      "publishedAt": "2026-09-09T16:40:36Z",
+      "tagName": "v0.1.10",
+      "url": "https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.10"
+    },
+    "assets": [
+      {
+        "name": "questmancer-v0.1.10-x86_64-unknown-linux-gnu.tar.gz",
+        "sha256": "c857955f333582328309758abb5d2909b879e52b87aed39dcf81e3bd3d31f303",
+        "bytes": 6656108,
+        "binary_format": "ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=47de6a32c33b1cd75be47db79b087d0d041ed97e, stripped"
+      },
+      {
+        "name": "questmancer-v0.1.10-aarch64-unknown-linux-gnu.tar.gz",
+        "sha256": "a13e723b6555b0d89eab39c9b0ddbdb382815e35f3ce85b0c7257a063c8f7395",
+        "bytes": 6472182,
+        "binary_format": "ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=a5269ff2d5f66d0607719ee27a6f94e32c541950, stripped"
+      },
+      {
+        "name": "questmancer-v0.1.10-x86_64-apple-darwin.tar.gz",
+        "sha256": "a24a3af50ca36a04f0ddc0e979ce2ded1e30d02eb5939ae56ef4784b5f823e67",
+        "bytes": 6582685,
+        "binary_format": "Mach-O 64-bit executable x86_64"
+      },
+      {
+        "name": "questmancer-v0.1.10-aarch64-apple-darwin.tar.gz",
+        "sha256": "5a4c47fa5f8dcd260c6d5a8b68595f4d69604b8cb78c6b99e1dd18a93f805e49",
+        "bytes": 6467092,
+        "binary_format": "Mach-O 64-bit executable arm64",
+        "executed_version": "questmancer 0.1.10"
+      }
+    ],
+    "installer": {
+      "command": [
+        "herdr",
+        "plugin",
+        "install",
+        "opsydyn/herdr-questmancer",
+        "--ref",
+        "v0.1.10",
+        "--yes"
+      ],
+      "version": "questmancer 0.1.10",
+      "binary_matches_release_archive": true,
+      "storage": "isolated temporary XDG directories",
+      "binary": "/tmp/qm-published-0110-1w12aapk/config/herdr/plugins/github/opsydyn.questmancer-829cb1c436b2/bin/questmancer"
+    },
+    "status": "passed"
+  },
+  "workflow": {
+    "conclusion": "success",
+    "headSha": "9f2f58fcaefcfaafed45b730950be369868fb0b2",
+    "jobs": [
+      {
+        "completedAt": "2026-09-09T16:36:09Z",
+        "conclusion": "success",
+        "databaseId": 102553101627,
+        "name": "Verify tagged commit",
+        "startedAt": "2026-09-09T16:31:35Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-09T16:31:37Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-09T16:31:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:31:39Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v5",
+            "number": 2,
+            "startedAt": "2026-09-09T16:31:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:31:48Z",
+            "conclusion": "success",
+            "name": "Install pinned Rust toolchain",
+            "number": 3,
+            "startedAt": "2026-09-09T16:31:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:31:49Z",
+            "conclusion": "success",
+            "name": "Run Swatinem/rust-cache@v2",
+            "number": 4,
+            "startedAt": "2026-09-09T16:31:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:35:14Z",
+            "conclusion": "success",
+            "name": "Run complete release gate",
+            "number": 5,
+            "startedAt": "2026-09-09T16:31:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:35:54Z",
+            "conclusion": "success",
+            "name": "Verify the published crate surface",
+            "number": 6,
+            "startedAt": "2026-09-09T16:35:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:35:54Z",
+            "conclusion": "success",
+            "name": "Verify the tag matches every version",
+            "number": 7,
+            "startedAt": "2026-09-09T16:35:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:06Z",
+            "conclusion": "success",
+            "name": "Post Run Swatinem/rust-cache@v2",
+            "number": 13,
+            "startedAt": "2026-09-09T16:35:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:07Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v5",
+            "number": 14,
+            "startedAt": "2026-09-09T16:36:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:07Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 15,
+            "startedAt": "2026-09-09T16:36:07Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/34377266548/job/102553101627"
+      },
+      {
+        "completedAt": "2026-09-09T16:38:46Z",
+        "conclusion": "success",
+        "databaseId": 102554735575,
+        "name": "Build aarch64-apple-darwin",
+        "startedAt": "2026-09-09T16:36:18Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-09T16:36:22Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-09T16:36:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:32Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v5",
+            "number": 2,
+            "startedAt": "2026-09-09T16:36:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:41Z",
+            "conclusion": "success",
+            "name": "Install pinned Rust toolchain",
+            "number": 3,
+            "startedAt": "2026-09-09T16:36:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:43Z",
+            "conclusion": "success",
+            "name": "Run Swatinem/rust-cache@v2",
+            "number": 4,
+            "startedAt": "2026-09-09T16:36:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:43Z",
+            "conclusion": "skipped",
+            "name": "Install cross",
+            "number": 5,
+            "startedAt": "2026-09-09T16:36:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:26Z",
+            "conclusion": "success",
+            "name": "Build release binary",
+            "number": 6,
+            "startedAt": "2026-09-09T16:36:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:26Z",
+            "conclusion": "success",
+            "name": "Package archive",
+            "number": 7,
+            "startedAt": "2026-09-09T16:38:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:28Z",
+            "conclusion": "success",
+            "name": "Upload archive",
+            "number": 8,
+            "startedAt": "2026-09-09T16:38:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:43Z",
+            "conclusion": "success",
+            "name": "Post Run Swatinem/rust-cache@v2",
+            "number": 15,
+            "startedAt": "2026-09-09T16:38:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:44Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v5",
+            "number": 16,
+            "startedAt": "2026-09-09T16:38:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:44Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "startedAt": "2026-09-09T16:38:44Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/34377266548/job/102554735575"
+      },
+      {
+        "completedAt": "2026-09-09T16:37:59Z",
+        "conclusion": "success",
+        "databaseId": 102554735623,
+        "name": "Build x86_64-unknown-linux-gnu",
+        "startedAt": "2026-09-09T16:36:13Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-09T16:36:14Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-09T16:36:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:17Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v5",
+            "number": 2,
+            "startedAt": "2026-09-09T16:36:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:25Z",
+            "conclusion": "success",
+            "name": "Install pinned Rust toolchain",
+            "number": 3,
+            "startedAt": "2026-09-09T16:36:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:27Z",
+            "conclusion": "success",
+            "name": "Run Swatinem/rust-cache@v2",
+            "number": 4,
+            "startedAt": "2026-09-09T16:36:25Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:27Z",
+            "conclusion": "skipped",
+            "name": "Install cross",
+            "number": 5,
+            "startedAt": "2026-09-09T16:36:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:37:50Z",
+            "conclusion": "success",
+            "name": "Build release binary",
+            "number": 6,
+            "startedAt": "2026-09-09T16:36:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:37:50Z",
+            "conclusion": "success",
+            "name": "Package archive",
+            "number": 7,
+            "startedAt": "2026-09-09T16:37:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:37:52Z",
+            "conclusion": "success",
+            "name": "Upload archive",
+            "number": 8,
+            "startedAt": "2026-09-09T16:37:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:37:57Z",
+            "conclusion": "success",
+            "name": "Post Run Swatinem/rust-cache@v2",
+            "number": 15,
+            "startedAt": "2026-09-09T16:37:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:37:57Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v5",
+            "number": 16,
+            "startedAt": "2026-09-09T16:37:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:37:57Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "startedAt": "2026-09-09T16:37:57Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/34377266548/job/102554735623"
+      },
+      {
+        "completedAt": "2026-09-09T16:38:19Z",
+        "conclusion": "success",
+        "databaseId": 102554735635,
+        "name": "Build aarch64-unknown-linux-gnu",
+        "startedAt": "2026-09-09T16:36:13Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-09T16:36:15Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-09T16:36:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:17Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v5",
+            "number": 2,
+            "startedAt": "2026-09-09T16:36:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:28Z",
+            "conclusion": "success",
+            "name": "Install pinned Rust toolchain",
+            "number": 3,
+            "startedAt": "2026-09-09T16:36:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:29Z",
+            "conclusion": "success",
+            "name": "Run Swatinem/rust-cache@v2",
+            "number": 4,
+            "startedAt": "2026-09-09T16:36:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:34Z",
+            "conclusion": "success",
+            "name": "Install cross",
+            "number": 5,
+            "startedAt": "2026-09-09T16:36:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:12Z",
+            "conclusion": "success",
+            "name": "Build release binary",
+            "number": 6,
+            "startedAt": "2026-09-09T16:36:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:13Z",
+            "conclusion": "success",
+            "name": "Package archive",
+            "number": 7,
+            "startedAt": "2026-09-09T16:38:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:14Z",
+            "conclusion": "success",
+            "name": "Upload archive",
+            "number": 8,
+            "startedAt": "2026-09-09T16:38:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:17Z",
+            "conclusion": "success",
+            "name": "Post Run Swatinem/rust-cache@v2",
+            "number": 15,
+            "startedAt": "2026-09-09T16:38:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:17Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v5",
+            "number": 16,
+            "startedAt": "2026-09-09T16:38:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:17Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "startedAt": "2026-09-09T16:38:17Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/34377266548/job/102554735635"
+      },
+      {
+        "completedAt": "2026-09-09T16:38:06Z",
+        "conclusion": "success",
+        "databaseId": 102554735803,
+        "name": "Build x86_64-apple-darwin",
+        "startedAt": "2026-09-09T16:36:17Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-09T16:36:21Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-09T16:36:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:24Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v5",
+            "number": 2,
+            "startedAt": "2026-09-09T16:36:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:33Z",
+            "conclusion": "success",
+            "name": "Install pinned Rust toolchain",
+            "number": 3,
+            "startedAt": "2026-09-09T16:36:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:34Z",
+            "conclusion": "success",
+            "name": "Run Swatinem/rust-cache@v2",
+            "number": 4,
+            "startedAt": "2026-09-09T16:36:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:36:34Z",
+            "conclusion": "skipped",
+            "name": "Install cross",
+            "number": 5,
+            "startedAt": "2026-09-09T16:36:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:37:46Z",
+            "conclusion": "success",
+            "name": "Build release binary",
+            "number": 6,
+            "startedAt": "2026-09-09T16:36:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:37:46Z",
+            "conclusion": "success",
+            "name": "Package archive",
+            "number": 7,
+            "startedAt": "2026-09-09T16:37:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:37:48Z",
+            "conclusion": "success",
+            "name": "Upload archive",
+            "number": 8,
+            "startedAt": "2026-09-09T16:37:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:01Z",
+            "conclusion": "success",
+            "name": "Post Run Swatinem/rust-cache@v2",
+            "number": 15,
+            "startedAt": "2026-09-09T16:37:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:02Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v5",
+            "number": 16,
+            "startedAt": "2026-09-09T16:38:01Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:38:04Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "startedAt": "2026-09-09T16:38:02Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/34377266548/job/102554735803"
+      },
+      {
+        "completedAt": "2026-09-09T16:40:39Z",
+        "conclusion": "success",
+        "databaseId": 102555633799,
+        "name": "Publish release",
+        "startedAt": "2026-09-09T16:39:49Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-09T16:40:23Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-09T16:40:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:40:27Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v5",
+            "number": 2,
+            "startedAt": "2026-09-09T16:40:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:40:29Z",
+            "conclusion": "success",
+            "name": "Download matrix archives",
+            "number": 3,
+            "startedAt": "2026-09-09T16:40:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:40:29Z",
+            "conclusion": "success",
+            "name": "Validate matrix and create checksums",
+            "number": 4,
+            "startedAt": "2026-09-09T16:40:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:40:29Z",
+            "conclusion": "success",
+            "name": "Take the release notes from the changelog",
+            "number": 5,
+            "startedAt": "2026-09-09T16:40:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:40:37Z",
+            "conclusion": "success",
+            "name": "Publish GitHub release",
+            "number": 6,
+            "startedAt": "2026-09-09T16:40:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:40:37Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v5",
+            "number": 12,
+            "startedAt": "2026-09-09T16:40:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-09T16:40:37Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 13,
+            "startedAt": "2026-09-09T16:40:37Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/34377266548/job/102555633799"
+      },
+      {
+        "completedAt": "2026-09-09T16:40:40Z",
+        "conclusion": "skipped",
+        "databaseId": 102556274545,
+        "name": "Publish to crates.io",
+        "startedAt": "2026-09-09T16:40:40Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/34377266548/job/102556274545"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/34377266548"
+  }
+}

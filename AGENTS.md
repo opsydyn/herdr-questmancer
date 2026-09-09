@@ -373,8 +373,12 @@ four owned dummy Pi processes. Five v2 metadata observations persisted; repeats
 and restart added no history. The full gate passes 656 Rust tests / 56 runs and
 28 shell tests. See `docs/reviews/2026-09-09-chronicle-c3/README.md`. The changed
 Chronicle screens were visually approved by the user on 2026-09-09. C1–C3
-are complete locally; committing and release qualification are the next separate gates. Real-agent completion, live
-snapshot-only capture and publication remain separate.
+are published in `v0.1.10` from clean `9f2f58f`. Release qualification passed
+657 Rust tests / 57 runs, 28 shell tests, source packaging and isolated runtime
+cleanup. All four downloaded archives, checksums and the actual macOS ARM64
+Herdr installer passed. Documentation and approved Chronicle images are deployed.
+See `docs/reviews/2026-09-09-published-release/README.md`. Real-agent completion
+and live snapshot-only capture remain separate; crates.io was skipped.
 
 ## Native portrait regression repair — 2026-09-08
 
