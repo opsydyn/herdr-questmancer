@@ -318,6 +318,15 @@ impl RuntimeConnection {
             )
             .await;
         }
+        if !self.last_pane_headers.is_empty() {
+            let panes: Vec<PaneId> = self.last_pane_headers.keys().cloned().collect();
+            self.last_pane_headers.clear();
+            let _ = tokio::time::timeout(
+                Duration::from_millis(250),
+                self.executor.clear_pane_headers(&panes),
+            )
+            .await;
+        }
         if self.urgency_view_set {
             self.urgency_view_set = false;
             let _ = tokio::time::timeout(
@@ -773,6 +782,7 @@ mod tests {
                 pending_snapshot: None,
                 pending_output: None,
                 last_sidebar_projection: None,
+                last_pane_headers: std::collections::BTreeMap::new(),
                 urgency_view_set: false,
             },
             update_tx,
@@ -1147,6 +1157,7 @@ mod tests {
             pending_snapshot: None,
             pending_output: None,
             last_sidebar_projection: None,
+            last_pane_headers: std::collections::BTreeMap::new(),
             urgency_view_set: false,
         };
         first_sent_rx.await.unwrap();
@@ -1223,6 +1234,7 @@ mod tests {
                         .collect(),
                 }],
             }),
+            last_pane_headers: std::collections::BTreeMap::new(),
         };
 
         connection.shutdown().await.unwrap();

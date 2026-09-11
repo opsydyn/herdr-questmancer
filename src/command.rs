@@ -408,6 +408,15 @@ impl CommandExecutor {
         self.client.clear_agent_view(SIDEBAR_SOURCE).await
     }
 
+    pub async fn clear_pane_headers(&self, panes: &[PaneId]) -> Result<(), ClientError> {
+        for pane in panes {
+            self.client
+                .clear_pane_graphics(pane.as_str(), PANE_HEADER_LAYER)
+                .await?;
+        }
+        Ok(())
+    }
+
     pub async fn clear_marginalia(
         &self,
         projection: &SidebarProjection,
