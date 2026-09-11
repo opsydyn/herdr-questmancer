@@ -17,7 +17,8 @@ use super::{
     protocol::{
         AgentViewBuiltinSortField, AgentViewClearParams, AgentViewSetParams, AgentViewSort,
         AgentViewSortField, AgentViewSortOrder, EmptyParams, ErrorResponse, OkResult,
-        PaneGraphicsInfo, PaneInfo, PaneInfoResult, PaneReadParams, PaneReadResult,
+        PaneGraphicsClearParams, PaneGraphicsInfo, PaneGraphicsPlacementParams,
+        PaneGraphicsSetParams, PaneInfo, PaneInfoResult, PaneReadParams, PaneReadResult,
         PaneReadResultEnvelope, PaneReportMetadataParams, PaneSendKeysParams, PaneSendTextParams,
         PaneTarget, PluginActionInfo, PluginActionInvokeParams, PluginActionInvokedResult,
         PluginActionListParams, PluginActionListResult, PluginInvocationContext, Pong, ReadFormat,
@@ -85,6 +86,54 @@ impl HerdrClient {
             "pane_graphics_info",
         )
         .await
+    }
+
+    pub async fn set_pane_graphics(
+        &self,
+        pane_id: impl Into<String>,
+        layer_id: impl Into<String>,
+        png: &[u8],
+    ) -> Result<(), ClientError> {
+        let _: OkResult = self
+            .request(
+                "pane.graphics.set",
+                PaneGraphicsSetParams {
+                    pane_id: pane_id.into(),
+                    layer_id: Some(layer_id.into()),
+                    z_index: 10,
+                    format: "png".to_owned(),
+                    image_width: 8,
+                    image_height: 8,
+                    data_base64: encode_base64(png),
+                    placement: PaneGraphicsPlacementParams {
+                        viewport_col: 0,
+                        viewport_row: 0,
+                        grid_cols: 1,
+                        grid_rows: 1,
+                    },
+                },
+                "ok",
+            )
+            .await?;
+        Ok(())
+    }
+
+    pub async fn clear_pane_graphics(
+        &self,
+        pane_id: impl Into<String>,
+        layer_id: impl Into<String>,
+    ) -> Result<(), ClientError> {
+        let _: OkResult = self
+            .request(
+                "pane.graphics.clear",
+                PaneGraphicsClearParams {
+                    pane_id: pane_id.into(),
+                    layer_id: Some(layer_id.into()),
+                },
+                "ok",
+            )
+            .await?;
+        Ok(())
     }
 
     pub async fn focus_pane(&self, pane_id: impl Into<String>) -> Result<PaneInfo, ClientError> {
@@ -337,6 +386,29 @@ impl HerdrClient {
     pub fn socket_path(&self) -> &Path {
         &self.socket_path
     }
+}
+
+fn encode_base64(bytes: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let a = chunk[0] as u32;
+        let b = chunk.get(1).copied().unwrap_or(0) as u32;
+        let c = chunk.get(2).copied().unwrap_or(0) as u32;
+        out.push(TABLE[((a >> 2) & 63) as usize] as char);
+        out.push(TABLE[(((a << 4) | (b >> 4)) & 63) as usize] as char);
+        out.push(if chunk.len() > 1 {
+            TABLE[(((b << 2) | (c >> 6)) & 63) as usize] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            TABLE[(c & 63) as usize] as char
+        } else {
+            '='
+        });
+    }
+    out
 }
 
 fn ensure_response_id(expected: &str, actual: &str) -> Result<(), ClientError> {

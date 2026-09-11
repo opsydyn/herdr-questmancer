@@ -23,6 +23,32 @@ impl<P> Request<P> {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct EmptyParams {}
 
+#[derive(Clone, Debug, Serialize)]
+pub struct PaneGraphicsSetParams {
+    pub pane_id: String,
+    pub layer_id: Option<String>,
+    pub z_index: i32,
+    pub format: String,
+    pub image_width: u32,
+    pub image_height: u32,
+    pub data_base64: String,
+    pub placement: PaneGraphicsPlacementParams,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct PaneGraphicsPlacementParams {
+    pub viewport_col: i32,
+    pub viewport_row: i32,
+    pub grid_cols: u32,
+    pub grid_rows: u32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PaneGraphicsClearParams {
+    pub pane_id: String,
+    pub layer_id: Option<String>,
+}
+
 /// Authoritative attached-client geometry from `pane.graphics.info`.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 pub struct PaneGraphicsInfo {
