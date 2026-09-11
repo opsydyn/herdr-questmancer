@@ -45,6 +45,7 @@ pub enum AgentCommand {
     },
     PublishMarginalia(SidebarProjection),
     PublishPaneHeaders(Vec<PaneHeaderProjection>),
+    ClearPaneHeaders(Vec<PaneId>),
     SetUrgencyView,
 }
 
@@ -303,7 +304,8 @@ impl CommandExecutor {
             }
             AgentCommand::SetUrgencyView
             | AgentCommand::PublishMarginalia(_)
-            | AgentCommand::PublishPaneHeaders(_) => self.execute_sidebar(command).await,
+            | AgentCommand::PublishPaneHeaders(_)
+            | AgentCommand::ClearPaneHeaders(_) => self.execute_sidebar(command).await,
         }
     }
 
@@ -374,6 +376,20 @@ impl CommandExecutor {
                         message: error.to_string(),
                     },
                 }
+            }
+            AgentCommand::ClearPaneHeaders(panes) => {
+                for pane in panes {
+                    if let Err(error) = self
+                        .client
+                        .clear_pane_graphics(pane.as_str(), PANE_HEADER_LAYER)
+                        .await
+                    {
+                        return CommandResult::PaneHeadersFailed {
+                            message: error.to_string(),
+                        };
+                    }
+                }
+                CommandResult::PaneHeadersPublished
             }
             _ => CommandResult::MarginaliaPublished,
         }

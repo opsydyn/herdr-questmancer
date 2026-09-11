@@ -102,6 +102,7 @@ pub struct RuntimeConnection {
     pending_snapshot: Option<AgentCommand>,
     pending_output: Option<AgentCommand>,
     last_sidebar_projection: Option<SidebarProjection>,
+    last_pane_headers: std::collections::BTreeMap<PaneId, String>,
     /// Whether Questmancer asked Herdr to order its agent list. Tracked so
     /// shutdown clears exactly what was set and nothing else.
     urgency_view_set: bool,
@@ -133,6 +134,7 @@ impl RuntimeConnection {
             pending_snapshot: None,
             pending_output: None,
             last_sidebar_projection: None,
+            last_pane_headers: std::collections::BTreeMap::new(),
             urgency_view_set: false,
         }
     }
@@ -152,6 +154,27 @@ impl RuntimeConnection {
             match &command {
                 AgentCommand::PublishMarginalia(projection) => {
                     self.last_sidebar_projection = Some(projection.clone());
+                }
+                AgentCommand::PublishPaneHeaders(projection) => {
+                    let next: std::collections::BTreeMap<PaneId, String> = projection
+                        .iter()
+                        .map(|header| (header.pane_id.clone(), header.label.clone()))
+                        .collect();
+                    let stale = self
+                        .last_pane_headers
+                        .keys()
+                        .filter(|pane| !next.contains_key(*pane))
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    if !stale.is_empty() {
+                        let executor = self.executor.clone();
+                        self.command_tasks.spawn(async move {
+                            executor
+                                .execute(AgentCommand::ClearPaneHeaders(stale))
+                                .await
+                        });
+                    }
+                    self.last_pane_headers = next;
                 }
                 AgentCommand::SetUrgencyView => self.urgency_view_set = true,
                 _ => {}
