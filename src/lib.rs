@@ -100,6 +100,7 @@ pub mod domain;
 pub mod herdr;
 pub mod interaction;
 pub mod ledger;
+pub mod pane_header;
 pub mod persistence;
 pub mod portrait;
 pub mod rank;
