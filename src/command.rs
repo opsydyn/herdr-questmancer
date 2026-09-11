@@ -11,6 +11,7 @@ use crate::{
         client::{ClientError, HerdrClient},
         protocol::SessionSnapshot,
     },
+    pane_header::{PANE_HEADER_LAYER, PaneHeaderProjection},
     sidebar::{SIDEBAR_SOURCE, SidebarProjection},
     snapshot_refresh::SnapshotRequest,
 };
@@ -43,6 +44,7 @@ pub enum AgentCommand {
         qualified_id: String,
     },
     PublishMarginalia(SidebarProjection),
+    PublishPaneHeaders(Vec<PaneHeaderProjection>),
     SetUrgencyView,
 }
 
@@ -91,6 +93,10 @@ pub enum CommandResult {
     },
     MarginaliaPublished,
     MarginaliaFailed {
+        message: String,
+    },
+    PaneHeadersPublished,
+    PaneHeadersFailed {
         message: String,
     },
     SnapshotLoaded {
@@ -295,9 +301,9 @@ impl CommandExecutor {
                     Err(error) => failed("open reviewr", error),
                 }
             }
-            AgentCommand::SetUrgencyView | AgentCommand::PublishMarginalia(_) => {
-                self.execute_sidebar(command).await
-            }
+            AgentCommand::SetUrgencyView
+            | AgentCommand::PublishMarginalia(_)
+            | AgentCommand::PublishPaneHeaders(_) => self.execute_sidebar(command).await,
         }
     }
 
@@ -325,6 +331,24 @@ impl CommandExecutor {
         Ok(())
     }
 
+    async fn publish_pane_headers(
+        &self,
+        projections: Vec<PaneHeaderProjection>,
+    ) -> Result<(), ClientError> {
+        const MARKER: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0dIDATx\x9cc\x60\x00\x00\x00\x02\x00\x01\xe2\x21\xbc\x33\x00\x00\x00\x00IEND\xaeB\x60\x82";
+        for header in projections {
+            self.client
+                .set_pane_graphics(
+                    header.pane_id.as_str(),
+                    PANE_HEADER_LAYER,
+                    MARKER,
+                    Some(header.label),
+                )
+                .await?;
+        }
+        Ok(())
+    }
+
     /// The two commands that write to Herdr's own sidebar rather than to a
     /// pane: publishing marginalia tokens, and asking for the urgency order.
     async fn execute_sidebar(&self, command: AgentCommand) -> CommandResult {
@@ -339,6 +363,14 @@ impl CommandExecutor {
                 match self.publish_marginalia(projection).await {
                     Ok(()) => CommandResult::MarginaliaPublished,
                     Err(error) => CommandResult::MarginaliaFailed {
+                        message: error.to_string(),
+                    },
+                }
+            }
+            AgentCommand::PublishPaneHeaders(projection) => {
+                match self.publish_pane_headers(projection).await {
+                    Ok(()) => CommandResult::PaneHeadersPublished,
+                    Err(error) => CommandResult::PaneHeadersFailed {
                         message: error.to_string(),
                     },
                 }

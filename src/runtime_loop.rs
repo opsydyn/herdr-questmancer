@@ -11,6 +11,7 @@ use crate::{
         supervisor::{Backoff, ConnectionSupervisor, ConnectionUpdate},
     },
     interaction::ActionReduction,
+    pane_header::PaneHeaderProjection,
     persistence::{PersistedStateV1, PersistenceClient, PersistenceError},
     sidebar::SidebarProjection,
     snapshot_refresh::{LiveFacts, SnapshotCompletion, SnapshotPurpose},
@@ -411,8 +412,13 @@ pub fn apply_connection_update(
     if publish_marginalia || after_marginalia != before_marginalia {
         effects
             .agent_commands
-            .push(AgentCommand::PublishMarginalia(after_marginalia));
+            .push(AgentCommand::PublishMarginalia(after_marginalia.clone()));
     }
+    effects
+        .agent_commands
+        .push(AgentCommand::PublishPaneHeaders(
+            PaneHeaderProjection::from_sidebar(&after_marginalia, model.managed_pane_id()),
+        ));
     effects
 }
 
@@ -494,9 +500,14 @@ pub fn apply_command_result(
             // Questmancer's own urgency jump is unaffected.
             model.set_integration_diagnostic(format!("sidebar urgency order failed: {message}"));
         }
-        CommandResult::UrgencyViewSet | CommandResult::MarginaliaPublished => {}
+        CommandResult::UrgencyViewSet
+        | CommandResult::MarginaliaPublished
+        | CommandResult::PaneHeadersPublished => {}
         CommandResult::MarginaliaFailed { message } => {
             model.set_integration_diagnostic(format!("sidebar marginalia failed: {message}"));
+        }
+        CommandResult::PaneHeadersFailed { message } => {
+            model.set_integration_diagnostic(format!("pane header failed: {message}"));
         }
         CommandResult::SnapshotLoaded { request, snapshot } => {
             let valid = valid_refresh(model, &snapshot, observed_at);
