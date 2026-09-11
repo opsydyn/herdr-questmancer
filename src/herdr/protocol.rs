@@ -33,6 +33,7 @@ pub struct PaneGraphicsSetParams {
     pub image_height: u32,
     pub data_base64: String,
     pub placement: PaneGraphicsPlacementParams,
+    pub viewport_header: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]

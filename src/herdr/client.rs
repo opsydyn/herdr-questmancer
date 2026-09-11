@@ -93,6 +93,7 @@ impl HerdrClient {
         pane_id: impl Into<String>,
         layer_id: impl Into<String>,
         png: &[u8],
+        label: Option<String>,
     ) -> Result<(), ClientError> {
         let _: OkResult = self
             .request(
@@ -111,6 +112,7 @@ impl HerdrClient {
                         grid_cols: 1,
                         grid_rows: 1,
                     },
+                    viewport_header: label,
                 },
                 "ok",
             )
