@@ -696,4 +696,9 @@ M3a.3 is complete within its synthetic inventory scope and remains unreleased.
 Only disposable source trees have been exercised. Installed-source compatibility,
 native interaction and live Herdr remain unperformed. The next
 [bounded acceptance plan](docs/plans/2026-09-30-herdr-projects-acceptance.md)
-has not been promoted or executed.
+was promoted. Its [prerequisite audit](docs/reviews/2026-09-30-herdr-projects-acceptance/README.md)
+found no Herdr Projects on PATH or in local registration, installed Herdr 0.9.0
+below the upstream minimum, and automatic ticker startup in normal thread creation.
+No operational trial was started. Accumulated work is committed at `4923a05`;
+the [upstream-writer fixture proposal](docs/plans/2026-09-30-herdr-projects-writer-fixtures.md)
+is the recommended next step.

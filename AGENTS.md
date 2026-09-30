@@ -585,7 +585,19 @@ The full gate passes 754 Rust tests across 62 runs and 28 shell tests; the
 The user subsequently approved the diagnostic images; see
 `docs/reviews/2026-09-30-herdr-projects-runtime/visual-approval.md`. M3a.3 is
 complete within its synthetic inventory scope and remains unreleased.
-`docs/plans/2026-09-30-herdr-projects-acceptance.md` proposes the next bounded
-installed-source/isolated-runtime trial; that operational scope has not been
-promoted or executed. Native/live acceptance, M3b, upstream contributions and
-M4–M7 remain separate or unpromoted.
+The user then requested “Commit and move to next”. Accumulated Questmancer work
+is committed at `4923a05`, including the earlier pane-header repair and its
+preserved acceptance limits. Fresh `just verify` passes 754 Rust tests/62 runs
+and 28 shell tests; see `docs/reviews/2026-09-30-committed-control-plane/README.md`.
+There was no push, publication, installation or shared-server operation.
+
+The user promoted `docs/plans/2026-09-30-herdr-projects-acceptance.md`. Its
+prerequisite audit is complete, with no operational resources created. Herdr
+Projects is absent from PATH and local plugin registration; installed Herdr
+reports 0.9.0, below the pinned upstream manifest's 0.9.1 minimum. The inspected
+normal thread-start/adopt paths start a ticker, outside this no-launch scope.
+See `docs/reviews/2026-09-30-herdr-projects-acceptance/README.md`. Do not silently
+install, upgrade or launch agents to complete that trial. The smaller
+`docs/plans/2026-09-30-herdr-projects-writer-fixtures.md` is proposed, not promoted.
+Native/live acceptance, M3b, upstream contributions and M4–M7 remain separate or
+unpromoted.

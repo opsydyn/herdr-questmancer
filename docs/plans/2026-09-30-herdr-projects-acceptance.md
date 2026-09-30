@@ -1,9 +1,17 @@
 # M3a.4 installed-source and isolated-runtime acceptance
 
-Status: proposed, not promoted or executed. The user approved M3a.3's synthetic
-diagnostic visuals. That approval closes the [runtime slice](2026-09-30-herdr-projects-runtime.md);
-its scope excluded source mutation, installation, agent launches and live testing.
-This plan makes the next operational trial concrete before promotion.
+Status: promoted by “Commit and move to next”. The prerequisite audit is complete;
+the operational trial is blocked before resource creation. See the
+[audit receipt](../reviews/2026-09-30-herdr-projects-acceptance/README.md).
+Herdr Projects is absent from PATH and local plugin registration; the installed
+Herdr reports 0.9.0, below the pinned source's 0.9.1 requirement. Normal upstream
+thread creation/adoption starts a ticker and cannot satisfy this trial's no-launch
+scope. No live trial, installation or source mutation was performed.
+
+The user previously approved M3a.3's synthetic diagnostic visuals, closing the
+[runtime slice](2026-09-30-herdr-projects-runtime.md). The steps below retain the
+promoted trial's scope. A smaller [upstream-writer fixture proposal](2026-09-30-herdr-projects-writer-fixtures.md)
+is the recommended next step; it has not been promoted.
 
 ## Outcome and scope
 
@@ -39,7 +47,7 @@ If the compatible binaries are absent, the installed layout differs, isolation
 is incomplete or supported record creation requires excluded launches, stop and
 report the concrete prerequisite. Do not install, upgrade, patch upstream or
 silently replace upstream-created records with handwritten fixtures. Approval
-of this plan would authorise the bounded trial only when these prerequisites hold.
+of this plan authorises the bounded trial only when these prerequisites hold.
 
 ## 2. Exercise upstream-written records
 

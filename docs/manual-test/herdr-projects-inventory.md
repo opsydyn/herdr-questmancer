@@ -89,5 +89,7 @@ disposable project/server/panes and the [guarded scene procedure](questmancer-sc
 Exercise edits, unavailable/recovery, restart and cleanup only owned resources.
 Never start real agents or alter an unknown/shared server as an implicit part
 of this recipe. The [bounded acceptance plan](../plans/2026-09-30-herdr-projects-acceptance.md)
-defines the proposed trial and has not been promoted or executed. M3b
-bindings/requests and later roadmap milestones remain separate.
+defines the promoted trial. Its [prerequisite audit](../reviews/2026-09-30-herdr-projects-acceptance/README.md)
+stopped before resource creation: no installed Herdr Projects was found, Herdr
+reports 0.9.0, and normal thread creation starts a ticker. Do not bypass those
+limits. M3b bindings/requests and later roadmap milestones remain separate.

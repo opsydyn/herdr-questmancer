@@ -140,6 +140,11 @@ remain prohibited.
   [approved those images](../reviews/2026-09-30-herdr-projects-runtime/visual-approval.md),
   completing M3a.3 within synthetic scope. Installed-source compatibility,
   native input and live trials remain unperformed. The next
-  [bounded acceptance plan](2026-09-30-herdr-projects-acceptance.md) is proposed,
-  not promoted or executed.
+  [bounded acceptance plan](2026-09-30-herdr-projects-acceptance.md) was promoted
+  by “Commit and move to next”. Its prerequisite audit is complete, but the
+  operational trial stopped before resource creation; see the
+  [receipt](../reviews/2026-09-30-herdr-projects-acceptance/README.md).
+  The accumulated work is committed at `4923a05`. The next
+  [upstream-writer fixture proposal](2026-09-30-herdr-projects-writer-fixtures.md)
+  is unpromoted and does not establish installed-source/live acceptance.
   Full M3 attention/binding acceptance and M4–M7 remain unpromoted.

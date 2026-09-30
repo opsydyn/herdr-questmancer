@@ -229,7 +229,9 @@ Its synthetic producer/consumer is implemented and its
 [diagnostic images are approved](../reviews/2026-09-30-herdr-projects-runtime/visual-approval.md).
 Installed-source and native/live acceptance remain unperformed; the next
 [bounded operational plan](../plans/2026-09-30-herdr-projects-acceptance.md)
-has not been promoted. Later milestones
+was promoted, but its prerequisite audit stopped before runtime resources were
+created. The [audit](../reviews/2026-09-30-herdr-projects-acceptance/README.md)
+records the concrete missing prerequisites. Later milestones
 remain unpromoted. Native source identity and
 reply authority are not established by the retained-record policy.
 

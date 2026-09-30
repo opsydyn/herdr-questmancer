@@ -292,6 +292,7 @@ the [runtime receipt](../reviews/2026-09-30-herdr-projects-runtime/README.md)
 records synthetic qualification. The user subsequently
 [approved its diagnostic images](../reviews/2026-09-30-herdr-projects-runtime/visual-approval.md).
 The next [installed-source/isolated-runtime plan](2026-09-30-herdr-projects-acceptance.md)
-is proposed, not promoted or executed; native/live gates remain unperformed.
+was promoted, but its [prerequisite audit](../reviews/2026-09-30-herdr-projects-acceptance/README.md)
+stopped before runtime resource creation; native/live gates remain unperformed.
 Report contents, structured summons, execution controls, upstream contribution,
 shared-server changes and live acceptance remain outside this proposed slice.

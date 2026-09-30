@@ -243,7 +243,13 @@ Engineering qualification passes 754 Rust tests/62 runs, 28 shell tests, the
 The user subsequently [approved the diagnostic images](docs/reviews/2026-09-30-herdr-projects-runtime/visual-approval.md).
 M3a.3 is complete within its synthetic inventory scope and remains unreleased.
 The [installed-source/isolated-runtime acceptance plan](docs/plans/2026-09-30-herdr-projects-acceptance.md)
-is the next proposed operational slice, not yet promoted or executed.
+was promoted by “Commit and move to next”. Its prerequisite audit is complete;
+the operational trial is blocked by missing Herdr Projects, installed Herdr 0.9.0
+versus upstream's 0.9.1 minimum, and thread creation's automatic ticker startup.
+See the [audit receipt](docs/reviews/2026-09-30-herdr-projects-acceptance/README.md).
+The accumulated work is committed at `4923a05`, with a fresh passing full gate.
+The smaller [upstream-writer fixture plan](docs/plans/2026-09-30-herdr-projects-writer-fixtures.md)
+is proposed, not promoted.
 Installed-source/native/live acceptance, M3b and M4–M7 remain outstanding or
 unpromoted. Existing pane-header repair, visual qualification and release evidence
 remain independent.

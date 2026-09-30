@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-30T21:24:27.626053+00:00",
+  "authorization": "User requested Commit and move to next; commit accumulated work then execute bounded M3a.4 acceptance plan",
+  "status": "prerequisite audit complete; operational acceptance blocked before resource creation",
+  "candidate_commit": "4923a05f310477fba6e67e6c89f36b2ea6df47ec",
+  "candidate_binary": {
+    "path": "/Users/alancurrie/Projects/herdr-web-master/target/release/questmancer",
+    "sha256": "75e1d32c785e370b1e5a250bdfa84aa0c30437c9181f0907de40bb8fa378e82b",
+    "executed": false,
+    "clean_source_package_qualified": false
+  },
+  "toolchain": {
+    "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)",
+    "cargo": "cargo 1.90.0 (840b83a10 2025-07-30)"
+  },
+  "installed_binaries": {
+    "path_candidates": {
+      "herdr": [
+        "/Users/alancurrie/.local/bin/herdr"
+      ],
+      "herdr-projects": []
+    },
+    "herdr": {
+      "resolved_path": "/Users/alancurrie/.local/bin/herdr",
+      "version": "herdr 0.9.0",
+      "sha256": "32b53df09872628059c789a69f02a6b8e29e14ddf26711421f3463f70c1aef17",
+      "bytes": 20692496
+    },
+    "actual_server_protocol": "not queried; no server API request issued"
+  },
+  "local_registration": {
+    "registry_path": "/Users/alancurrie/.config/herdr/plugins.json",
+    "sha256": "17f3b38414184e3b651d41311502c9e68694db342783d1480c7919bd05489635",
+    "plugin_ids": [
+      "opsydyn.questmancer"
+    ],
+    "herdr_projects_registered": false,
+    "scope": "read local registry metadata and plugin directory names only; not exhaustive filesystem discovery"
+  },
+  "upstream": {
+    "path": "/tmp/questmancer-m3-herdr-projects-20260930",
+    "commit": "4e4548c3c43888e6be1c96906215998f07dc63f0",
+    "version": "0.2.34",
+    "min_herdr_version": "0.9.1",
+    "worktree_clean": true,
+    "original_inspection_file_hashes_verified": 16,
+    "inspected_files_sha256": {
+      "Cargo.toml": "63ca3526bbc1409f2a6419771a81643137eea2416f3a020faf0e210a395c6550",
+      "docs/operations.md": "1e6097d1a5e20dda90e37492104960b71954725729ea424c8f1d07fb2161eba0",
+      "herdr-plugin.toml": "97b67e86eda7a464dde891bdb3af025afa2aac3ba41220e7a07dd1ad27330ba6",
+      "src/adopt.rs": "0f32c1ccaeede527b2e470c2f25a771da155f0a0b66b77c20711f36354c87c86",
+      "src/cli.rs": "cc80b503eccf3a5a118cf94fc828cf395a8af0cdcde1b5ebcf39020300a44fc9",
+      "src/coordinator.rs": "79a9d74160378afe1f34da0d26916390899f0ce23e09e4e0498a962e1299e242",
+      "src/herdr.rs": "9cf78956bb1c8787fcdb19f4a3634b904ba60344237009d7c9abb3450fd2016a",
+      "src/inbox.rs": "4b8fd0fc9d8b6fb401e5e62f5550cf0442d72615dc5a5cf4a2c693afeb7a0930",
+      "src/main.rs": "e0b0ceccc2ced281db1b5951836d7640017f17c1535f849b6a6b93770be43f5a",
+      "src/paths.rs": "8117ca1c1954dbef1227f6e4100453e945eef6869e3990157544cd1fb50e0fc0",
+      "src/pr.rs": "643ea9d7dcd5d972e24d3732e4ab21675c5b14c709ccf0283aa5d1f7b9adbd9d",
+      "src/progress.rs": "1efc3f1ff20d8326c746907e559c04cea48a2ef0cf79b341d3e09e3ccd9129b6",
+      "src/project.rs": "ad7297fc802e30f8cd41fdd156dab4b1c9bc66eea7a208f305a2aa3c47028580",
+      "src/rename.rs": "1cdc63fccb3b32928e3115afe623f8dcfe4dbc0d29a9f0efe8e3b44cd14c7d7d",
+      "src/steps.rs": "fc80e04ab743db8fe46e57cd81d5a9de71ac931942de03e185e9a228a9290ef2",
+      "src/tasks.rs": "681dda393ab43b52c668d0e082e4794332e37c4a626fd7971cf5bb5dcf6a0e53",
+      "src/thread.rs": "c9c58806c25c9afaa97974944467b7c4659c4e2bc0cdcb2dd18df7a31f2a7876",
+      "src/threads.rs": "04b1c8da31847d26efd6f4d91cf2d2b951859b74dd7f8912de269fdd48610499",
+      "src/ticker.rs": "19df016749c28f757679a9c9ad590b482109f01bb7a607ebca61e656976bbe58"
+    },
+    "built_executed_installed": false
+  },
+  "source_findings": [
+    {
+      "path": "src/cli.rs",
+      "lines": "626-638",
+      "fact": "Production CLI context always enables detached_ticker"
+    },
+    {
+      "path": "src/threads.rs",
+      "lines": "135-153",
+      "fact": "Normal thread start invokes ticker start before thread allocation"
+    },
+    {
+      "path": "src/adopt.rs",
+      "lines": "48-62",
+      "fact": "Adoption requires previously opened project and invokes ticker start; later may deliver a brief"
+    },
+    {
+      "path": "src/ticker.rs",
+      "lines": "97-118",
+      "fact": "Ticker start can spawn once a project exists; disabled test context is not a production CLI option"
+    },
+    {
+      "path": "src/paths.rs",
+      "lines": "46-50",
+      "fact": "Config directory is fixed under the process home; root override alone does not isolate it"
+    }
+  ],
+  "blockers": [
+    "No Herdr Projects executable found on PATH or registered in local plugin metadata",
+    "Installed Herdr version below inspected upstream plugin minimum; compatible runtime/protocol not qualified",
+    "Normal supported thread creation/adoption invokes excluded ticker workflow"
+  ],
+  "operational_resources_created": [],
+  "server_api_requests": 0,
+  "real_project_homes_read": false,
+  "source_or_installation_mutations": false,
+  "cleanup": "No operational resources created; no live cleanup required",
+  "protected_hashes_for_final_check": {
+    "/Users/alancurrie/.config/herdr/plugins.json": "17f3b38414184e3b651d41311502c9e68694db342783d1480c7919bd05489635",
+    "/Users/alancurrie/.local/bin/herdr": "32b53df09872628059c789a69f02a6b8e29e14ddf26711421f3463f70c1aef17"
+  },
+  "verification": {
+    "fresh_just_verify": {
+      "rust_tests": 754,
+      "runs": 62,
+      "shell_tests": 28,
+      "exit_code": 0,
+      "receipt": "../2026-09-30-committed-control-plane/README.md"
+    },
+    "qualified_source_test_hashes_unchanged": 210,
+    "protected_installation_registry_hashes_unchanged": true,
+    "original_qualification_artifacts_preserved": 36,
+    "current_document_link_target_files": {
+      "documents": 17,
+      "links": 190,
+      "result": "passed"
+    },
+    "git_diff_check_exit_code": 0
+  },
+  "next_proposal": {
+    "path": "../../plans/2026-09-30-herdr-projects-writer-fixtures.md",
+    "status": "proposed; not promoted"
+  },
+  "not_qualified": [
+    "Installed Herdr Projects compatibility",
+    "Live Herdr runtime and actual protocol",
+    "Native input or visual acceptance",
+    "Real-work or five-second usefulness",
+    "Full M3 attention/bindings",
+    "Publication, installation or clean-source packaging"
+  ]
+}

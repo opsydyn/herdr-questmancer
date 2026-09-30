@@ -225,7 +225,8 @@ producer latches that failure and enforces the directory lease in the subsequent
 promoted [runtime slice](../plans/2026-09-30-herdr-projects-runtime.md).
 The [changed diagnostic images are approved](../reviews/2026-09-30-herdr-projects-runtime/visual-approval.md).
 Installed-version, native input and isolated live acceptance remain later gates;
-the [acceptance plan](../plans/2026-09-30-herdr-projects-acceptance.md) is proposed,
-not executed. Revisit this
+the [acceptance plan](../plans/2026-09-30-herdr-projects-acceptance.md) was promoted,
+but its [prerequisite audit](../reviews/2026-09-30-herdr-projects-acceptance/README.md)
+stopped before runtime resource creation. Revisit this
 decision if upstream supplies native incarnation/export guarantees, retained
 records become unbounded, or real work needs copying/restoration continuity.

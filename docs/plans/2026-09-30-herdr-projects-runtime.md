@@ -39,4 +39,6 @@ release build. The user subsequently
 This completes the synthetic inventory slice; it remains unreleased.
 Installed-source compatibility, native input, live Herdr and five-second usefulness
 remain unperformed gates. The next [bounded acceptance plan](2026-09-30-herdr-projects-acceptance.md)
-has not been promoted or executed. M3b and later roadmap milestones remain unpromoted.
+was promoted. Its [prerequisite audit](../reviews/2026-09-30-herdr-projects-acceptance/README.md)
+stopped before resource creation; the operational trial remains blocked. M3b and
+later roadmap milestones remain unpromoted.
