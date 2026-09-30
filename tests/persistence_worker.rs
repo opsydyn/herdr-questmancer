@@ -279,10 +279,12 @@ async fn quit_lifecycle_stops_real_runtime_then_flushes_writer() {
     let mut model = Model::new(View::Guild);
 
     let reduction = reduce_action(&mut model, Action::Switch(View::Delve));
-    let switched = dispatch_action_effects(lifecycle.persistence_mut(), &model, reduction).await;
+    let switched =
+        dispatch_action_effects(lifecycle.persistence_mut(), &mut model, reduction).await;
     assert!(switched.persistence_errors.is_empty());
     let reduction = reduce_action(&mut model, Action::Quit);
-    let quitting = dispatch_action_effects(lifecycle.persistence_mut(), &model, reduction).await;
+    let quitting =
+        dispatch_action_effects(lifecycle.persistence_mut(), &mut model, reduction).await;
 
     assert_eq!(
         lifecycle.complete(quitting.exit).await.unwrap(),

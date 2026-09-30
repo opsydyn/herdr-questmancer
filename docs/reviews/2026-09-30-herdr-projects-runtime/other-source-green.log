@@ -1,0 +1,9 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.67s
+     Running tests/herdr_projects_runtime.rs (target/debug/deps/herdr_projects_runtime-7c17203cc12942a0)
+
+running 1 test
+test new_attachment_error_remains_visible_while_old_cached_work_is_selected ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s
+

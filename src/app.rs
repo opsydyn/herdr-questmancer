@@ -265,6 +265,8 @@ pub enum Modal {
     },
     Scrying,
     Chronicle,
+    QuestBoard,
+    WarTable,
 }
 
 /// Where an open counsel parchment is in its send.
@@ -389,6 +391,13 @@ impl PartyActivity {
 pub struct Model {
     pub(crate) snapshot_refresh: crate::snapshot_refresh::SnapshotRefresh,
     view: View,
+    work: crate::work::Projection,
+    work_source_notice: Option<crate::work::source::SourceNotice>,
+    pending_work: Option<crate::work::Projection>,
+    work_selection: Option<crate::work::WorkSelection>,
+    board_viewport_width: u16,
+    work_viewport_height: u16,
+    war_campaign: Option<crate::work::CampaignId>,
     domain: DomainState,
     connection: ConnectionState,
     scene_transition_floor: Option<Timestamp>,
@@ -433,6 +442,13 @@ impl Model {
         Self {
             snapshot_refresh: crate::snapshot_refresh::SnapshotRefresh::default(),
             view,
+            work: crate::work::Projection::default(),
+            work_source_notice: None,
+            pending_work: None,
+            work_selection: None,
+            board_viewport_width: 80,
+            work_viewport_height: 40,
+            war_campaign: None,
             domain: DomainState::default(),
             connection: ConnectionState::Offline,
             scene_transition_floor: None,
@@ -458,6 +474,198 @@ impl Model {
             counsel_drafts: BTreeMap::new(),
             active_counsel: BTreeMap::new(),
             next_counsel_request: 0,
+        }
+    }
+
+    pub fn work(&self) -> &crate::work::Projection {
+        &self.work
+    }
+    pub fn work_source_notice(&self) -> Option<&crate::work::source::SourceNotice> {
+        self.work_source_notice.as_ref()
+    }
+    pub fn set_work_source_notice(&mut self, notice: Option<crate::work::source::SourceNotice>) {
+        self.work_source_notice = notice;
+    }
+
+    pub fn replace_work(&mut self, work: crate::work::Projection) {
+        self.work = work;
+        if self
+            .work_selection
+            .as_ref()
+            .is_some_and(|s| !crate::work::view::items(self).contains(s))
+        {
+            self.work_selection = crate::work::view::items(self).into_iter().next();
+            self.reading_scroll = 0;
+        }
+        if self.modal == Modal::WarTable {
+            self.normalise_war_selection();
+        }
+    }
+    pub fn open_war_table(&mut self) {
+        self.keep_counsel_draft();
+        self.modal = Modal::WarTable;
+        self.reading_scroll = 0;
+        // Opening from a Board obligation follows its explicit quest/campaign.
+        self.war_campaign = crate::work::view::selected_quest(self)
+            .and_then(|id| self.work.quest(id))
+            .map(|q| q.campaign.clone())
+            .or_else(|| match &self.work_selection {
+                Some(crate::work::WorkSelection::Obligation(id)) => {
+                    self.work.obligation(id).map(|o| o.campaign.clone())
+                }
+                _ => crate::work::graph::campaign_id(self),
+            });
+        self.normalise_war_selection();
+    }
+    fn normalise_war_selection(&mut self) {
+        let campaign = crate::work::graph::campaign_id(self);
+        self.war_campaign.clone_from(&campaign);
+        let selected = crate::work::view::selected_quest(self).cloned();
+        let next = selected
+            .filter(|id| {
+                self.work
+                    .quest(id)
+                    .is_some_and(|q| Some(&q.campaign) == campaign.as_ref())
+            })
+            .or_else(|| {
+                self.work
+                    .sources
+                    .values()
+                    .flat_map(|s| s.inventory.quests.values())
+                    .find(|q| Some(&q.campaign) == campaign.as_ref())
+                    .map(|q| q.id.clone())
+            })
+            .map(crate::work::WorkSelection::Quest);
+        if self.work_selection != next {
+            self.work_selection = next;
+            self.reading_scroll = 0;
+        }
+    }
+    pub fn cycle_war_quest(&mut self, forward: bool) {
+        let Some(graph) = crate::work::graph::CampaignGraph::from_model(self) else {
+            return;
+        };
+        let ids = graph.nodes.keys().cloned().collect::<Vec<_>>();
+        if ids.is_empty() {
+            return;
+        }
+        let index = graph
+            .selected
+            .as_ref()
+            .and_then(|id| ids.iter().position(|q| q == id))
+            .unwrap_or(0);
+        let next = if forward {
+            (index + 1) % ids.len()
+        } else {
+            (index + ids.len() - 1) % ids.len()
+        };
+        self.work_selection = Some(crate::work::WorkSelection::Quest(ids[next].clone()));
+        self.reading_scroll = 0;
+    }
+    pub fn cycle_war_campaign(&mut self, forward: bool) {
+        let ids = crate::work::graph::campaign_ids(self);
+        if ids.is_empty() {
+            return;
+        }
+        let current = crate::work::graph::campaign_id(self);
+        let index = current
+            .as_ref()
+            .and_then(|id| ids.iter().position(|q| q == id))
+            .unwrap_or(0);
+        let next = if forward {
+            (index + 1) % ids.len()
+        } else {
+            (index + ids.len() - 1) % ids.len()
+        };
+        self.war_campaign = Some(ids[next].clone());
+        self.normalise_war_selection();
+        self.reading_scroll = 0;
+    }
+    pub fn war_campaign(&self) -> Option<&crate::work::CampaignId> {
+        self.war_campaign.as_ref()
+    }
+    pub fn work_selection(&self) -> Option<&crate::work::WorkSelection> {
+        self.work_selection.as_ref()
+    }
+    pub fn open_quest_board(&mut self) {
+        self.keep_counsel_draft();
+        self.modal = Modal::QuestBoard;
+        self.reading_scroll = 0;
+        if self.work_selection.is_none() {
+            self.work_selection = crate::work::view::items(self).into_iter().next();
+        }
+    }
+    pub fn select_work(&mut self, selection: crate::work::WorkSelection) {
+        self.open_quest_board();
+        self.work_selection = Some(selection);
+        self.reading_scroll = 0;
+    }
+    pub fn cycle_work(&mut self, forward: bool) {
+        let items = crate::work::view::items(self);
+        if items.is_empty() {
+            return;
+        }
+        let index = self
+            .work_selection
+            .as_ref()
+            .and_then(|s| items.iter().position(|i| i == s));
+        let next = index.map_or(0, |i| {
+            if forward {
+                (i + 1) % items.len()
+            } else {
+                (i + items.len() - 1) % items.len()
+            }
+        });
+        self.work_selection = Some(items[next].clone());
+        self.reading_scroll = 0;
+    }
+    pub fn request_work_intent(&mut self, defer: bool) {
+        let Some(crate::work::WorkSelection::Obligation(id)) = &self.work_selection else {
+            self.set_action_feedback("Select an open summons to mark seen or defer.".into());
+            return;
+        };
+        if self
+            .work
+            .obligation(id)
+            .is_none_or(|o| o.state != crate::work::ObligationState::Open)
+        {
+            self.set_action_feedback("This source obligation is already closed.".into());
+            return;
+        }
+        let mut candidate = self.work.clone();
+        candidate.acknowledge(
+            id,
+            if defer {
+                Some(self.now.plus(Self::SNOOZE))
+            } else {
+                None
+            },
+        );
+        self.pending_work = Some(candidate);
+    }
+    pub fn set_work_viewport_size(&mut self, width: u16, height: u16) {
+        self.board_viewport_width = width;
+        self.work_viewport_height = height;
+    }
+    pub fn set_board_viewport_width(&mut self, width: u16) {
+        self.board_viewport_width = width;
+    }
+    pub fn clear_work_selection(&mut self) {
+        self.work_selection = None;
+    }
+
+    pub fn pending_work(&self) -> Option<&crate::work::Projection> {
+        self.pending_work.as_ref()
+    }
+    pub fn settle_work_intent(&mut self, work: Option<crate::work::Projection>) {
+        self.pending_work = None;
+        if let Some(work) = work {
+            self.work = work;
+            self.set_action_feedback("Saved locally; source obligation remains open.".into());
+        } else {
+            self.set_action_feedback(
+                "Local intent was not saved. The obligation remains open.".into(),
+            );
         }
     }
 
@@ -634,6 +842,7 @@ impl Model {
     }
 
     fn set_agent_selection(&mut self, selected: Option<AgentKey>) {
+        self.work_selection = None;
         if self.domain.selected_agent != selected {
             self.invalidate_output();
         }
@@ -1220,7 +1429,9 @@ impl Model {
             | Modal::LibrarianLedger { .. }
             | Modal::Search { .. }
             | Modal::Scrying
-            | Modal::Chronicle => None,
+            | Modal::Chronicle
+            | Modal::QuestBoard
+            | Modal::WarTable => None,
         }
     }
 
@@ -1236,7 +1447,12 @@ impl Model {
                 }
             }
             Modal::Search { query } => query.push(character),
-            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {}
+            Modal::None
+            | Modal::LibrarianLedger { .. }
+            | Modal::Scrying
+            | Modal::Chronicle
+            | Modal::QuestBoard
+            | Modal::WarTable => {}
         }
     }
 
@@ -1271,7 +1487,12 @@ impl Model {
             Modal::Search { query } => {
                 query.pop();
             }
-            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {}
+            Modal::None
+            | Modal::LibrarianLedger { .. }
+            | Modal::Scrying
+            | Modal::Chronicle
+            | Modal::QuestBoard
+            | Modal::WarTable => {}
         }
     }
 
@@ -1283,7 +1504,12 @@ impl Model {
                 }
             }
             Modal::Search { query } => query.clear(),
-            Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {}
+            Modal::None
+            | Modal::LibrarianLedger { .. }
+            | Modal::Scrying
+            | Modal::Chronicle
+            | Modal::QuestBoard
+            | Modal::WarTable => {}
         }
     }
 
@@ -1328,6 +1554,14 @@ impl Model {
                 .output_preview
                 .as_ref()
                 .map_or(1, |preview| preview.text.lines().count().max(1)),
+            Modal::WarTable => crate::ui::war_table::detail_line_count(
+                self,
+                self.board_viewport_width,
+                self.work_viewport_height,
+            ),
+            Modal::QuestBoard => {
+                crate::ui::work_board::detail_line_count(self, self.board_viewport_width)
+            }
             Modal::Chronicle => self.chronicle_chapter_lines().map_or_else(
                 || self.chronicle_entries(usize::MAX).len().max(1),
                 |lines| lines.len().max(1),

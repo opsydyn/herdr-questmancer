@@ -1,0 +1,44 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0027]: pattern does not mention fields `projects`, `work_cache`
+   --> tests/startup.rs:313:9
+    |
+313 |       let StartupData {
+    |  _________^
+314 | |         model,
+315 | |         paths,
+316 | |         diagnostics,
+317 | |     } = startup;
+    | |_____^ missing fields `projects`, `work_cache`
+    |
+help: include the missing fields in the pattern
+    |
+316 -         diagnostics,
+317 -     } = startup;
+316 +         diagnostics, projects, work_cache } = startup;
+    |
+help: if you don't care about these missing fields, you can explicitly ignore them
+    |
+316 -         diagnostics,
+317 -     } = startup;
+316 +         diagnostics, projects: _, work_cache: _ } = startup;
+    |
+help: or always ignore missing fields here
+    |
+316 -         diagnostics,
+317 -     } = startup;
+316 +         diagnostics, .. } = startup;
+    |
+
+error[E0609]: no field `experience` on type `&DomainState`
+   --> tests/herdr_projects_runtime.rs:124:31
+    |
+124 |     assert_eq!(model.domain().experience,0);
+    |                               ^^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `capture`, `campaigns`, `agents`, `selected_agent`, `chronicle`
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `questmancer` (test "herdr_projects_runtime") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+For more information about this error, try `rustc --explain E0027`.
+error: could not compile `questmancer` (test "startup") due to 1 previous error

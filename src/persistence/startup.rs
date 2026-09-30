@@ -12,6 +12,8 @@ pub struct StartupData {
     pub model: Model,
     pub paths: WorkerPaths,
     pub diagnostics: Vec<PersistenceDiagnostic>,
+    pub projects: Option<crate::sources::herdr_projects::RuntimeSelection>,
+    pub work_cache: super::WorkCache,
 }
 
 pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) -> StartupData {
@@ -62,11 +64,47 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
         debug_assert!(seeded.is_ok());
     }
     model.domain_mut().chronicle = replay;
+    let mut work_cache = super::WorkCache::default();
+    let mut projects = config.herdr_projects.clone();
+    if let Some(path) = worker_paths.work_path() {
+        match super::load_work_cache(&path).await {
+            Ok(Some(cache)) => {
+                model.replace_work(cache.projection.clone());
+                work_cache = cache;
+            }
+            Ok(None) => {}
+            Err(error) => {
+                if let Some(selected) = projects.take() {
+                    crate::sources::herdr_projects::source_failure(
+                        &mut model,
+                        selected.source(),
+                        "Work cache is protected; source attachment disabled until the owner repairs it",
+                        true,
+                    );
+                }
+                diagnostics.push(PersistenceDiagnostic {
+                    operation: error.operation,
+                    path: error.path,
+                    line: error.line,
+                    source_message: error.source_message,
+                });
+            }
+        }
+    } else if let Some(selected) = projects.take() {
+        crate::sources::herdr_projects::source_failure(
+            &mut model,
+            selected.source(),
+            "No durable work-cache directory configured; source attachment disabled",
+            true,
+        );
+    }
 
     StartupData {
         model,
         paths: worker_paths,
         diagnostics,
+        projects,
+        work_cache,
     }
 }
 

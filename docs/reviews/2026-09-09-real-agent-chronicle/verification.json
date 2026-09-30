@@ -1,0 +1,94 @@
+{
+  "tested_commit": "44eae4e1ba62c454e6c7fc7857ebe4a437e98afa",
+  "binary_sha256": "7acfd10c7b0606aa2c58e2f40c89b955dc2cd99ea41380b36fbe7c9776aecb5b",
+  "version": "0.1.10",
+  "herdr": "0.9.0",
+  "agent": "Pi",
+  "model": "configured openai-codex/gpt-5.5",
+  "extension_version": 8,
+  "case": "/tmp/qm-real-pi-py9sq0h_",
+  "prompt": "Compute 137 times 29. Reply with exactly QUESTMANCER_CHECK followed by the result. Do not use tools.",
+  "observed_answer": "QUESTMANCER_CHECK 3973",
+  "completion_state": "done",
+  "records": [
+    {
+      "record_version": 2,
+      "id": "observation-f4ca581366d52e02f71027a63d793a92244e2ad1e8fbd4256041d05c9a4793d0",
+      "observed_at": 1788974285004,
+      "observation": {
+        "stamp": {
+          "run": "7fd1705d6f44ff0ab50b5b239f62eb0f4a11294650713b262619c4b3a6a65c55",
+          "epoch": 2,
+          "ordinal": 1
+        },
+        "subject": {
+          "kind": "adventurer",
+          "key": "agent-3a3c1e89f67b716717c4483b",
+          "campaign": "w1",
+          "pane": "w1:p1",
+          "incarnation": "69d7f220d3307d4bed5ffdabdf64e17a04f1f5b9aa844fbaef1977f9dba4beb2",
+          "revision": 2,
+          "name": "chronicle-check"
+        },
+        "evidence": {
+          "source": "pane_metadata",
+          "presence": "working"
+        }
+      },
+      "summary": "chronicle-check began a delve"
+    },
+    {
+      "record_version": 2,
+      "id": "observation-ac3f2f310d3c35828ffb6978b3e172637b13fe1438a45bac5b5eabceb544ed16",
+      "observed_at": 1788974288131,
+      "observation": {
+        "stamp": {
+          "run": "7fd1705d6f44ff0ab50b5b239f62eb0f4a11294650713b262619c4b3a6a65c55",
+          "epoch": 2,
+          "ordinal": 2
+        },
+        "subject": {
+          "kind": "adventurer",
+          "key": "agent-3a3c1e89f67b716717c4483b",
+          "campaign": "w1",
+          "pane": "w1:p1",
+          "incarnation": "69d7f220d3307d4bed5ffdabdf64e17a04f1f5b9aa844fbaef1977f9dba4beb2",
+          "revision": 3,
+          "name": "chronicle-check"
+        },
+        "evidence": {
+          "source": "pane_metadata",
+          "presence": "done"
+        }
+      },
+      "summary": "chronicle-check returned with spoils"
+    }
+  ],
+  "tokens": {
+    "quest_hoard": "\u25c8 1 spoil",
+    "quest_condition": "Triumphant",
+    "quest_omen": "returned with spoils",
+    "quest_rank": "2",
+    "quest_role": "Elf Pathseeker",
+    "quest_epithet": "Warden of Boundaries",
+    "quest_sigil": "\u2316",
+    "quest_trinket": "\u2756 Tiny Familiar"
+  },
+  "experience_after_restart_and_shutdown": 10,
+  "restart_history_unchanged": true,
+  "cleanup": {
+    "errors": [],
+    "panes_remaining": 0,
+    "plugins_remaining": 0,
+    "server_exit_code": 0,
+    "socket_removed": true,
+    "temporary_auth_reference_removed": true
+  },
+  "earlier_attempts": "Two harness output-decoding failures after real completion; each owned server cleaned up. Final corrected run passed.",
+  "limits": [
+    "No native visual acceptance",
+    "No live snapshot-only capture",
+    "No real blocked/counsel cycle",
+    "No repository files or tools given to the agent"
+  ]
+}

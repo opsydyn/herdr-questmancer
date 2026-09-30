@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.95s
+     Running tests/herdr_projects_source.rs (target/debug/deps/herdr_projects_source-c04bc5266dfc39ec)
+
+running 1 test
+test duplicate_prepared_proposal_does_not_downgrade_acknowledged_current_facts ... FAILED
+
+failures:
+
+---- duplicate_prepared_proposal_does_not_downgrade_acknowledged_current_facts stdout ----
+
+thread 'duplicate_prepared_proposal_does_not_downgrade_acknowledged_current_facts' panicked at tests/herdr_projects_source.rs:667:74:
+assertion `left == right` failed
+  left: Projection { sources: {SourceId("herdr-projects:test-home"): SourceState { generation: 1, captured_at: Timestamp(100), last_occurrence: None, cursor: 1, last_event: "", last_changes: [], inventory: Inventory { campaigns: {CampaignId("herdr-projects:test-home/auth"): WorkCampaign { id: CampaignId("herdr-projects:test-home/auth"), revision: 1, name: "Authentication", objective: Some("Preserve compatibility"), state: Active }}, quests: {QuestId("herdr-projects:test-home/auth.thread.t-0001"): Quest { id: QuestId("herdr-projects:test-home/auth.thread.t-0001"), campaign: CampaignId("herdr-projects:test-home/auth"), revision: 1, title: "Migrate API auth", description: Some("Herdr Projects: registered / retained records; partial coverage; native identity unsupported.\nDependencies, structured summons and live bindings unavailable.\nSource thread status: resolved\nPlacement: worktree\nRecorded group (last recorded, not live execution): resolved\nClosure reason: manual\nSource error: \nSource agent label: codex\nSource profile label: codex-fast\nReport reference: unavailable\nRecorded report hash: \nAcknowledged report hash: \nPR reference: "), kind: Unspecified, state: Closed, assignment: None, dependencies: [] }}, obligations: {}, artifacts: {} }, retired: Retired { campaigns: {}, quests: {}, obligations: {}, artifacts: {} }, freshness: Reconcile, bindings: {} }}, intent: {} }
+ right: Projection { sources: {SourceId("herdr-projects:test-home"): SourceState { generation: 1, captured_at: Timestamp(100), last_occurrence: None, cursor: 1, last_event: "", last_changes: [], inventory: Inventory { campaigns: {CampaignId("herdr-projects:test-home/auth"): WorkCampaign { id: CampaignId("herdr-projects:test-home/auth"), revision: 1, name: "Authentication", objective: Some("Preserve compatibility"), state: Active }}, quests: {QuestId("herdr-projects:test-home/auth.thread.t-0001"): Quest { id: QuestId("herdr-projects:test-home/auth.thread.t-0001"), campaign: CampaignId("herdr-projects:test-home/auth"), revision: 1, title: "Migrate API auth", description: Some("Herdr Projects: registered / retained records; partial coverage; native identity unsupported.\nDependencies, structured summons and live bindings unavailable.\nSource thread status: resolved\nPlacement: worktree\nRecorded group (last recorded, not live execution): resolved\nClosure reason: manual\nSource error: \nSource agent label: codex\nSource profile label: codex-fast\nReport reference: unavailable\nRecorded report hash: \nAcknowledged report hash: \nPR reference: "), kind: Unspecified, state: Closed, assignment: None, dependencies: [] }}, obligations: {}, artifacts: {} }, retired: Retired { campaigns: {}, quests: {}, obligations: {}, artifacts: {} }, freshness: Current, bindings: {} }}, intent: {} }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    duplicate_prepared_proposal_does_not_downgrade_acknowledged_current_facts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 29 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `--test herdr_projects_source`

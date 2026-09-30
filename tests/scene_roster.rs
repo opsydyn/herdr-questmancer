@@ -55,6 +55,7 @@ fn render_at_size(
     let mut pixels = RgbBuffer::filled(0, 0, Rgb::BLACK);
     let presentation = ScenePresentation {
         world,
+        war_table: None,
         selected_agent: Some(snapshot.agents[0].key.clone()),
         transition_floor: None,
         party_rest_since: None,

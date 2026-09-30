@@ -26,6 +26,8 @@ pub enum Action {
     InspectSpoils,
     NextCampaign,
     OpenChronicle,
+    OpenQuestBoard,
+    OpenWarTable,
     ToggleChronicleChapter,
     NextResult,
     PreviousResult,
@@ -69,7 +71,10 @@ pub fn action_for_event_in(event: &Event, modal: &Modal) -> Action {
     // The wheel is the gesture people reach for on a wall of text, and it was
     // the one mouse event Questmancer ignored entirely.
     if let Event::Mouse(mouse) = event
-        && matches!(modal, Modal::Scrying | Modal::Chronicle)
+        && matches!(
+            modal,
+            Modal::Scrying | Modal::Chronicle | Modal::QuestBoard | Modal::WarTable
+        )
     {
         return match mouse.kind {
             MouseEventKind::ScrollDown => Action::ScrollDown,
@@ -91,6 +96,36 @@ pub fn action_for(key: KeyEvent) -> Action {
 }
 
 fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
+    if matches!(modal, Modal::WarTable) {
+        return match key.code {
+            KeyCode::Esc | KeyCode::Char('w') => Action::Dismiss,
+            KeyCode::Char('b') => Action::OpenQuestBoard,
+            KeyCode::Char('!') => Action::NextUrgent,
+            KeyCode::Char('j') => Action::Next,
+            KeyCode::Char('k') => Action::Previous,
+            KeyCode::Tab => Action::NextCampaign,
+            KeyCode::BackTab => Action::PreviousResult,
+            KeyCode::Down => Action::ScrollDown,
+            KeyCode::Up => Action::ScrollUp,
+            KeyCode::Enter => Action::Observe,
+            _ => Action::None,
+        };
+    }
+    if matches!(modal, Modal::QuestBoard) {
+        return match key.code {
+            KeyCode::Esc | KeyCode::Char('b') => Action::Dismiss,
+            KeyCode::Char('w') => Action::OpenWarTable,
+            KeyCode::Char('!') => Action::NextUrgent,
+            KeyCode::Char('j') | KeyCode::Tab => Action::Next,
+            KeyCode::Char('k') | KeyCode::BackTab => Action::Previous,
+            KeyCode::Down => Action::ScrollDown,
+            KeyCode::Up => Action::ScrollUp,
+            KeyCode::Enter => Action::Observe,
+            KeyCode::Char(' ') => Action::AcknowledgeSummons,
+            KeyCode::Char('s') => Action::DeferSummons,
+            _ => Action::None,
+        };
+    }
     if matches!(modal, Modal::Scrying) {
         return match key.code {
             KeyCode::Esc => Action::Dismiss,
@@ -148,6 +183,8 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         // Deliberately not `n`: that is being kept for cycling search results.
         KeyCode::Char('!') => Action::NextUrgent,
         KeyCode::Char('c') => Action::OpenChronicle,
+        KeyCode::Char('b') => Action::OpenQuestBoard,
+        KeyCode::Char('w') => Action::OpenWarTable,
         KeyCode::Char('n') => Action::NextResult,
         KeyCode::Char('N') => Action::PreviousResult,
         KeyCode::Char('s') => Action::DeferSummons,

@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.77s
+     Running tests/herdr_projects_runtime.rs (target/debug/deps/herdr_projects_runtime-7c17203cc12942a0)
+
+running 1 test
+test obsolete_leased_capture_cannot_downgrade_a_new_generation ... FAILED
+
+failures:
+
+---- obsolete_leased_capture_cannot_downgrade_a_new_generation stdout ----
+
+thread 'obsolete_leased_capture_cannot_downgrade_a_new_generation' panicked at tests/herdr_projects_runtime.rs:306:5:
+assertion `left == right` failed
+  left: Projection { sources: {SourceId("projects:runtime"): SourceState { generation: 2, captured_at: Timestamp(1790799427252), last_occurrence: None, cursor: 2, last_event: "", last_changes: [], inventory: Inventory { campaigns: {CampaignId("projects:runtime/campaign"): WorkCampaign { id: CampaignId("projects:runtime/campaign"), revision: 1, name: "Runtime campaign", objective: Some("Preserve facts"), state: Active }}, quests: {QuestId("projects:runtime/campaign.thread.t-0001"): Quest { id: QuestId("projects:runtime/campaign.thread.t-0001"), campaign: CampaignId("projects:runtime/campaign"), revision: 1, title: "Initial work", description: Some("Herdr Projects: registered / retained records; partial coverage; native identity unsupported.\nDependencies, structured summons and live bindings unavailable.\nSource thread status: open\nPlacement: checkout\nRecorded group (last recorded, not live execution): waiting-on-you\nClosure reason: \nSource error: \nSource agent label: \nSource profile label: \nReport reference: unavailable\nRecorded report hash: \nAcknowledged report hash: \nPR reference: "), kind: Unspecified, state: Unknown, assignment: None, dependencies: [] }}, obligations: {}, artifacts: {} }, retired: Retired { campaigns: {}, quests: {}, obligations: {}, artifacts: {} }, freshness: Reconcile, bindings: {} }}, intent: {} }
+ right: Projection { sources: {SourceId("projects:runtime"): SourceState { generation: 2, captured_at: Timestamp(1790799427252), last_occurrence: None, cursor: 2, last_event: "", last_changes: [], inventory: Inventory { campaigns: {CampaignId("projects:runtime/campaign"): WorkCampaign { id: CampaignId("projects:runtime/campaign"), revision: 1, name: "Runtime campaign", objective: Some("Preserve facts"), state: Active }}, quests: {QuestId("projects:runtime/campaign.thread.t-0001"): Quest { id: QuestId("projects:runtime/campaign.thread.t-0001"), campaign: CampaignId("projects:runtime/campaign"), revision: 1, title: "Initial work", description: Some("Herdr Projects: registered / retained records; partial coverage; native identity unsupported.\nDependencies, structured summons and live bindings unavailable.\nSource thread status: open\nPlacement: checkout\nRecorded group (last recorded, not live execution): waiting-on-you\nClosure reason: \nSource error: \nSource agent label: \nSource profile label: \nReport reference: unavailable\nRecorded report hash: \nAcknowledged report hash: \nPR reference: "), kind: Unspecified, state: Unknown, assignment: None, dependencies: [] }}, obligations: {}, artifacts: {} }, retired: Retired { campaigns: {}, quests: {}, obligations: {}, artifacts: {} }, freshness: Current, bindings: {} }}, intent: {} }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    obsolete_leased_capture_cannot_downgrade_a_new_generation
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `--test herdr_projects_runtime`

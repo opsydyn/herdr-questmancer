@@ -17,13 +17,12 @@ use super::{
     protocol::{
         AgentViewBuiltinSortField, AgentViewClearParams, AgentViewSetParams, AgentViewSort,
         AgentViewSortField, AgentViewSortOrder, EmptyParams, ErrorResponse, OkResult,
-        PaneGraphicsClearParams, PaneGraphicsInfo, PaneGraphicsPlacementParams,
-        PaneGraphicsSetParams, PaneInfo, PaneInfoResult, PaneReadParams, PaneReadResult,
+        PaneGraphicsInfo, PaneInfo, PaneInfoResult, PaneReadParams, PaneReadResult,
         PaneReadResultEnvelope, PaneReportMetadataParams, PaneSendKeysParams, PaneSendTextParams,
-        PaneTarget, PluginActionInfo, PluginActionInvokeParams, PluginActionInvokedResult,
-        PluginActionListParams, PluginActionListResult, PluginInvocationContext, Pong, ReadFormat,
-        ReadSource, Request, SessionSnapshot, SessionSnapshotResult, SuccessResponse,
-        WorkspaceReportMetadataParams,
+        PaneTarget, PaneViewportHeader, PaneViewportHeaderSyncParams, PluginActionInfo,
+        PluginActionInvokeParams, PluginActionInvokedResult, PluginActionListParams,
+        PluginActionListResult, PluginInvocationContext, Pong, ReadFormat, ReadSource, Request,
+        SessionSnapshot, SessionSnapshotResult, SuccessResponse, WorkspaceReportMetadataParams,
     },
 };
 
@@ -88,49 +87,47 @@ impl HerdrClient {
         .await
     }
 
-    pub async fn set_pane_graphics(
-        &self,
-        pane_id: impl Into<String>,
-        layer_id: impl Into<String>,
-        png: &[u8],
-        label: Option<String>,
-    ) -> Result<(), ClientError> {
-        let _: OkResult = self
-            .request(
-                "pane.graphics.set",
-                PaneGraphicsSetParams {
-                    pane_id: pane_id.into(),
-                    layer_id: Some(layer_id.into()),
-                    z_index: 10,
-                    format: "png".to_owned(),
-                    image_width: 8,
-                    image_height: 8,
-                    data_base64: encode_base64(png),
-                    placement: PaneGraphicsPlacementParams {
-                        viewport_col: 0,
-                        viewport_row: 0,
-                        grid_cols: 1,
-                        grid_rows: 1,
-                    },
-                    viewport_header: label,
-                },
-                "ok",
-            )
-            .await?;
-        Ok(())
+    /// Negotiated separately: an older server cannot silently accept header placement.
+    pub async fn pane_headers_supported(&self) -> Result<bool, ClientError> {
+        match self
+            .request::<_, OkResult>("pane.viewport_header.info", EmptyParams {}, "ok")
+            .await
+        {
+            Ok(_) => Ok(true),
+            Err(ClientError::Server { code, .. })
+                if matches!(
+                    code.as_str(),
+                    "unknown_method" | "invalid_request" | "method_not_found" | "header_disabled"
+                ) =>
+            {
+                Ok(false)
+            }
+            Err(error) => Err(error),
+        }
     }
 
-    pub async fn clear_pane_graphics(
+    pub async fn sync_pane_headers(
         &self,
-        pane_id: impl Into<String>,
-        layer_id: impl Into<String>,
+        source: &str,
+        sequence: u64,
+        headers: Vec<crate::pane_header::PaneHeaderProjection>,
     ) -> Result<(), ClientError> {
         let _: OkResult = self
             .request(
-                "pane.graphics.clear",
-                PaneGraphicsClearParams {
-                    pane_id: pane_id.into(),
-                    layer_id: Some(layer_id.into()),
+                "pane.viewport_header.sync",
+                PaneViewportHeaderSyncParams {
+                    source: source.to_owned(),
+                    sequence,
+                    headers: headers
+                        .into_iter()
+                        .map(|header| PaneViewportHeader {
+                            pane_id: header.pane_id.to_string(),
+                            terminal_id: header.terminal_id,
+                            agent_session: header.agent_session,
+                            label: header.label,
+                            rgba_base64: Some(encode_base64(&header.rgba)),
+                        })
+                        .collect(),
                 },
                 "ok",
             )
@@ -394,9 +391,9 @@ fn encode_base64(bytes: &[u8]) -> String {
     const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
     for chunk in bytes.chunks(3) {
-        let a = chunk[0] as u32;
-        let b = chunk.get(1).copied().unwrap_or(0) as u32;
-        let c = chunk.get(2).copied().unwrap_or(0) as u32;
+        let a = u32::from(chunk[0]);
+        let b = u32::from(chunk.get(1).copied().unwrap_or(0));
+        let c = u32::from(chunk.get(2).copied().unwrap_or(0));
         out.push(TABLE[((a >> 2) & 63) as usize] as char);
         out.push(TABLE[(((a << 4) | (b >> 4)) & 63) as usize] as char);
         out.push(if chunk.len() > 1 {

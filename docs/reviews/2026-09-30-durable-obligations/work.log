@@ -1,0 +1,37 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.51s
+     Running tests/work.rs (target/debug/deps/work-9969caf588f6f7fc)
+
+running 29 tests
+test deferred_decisions_remain_open_and_schedule_one_expiry_wake ... ok
+test duplicate_payload_conflict_and_exact_resolution ... ok
+test closed_incarnation_intent_never_hides_new_request_and_dependencies_stay_source_owned ... ok
+test fixture_disconnect_retains_open_work_and_reconciliation_requires_baseline ... ok
+test an_unknown_close_is_a_tombstone_for_late_old_requests ... ok
+test attention_ranks_human_requests_then_age_and_identity ... ok
+test complete_coverage_cannot_be_undone_by_an_old_entity_revision ... ok
+test fixture_replay_is_equivalent_and_supervisor_waits_do_not_alert ... ok
+test malformed_baseline_map_keys_are_not_normalised_into_valid_entities ... ok
+test inbox_cannot_write_another_sources_namespace ... ok
+test explicit_session_binding_controls_observe_and_duplicate_collapse ... ok
+test missing_dependencies_and_completed_cycles_remain_unready ... ok
+test partial_baseline_preserves_references_and_complete_cannot_roll_back ... ok
+test old_head_validation_does_not_claim_current_artifact_passed ... ok
+test qualified_ids_and_exit_preserve_obligations ... ok
+test stale_generations_and_gaps_cannot_change_source_facts ... ok
+test source_tombstone_retains_supersession_without_success ... ok
+test urgency_reaches_work_without_live_agent_and_seen_never_resolves ... ok
+test production_board_displays_literal_reason_freshness_and_unavailable_observe ... ok
+test board_inventory_wraps_complete_titles_and_keeps_selection_visible ... ok
+test narrow_details_are_reachable_and_inventory_is_keyboard_complete ... ok
+test unrelated_updates_and_duplicate_delivery_keep_obligation_open ... ok
+test live_identity_is_omitted_and_startup_has_no_synthetic_source ... ok
+test restart_preserves_intent_as_unverified_without_live_bindings ... ok
+test local_intent_is_committed_only_after_worker_acknowledgement ... ok
+test corrupt_future_and_failed_publication_protect_prior_state ... ok
+test composed_source_progress_exit_restart_and_matching_resolution ... ok
+test production_board_review_exports_when_requested ... ok
+test measure_work_attention_and_scene_capacity_at_one_ten_and_one_hundred ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+

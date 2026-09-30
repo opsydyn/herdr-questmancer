@@ -1,0 +1,19 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.34s
+     Running tests/herdr_projects_source.rs (target/debug/deps/herdr_projects_source-c04bc5266dfc39ec)
+
+running 11 tests
+test source_writer_helper_process ... ok
+test decoder_rejects_future_versions_false_capabilities_and_duplicate_thread_keys ... ok
+test selection_rejects_identity_and_path_escapes ... ok
+test missing_lock_is_partial_and_never_creates_source_files ... ok
+test snapshot_is_versioned_literal_partial_and_does_not_write_to_the_source ... ok
+test reports_are_only_home_references_with_matching_hash_evidence ... ok
+test symlinked_roots_ancestors_records_and_reports_are_not_followed ... ok
+test malformed_or_unknown_required_records_reject_the_whole_capture ... ok
+test captures_at_one_ten_and_one_hundred_are_deterministic_and_do_not_invent_work ... ok
+test file_inventory_and_snapshot_sizes_are_bounded ... ok
+test cooperative_writer_process_cannot_publish_a_mixed_record_pair ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+

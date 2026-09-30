@@ -1,0 +1,12 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0432]: unresolved imports `questmancer::sources::herdr_projects::MappingError`, `questmancer::sources::herdr_projects::Registration`, `questmancer::sources::herdr_projects::map_snapshot`
+  --> tests/herdr_projects_source.rs:33:48
+   |
+33 |     use questmancer::sources::herdr_projects::{MappingError, Registration, map_snapshot};
+   |                                                ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^ no `map_snapshot` in `sources::herdr_projects`
+   |                                                |             |
+   |                                                |             no `Registration` in `sources::herdr_projects`
+   |                                                no `MappingError` in `sources::herdr_projects`
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `questmancer` (test "herdr_projects_source") due to 1 previous error

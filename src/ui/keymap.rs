@@ -24,6 +24,21 @@ pub struct Binding {
 
 pub const BINDINGS: &[Binding] = &[
     Binding {
+        keys: "w",
+        description: "Open the War Table",
+        action: Action::OpenWarTable,
+    },
+    Binding {
+        keys: "b",
+        description: "Read the Quest Board",
+        action: Action::OpenQuestBoard,
+    },
+    Binding {
+        keys: "j/k (Board)",
+        description: "Select work (also Tab/Shift-Tab)",
+        action: Action::Next,
+    },
+    Binding {
         keys: "1 / 2",
         description: "Guild Hall / Delve",
         action: Action::Switch(View::Guild),

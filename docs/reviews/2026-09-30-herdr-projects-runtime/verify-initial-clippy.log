@@ -1,0 +1,22 @@
+cargo fmt --all --check
+cargo clippy --all-targets --all-features -- -D warnings
+    Checking questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error: binding's name is too similar to existing binding
+   --> src/sources/herdr_projects/producer.rs:148:13
+    |
+148 |         let stale = model
+    |             ^^^^^
+    |
+note: existing binding defined here
+   --> src/sources/herdr_projects/producer.rs:137:13
+    |
+137 |         let state = |model: &Model| {
+    |             ^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+    = note: `-D clippy::similar-names` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::similar_names)]`
+
+error: could not compile `questmancer` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `questmancer` (lib test) due to 1 previous error
+error: recipe `lint` failed on line 11 with exit code 101

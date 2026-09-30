@@ -1,0 +1,49 @@
+warning: unused import: `producer::fail as source_failure`
+ --> src/sources/herdr_projects/mod.rs:9:16
+  |
+9 | pub(crate) use producer::fail as source_failure;
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `questmancer` (lib) generated 1 warning (run `cargo fix --lib -p questmancer` to apply 1 suggestion)
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0599]: no method named `start_projects` found for struct `RuntimeLifecycle` in the current scope
+   --> tests/herdr_projects_runtime.rs:120:15
+    |
+120 |     lifecycle.start_projects(startup.projects,&startup.work_cache,&mut model);
+    |               ^^^^^^^^^^^^^^ method not found in `RuntimeLifecycle`
+
+error[E0609]: no field `projects` on type `StartupData`
+   --> tests/herdr_projects_runtime.rs:120:38
+    |
+120 |     lifecycle.start_projects(startup.projects,&startup.work_cache,&mut model);
+    |                                      ^^^^^^^^ unknown field
+    |
+    = note: available fields are: `model`, `paths`, `diagnostics`
+
+error[E0609]: no field `work_cache` on type `StartupData`
+   --> tests/herdr_projects_runtime.rs:120:56
+    |
+120 |     lifecycle.start_projects(startup.projects,&startup.work_cache,&mut model);
+    |                                                        ^^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `model`, `paths`, `diagnostics`
+
+error[E0599]: no method named `projects_inbox_mut` found for struct `RuntimeLifecycle` in the current scope
+   --> tests/herdr_projects_runtime.rs:121:31
+    |
+121 |     let observation=lifecycle.projects_inbox_mut().as_mut().unwrap().next_projects().await;
+    |                               ^^^^^^^^^^^^^^^^^^ method not found in `RuntimeLifecycle`
+
+error[E0609]: no field `experience` on type `&DomainState`
+   --> tests/herdr_projects_runtime.rs:124:31
+    |
+124 |     assert_eq!(model.domain().experience,0);
+    |                               ^^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `capture`, `campaigns`, `agents`, `selected_agent`, `chronicle`
+
+Some errors have detailed explanations: E0599, E0609.
+For more information about an error, try `rustc --explain E0599`.
+error: could not compile `questmancer` (test "herdr_projects_runtime") due to 5 previous errors

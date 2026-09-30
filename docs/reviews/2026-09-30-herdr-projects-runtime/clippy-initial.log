@@ -1,0 +1,73 @@
+    Blocking waiting for file lock on build directory
+    Checking questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error: unnecessary boolean `not` operation
+   --> src/sources/herdr_projects/producer.rs:165:17
+    |
+165 | /                 if !matches!(checked, Ok(Ok(()))) {
+166 | |                     fail(model, &source, &ReadError::Lease.to_string(), true);
+167 | |                     Acknowledgement::Stop
+168 | |                 } else {
+...   |
+199 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#if_not_else
+    = note: `-D clippy::if-not-else` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::if_not_else)]`
+help: try
+    |
+165 ~                 if .. {
+166 +                     match crate::work::runtime::accept_snapshot(
+167 +                         client,
+168 +                         model,
+169 +                         &self.selection.registration,
+170 +                         self.generation,
+171 +                         &snapshot,
+172 +                         self.checkpoint.as_ref(),
+173 +                     )
+174 +                     .await
+175 +                     {
+176 +                         Ok(checkpoint) => {
+177 +                             model.set_work_source_notice(None);
+178 +                             Acknowledgement::Accepted(checkpoint)
+179 +                         }
+180 +                         Err(error) => {
+181 +                             let stop = error.requires_rebind()
+182 +                                 || matches!(
+183 +                                     error,
+184 +                                     crate::work::runtime::ObservationError::Mapping(
+185 +                                         MappingError::Exhausted | MappingError::Stale
+186 +                                     )
+187 +                                 );
+188 +                             model.set_work_source_notice(Some(crate::work::source::SourceNotice { source, message: format!("{error}{}", if stop { "; attachment stopped. Confirm/rebind the retained project and restart; use fresh tokens for a replacement." } else { "; retaining facts and retrying." }) }));
+189 +                             if stop {
+190 +                                 Acknowledgement::Stop
+191 +                             } else {
+192 +                                 Acknowledgement::Retry
+193 +                             }
+194 +                         }
+195 +                     }
+196 +                 } else {
+197 +                     fail(model, &source, &ReadError::Lease.to_string(), true);
+198 +                     Acknowledgement::Stop
+199 +                 }
+    |
+
+error: this function has too many lines (108/100)
+   --> src/sources/herdr_projects/producer.rs:218:1
+    |
+218 | / async fn run(
+219 | |     selection: RuntimeSelection,
+220 | |     mut generation: u64,
+221 | |     mut accepted_generation: Option<u64>,
+...   |
+333 | | }
+    | |_^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_lines
+    = note: `-D clippy::too-many-lines` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::too_many_lines)]`
+
+error: could not compile `questmancer` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `questmancer` (lib test) due to 2 previous errors

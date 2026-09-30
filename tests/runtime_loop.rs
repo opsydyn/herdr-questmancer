@@ -1088,7 +1088,13 @@ fn disconnect_preserves_the_last_connected_snapshot() {
     );
 
     assert_live_domain_eq(model.domain(), &connected_domain);
-    assert_eq!(effects, RuntimeEffects::default());
+    assert_eq!(
+        effects,
+        RuntimeEffects {
+            agent_commands: vec![AgentCommand::PublishPaneHeaders(Vec::new())],
+            ..RuntimeEffects::default()
+        }
+    );
 }
 
 #[tokio::test]
@@ -1409,7 +1415,10 @@ fn two_overtaken_refreshes_resubscribe_without_rolling_back_or_backfilling() {
         changed_snapshot(AgentStatus::Working, 8),
     );
     assert!(recovered.resubscribe);
-    assert!(recovered.agent_commands.is_empty());
+    assert_eq!(
+        recovered.agent_commands,
+        vec![AgentCommand::PublishPaneHeaders(Vec::new())]
+    );
     assert!(recovered.persistence.is_empty());
     assert_eq!(model.selected_agent().unwrap().presence, Presence::Idle);
     assert_eq!(model.connection(), &ConnectionState::Connecting);
@@ -1470,7 +1479,13 @@ fn resync_does_not_launch_a_competing_command_snapshot() {
         ConnectionUpdate::Resyncing,
         Timestamp::from_millis(2_000),
     );
-    assert_eq!(resync, RuntimeEffects::default());
+    assert_eq!(
+        resync,
+        RuntimeEffects {
+            agent_commands: vec![AgentCommand::PublishPaneHeaders(Vec::new())],
+            ..RuntimeEffects::default()
+        }
+    );
     assert_eq!(model.connection(), &ConnectionState::Connecting);
     assert_eq!(
         deliver_snapshot(&mut model, request, snapshot()),
@@ -1627,7 +1642,10 @@ fn refresh_with_unsubscribed_panes_requires_a_quiet_new_baseline() {
     );
     assert_live_domain_eq(model.domain(), &before);
     assert!(effects.persistence.is_empty());
-    assert!(effects.agent_commands.is_empty());
+    assert_eq!(
+        effects.agent_commands,
+        vec![AgentCommand::PublishPaneHeaders(Vec::new())]
+    );
     apply_connection_update(
         &mut model,
         ConnectionUpdate::Connected(changed),
@@ -1657,4 +1675,40 @@ fn assert_live_domain_eq(actual: &DomainState, expected: &DomainState) {
     assert_eq!(actual.campaigns, expected.campaigns);
     assert_eq!(actual.selected_agent, expected.selected_agent);
     assert_eq!(actual.chronicle, expected.chronicle);
+}
+
+#[test]
+fn pane_headers_publish_changed_facts_clear_disconnect_and_ignore_metadata_echoes() {
+    let mut model = Model::new(View::Guild);
+    let effects = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(snapshot()),
+        Timestamp::from_millis(1000),
+    );
+    assert!(
+        effects
+            .agent_commands
+            .iter()
+            .any(|command| matches!(command,
+        AgentCommand::PublishPaneHeaders(headers) if headers.len() == 1))
+    );
+    let effects = apply_snapshot(&mut model, snapshot(), Timestamp::from_millis(1100));
+    assert!(
+        !effects
+            .agent_commands
+            .iter()
+            .any(|command| matches!(command, AgentCommand::PublishPaneHeaders(_)))
+    );
+    let effects = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Disconnected("lost".into()),
+        Timestamp::from_millis(1200),
+    );
+    assert!(
+        effects
+            .agent_commands
+            .iter()
+            .any(|command| matches!(command,
+        AgentCommand::PublishPaneHeaders(headers) if headers.is_empty()))
+    );
 }

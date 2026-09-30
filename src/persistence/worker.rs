@@ -25,7 +25,15 @@ const DEBOUNCE: Duration = Duration::from_millis(250);
 const DIAGNOSTIC_CAPACITY: usize = 16;
 
 enum PersistenceMessage {
+    PublishWorkProposal {
+        proposal: Box<crate::sources::herdr_projects::Proposal>,
+        acknowledgement: oneshot::Sender<Result<(), PersistenceError>>,
+    },
     StageState(PersistedStateV1),
+    PublishWork {
+        projection: crate::work::Projection,
+        acknowledgement: oneshot::Sender<Result<(), PersistenceError>>,
+    },
     AppendChronicle {
         entry: ChronicleEntry,
         acknowledgement: oneshot::Sender<Result<(), PersistenceError>>,
@@ -41,6 +49,14 @@ pub struct WorkerPaths {
 }
 
 impl WorkerPaths {
+    pub fn work_path(&self) -> Option<PathBuf> {
+        self.state
+            .as_ref()
+            .or(self.chronicle.as_ref())
+            .and_then(|p| p.parent())
+            .map(|p| p.join("work-state.json"))
+    }
+
     pub fn new(state: Option<PathBuf>, chronicle: Option<PathBuf>) -> Self {
         Self { state, chronicle }
     }
@@ -53,6 +69,33 @@ pub struct PersistenceClient {
 }
 
 impl PersistenceClient {
+    pub async fn publish_work_proposal(
+        &self,
+        proposal: crate::sources::herdr_projects::Proposal,
+    ) -> Result<(), PersistenceError> {
+        let (acknowledgement, response) = oneshot::channel();
+        self.sender
+            .send(PersistenceMessage::PublishWorkProposal {
+                proposal: Box::new(proposal),
+                acknowledgement,
+            })
+            .map_err(|_| channel_error("publish work proposal"))?;
+        receive_acknowledgement(response, "publish work proposal").await
+    }
+    pub async fn publish_work(
+        &self,
+        projection: crate::work::Projection,
+    ) -> Result<(), PersistenceError> {
+        let (acknowledgement, response) = oneshot::channel();
+        self.sender
+            .send(PersistenceMessage::PublishWork {
+                projection,
+                acknowledgement,
+            })
+            .map_err(|_| channel_error("publish work"))?;
+        receive_acknowledgement(response, "publish work").await
+    }
+
     pub fn stage_state(&mut self, state: PersistedStateV1) -> Result<bool, PersistenceError> {
         if self.last_staged.as_ref() == Some(&state) {
             return Ok(false);
@@ -235,6 +278,18 @@ async fn run(
         tokio::select! {
             biased;
             message = messages.recv() => match message {
+                Some(PersistenceMessage::PublishWorkProposal { proposal, acknowledgement }) => {
+                    let result=if let Some(path)=paths.work_path() {
+                        super::publish_work_proposal(&path,&proposal).await.map(drop)
+                    } else { Err(channel_error("work storage is unavailable")) };
+                    let _=acknowledgement.send(result);
+                }
+                Some(PersistenceMessage::PublishWork { projection, acknowledgement }) => {
+                    let result=if let Some(path)=paths.work_path() {
+                        super::publish_work(&path,&projection).await.map(drop)
+                    } else { Err(channel_error("work storage is unavailable")) };
+                    let _=acknowledgement.send(result);
+                }
                 Some(PersistenceMessage::StageState(state)) => {
                     dirty_state = Some(state);
                     let deadline = Instant::now() + DEBOUNCE;

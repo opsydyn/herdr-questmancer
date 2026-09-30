@@ -1,0 +1,22 @@
+cargo fmt --all --check
+cargo clippy --all-targets --all-features -- -D warnings
+    Checking questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error: this function has too many lines (112/100)
+   --> src/ui/war_table.rs:39:1
+    |
+ 39 | / pub fn render(frame: &mut Frame<'_>, model: &Model, presentation: &ScenePresentation) {
+ 40 | |     let viewport = frame.area();
+ 41 | |     if viewport.width < 28 || viewport.height < 12 {
+ 42 | |         paint_text(
+...   |
+152 | | }
+    | |_^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_lines
+    = note: `-D clippy::too-many-lines` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::too_many_lines)]`
+
+error: could not compile `questmancer` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `questmancer` (lib test) due to 1 previous error
+error: recipe `lint` failed on line 11 with exit code 101

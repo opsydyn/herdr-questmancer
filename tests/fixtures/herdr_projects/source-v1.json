@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "format": "herdr-projects-0.2.34",
+  "inspected_revision": "4e4548c3c43888e6be1c96906215998f07dc63f0",
+  "source": "herdr-projects:test-home",
+  "campaign": "auth",
+  "captured_at": 100,
+  "coverage": "Partial",
+  "coherence": "CooperativeRecordLock",
+  "capabilities": {
+    "project_metadata": "Supported",
+    "thread_inventory": "Supported",
+    "report_references": "Supported",
+    "dependencies": "Unsupported",
+    "structured_obligations": "Unsupported",
+    "live_bindings": "Unsupported",
+    "durable_identity": "Unsupported",
+    "revision_bound_validation": "Unsupported"
+  },
+  "project": {
+    "name": "Authentication",
+    "goal": "Preserve compatibility",
+    "status": "active"
+  },
+  "threads": {
+    "t-0001": {
+      "id": "t-0001",
+      "created": "2026-09-28T10:00:00Z",
+      "title": "Migrate API auth",
+      "status": "resolved",
+      "placement": "worktree",
+      "resolved_reason": "manual",
+      "error": "",
+      "recorded_group": "resolved",
+      "updated": "",
+      "agent": "codex",
+      "profile": "codex-fast",
+      "report_hash": "",
+      "acked_report_hash": "",
+      "pr": "",
+      "home_report": null
+    }
+  },
+  "diagnostics": [
+    "PartialCoverage",
+    "NoNativeDurableIdentity"
+  ]
+}

@@ -18,6 +18,7 @@ pub struct ActionReduction {
     pub control: ControlFlow<(), ()>,
     pub commands: Vec<AgentCommand>,
     pub persistence: Vec<Command>,
+    pub work_intent: Option<crate::work::Projection>,
 }
 
 #[must_use]
@@ -26,6 +27,11 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
     let mut commands = Vec::new();
     if !matches!(action, Action::Redraw | Action::None) {
         model.note_interaction();
+    }
+    if intercept_war_table(model, action, &mut commands)
+        || intercept_work_board(model, action, &mut commands)
+    {
+        return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
     }
     if intercept_reading_modal(model, action) {
         return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
@@ -88,12 +94,11 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             cycle_display_preference(model, action);
             ControlFlow::Continue(())
         }
-        Action::OpenChronicle => {
-            model.open_chronicle();
-            ControlFlow::Continue(())
-        }
-        Action::ToggleLedger => {
-            model.toggle_ledger();
+        Action::OpenWarTable
+        | Action::OpenQuestBoard
+        | Action::OpenChronicle
+        | Action::ToggleLedger => {
+            open_parchment(model, action);
             ControlFlow::Continue(())
         }
         Action::TypeCharacter(_) | Action::Backspace | Action::ClearInput => {
@@ -105,12 +110,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             ControlFlow::Continue(())
         }
         Action::Submit => {
-            match model.modal() {
-                Modal::Counsel { .. } => submit_counsel(model, &mut commands),
-                Modal::Search { .. } => submit_search(model, &mut commands),
-                Modal::None | Modal::LibrarianLedger { .. } | Modal::Scrying | Modal::Chronicle => {
-                }
-            }
+            submit_modal(model, &mut commands);
             ControlFlow::Continue(())
         }
         Action::ToggleChronicleChapter
@@ -223,6 +223,7 @@ fn finish_reduction(
         control,
         commands,
         persistence,
+        work_intent: model.pending_work().cloned(),
     }
 }
 
@@ -558,19 +559,40 @@ fn select_next_campaign(model: &mut Model, commands: &mut Vec<AgentCommand>) {
 /// The silent case matters: moving the selection somewhere arbitrary when
 /// nothing is urgent would teach the key to be untrustworthy.
 fn select_next_urgent(model: &mut Model, commands: &mut Vec<AgentCommand>) {
-    let before = selected_pane(model);
-    if model.select_next_agent_awaiting_a_human() {
-        if selected_pane(model).is_some() {
+    use crate::work::{AttentionTarget, WorkSelection};
+    let queue = crate::work::queue(model);
+    let current = match model.work_selection() {
+        Some(WorkSelection::Obligation(id)) => Some(AttentionTarget::Obligation(id.clone())),
+        _ => model
+            .selected_agent_key()
+            .cloned()
+            .map(AttentionTarget::Agent),
+    };
+    let index = current
+        .as_ref()
+        .and_then(|current| queue.iter().position(|target| target == current))
+        .map_or(0, |i| (i + 1) % queue.len().max(1));
+    match queue.get(index) {
+        Some(AttentionTarget::Obligation(id)) => {
+            model.select_work(WorkSelection::Obligation(id.clone()));
+        }
+        Some(AttentionTarget::Agent(key)) => {
+            let key = key.clone();
+            let before = selected_pane(model);
+            model.clear_work_selection();
+            if matches!(model.modal(), Modal::QuestBoard | Modal::WarTable) {
+                model.dismiss_modal();
+            }
+            model.select_agent(&key);
             model.show_adventurer_card();
+            let after = selected_pane(model);
+            if after != before
+                && let Some(pane) = after
+            {
+                commands.extend(load_output(model, pane));
+            }
         }
-        let after = selected_pane(model);
-        if after != before
-            && let Some(pane_id) = after
-        {
-            commands.extend(load_output(model, pane_id));
-        }
-    } else {
-        model.set_action_feedback("No adventurer is waiting on you.".to_owned());
+        None => model.set_action_feedback("No adventurer is waiting on you.".into()),
     }
 }
 
@@ -610,4 +632,97 @@ fn load_output(model: &mut Model, pane_id: crate::domain::PaneId) -> Option<Agen
         lines: model.settings().output_preview_lines.get(),
         request,
     })
+}
+
+fn open_parchment(model: &mut Model, action: Action) {
+    match action {
+        Action::OpenWarTable => model.open_war_table(),
+        Action::OpenQuestBoard => model.open_quest_board(),
+        Action::OpenChronicle => model.open_chronicle(),
+        Action::ToggleLedger => model.toggle_ledger(),
+        _ => {}
+    }
+}
+fn intercept_war_table(
+    model: &mut Model,
+    action: Action,
+    commands: &mut Vec<AgentCommand>,
+) -> bool {
+    if model.modal() != &Modal::WarTable {
+        return false;
+    }
+    match action {
+        Action::Dismiss | Action::OpenWarTable => model.dismiss_modal(),
+        Action::OpenQuestBoard => model.open_quest_board(),
+        Action::Next => model.cycle_war_quest(true),
+        Action::Previous => model.cycle_war_quest(false),
+        Action::NextCampaign => model.cycle_war_campaign(true),
+        Action::PreviousResult => model.cycle_war_campaign(false),
+        Action::ScrollUp | Action::ScrollDown => model.scroll_reading(action == Action::ScrollDown),
+        Action::NextUrgent => select_next_urgent(model, commands),
+        Action::Observe => observe_work(model, commands),
+        _ => {}
+    }
+    true
+}
+fn observe_work(model: &mut Model, commands: &mut Vec<AgentCommand>) {
+    let pane = crate::work::view::selected_quest(model)
+        .and_then(|q| crate::work::bound_agent(model, q))
+        .map(|a| a.pane_id.clone());
+    if let Some(pane) = pane {
+        commands.push(AgentCommand::FocusPane(pane));
+    } else {
+        model.set_action_feedback(
+            "Observe unavailable: no verified live adventurer binding.".into(),
+        );
+    }
+}
+
+fn intercept_work_board(
+    model: &mut Model,
+    action: Action,
+    commands: &mut Vec<AgentCommand>,
+) -> bool {
+    if model.modal() != &Modal::QuestBoard {
+        return false;
+    }
+    match action {
+        Action::Dismiss | Action::OpenQuestBoard => model.dismiss_modal(),
+        Action::OpenWarTable => model.open_war_table(),
+        Action::Next => model.cycle_work(true),
+        Action::Previous => model.cycle_work(false),
+        Action::ScrollUp | Action::ScrollDown => {
+            model.scroll_reading(action == Action::ScrollDown);
+        }
+        Action::AcknowledgeSummons => model.request_work_intent(false),
+        Action::DeferSummons => model.request_work_intent(true),
+        Action::Observe => {
+            let pane = crate::work::view::selected_quest(model)
+                .and_then(|q| crate::work::bound_agent(model, q))
+                .map(|a| a.pane_id.clone());
+            if let Some(pane) = pane {
+                commands.push(AgentCommand::FocusPane(pane));
+            } else {
+                model.set_action_feedback(
+                    "Observe unavailable: no verified live adventurer binding.".into(),
+                );
+            }
+        }
+        Action::NextUrgent => select_next_urgent(model, commands),
+        _ => {}
+    }
+    true
+}
+
+fn submit_modal(model: &mut Model, commands: &mut Vec<AgentCommand>) {
+    match model.modal() {
+        Modal::Counsel { .. } => submit_counsel(model, commands),
+        Modal::Search { .. } => submit_search(model, commands),
+        Modal::None
+        | Modal::LibrarianLedger { .. }
+        | Modal::Scrying
+        | Modal::Chronicle
+        | Modal::QuestBoard
+        | Modal::WarTable => {}
+    }
 }

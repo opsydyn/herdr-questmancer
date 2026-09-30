@@ -6,6 +6,7 @@ pub mod render;
 pub mod snapshot;
 pub mod sprite;
 pub mod stage;
+pub mod war_table;
 
 use std::time::Duration;
 
@@ -114,7 +115,15 @@ pub fn render_scene_for_world(
     render::interaction::apply_selection(&mut plan, presentation);
     plan.goblin_outbreak = presentation.goblin_outbreak;
     plan.party_rest_since = presentation.party_rest_since;
-    render::paint(snapshot, &plan, viewport, target)
+    let mut frame = render::paint(snapshot, &plan, viewport, target);
+    if presentation.overlay == presentation::SceneOverlay::WarTable {
+        let table = war_table::TablePlan::project(presentation.war_table.as_ref(), viewport);
+        render::war_table::paint(presentation.war_table.as_ref(), &table, target);
+        frame.actors.clear();
+        frame.interactables.clear();
+        frame.next_frame_in = None;
+    }
+    frame
 }
 
 #[cfg(feature = "storybook")]

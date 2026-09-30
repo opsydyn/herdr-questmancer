@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running tests/war_table.rs (target/debug/deps/war_table-880674cefcb21a84)
+
+running 1 test
+test production_table_review_exports_when_requested ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.15s
+

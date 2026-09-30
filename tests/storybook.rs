@@ -24,7 +24,7 @@ fn scrying_story_contains_settled_output_without_live_io() {
 
 #[test]
 fn catalogue_contains_every_production_scene_interaction_once() {
-    assert_eq!(catalogue().len(), 45);
+    assert_eq!(catalogue().len(), 58);
     let titles = catalogue()
         .iter()
         .map(|story| story.title)
@@ -80,10 +80,17 @@ fn catalogue_contains_every_production_scene_interaction_once() {
 }
 
 #[test]
-fn every_production_story_owns_one_asset_exactly_once() {
+fn every_production_asset_has_exactly_one_owner_with_variant_stories_allowed() {
     let report = validate_catalogue().expect("production Storybook coverage is complete");
-    assert_eq!(report.owned(), catalogue().len());
-    assert!(catalogue().iter().all(|story| story.owns.len() == 1));
+    assert_eq!(
+        report.owned(),
+        questmancer::storybook::asset_inventory().len()
+    );
+    assert!(
+        catalogue()
+            .iter()
+            .all(|story| story.owns.len() == 1 || !story.shows.is_empty())
+    );
 }
 
 #[test]

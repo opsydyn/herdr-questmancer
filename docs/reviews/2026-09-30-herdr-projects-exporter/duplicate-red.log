@@ -1,0 +1,73 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+warning: unreachable `pub` item
+  --> src/sources/herdr_projects/files.rs:23:5
+   |
+23 |     pub fn root(path: &Path) -> Result<Self, ReadError> {
+   |     ---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     help: consider restricting its visibility: `pub(super)`
+   |
+   = note: requested on the command line with `-W unreachable-pub`
+
+warning: unreachable `pub` item
+  --> src/sources/herdr_projects/files.rs:38:5
+   |
+38 |     pub fn child(&self, name: &str) -> Result<Self, ReadError> {
+   |     ---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     help: consider restricting its visibility: `pub(super)`
+
+warning: unreachable `pub` item
+  --> src/sources/herdr_projects/files.rs:43:5
+   |
+43 |     pub fn file(&self, name: &str) -> Result<Option<File>, ReadError> {
+   |     ---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     help: consider restricting its visibility: `pub(super)`
+
+warning: unreachable `pub` item
+  --> src/sources/herdr_projects/files.rs:59:5
+   |
+59 |     pub fn bytes(&self, name: &str) -> Result<Option<Vec<u8>>, ReadError> {
+   |     ---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     help: consider restricting its visibility: `pub(super)`
+
+warning: unreachable `pub` item
+  --> src/sources/herdr_projects/files.rs:72:5
+   |
+72 |     pub fn names(&self) -> Result<Vec<String>, ReadError> {
+   |     ---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     help: consider restricting its visibility: `pub(super)`
+
+warning: unreachable `pub` item
+  --> src/sources/herdr_projects/files.rs:88:5
+   |
+88 |     pub fn identity(&self) -> Result<(i128, u64), ReadError> {
+   |     ---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     help: consider restricting its visibility: `pub(super)`
+
+warning: `questmancer` (lib) generated 6 warnings (run `cargo fix --lib -p questmancer` to apply 6 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.20s
+     Running tests/herdr_projects_source.rs (target/debug/deps/herdr_projects_source-c04bc5266dfc39ec)
+
+running 1 test
+test decoder_rejects_future_versions_false_capabilities_and_duplicate_thread_keys ... FAILED
+
+failures:
+
+---- decoder_rejects_future_versions_false_capabilities_and_duplicate_thread_keys stdout ----
+
+thread 'decoder_rejects_future_versions_false_capabilities_and_duplicate_thread_keys' panicked at tests/herdr_projects_source.rs:246:5:
+assertion failed: decode_snapshot(duplicate.as_bytes()).is_err()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    decoder_rejects_future_versions_false_capabilities_and_duplicate_thread_keys
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test herdr_projects_source`

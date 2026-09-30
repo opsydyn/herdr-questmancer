@@ -89,7 +89,8 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
             id,
             title: "Keeping a Safe Chronicle",
             body: &[
-                "Questmancer stays local. Herdr owns topology and live agent facts; Questmancer stores only small durable intent and its Chronicle.",
+                "Questmancer stays local. Herdr owns topology and live agent facts; Questmancer stores small durable intent, its Chronicle and a separate source work cache.",
+                "The Quest Board keeps source obligations separate from adventurer presence. Seen and deferred never mean source-resolved; cached work stays unverified until confirmed.",
                 "New Chronicle records say when a fact was observed locally. Reconnects add no backfilled history; old records keep their wording.",
                 "In the Chronicle, Tab requests a last-hour guild chapter or returns to records. Chapters count retained events and keep their UTC window fixed until requested again; missing history is not inferred.",
                 "The managed Questmancer pane is never an adventurer and cannot receive focus, counsel, output or Reviewr commands.",

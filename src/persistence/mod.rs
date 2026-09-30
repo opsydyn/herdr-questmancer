@@ -14,3 +14,8 @@ pub use state::{
     StateValidationError,
 };
 pub use worker::{DiagnosticReceiver, PersistenceClient, PersistenceWorker, WorkerPaths};
+mod strict_json;
+mod work_cache;
+pub use work_cache::{
+    SourceCheckpoint, WorkCache, load_work, load_work_cache, publish_work, publish_work_proposal,
+};

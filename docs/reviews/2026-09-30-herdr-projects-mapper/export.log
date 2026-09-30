@@ -1,0 +1,9 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.87s
+     Running tests/herdr_projects_source.rs (target/debug/deps/herdr_projects_source-180ecefc297f3c3d)
+
+running 1 test
+test registered_mapping_production_surfaces_export_when_requested ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.08s
+

@@ -1,0 +1,65 @@
+{
+  "date": "2026-09-30",
+  "head": "f380720ba63424b279980ff4f1c164d8fd4ef735",
+  "branch": "main",
+  "dirty": true,
+  "engineering": "passed",
+  "production_visual_approval": "approved",
+  "native_terminal_acceptance": "unperformed",
+  "live_adapter_acceptance": "unperformed",
+  "published": false,
+  "checks": {
+    "verify": {
+      "exit_code": 0,
+      "rust_tests": 707,
+      "rust_runs": 60,
+      "shell_tests": 28,
+      "format": true,
+      "clippy_warnings_denied": true,
+      "all_targets_features": true,
+      "script_syntax": true,
+      "log": "verify.log"
+    },
+    "property": {
+      "exit_code": 0,
+      "rust_tests": 92,
+      "rust_runs": 5,
+      "configured_cases": 4096,
+      "log": "property.log",
+      "scope": "Before final text-rendering helper extraction and display-label correction; graph and property code unchanged."
+    },
+    "war_table": {
+      "exit_code": 0,
+      "tests": 11,
+      "log": "work-table.log"
+    },
+    "release_build": {
+      "exit_code": 0,
+      "log": "release-build.log"
+    },
+    "diff_check": {
+      "exit_code": 0,
+      "output": ""
+    }
+  },
+  "git_status": "git-status.txt",
+  "image_sha256": {
+    "cached.png": "8a9efd76403e6babf2dff8f08ad81ac277f387d12ca4d1f6fbef84268c22173b",
+    "cyclic.png": "38f2c921bdc1caf4fec58e89d5559d3e29981852e353b9210920df23b61922c0",
+    "empty.png": "5f334d7be29b551b94581bb0e0b4a81d2d20d92b10e7dd4c95c167b42ef0f4a7",
+    "large-later-page.png": "860f52287f0f74bf006967a436795a225a6b4ec20aa792cc0e814600dd210185",
+    "large.png": "06617bd5d7d3183b7537457400123b9da96eafd68056fcac7ddf9a1f2e78a133",
+    "narrow.png": "34c5a92b51915bb7a8b7c12993d48ca390454aad55aa87ab51386eb78fc53ff9",
+    "offline.png": "5e80a4206815505aa44828fe7ce2e008a86edfc28ffc0c44059591927faa0ed3",
+    "populated.png": "5cf9cc3e047a11a1cdd6e28bb006085d713ae3c44c9a3ab7a1e64a452cf09cd6"
+  },
+  "scope": {
+    "fixture_backed": true,
+    "live_source_adapter_added": false,
+    "new_persistence_format": false,
+    "replay_implemented": false
+  },
+  "m2_status": "complete_unreleased",
+  "production_visual_approval_date": "2026-09-30",
+  "production_visual_approval_evidence": "User replied Approved after the production War Table preview and linked review pack."
+}

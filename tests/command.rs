@@ -548,3 +548,106 @@ async fn managed_pane_effects_are_refused_before_socket_io() {
             if pane_id == managed && message == "refused operation on the Questmancer guild pane"
     ));
 }
+
+fn header(label: &str) -> questmancer::pane_header::PaneHeaderProjection {
+    questmancer::pane_header::PaneHeaderProjection {
+        pane_id: PaneId::new("w1:p1"),
+        terminal_id: "terminal-1".into(),
+        agent_session: questmancer::herdr::protocol::AgentSessionInfo {
+            source: "pi".into(),
+            agent: "pi".into(),
+            kind: "id".into(),
+            value: "session-a".into(),
+        },
+        label: label.into(),
+        rgba: vec![127; 384],
+    }
+}
+
+#[tokio::test]
+async fn pane_headers_negotiate_then_sync_exact_identity_and_clear_after_uncertain_delivery() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let info = request(&mut stream).await;
+        assert_eq!(info["method"], "pane.viewport_header.info");
+        respond(&mut stream, &info, json!({"type":"ok"})).await;
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let sync = request(&mut stream).await;
+        assert_eq!(sync["method"], "pane.viewport_header.sync");
+        let params = &sync["params"];
+        assert_eq!(params["source"], "plugin:opsydyn.questmancer");
+        assert_eq!(params["headers"][0]["terminal_id"], "terminal-1");
+        assert_eq!(params["headers"][0]["agent_session"]["value"], "session-a");
+        assert_eq!(params["headers"][0]["label"], "Ari · Pathseeker · working");
+        assert_eq!(
+            params["headers"][0]["rgba_base64"].as_str().unwrap().len(),
+            512
+        );
+        assert_eq!(params.as_object().unwrap().len(), 3);
+        // The server may have accepted it even though the reply is lost.
+        drop(stream);
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let clear = request(&mut stream).await;
+        assert_eq!(clear["method"], "pane.viewport_header.sync");
+        assert_eq!(clear["params"]["headers"], json!([]));
+        assert!(
+            clear["params"]["sequence"].as_u64().unwrap() > params["sequence"].as_u64().unwrap()
+        );
+        respond(&mut stream, &clear, json!({"type":"ok"})).await;
+    });
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
+    let result = executor
+        .execute(AgentCommand::PublishPaneHeaders(vec![header(
+            "Ari · Pathseeker · working",
+        )]))
+        .await;
+    assert!(matches!(result, CommandResult::PaneHeadersFailed { .. }));
+    executor.clear_pane_headers().await.unwrap();
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn unsupported_pane_headers_are_inert_until_reconnect_and_never_use_generic_graphics() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let info = request(&mut stream).await;
+        assert_eq!(info["method"], "pane.viewport_header.info");
+        let error = json!({"id": info["id"], "error": {"code":"invalid_request", "message":"unknown method"}});
+        stream
+            .write_all(format!("{error}\n").as_bytes())
+            .await
+            .unwrap();
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(100), listener.accept())
+                .await
+                .is_err()
+        );
+    });
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
+    for _ in 0..2 {
+        assert!(matches!(
+            executor
+                .execute(AgentCommand::PublishPaneHeaders(vec![header("Ari")]))
+                .await,
+            CommandResult::PaneHeadersPublished { available: false }
+        ));
+    }
+    executor.clear_pane_headers().await.unwrap();
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn managed_pane_header_is_refused_even_if_a_caller_bypasses_projection() {
+    let (_directory, path, listener) = listener();
+    let executor = CommandExecutor::new(HerdrClient::new(path), Some(PaneId::new("w1:p1")));
+    executor
+        .execute(AgentCommand::PublishPaneHeaders(vec![header("managed")]))
+        .await;
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_millis(30), listener.accept())
+            .await
+            .is_err()
+    );
+}

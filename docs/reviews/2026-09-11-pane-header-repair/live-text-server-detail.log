@@ -1,0 +1,94 @@
+2026-09-11T17:16:43.941743Z  INFO herdr::api::server: api server listening path=/tmp/qhdr-daaou2oq/api.sock
+2026-09-11T17:16:43.942031Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-11T17:16:43.957025Z  INFO herdr::server::headless: client protocol socket listening path=/tmp/qhdr-daaou2oq/api-client.sock
+2026-09-11T17:16:43.957053Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/tmp/qhdr-daaou2oq/api.sock client_socket=/tmp/qhdr-daaou2oq/api-client.sock
+2026-09-11T17:16:43.957103Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=73630
+2026-09-11T17:16:44.199307Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="probe-1789147004094218000" method="workspace.create" changes_ui=true
+2026-09-11T17:16:44.199409Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=40 cols=120 scrollback_limit_bytes=10000000
+2026-09-11T17:16:44.201695Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=73631
+2026-09-11T17:16:44.201878Z  INFO herdr::logging: workspace created event="workspace.create" subsystem="workspace" outcome="ok" workspace_id="w1" pane_id=1
+2026-09-11T17:16:44.201886Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w1"
+2026-09-11T17:16:44.201892Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t1"
+2026-09-11T17:16:44.201897Z  INFO herdr::logging: workspace renamed event="workspace.rename" subsystem="workspace" outcome="ok" workspace_id="w1"
+2026-09-11T17:16:44.202097Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="probe-1789147004094218000" method="workspace.create"
+2026-09-11T17:16:44.753978Z  INFO herdr::pane: agent changed pane=1 previous_agent=None agent=Some(Pi) process=pi pgid=Some(73631)
+2026-09-11T17:16:45.769591Z  INFO herdr::pane: agent changed pane=1 previous_agent=None agent=Some(Pi) process=pi pgid=Some(73631)
+2026-09-11T17:16:46.084477Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="probe-1789147005979836000" method="plugin.pane.open" changes_ui=true
+2026-09-11T17:16:46.084930Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=40 cols=120 scrollback_limit_bytes=10000000
+2026-09-11T17:16:46.087193Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=73632
+2026-09-11T17:16:46.087628Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="probe-1789147005979836000" method="plugin.pane.open"
+2026-09-11T17:16:46.202748Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="error" request_id="questmancer-1" method="pane.graphics.info"
+2026-09-11T17:16:46.726181Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-9" method="workspace.report_metadata" changes_ui=true
+2026-09-11T17:16:46.726281Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-9" method="workspace.report_metadata"
+2026-09-11T17:16:46.728393Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-8" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:46.728441Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-8" method="pane.viewport_header.sync"
+2026-09-11T17:16:47.249353Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-13" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:47.249432Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-13" method="pane.viewport_header.sync"
+2026-09-11T17:16:47.350014Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-14" method="workspace.report_metadata" changes_ui=true
+2026-09-11T17:16:47.350097Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-14" method="workspace.report_metadata"
+2026-09-11T17:16:47.764868Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-18" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:47.764949Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-18" method="pane.viewport_header.sync"
+2026-09-11T17:16:47.869422Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-19" method="workspace.report_metadata" changes_ui=true
+2026-09-11T17:16:47.869551Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-19" method="workspace.report_metadata"
+2026-09-11T17:16:48.291257Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-23" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:48.291317Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-23" method="pane.viewport_header.sync"
+2026-09-11T17:16:48.395832Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-24" method="workspace.report_metadata" changes_ui=true
+2026-09-11T17:16:48.395921Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-24" method="workspace.report_metadata"
+2026-09-11T17:16:48.804701Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-28" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:48.804776Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-28" method="pane.viewport_header.sync"
+2026-09-11T17:16:48.912518Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-29" method="workspace.report_metadata" changes_ui=true
+2026-09-11T17:16:48.912585Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-29" method="workspace.report_metadata"
+2026-09-11T17:16:49.057634Z  INFO herdr::pane: agent changed pane=1 previous_agent=None agent=Some(Pi) process=pi pgid=Some(73631)
+2026-09-11T17:16:49.326853Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-34" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:49.326919Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-34" method="pane.viewport_header.sync"
+2026-09-11T17:16:49.466103Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="probe-1789147009364055000" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:49.466197Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="error" request_id="probe-1789147009364055000" method="pane.viewport_header.sync"
+2026-09-11T17:16:49.675014Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="probe-1789147009569955000" method="pane.release_agent" changes_ui=true
+2026-09-11T17:16:49.675136Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="probe-1789147009569955000" method="pane.release_agent"
+2026-09-11T17:16:49.780443Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="probe-1789147009675428000" method="pane.close" changes_ui=true
+2026-09-11T17:16:49.781021Z  INFO herdr::logging: pane child exited event="pane.exit" subsystem="pane" outcome="completed" pane_id=1 status="ExitStatus { code: 1, signal: Some(\"Hangup: 1\") }"
+2026-09-11T17:16:49.805817Z  INFO herdr::pane: pane session terminated pane=1 pid=73631 signal=Hangup
+2026-09-11T17:16:49.806164Z  WARN herdr::app::actions: PaneDied for unknown pane pane=1
+2026-09-11T17:16:49.806173Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="probe-1789147009675428000" method="pane.close"
+2026-09-11T17:16:50.051912Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-37" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:50.051944Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="stream_closed" request_id="questmancer-subscription" method="events.subscribe"
+2026-09-11T17:16:50.051996Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-37" method="pane.viewport_header.sync"
+2026-09-11T17:16:50.166972Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="probe-1789147010061923000" method="workspace.create" changes_ui=true
+2026-09-11T17:16:50.167078Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=40 cols=120 scrollback_limit_bytes=10000000
+2026-09-11T17:16:50.169308Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=73633
+2026-09-11T17:16:50.169504Z  INFO herdr::logging: workspace created event="workspace.create" subsystem="workspace" outcome="ok" workspace_id="w2" pane_id=3
+2026-09-11T17:16:50.169510Z  INFO herdr::logging: workspace renamed event="workspace.rename" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-11T17:16:50.170168Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="probe-1789147010061923000" method="workspace.create"
+2026-09-11T17:16:50.365267Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="stream_closed" request_id="questmancer-subscription" method="events.subscribe"
+2026-09-11T17:16:50.722161Z  INFO herdr::pane: agent changed pane=3 previous_agent=None agent=Some(Pi) process=pi pgid=Some(73633)
+2026-09-11T17:16:50.780342Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-45" method="workspace.report_metadata" changes_ui=true
+2026-09-11T17:16:50.780418Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-45" method="workspace.report_metadata"
+2026-09-11T17:16:50.882560Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-48" method="workspace.report_metadata" changes_ui=true
+2026-09-11T17:16:50.882734Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-48" method="workspace.report_metadata"
+2026-09-11T17:16:51.485231Z  INFO herdr::pane: agent changed pane=3 previous_agent=None agent=Some(Pi) process=pi pgid=Some(73633)
+2026-09-11T17:16:51.924391Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-54" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:51.924472Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-54" method="pane.viewport_header.sync"
+2026-09-11T17:16:52.025924Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="stream_closed" request_id="questmancer-subscription" method="events.subscribe"
+2026-09-11T17:16:52.049557Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-55" method="workspace.report_metadata" changes_ui=true
+2026-09-11T17:16:52.049651Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-55" method="workspace.report_metadata"
+2026-09-11T17:16:52.154002Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-56" method="workspace.report_metadata" changes_ui=true
+2026-09-11T17:16:52.154110Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-56" method="workspace.report_metadata"
+2026-09-11T17:16:52.259525Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="questmancer-57" method="pane.viewport_header.sync" changes_ui=true
+2026-09-11T17:16:52.259628Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="questmancer-57" method="pane.viewport_header.sync"
+2026-09-11T17:16:52.260692Z  INFO herdr::logging: pane child exited event="pane.exit" subsystem="pane" outcome="completed" pane_id=2 status="ExitStatus { code: 0, signal: None }"
+2026-09-11T17:16:52.260902Z  INFO herdr::pane: pane session terminated pane=2 pid=73632 signal=Hangup
+2026-09-11T17:16:52.506517Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="probe-1789147012405087000" method="pane.release_agent" changes_ui=true
+2026-09-11T17:16:52.506608Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="probe-1789147012405087000" method="pane.release_agent"
+2026-09-11T17:16:52.611609Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="probe-1789147012506896000" method="pane.close" changes_ui=true
+2026-09-11T17:16:52.611683Z  INFO herdr::logging: workspace closed event="workspace.close" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-11T17:16:52.612090Z  INFO herdr::logging: pane child exited event="pane.exit" subsystem="pane" outcome="completed" pane_id=3 status="ExitStatus { code: 1, signal: Some(\"Hangup: 1\") }"
+2026-09-11T17:16:52.636070Z  INFO herdr::pane: pane session terminated pane=3 pid=73633 signal=Hangup
+2026-09-11T17:16:52.636559Z  WARN herdr::app::actions: PaneDied for unknown pane pane=3
+2026-09-11T17:16:52.636576Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="probe-1789147012506896000" method="pane.close"
+2026-09-11T17:16:52.740661Z  INFO herdr::logging: api request received event="api.request.start" subsystem="api" outcome="started" request_id="probe-1789147012636912000" method="plugin.unlink" changes_ui=true
+2026-09-11T17:16:52.741162Z  INFO herdr::logging: api request completed event="api.request.complete" subsystem="api" outcome="ok" request_id="probe-1789147012636912000" method="plugin.unlink"
+2026-09-11T17:16:53.199313Z  INFO herdr::server::headless::lifecycle: server shutdown initiated
+2026-09-11T17:16:53.254371Z  INFO herdr::server::headless::lifecycle: completing server shutdown
+2026-09-11T17:16:53.254510Z  INFO herdr::logging: session cleared event="persist.clear" subsystem="persist" outcome="ok" path=/tmp/qhdr-daaou2oq/cfg/herdr/session.json
+2026-09-11T17:16:53.254524Z  INFO herdr::server::headless: headless server exiting
+2026-09-11T17:16:53.254830Z  INFO herdr::logging: herdr exiting event="app.shutdown" subsystem="server" outcome="completed" pid=73630

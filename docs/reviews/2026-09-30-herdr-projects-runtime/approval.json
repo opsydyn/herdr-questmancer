@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-30T21:05:55.023929+00:00",
+  "slice": "M3a.3 diagnostic visual approval and proposed M3a.4 acceptance plan",
+  "head": "f380720ba63424b279980ff4f1c164d8fd4ef735",
+  "branch": "main",
+  "dirty_checkout": true,
+  "approval": "User Approved after M3a.3 engineering handoff and diagnostic review images",
+  "status": "synthetic inventory scope complete and visually accepted; unreleased",
+  "original_qualification_manifest": {
+    "path": "verification.json",
+    "sha256": "4a17156cc5ef98d1d209910ec1b00178a96650195ad3c3a06086e4dc8e7e80a0",
+    "preserved": true
+  },
+  "approved_image_hashes_sha256": {
+    "images/first-read-failure.png": "33d39834a81e992a263a1e70a202fac787d2f8f5a8a443c563e5740cf9d429fe",
+    "images/identity-reconcile.png": "5e02e51641ed8bbf610b3e541c64ee404b077d973e4a91ac2e8f81d4e82f253c",
+    "images/other-campaign-error.png": "7d7c21b5406cd22bf346b307172bcb8c963fdc60d7608393aeb15464d4c57d3e",
+    "images/retained-unavailable.png": "734b7fea56a7e622db46b2faf6b37af2220380d292553e145fc875eafb3c5a82"
+  },
+  "checks": {
+    "qualified_source_test_hashes": {
+      "result": "passed",
+      "files": 210
+    },
+    "original_qualification_artifacts": {
+      "result": "passed",
+      "files": 36
+    },
+    "head_unchanged": true,
+    "local_document_link_target_files": {
+      "result": "passed",
+      "documents": 14,
+      "links": 169
+    },
+    "git_diff_check": {
+      "exit_code": 0
+    }
+  },
+  "full_gate_rerun": false,
+  "runtime_or_source_operations_performed": false,
+  "next_plan_status": "M3a.4 proposed; not promoted or executed",
+  "not_established": [
+    "Installed-source compatibility",
+    "Native terminal interaction",
+    "Live Herdr acceptance",
+    "Real-work usefulness",
+    "Packaging or release"
+  ],
+  "current_document_hashes_sha256": {
+    "AGENTS.md": "64db4dd19bf20778dd99b7452884ddf3e088335b654e851e9070c119b4ce8f6b",
+    "PLAN.md": "d326f8a1804f62f2ff41412063c835a5f1c0324ed7333a895d50221a785f44f3",
+    "README.md": "03b9d93b98879e35c6a5f13de96b58f1421a76242599a6636d8867351592481a",
+    "docs/design/herdr-projects-snapshot-contract.md": "2faf12bc5e1161b1318ac6c68c7851ab467a0ca313ad12f9852ca3942488a324",
+    "docs/design/herdr-projects-identity-coverage.md": "fadf4796a70b882b8a342e65d3f72bff9cbd80f4b886636962924aa05c3977b8",
+    "docs/design/questmancer-living-control-plane.md": "15f08fc875651df0ba877a1463e3d82d45daa230e5f779d36c8afe25f6565cc3",
+    "docs/plans/2026-09-27-living-control-plane-roadmap.md": "4739e1504a2254e74b9aca3f4e42545cc352a2d3d9d96fd502a33d2a8a5a400e",
+    "docs/plans/2026-09-30-herdr-projects-adapter.md": "72316c77fbca111d21b514bdda5b3b346be27b1778dd39d63bc64c4460c74354",
+    "docs/plans/2026-09-30-herdr-projects-runtime.md": "fec2036cbe13e8df8ec13975b28b516632386139d79d641417e10e21cc0c845a",
+    "docs/manual-test/herdr-projects-inventory.md": "3d7173064fb2f3485486a6fcf95aada003d54c2ddd66c31ff7a6bf6e17707efb",
+    "docs/reviews/2026-09-30-herdr-projects-mapper/visual-approval.md": "85055eaa802c5088701ec38cf097acce3512ab2a56c85061318318cd812c6485",
+    "docs/reviews/2026-09-30-herdr-projects-runtime/README.md": "a3e339a7cbfd463b5725eeb39b610b5f003183cff85cfc3d1f274d4cf055f3a5",
+    "docs/reviews/2026-09-30-herdr-projects-runtime/visual-approval.md": "46fbe73a625ad0a8a93d024c26c76eac615186f96552016910875d8c7501b1c2",
+    "docs/plans/2026-09-30-herdr-projects-acceptance.md": "e5f59bf570024705af3e01d12b6ec6f56084689f1930366f06a9489d91b2264d"
+  }
+}

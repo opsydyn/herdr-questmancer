@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.14s
+     Running tests/work.rs (target/debug/deps/work-d05697b6bc3326fb)
+
+running 1 test
+test board_inventory_wraps_complete_titles_and_keeps_selection_visible ... FAILED
+
+failures:
+
+---- board_inventory_wraps_complete_titles_and_keeps_selection_visible stdout ----
+
+thread 'board_inventory_wraps_complete_titles_and_keeps_selection_visible' panicked at tests/work.rs:1462:9:
+inventory title was cut: Open: Should the old token endpoint remain for backwards compatibility?; Open: Should the old token e Active: Migrate API auth Completed: Investigate curre Planned: Integration tests Active: Migrate web auth
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    board_inventory_wraps_complete_titles_and_keeps_selection_visible
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 24 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test work`

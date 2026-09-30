@@ -40,6 +40,9 @@ small amount of durable local intent.
 - Selected output is loaded lazily. Never fetch output on an animation frame.
 - Rendering never mutates or persists domain truth.
 - Persistence must not copy Herdr topology, terminal output or live status.
+  A separate versioned work cache may retain source-owned campaign/quest/obligation
+  facts and local attention intent. Restore these as unverified; never cache live
+  bindings or session identity.
 - The managed Questmancer pane must never appear as an adventurer or receive
   focus, output or counsel commands.
 
@@ -248,8 +251,8 @@ without Herdr, agent processes or persistent state:
 just storybook
 ```
 
-It owns forty-five fixed production stories: two worlds, thirty-seven asset
-views and six interactions. `j`/`k` and Up/Down select within the current
+It owns fifty-eight fixed production stories: two worlds, thirty-seven asset
+views and nineteen interactions. `j`/`k` and Up/Down select within the current
 category; `h`/`l` and Left/Right change category. `Enter` enters inspection,
 `Esc` returns and `q` exits. Resize Ghostty while viewing `World / Guild Hall`
 to review canonical, compact, roster, vignette and status-only compositions;
@@ -318,6 +321,9 @@ service beyond Herdr's local socket.
 - `runtime.json`: ephemeral singleton registration.
 - `state.json`: atomic, versioned local intent and persona assignments.
 - `chronicle.jsonl`: append-only semantic history.
+- `work-state.json`: versioned source work facts, revision tombstones and local
+  seen/deferred intent. Atomic acknowledged publication; no Herdr topology,
+  terminal output, live binding or raw session identity.
 
 State publication is debounced, unchanged states are suppressed and shutdown
 flushes acknowledged work. Preserve forward/future-version failure behaviour
@@ -333,8 +339,8 @@ All current review-pack visuals are approved: Librarian, Hall/Delve, campaign
 heraldry, keepsakes, cat reaction, Chronicle chapters, and rituals plus matching
 card fallbacks for all fourteen classes. The last card approval was 2026-09-08.
 See `docs/reviews/2026-09-08-party-candidate/README.md` for the approval index,
-review findings and current candidate evidence. Storybook has 45 stories:
-two worlds, 37 asset views and six interactions.
+review findings and current candidate evidence. Storybook has 58 stories:
+two worlds, 37 asset views and nineteen interactions.
 
 Questmancer `v0.1.9` is published from clean commit `98f557d`. Qualification
 passed 600 Rust tests across 54 runs, 28 shell tests, the release build, verified
@@ -378,7 +384,12 @@ are published in `v0.1.10` from clean `9f2f58f`. Release qualification passed
 cleanup. All four downloaded archives, checksums and the actual macOS ARM64
 Herdr installer passed. Documentation and approved Chronicle images are deployed.
 See `docs/reviews/2026-09-09-published-release/README.md`. Real-agent completion
-and live snapshot-only capture remain separate; crates.io was skipped.
+and live snapshot-only capture remained separate at publication; crates.io was skipped.
+The user subsequently approved guarded real-agent acceptance. A fresh isolated Pi
+run confirmed working/done pane-metadata records, one spoil, 10 XP, unchanged
+history/XP after restart, and complete owned-resource cleanup. See
+`docs/reviews/2026-09-09-real-agent-chronicle/README.md`. Live snapshot-only
+capture, other agent integrations and native completion visuals remain unverified.
 
 ## Native portrait regression repair — 2026-09-08
 
@@ -441,3 +452,140 @@ When documents disagree, use this order:
 
 Never treat old screenshots, old pane IDs, historical plan checkboxes or prior
 agent claims as fresh evidence.
+
+## M1 durable obligations — 2026-09-30 (unreleased)
+
+The user approved the ownership contract and Quest Board concept. `src/work/`
+adds source-qualified work beside the live Herdr domain. Sources own work and
+resolution; Questmancer owns only presentation and local seen/deferred intent.
+The legacy Chronicle remains observation history, not an authoritative work log.
+
+`b` opens the Quest Board parchment; `!` cycles human obligations then existing
+eligible summons. In the Board, `j/k` or Tab/Shift-Tab select work, Up/Down or
+wheel scroll details, Space marks seen, `s` defers 15 minutes, Enter observes only
+a verified live binding, and Esc closes. Seen/deferred never means source-resolved.
+
+Ordinary startup does not install FixtureSource. Tests and seven Storybook states
+exercise the boundary. Cached work is unverified on restart; source gaps/conflicts
+retain prior facts and require a baseline. Complete coverage records revision
+retirement so stale entities cannot return. Source updates and local intent are
+shown as durable only after the persistence worker acknowledges publication.
+
+See `docs/reviews/2026-09-30-durable-obligations/README.md` for exact qualification
+and the recorded 2026-09-30 production visual approval after the truncation repair.
+M1 is complete for its fixture-backed scope and unreleased. Native terminal
+acceptance remains separate. M2 was subsequently promoted on 2026-09-30.
+Adapters, commits, releases and shared-server changes require their own promotion. Preserve the unrelated pane-header repair.
+
+
+## M2 War Table — 2026-09-30 (unreleased)
+
+The user promoted the fixture-backed War Table. `src/work/graph.rs` projects
+source-qualified campaign dependency facts separately from the live SceneSnapshot.
+The static RGB map is composed by `src/scene/war_table.rs`, painted by
+`src/scene/render/war_table.rs` inside the existing world path, and labelled by
+`src/ui/war_table.rs`. It is a contextual surface, not a third world renderer.
+
+`w` opens/closes the Table from the Hall, Delve or Board. `j/k` cycles quests;
+Tab/Shift-Tab cycles work campaigns; Up/Down or wheel scrolls selected details;
+`b` returns the selected quest to the Board; Enter observes only a verified
+binding; `!` reuses M1's queue. Table navigation is ephemeral and emits no
+persistence or source answer. Counsel drafts remain preserved.
+
+Links run prerequisite to dependent. Cards retain literal source lifecycle and
+historical assignment; `?` counts source-open human requests and `R` counts
+human review requests, including locally deferred ones. They are source facts,
+not a second alert policy. Source freshness remains explicit. Cyclic or oversized
+campaigns use a labelled paged inventory; narrow panes retain scrollable details
+and all keyboard access. Below 28 columns or 12 rows the overlay is status-only.
+No readiness, success or task assignment is inferred from graph placement.
+
+Six new fixed Table stories bring Storybook to 58 stories. See
+`docs/plans/2026-09-30-war-table.md` and `docs/reviews/2026-09-30-war-table/README.md`
+for the bounded scope and evidence. M2 is engineering-qualified and its production
+visuals were approved by the user on 2026-09-30. It is complete and unreleased
+within its fixture-backed scope. Native terminal and live-source acceptance remain
+separate and unperformed.
+M3 source inspection and planning were subsequently approved on 2026-09-30;
+M3a.1 was subsequently promoted with “Let’s continue”. M3a.2 mapper/cache was
+then promoted and implemented as recorded below. Runtime was subsequently promoted;
+later roadmap phases remain unpromoted.
+
+## M3 source assessment and plan — 2026-09-30
+
+Read `docs/reviews/2026-09-30-herdr-projects-source/README.md` and
+`docs/plans/2026-09-30-herdr-projects-adapter.md` before adapter work. Herdr Projects
+0.2.34 was inspected at `4e4548c3c43888e6be1c96906215998f07dc63f0`; source was
+fetched and read, not built/run/installed. It requires Herdr 0.9.1. No real project
+home, shared server or live pane was operated for this assessment.
+
+Its JSON thread rows are not a coherent versioned project/decision protocol.
+Placement kinds, recorded attention groups and resolved thread status cannot
+be coerced into quest kinds, durable human decisions or successful completion.
+The proposal is M3a.1 snapshot/exporter contract proof, then explicit opt-in
+inventory integration; structured requests and verified bindings are separate
+M3b contracts. The user subsequently promoted M3a.1 with “Let’s continue”.
+`src/sources/herdr_projects/` implements its experimental read-only snapshot DTO,
+strict decoder and bounded exporter. All coverage is Partial; native durable
+identity, dependencies, structured obligations and bindings are unsupported.
+See `docs/design/herdr-projects-snapshot-contract.md` and
+`docs/reviews/2026-09-30-herdr-projects-exporter/README.md`. No runtime attachment,
+work mapping, cache migration or source commands were added. Qualification passed
+722 Rust tests across 61 runs, 28 shell tests, the 4,096-case property gate and
+release build. M3a.1 is complete for its synthetic proof and unreleased.
+
+The user subsequently promoted the M3a.2 identity/coverage design slice.
+Read `docs/design/herdr-projects-identity-coverage.md` before mapping work. It
+selects explicit registration plus retained records; creation is checkpoint
+evidence, not a native incarnation. Changed evidence requires reconciliation,
+not a guessed new quest. All observations remain Partial; durable mapping needs
+the existing cooperative lock and must reject known-thread omissions before
+the reducer marks retained facts Current. Never write a source lock or sidecar.
+Projection plus typed registration/creation checkpoint must publish atomically
+in a proposed v2 work cache. No mapper, migration or runtime code was added by
+this documentation-only slice; its design receipt is
+`docs/reviews/2026-09-30-herdr-projects-identity/README.md`. The adapter plan now
+specified that next code slice. The user subsequently promoted mapper/cache
+implementation. It now provides pure registered mapping, neutral
+Unspecified/Unknown/Closed/Archived values, latest-reference revocation and an
+atomic v2 projection/checkpoint cache with v1 migration. Ordinary intent/fixture
+writes preserve checkpoints; obsolete/duplicate proposals cannot downgrade newer
+facts. The full gate passes 739 Rust tests across 61 runs and 28 shell tests;
+the 4,096-case property gate passes. See
+`docs/reviews/2026-09-30-herdr-projects-mapper/README.md` for final evidence and
+production review images. No source attachment/configuration/polling is installed.
+Identity failures are classified for explicit rebind; the M3a.3 producer must latch
+them and enforce root leases/cancellation. Source labels are attributed context,
+not invented worker identity. Native identity stays Unsupported and coverage
+Partial. The user subsequently approved the M3a.2 production visuals and promoted
+M3a.3 opt-in runtime integration. See
+`docs/plans/2026-09-30-herdr-projects-runtime.md`,
+`docs/manual-test/herdr-projects-inventory.md` and
+`docs/reviews/2026-09-30-herdr-projects-runtime/README.md`.
+
+The disabled-by-default `[herdr_projects]` table requires explicit tokens, an
+absolute physical path, pinned format and retained-record policy. Startup loads
+the atomic checkpoint; a protected cache or missing durable directory disables
+attachment. RuntimeLifecycle owns the independent producer/inbox in both live
+and offline loops, and stops/joins it before persistence flush. SourceInbox has
+one acknowledged observation outstanding; the consumer maps against current work
+and advances its checkpoint only after publication. A held read-only descriptor
+lease survives failed reads and is checked at capture and before consumption.
+Observed root loss/replacement or hard identity failure latches reconciliation;
+transient read/coverage/storage failures retain work and retry. All completions
+are generation-fenced before changing newer health. Healthy polls are five seconds
+apart; retries back off to thirty seconds. The two-second capture budget and
+cancellation are cooperative between bounded reads, not a hard deadline on a
+stalled OS filesystem call. Unchanged probes do not write or redraw. One ephemeral
+source diagnostic remains visible even while another cached campaign is selected.
+No source files, bindings, summons, execution commands, Chronicle or XP are added.
+The full gate passes 754 Rust tests across 62 runs and 28 shell tests; the
+4,096-case property gate and release build pass. The runtime source suite has
+12 all-feature tests, plus the existing exporter/mapper suite.
+The user subsequently approved the diagnostic images; see
+`docs/reviews/2026-09-30-herdr-projects-runtime/visual-approval.md`. M3a.3 is
+complete within its synthetic inventory scope and remains unreleased.
+`docs/plans/2026-09-30-herdr-projects-acceptance.md` proposes the next bounded
+installed-source/isolated-runtime trial; that operational scope has not been
+promoted or executed. Native/live acceptance, M3b, upstream contributions and
+M4–M7 remain separate or unpromoted.

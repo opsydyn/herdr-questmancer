@@ -1,0 +1,10 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0432]: unresolved import `questmancer::work::runtime::accept_snapshot`
+   --> tests/herdr_projects_source.rs:179:157
+    |
+179 | ...cts::Registration,work::{Freshness,runtime::accept_snapshot}};
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^ no `accept_snapshot` in `work::runtime`
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `questmancer` (test "herdr_projects_source") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

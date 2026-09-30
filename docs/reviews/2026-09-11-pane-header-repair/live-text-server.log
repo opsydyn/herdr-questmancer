@@ -1,0 +1,5 @@
+herdr server running; you can use any herdr CLI command in another terminal.
+api socket: /tmp/qhdr-daaou2oq/api.sock
+client socket: /tmp/qhdr-daaou2oq/api-client.sock
+logs: /tmp/qhdr-daaou2oq/cfg/herdr/herdr-server.log
+did you mean to open the Herdr TUI? run `herdr`; you do not need `herdr server`.

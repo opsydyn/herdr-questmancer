@@ -12,11 +12,14 @@ pub enum SceneOverlay {
     LibrarianLedger,
     Scrying,
     Chronicle,
+    QuestBoard,
+    WarTable,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScenePresentation {
     pub world: WorldScene,
+    pub war_table: Option<crate::work::graph::CampaignGraph>,
     pub selected_agent: Option<AgentKey>,
     pub overlay: SceneOverlay,
     /// Socket-lifetime cutoff for one-shot theatre, without changing summons.
@@ -35,6 +38,9 @@ impl ScenePresentation {
     #[must_use]
     pub fn from_model(model: &Model) -> Self {
         Self {
+            war_table: (model.modal() == &Modal::WarTable)
+                .then(|| crate::work::graph::CampaignGraph::from_model(model))
+                .flatten(),
             world: match model.view() {
                 View::Guild => WorldScene::GuildHall,
                 View::Delve => WorldScene::Delve,
@@ -50,6 +56,8 @@ impl ScenePresentation {
                 Modal::Search { .. } => SceneOverlay::Search,
                 Modal::Scrying => SceneOverlay::Scrying,
                 Modal::Chronicle => SceneOverlay::Chronicle,
+                Modal::QuestBoard => SceneOverlay::QuestBoard,
+                Modal::WarTable => SceneOverlay::WarTable,
             },
         }
     }

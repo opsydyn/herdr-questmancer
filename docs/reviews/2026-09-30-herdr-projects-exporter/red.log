@@ -1,0 +1,10 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0433]: failed to resolve: could not find `sources` in `questmancer`
+ --> tests/herdr_projects_source.rs:3:5
+  |
+3 |     sources::herdr_projects::{Coverage, Selection, ThreadStatus, capture, decode_snapshot},
+  |     ^^^^^^^ could not find `sources` in `questmancer`
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `questmancer` (test "herdr_projects_source") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

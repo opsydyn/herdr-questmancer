@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.35s
+     Running tests/war_table.rs (target/debug/deps/war_table-76151bf431d8d852)
+
+running 1 test
+test text_parchment_clears_rgb_half_blocks_before_writing ... FAILED
+
+failures:
+
+---- text_parchment_clears_rgb_half_blocks_before_writing stdout ----
+
+thread 'text_parchment_clears_rgb_half_blocks_before_writing' panicked at tests/war_table.rs:532:13:
+assertion `left != right` failed: parchment retained a recoloured RGB half-block
+  left: "▀"
+ right: "▀"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    text_parchment_clears_rgb_half_blocks_before_writing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test war_table`

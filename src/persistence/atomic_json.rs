@@ -68,7 +68,10 @@ pub async fn publish_state(path: &Path, state: &PersistedStateV1) -> Result<(), 
         source_message: error.to_string(),
     })?;
     bytes.push(b'\n');
+    publish_bytes(path, &bytes).await
+}
 
+pub(super) async fn publish_bytes(path: &Path, bytes: &[u8]) -> Result<(), PersistenceError> {
     let parent = path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
@@ -92,7 +95,7 @@ pub async fn publish_state(path: &Path, state: &PersistedStateV1) -> Result<(), 
                 line: None,
                 source_message: error.to_string(),
             })?;
-        file.write_all(&bytes)
+        file.write_all(bytes)
             .await
             .map_err(|error| PersistenceError {
                 operation: "write temporary state",

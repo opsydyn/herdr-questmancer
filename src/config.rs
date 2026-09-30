@@ -78,6 +78,7 @@ pub struct QuestmancerConfig {
     pub reviewr_action: String,
     pub show_elapsed_time: bool,
     pub sidebar_urgency_order: bool,
+    pub herdr_projects: Option<crate::sources::herdr_projects::RuntimeSelection>,
 }
 
 impl Default for QuestmancerConfig {
@@ -90,6 +91,7 @@ impl Default for QuestmancerConfig {
             reviewr_action: "persiyanov.reviewr.open".to_owned(),
             show_elapsed_time: true,
             sidebar_urgency_order: false,
+            herdr_projects: None,
         }
     }
 }
@@ -168,6 +170,39 @@ struct ConfigFile {
     /// Off by default because it changes shared Herdr UI rather than anything
     /// inside Questmancer's pane. The sidebar belongs to the user.
     sidebar_urgency_order: bool,
+    herdr_projects: Option<ProjectsFile>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct ProjectsFile {
+    enabled: bool,
+    source_id: String,
+    campaign_id: String,
+    project_path: PathBuf,
+    format: String,
+    identity_policy: String,
+}
+impl ProjectsFile {
+    fn selection(
+        self,
+    ) -> Result<Option<crate::sources::herdr_projects::RuntimeSelection>, ConfigError> {
+        use crate::{
+            sources::herdr_projects::{FORMAT, RuntimeSelection},
+            work::SourceId,
+        };
+        if !self.enabled {
+            return Ok(None);
+        }
+        if self.format != FORMAT || self.identity_policy != "registered_retained_records" {
+            return Err(ConfigError::Validation(
+                "herdr_projects needs the pinned format and registered_retained_records policy",
+            ));
+        }
+        RuntimeSelection::new(SourceId::new(&self.source_id), &self.campaign_id, self.project_path)
+            .map(Some)
+            .map_err(|_| ConfigError::Validation("herdr_projects needs valid source/campaign tokens and an absolute normal project path"))
+    }
 }
 
 impl Default for ConfigFile {
@@ -183,6 +218,7 @@ impl Default for ConfigFile {
             reviewr_action: config.reviewr_action,
             show_elapsed_time: config.show_elapsed_time,
             sidebar_urgency_order: config.sidebar_urgency_order,
+            herdr_projects: None,
         }
     }
 }
@@ -207,6 +243,11 @@ impl TryFrom<ConfigFile> for QuestmancerConfig {
             reviewr_action: file.reviewr_action,
             show_elapsed_time: file.show_elapsed_time,
             sidebar_urgency_order: file.sidebar_urgency_order,
+            herdr_projects: file
+                .herdr_projects
+                .map(ProjectsFile::selection)
+                .transpose()?
+                .flatten(),
         })
     }
 }

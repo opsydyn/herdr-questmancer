@@ -1,0 +1,9 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.80s
+     Running tests/work.rs (target/debug/deps/work-d05697b6bc3326fb)
+
+running 1 test
+test board_inventory_wraps_complete_titles_and_keeps_selection_visible ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 24 filtered out; finished in 0.01s
+

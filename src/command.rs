@@ -1,6 +1,6 @@
 use std::sync::{
     Arc,
-    atomic::{AtomicU64, Ordering},
+    atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering},
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -11,7 +11,7 @@ use crate::{
         client::{ClientError, HerdrClient},
         protocol::SessionSnapshot,
     },
-    pane_header::{PANE_HEADER_LAYER, PaneHeaderProjection},
+    pane_header::PaneHeaderProjection,
     sidebar::{SIDEBAR_SOURCE, SidebarProjection},
     snapshot_refresh::SnapshotRequest,
 };
@@ -45,7 +45,6 @@ pub enum AgentCommand {
     },
     PublishMarginalia(SidebarProjection),
     PublishPaneHeaders(Vec<PaneHeaderProjection>),
-    ClearPaneHeaders(Vec<PaneId>),
     SetUrgencyView,
 }
 
@@ -96,7 +95,9 @@ pub enum CommandResult {
     MarginaliaFailed {
         message: String,
     },
-    PaneHeadersPublished,
+    PaneHeadersPublished {
+        available: bool,
+    },
     PaneHeadersFailed {
         message: String,
     },
@@ -119,6 +120,8 @@ pub struct CommandExecutor {
     client: HerdrClient,
     managed_pane_id: Option<PaneId>,
     next_sidebar_sequence: Arc<AtomicU64>,
+    header_capability: Arc<AtomicU8>,
+    headers_attempted: Arc<AtomicBool>,
 }
 
 impl CommandExecutor {
@@ -128,6 +131,8 @@ impl CommandExecutor {
             client,
             managed_pane_id,
             next_sidebar_sequence: Arc::new(AtomicU64::new(sidebar_sequence_seed())),
+            header_capability: Arc::new(AtomicU8::new(0)),
+            headers_attempted: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -304,8 +309,7 @@ impl CommandExecutor {
             }
             AgentCommand::SetUrgencyView
             | AgentCommand::PublishMarginalia(_)
-            | AgentCommand::PublishPaneHeaders(_)
-            | AgentCommand::ClearPaneHeaders(_) => self.execute_sidebar(command).await,
+            | AgentCommand::PublishPaneHeaders(_) => self.execute_sidebar(command).await,
         }
     }
 
@@ -333,22 +337,49 @@ impl CommandExecutor {
         Ok(())
     }
 
+    pub fn has_pane_header_attempts(&self) -> bool {
+        self.headers_attempted.load(Ordering::Relaxed)
+    }
+
+    pub fn reset_header_capability(&self) {
+        self.header_capability.store(0, Ordering::Relaxed);
+    }
+
     async fn publish_pane_headers(
         &self,
         projections: Vec<PaneHeaderProjection>,
-    ) -> Result<(), ClientError> {
-        const MARKER: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0dIDATx\x9cc\x60\x00\x00\x00\x02\x00\x01\xe2\x21\xbc\x33\x00\x00\x00\x00IEND\xaeB\x60\x82";
-        for header in projections {
-            self.client
-                .set_pane_graphics(
-                    header.pane_id.as_str(),
-                    PANE_HEADER_LAYER,
-                    MARKER,
-                    Some(header.label),
-                )
-                .await?;
+    ) -> Result<bool, ClientError> {
+        let projections = projections
+            .into_iter()
+            .filter(|header| !self.is_managed_pane(&header.pane_id))
+            .collect::<Vec<_>>();
+        if projections.is_empty() {
+            self.clear_pane_headers().await?;
+            return Ok(self.header_capability.load(Ordering::Relaxed) == 1);
         }
-        Ok(())
+        let available = match self.header_capability.load(Ordering::Relaxed) {
+            1 => true,
+            2 => false,
+            _ => {
+                let available = self.client.pane_headers_supported().await?;
+                self.header_capability
+                    .store(if available { 1 } else { 2 }, Ordering::Relaxed);
+                available
+            }
+        };
+        if !available {
+            return Ok(false);
+        }
+        // Track possible delivery, including a timeout after the server accepted it.
+        self.headers_attempted.store(true, Ordering::Relaxed);
+        self.client
+            .sync_pane_headers(
+                SIDEBAR_SOURCE,
+                self.next_sidebar_sequence.fetch_add(1, Ordering::Relaxed),
+                projections,
+            )
+            .await?;
+        Ok(true)
     }
 
     /// The two commands that write to Herdr's own sidebar rather than to a
@@ -370,26 +401,20 @@ impl CommandExecutor {
                 }
             }
             AgentCommand::PublishPaneHeaders(projection) => {
-                match self.publish_pane_headers(projection).await {
-                    Ok(()) => CommandResult::PaneHeadersPublished,
-                    Err(error) => CommandResult::PaneHeadersFailed {
+                match tokio::time::timeout(
+                    std::time::Duration::from_secs(2),
+                    self.publish_pane_headers(projection),
+                )
+                .await
+                {
+                    Ok(Ok(available)) => CommandResult::PaneHeadersPublished { available },
+                    Ok(Err(error)) => CommandResult::PaneHeadersFailed {
                         message: error.to_string(),
                     },
+                    Err(_) => CommandResult::PaneHeadersFailed {
+                        message: "header request timed out".into(),
+                    },
                 }
-            }
-            AgentCommand::ClearPaneHeaders(panes) => {
-                for pane in panes {
-                    if let Err(error) = self
-                        .client
-                        .clear_pane_graphics(pane.as_str(), PANE_HEADER_LAYER)
-                        .await
-                    {
-                        return CommandResult::PaneHeadersFailed {
-                            message: error.to_string(),
-                        };
-                    }
-                }
-                CommandResult::PaneHeadersPublished
             }
             _ => CommandResult::MarginaliaPublished,
         }
@@ -408,12 +433,18 @@ impl CommandExecutor {
         self.client.clear_agent_view(SIDEBAR_SOURCE).await
     }
 
-    pub async fn clear_pane_headers(&self, panes: &[PaneId]) -> Result<(), ClientError> {
-        for pane in panes {
-            self.client
-                .clear_pane_graphics(pane.as_str(), PANE_HEADER_LAYER)
-                .await?;
+    pub async fn clear_pane_headers(&self) -> Result<(), ClientError> {
+        if !self.headers_attempted.load(Ordering::Relaxed) {
+            return Ok(());
         }
+        self.client
+            .sync_pane_headers(
+                SIDEBAR_SOURCE,
+                self.next_sidebar_sequence.fetch_add(1, Ordering::Relaxed),
+                Vec::new(),
+            )
+            .await?;
+        self.headers_attempted.store(false, Ordering::Relaxed);
         Ok(())
     }
 

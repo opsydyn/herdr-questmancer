@@ -246,6 +246,8 @@ fn build_catalogue() -> Vec<Story> {
             NarrowParchment
         ),
     ];
+    stories.extend(board_stories());
+    stories.extend(table_stories());
     stories.splice(2..2, asset_stories());
     stories
 }
@@ -833,4 +835,176 @@ fn arcane_ritual_stories() -> [Story; 2] {
             SorcererPoseFamily
         ),
     ]
+}
+
+fn board_populated(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::quest_board_fixture(
+        context,
+        fixtures::WorkBoardState::Populated,
+    )))
+}
+
+fn board_empty(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::quest_board_fixture(
+        context,
+        fixtures::WorkBoardState::Empty,
+    )))
+}
+
+fn board_offline(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::quest_board_fixture(
+        context,
+        fixtures::WorkBoardState::Offline,
+    )))
+}
+
+fn board_deferred(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::quest_board_fixture(
+        context,
+        fixtures::WorkBoardState::Deferred,
+    )))
+}
+
+fn board_resolved(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::quest_board_fixture(
+        context,
+        fixtures::WorkBoardState::Resolved,
+    )))
+}
+
+fn board_narrow(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::quest_board_fixture(
+        context,
+        fixtures::WorkBoardState::Narrow,
+    )))
+}
+
+fn board_exited(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::quest_board_fixture(
+        context,
+        fixtures::WorkBoardState::WorkerExited,
+    )))
+}
+
+fn board_stories() -> Vec<Story> {
+    let mut stories = Vec::new();
+    let board_variants: [(&str, &str, StoryBuilder); 7] = [
+        (
+            "interaction.board",
+            "Interaction / Quest Board",
+            board_populated,
+        ),
+        (
+            "interaction.board-empty",
+            "Interaction / Empty Quest Board",
+            board_empty,
+        ),
+        (
+            "interaction.board-offline",
+            "Interaction / Offline Quest Board",
+            board_offline,
+        ),
+        (
+            "interaction.board-deferred",
+            "Interaction / Deferred Quest Board",
+            board_deferred,
+        ),
+        (
+            "interaction.board-resolved",
+            "Interaction / Resolved Quest Board",
+            board_resolved,
+        ),
+        (
+            "interaction.board-narrow",
+            "Interaction / Narrow Quest Board",
+            board_narrow,
+        ),
+        (
+            "interaction.board-exited",
+            "Interaction / Departed Worker Quest Board",
+            board_exited,
+        ),
+    ];
+    for (index, (id, title, build)) in board_variants.into_iter().enumerate() {
+        stories.push(Story{id:StoryId::new(id),title,category:Category::Interactions,description:"Synthetic work facts through the production parchment; no live services or persistence.",viewport:if index==5 {NARROW_VIEWPORT}else{CARD_VIEWPORT},build,owns:if index==0 {&[AssetId(SceneFirstAsset::QuestBoardParchment)]}else{&[]},shows:if index==0 {&[]}else{&[AssetId(SceneFirstAsset::QuestBoardParchment)]}});
+    }
+    stories
+}
+
+fn table_populated(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::war_table_fixture(
+        context,
+        fixtures::WarTableState::Populated,
+    )))
+}
+fn table_narrow(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::war_table_fixture(
+        context,
+        fixtures::WarTableState::Narrow,
+    )))
+}
+fn table_empty(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::war_table_fixture(
+        context,
+        fixtures::WarTableState::Empty,
+    )))
+}
+fn table_offline(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::war_table_fixture(
+        context,
+        fixtures::WarTableState::Offline,
+    )))
+}
+fn table_cyclic(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::war_table_fixture(
+        context,
+        fixtures::WarTableState::Cyclic,
+    )))
+}
+fn table_large(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::war_table_fixture(
+        context,
+        fixtures::WarTableState::Large,
+    )))
+}
+fn table_stories() -> Vec<Story> {
+    let variants: [(&str, &str, StoryBuilder); 6] = [
+        (
+            "interaction.table",
+            "Interaction / War Table",
+            table_populated,
+        ),
+        (
+            "interaction.table-narrow",
+            "Interaction / Narrow War Table",
+            table_narrow,
+        ),
+        (
+            "interaction.table-empty",
+            "Interaction / Empty War Table",
+            table_empty,
+        ),
+        (
+            "interaction.table-offline",
+            "Interaction / Offline War Table",
+            table_offline,
+        ),
+        (
+            "interaction.table-cyclic",
+            "Interaction / Cyclic War Table",
+            table_cyclic,
+        ),
+        (
+            "interaction.table-large",
+            "Interaction / Large War Table",
+            table_large,
+        ),
+    ];
+    variants.into_iter().enumerate().map(|(index,(id,title,build))| Story {
+        id:StoryId::new(id),title,category:Category::Interactions,
+        description:"Source-owned dependency facts through the static production RGB table and selected parchment.",
+        viewport:if index==1 {NARROW_VIEWPORT}else{CARD_VIEWPORT},build,
+        owns:if index==0 {&[AssetId(SceneFirstAsset::WarTableMap)]} else {&[]},
+        shows:if index==0 {&[]} else {&[AssetId(SceneFirstAsset::WarTableMap)]},
+    }).collect()
 }

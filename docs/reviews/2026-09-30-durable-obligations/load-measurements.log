@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
+     Running tests/work.rs (target/debug/deps/work-9969caf588f6f7fc)
+
+running 1 test
+M1 load: 1 agents / 1 obligations, queue + overlay average 1039 us, 1 visible actor hit regions
+M1 load: 10 agents / 10 obligations, queue + overlay average 1148 us, 5 visible actor hit regions
+M1 load: 100 agents / 100 obligations, queue + overlay average 1779 us, 1 visible actor hit regions
+test measure_work_attention_and_scene_capacity_at_one_ten_and_one_hundred ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.42s
+

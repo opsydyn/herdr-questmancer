@@ -1,0 +1,40 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0432]: unresolved import `crate::sources::herdr_projects::RuntimeSelection`
+   --> src/config.rs:188:55
+    |
+188 |         use crate::{sources::herdr_projects::{FORMAT, RuntimeSelection}, work::SourceId};
+    |                                                       ^^^^^^^^^^^^^^^^ no `RuntimeSelection` in `sources::herdr_projects`
+
+error[E0412]: cannot find type `RuntimeSelection` in module `crate::sources::herdr_projects`
+  --> src/config.rs:81:64
+   |
+81 |     pub herdr_projects: Option<crate::sources::herdr_projects::RuntimeSelection>,
+   |                                                                ^^^^^^^^^^^^^^^^ not found in `crate::sources::herdr_projects`
+
+error[E0412]: cannot find type `RuntimeSelection` in module `crate::sources::herdr_projects`
+   --> src/config.rs:187:73
+    |
+187 |     fn selection(self) -> Result<Option<crate::sources::herdr_projects::RuntimeSelection>, ConfigError> {
+    |                                                                         ^^^^^^^^^^^^^^^^ not found in `crate::sources::herdr_projects`
+
+error[E0308]: mismatched types
+   --> src/config.rs:193:45
+    |
+193 |         RuntimeSelection::new(SourceId::new(self.source_id), &self.campaign_id, self.project_path)
+    |                               ------------- ^^^^^^^^^^^^^^ expected `&str`, found `String`
+    |                               |
+    |                               arguments to this function are incorrect
+    |
+note: associated function defined here
+   --> src/work/types.rs:35:12
+    |
+ 35 |     pub fn new(value: &str) -> Self {
+    |            ^^^ -----------
+help: consider borrowing here
+    |
+193 |         RuntimeSelection::new(SourceId::new(&self.source_id), &self.campaign_id, self.project_path)
+    |                                             +
+
+Some errors have detailed explanations: E0308, E0412, E0432.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `questmancer` (lib) due to 4 previous errors

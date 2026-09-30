@@ -24,30 +24,19 @@ impl<P> Request<P> {
 pub struct EmptyParams {}
 
 #[derive(Clone, Debug, Serialize)]
-pub struct PaneGraphicsSetParams {
-    pub pane_id: String,
-    pub layer_id: Option<String>,
-    pub z_index: i32,
-    pub format: String,
-    pub image_width: u32,
-    pub image_height: u32,
-    pub data_base64: String,
-    pub placement: PaneGraphicsPlacementParams,
-    pub viewport_header: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, Serialize)]
-pub struct PaneGraphicsPlacementParams {
-    pub viewport_col: i32,
-    pub viewport_row: i32,
-    pub grid_cols: u32,
-    pub grid_rows: u32,
+pub struct PaneViewportHeaderSyncParams {
+    pub source: String,
+    pub sequence: u64,
+    pub headers: Vec<PaneViewportHeader>,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct PaneGraphicsClearParams {
+pub struct PaneViewportHeader {
     pub pane_id: String,
-    pub layer_id: Option<String>,
+    pub terminal_id: String,
+    pub agent_session: AgentSessionInfo,
+    pub label: String,
+    pub rgba_base64: Option<String>,
 }
 
 /// Authoritative attached-client geometry from `pane.graphics.info`.

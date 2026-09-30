@@ -1,0 +1,30 @@
+warning: unused import: `producer::fail as source_failure`
+ --> src/sources/herdr_projects/mod.rs:9:16
+  |
+9 | pub(crate) use producer::fail as source_failure;
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `questmancer` (lib) generated 1 warning (run `cargo fix --lib -p questmancer` to apply 1 suggestion)
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.02s
+     Running tests/herdr_projects_runtime.rs (target/debug/deps/herdr_projects_runtime-7c17203cc12942a0)
+
+running 1 test
+
+thread 'owned_producer_acknowledges_changes_and_restarts_from_atomic_cache' panicked at tests/herdr_projects_runtime.rs:31:5:
+assertion `left == right` failed: Some(SourceNotice { source: SourceId("projects:runtime"), message: "invalid source record t-0001: unknown variant `waiting_on_you`, expected one of `ready-for-review`, `waiting-on-you`, `working`, `landing`, `idle`, `resolved`; retaining last facts and retrying." })
+  left: None
+ right: Some(Current)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test owned_producer_acknowledges_changes_and_restarts_from_atomic_cache ... FAILED
+
+failures:
+
+failures:
+    owned_producer_acknowledges_changes_and_restarts_from_atomic_cache
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test herdr_projects_runtime`

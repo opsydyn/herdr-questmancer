@@ -158,6 +158,7 @@ impl Harness {
                 apply_command_result(&mut self.model, result.clone(), at)
             }
             RuntimeEvent::CommandTaskFailed(error) => panic!("{error}"),
+            RuntimeEvent::Work(_) => panic!("legacy Chronicle harness has no work source"),
         };
         assert!(self.effects(effects).await.is_empty());
         event

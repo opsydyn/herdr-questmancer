@@ -1,75 +1,90 @@
-//! Pure projection for the compact viewport line inside an adventurer pane.
+//! Pure, ephemeral annotations derived from qualified live adventurer identities.
+use std::collections::BTreeMap;
 
-use crate::{domain::PaneId, sidebar::SidebarProjection};
-
-pub const PANE_HEADER_LAYER: &str = "questmancer-pane-header";
+use crate::{
+    app::{ConnectionState, Model},
+    domain::{CaptureIdentity, DomainState, PaneId, Presence},
+    herdr::protocol::AgentSessionInfo,
+    scene::assets::adventurer::adventurer_roster_frame,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PaneHeaderProjection {
     pub pane_id: PaneId,
+    pub terminal_id: String,
+    pub agent_session: AgentSessionInfo,
     pub label: String,
+    /// Authored, personalised 8x12 RGBA pixels. No scaling or terminal escape sequences.
+    pub rgba: Vec<u8>,
 }
 
 impl PaneHeaderProjection {
     #[must_use]
-    pub fn from_sidebar(
-        sidebar: &SidebarProjection,
-        managed_pane_id: Option<&PaneId>,
+    pub fn from_model(model: &Model) -> Vec<Self> {
+        Self::from_domain(
+            model.domain(),
+            model.managed_pane_id(),
+            *model.connection() == ConnectionState::Connected,
+        )
+    }
+
+    #[must_use]
+    pub fn from_domain(
+        domain: &DomainState,
+        managed: Option<&PaneId>,
+        connected: bool,
     ) -> Vec<Self> {
-        sidebar
+        if !connected {
+            return Vec::new();
+        }
+        let mut counts = BTreeMap::<&PaneId, usize>::new();
+        for agent in domain.agents.values() {
+            *counts.entry(&agent.pane_id).or_default() += 1;
+        }
+        domain
             .agents
-            .iter()
-            .filter(|agent| managed_pane_id != Some(&agent.pane_id))
+            .values()
             .filter_map(|agent| {
-                let role = agent.tokens.get("quest_role")?;
-                let condition = agent.tokens.get("quest_condition")?;
-                let name = agent.tokens.get("quest_epithet")?;
+                if managed == Some(&agent.pane_id)
+                    || counts[&agent.pane_id] != 1
+                    || agent.presence == Presence::Exited
+                {
+                    return None;
+                }
+                let CaptureIdentity::Session { terminal, session } = &agent.capture_identity else {
+                    return None;
+                };
+                let name = agent.name.split_whitespace().collect::<Vec<_>>().join(" ");
+                let name = name
+                    .chars()
+                    .filter(|c| !c.is_control())
+                    .take(80)
+                    .collect::<String>();
+                if name.is_empty() {
+                    return None;
+                }
+                let condition = match agent.presence {
+                    Presence::Working => "working",
+                    Presence::Blocked => "seeks counsel",
+                    Presence::Done => "spoils returned",
+                    Presence::Idle => "resting",
+                    Presence::Unknown => "whereabouts unknown",
+                    Presence::Exited => return None,
+                };
+                let sprite = adventurer_roster_frame(&agent.persona);
+                let rgba = sprite
+                    .pixels()
+                    .iter()
+                    .flat_map(|pixel| pixel.map_or([0, 0, 0, 0], |rgb| [rgb.r, rgb.g, rgb.b, 255]))
+                    .collect();
                 Some(Self {
                     pane_id: agent.pane_id.clone(),
-                    label: format!("⌖ {name} · {role} · {condition}"),
+                    terminal_id: terminal.clone(),
+                    agent_session: session.clone(),
+                    label: format!("{name} · {:?} · {condition}", agent.persona.class),
+                    rgba,
                 })
             })
             .collect()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use super::*;
-    use crate::sidebar::SidebarAgentTokens;
-
-    #[test]
-    fn excludes_managed_pane_and_formats_truthful_fields() {
-        let managed = PaneId::new("quest-pane");
-        let sidebar = SidebarProjection {
-            agents: vec![
-                SidebarAgentTokens {
-                    pane_id: managed.clone(),
-                    tokens: BTreeMap::from([
-                        ("quest_epithet".into(), "Guild UI".into()),
-                        ("quest_role".into(), "Mage Human".into()),
-                        ("quest_condition".into(), "Resting".into()),
-                    ]),
-                },
-                SidebarAgentTokens {
-                    pane_id: PaneId::new("agent-pane"),
-                    tokens: BTreeMap::from([
-                        ("quest_epithet".into(), "Ari".into()),
-                        ("quest_role".into(), "Pathseeker Human".into()),
-                        ("quest_condition".into(), "Concentrating".into()),
-                    ]),
-                },
-            ],
-            campaigns: Vec::new(),
-        };
-        assert_eq!(
-            PaneHeaderProjection::from_sidebar(&sidebar, Some(&managed)),
-            vec![PaneHeaderProjection {
-                pane_id: PaneId::new("agent-pane"),
-                label: "⌖ Ari · Pathseeker Human · Concentrating".into(),
-            }]
-        );
     }
 }

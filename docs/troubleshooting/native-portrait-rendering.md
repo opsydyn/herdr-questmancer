@@ -216,3 +216,33 @@ When a native portrait is missing, inspect in this order:
 
 This sequence produced the confirmed native portrait path while retaining a
 non-blank fallback for every unsupported identity and transport.
+
+## Optional pane adventurer lines
+
+The paired development header feature uses `pane.viewport_header.info` and
+`pane.viewport_header.sync`, independently of card portraits and the published
+`pane.graphics.*` methods. It requires Herdr's opt-in
+`[ui].pane_viewport_header = true`. A missing or disabled capability is a quiet
+fallback; enablement is rechecked when Questmancer reconnects or restarts.
+Never send a header through `pane.graphics.set`: that API anchors to terminal
+content, not the reserved row.
+
+Herdr reserves one row outside the PTY grid when at least two content rows fit.
+An authored, personalised 8×12 RGBA roster sprite is painted at native size;
+text begins after its occupied cells. Unknown/small pixel geometry or disabled
+Kitty graphics uses text alone. Too-short panes omit the reserved row entirely.
+Full and retained client surfaces use the same placement contract. Resizing or
+scrolling must never move the sprite into terminal output.
+
+Questmancer sends only changed projections and a ten-second lease renewal while
+headers are active. Renewal does not dirty Herdr rendering when content is
+unchanged. A producer sync atomically replaces its entire set; server identity
+validation rejects stale terminal/session tuples. Clear removes both text and
+image. Release, close, configuration disablement and a 30-second lease expiry
+also remove them. This is bounded crash cleanup, not proof of immediate delivery
+when a socket has disconnected.
+
+A line such as `printf '%s\\n' ...` is shell input/output, never a valid header
+payload. Inspect it separately from the actual reserved row; do not clear a real
+pane's terminal history to hide it. Use only owned disposable panes for testing.
+Changing or restarting a shared Herdr server still requires its owner's approval.

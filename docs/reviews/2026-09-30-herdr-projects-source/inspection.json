@@ -1,0 +1,53 @@
+{
+  "date": "2026-09-30",
+  "scope": "Source inspection and planning only",
+  "questmancer": {
+    "head": "f380720ba63424b279980ff4f1c164d8fd4ef735",
+    "branch": "main",
+    "dirty": true,
+    "existing_m1_m2_and_pane_header_changes_preserved": true
+  },
+  "upstream": {
+    "repository": "https://github.com/eliasstravik/herdr-projects",
+    "commit": "4e4548c3c43888e6be1c96906215998f07dc63f0",
+    "commit_date": "2026-09-28T21:07:57Z",
+    "version": "0.2.34",
+    "minimum_herdr": "0.9.1",
+    "fetched_checkout_clean": true,
+    "source_sha256": {
+      "Cargo.toml": "63ca3526bbc1409f2a6419771a81643137eea2416f3a020faf0e210a395c6550",
+      "herdr-plugin.toml": "97b67e86eda7a464dde891bdb3af025afa2aac3ba41220e7a07dd1ad27330ba6",
+      "src/cli.rs": "cc80b503eccf3a5a118cf94fc828cf395a8af0cdcde1b5ebcf39020300a44fc9",
+      "src/project.rs": "ad7297fc802e30f8cd41fdd156dab4b1c9bc66eea7a208f305a2aa3c47028580",
+      "src/thread.rs": "c9c58806c25c9afaa97974944467b7c4659c4e2bc0cdcb2dd18df7a31f2a7876",
+      "src/threads.rs": "04b1c8da31847d26efd6f4d91cf2d2b951859b74dd7f8912de269fdd48610499",
+      "src/progress.rs": "1efc3f1ff20d8326c746907e559c04cea48a2ef0cf79b341d3e09e3ccd9129b6",
+      "src/tasks.rs": "681dda393ab43b52c668d0e082e4794332e37c4a626fd7971cf5bb5dcf6a0e53",
+      "src/inbox.rs": "4b8fd0fc9d8b6fb401e5e62f5550cf0442d72615dc5a5cf4a2c693afeb7a0930",
+      "src/coordinator.rs": "79a9d74160378afe1f34da0d26916390899f0ce23e09e4e0498a962e1299e242",
+      "src/pr.rs": "643ea9d7dcd5d972e24d3732e4ab21675c5b14c709ccf0283aa5d1f7b9adbd9d",
+      "src/steps.rs": "fc80e04ab743db8fe46e57cd81d5a9de71ac931942de03e185e9a228a9290ef2",
+      "src/ticker.rs": "19df016749c28f757679a9c9ad590b482109f01bb7a607ebca61e656976bbe58",
+      "src/herdr.rs": "9cf78956bb1c8787fcdb19f4a3634b904ba60344237009d7c9abb3450fd2016a",
+      "src/rename.rs": "1cdc63fccb3b32928e3115afe623f8dcfe4dbc0d29a9f0efe8e3b44cd14c7d7d",
+      "docs/operations.md": "1e6097d1a5e20dda90e37492104960b71954725729ea424c8f1d07fb2161eba0"
+    }
+  },
+  "acceptance": {
+    "assessment": "complete",
+    "implementation": "not_authorised_or_performed",
+    "upstream_tests": "not_run",
+    "questmancer_full_gate": "not_rerun_for_planning_only_edits",
+    "runtime": "not_run",
+    "installed_source_version": "not_inspected",
+    "real_project_homes": "not_read",
+    "shared_server_changes": "none",
+    "native_or_live_acceptance": "unperformed"
+  },
+  "recommendation": "M3a.1 versioned snapshot/exporter contract proof; inventory adapter and M3b attention/bindings require separate promotion",
+  "validation": {
+    "local_document_links": "passed",
+    "pinned_source_line_anchors": "passed",
+    "diff_check": "passed"
+  }
+}

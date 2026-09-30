@@ -1,0 +1,22 @@
+cargo fmt --all --check
+cargo clippy --all-targets --all-features -- -D warnings
+    Blocking waiting for file lock on build directory
+    Checking questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error: this function has too many lines (106/100)
+   --> tests/herdr_projects_runtime.rs:545:1
+    |
+545 | / fn runtime_diagnostics_export_production_surfaces_when_requested() {
+546 | |     use questmancer::{
+547 | |         app::ColorMode,
+548 | |         domain::Timestamp,
+...   |
+652 | | }
+    | |_^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_lines
+    = note: `-D clippy::too-many-lines` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::too_many_lines)]`
+
+error: could not compile `questmancer` (test "herdr_projects_runtime") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: recipe `lint` failed on line 11 with exit code 101

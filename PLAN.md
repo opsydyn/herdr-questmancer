@@ -120,6 +120,14 @@ checksums and the actual macOS ARM64 installer passed. The website is deployed;
 crates.io was skipped. See the
 [publication receipt](docs/reviews/2026-09-09-published-release/README.md).
 
+## Real-agent Chronicle acceptance — 2026-09-09
+
+The approved isolated Pi run passed: genuine working/done metadata produced two
+v2 records, one spoil and 10 XP; restart preserved history and XP. Owned-resource
+cleanup passed. See the [receipt](docs/reviews/2026-09-09-real-agent-chronicle/README.md).
+Live snapshot-only capture and native completion visuals remain separate.
+The next recommendation is a bounded design for live snapshot-only acceptance.
+
 ## Earlier 0.1.9 distribution and remaining evidence
 
 [Questmancer v0.1.9](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.9)
@@ -178,13 +186,71 @@ C3 was approved; complete capture composition and isolated synthetic acceptance
 passed. See the [C3 receipt](docs/reviews/2026-09-09-chronicle-c3/README.md).
 The [Chronicle screens](docs/design/reviews/2026-09-09-chronicle-capture/README.md)
 were visually approved on 2026-09-09. C1–C3 are complete and published in 0.1.10.
-A guarded real-agent Chronicle acceptance session is the recommended next bounded
-step if approved. Real-agent completion and live snapshot-only capture remain
-separate evidence; no new product scope is promoted by this release.
+The subsequent approved real-agent Pi acceptance is recorded above. Live
+snapshot-only capture remains separate evidence; no new product scope is promoted.
+
+## Living control plane planning — 2026-09-27
+
+The user agreed with the architecture assessment and promoted durable human
+obligations and campaign work context to roadmap/design planning. On 2026-09-30
+the user approved the roadmap, architecture contract and first-slice plan.
+The user subsequently approved the
+[Quest Board concept](docs/design/reviews/2026-09-30-quest-board/README.md),
+authorising M1 implementation. The fixture-backed slice is implemented inline,
+engineering-qualified and production-visually approved on 2026-09-30;
+[qualification and production visual review](docs/reviews/2026-09-30-durable-obligations/README.md)
+remain distinct gates. The
+[design contract](docs/design/questmancer-living-control-plane.md),
+[phased roadmap](docs/plans/2026-09-27-living-control-plane-roadmap.md) and
+[M1 implementation plan](docs/plans/2026-09-27-durable-obligations.md) define the
+proposed extension beside the existing live Herdr domain.
+
+M1 proves a fixture-backed obligation survives progress, agent exit and restart,
+with a derived attention queue and selected-work parchment. War Table, live
+adapters, Forge evidence, source knowledge and historical reconstruction are
+separate later phases. M1 is complete and unreleased; native terminal acceptance
+remains separate. The user subsequently promoted M2 War Table on 2026-09-30.
+M2 is engineering-qualified and production-visually approved on the same date;
+it is complete and unreleased within its fixture-backed scope. Native terminal
+and live-source acceptance remain separate and unperformed. Evidence is tracked in the
+[M2 plan](docs/plans/2026-09-30-war-table.md) and
+[receipt](docs/reviews/2026-09-30-war-table/README.md). M3 source inspection and
+planning were subsequently approved on 2026-09-30. The
+[source assessment](docs/reviews/2026-09-30-herdr-projects-source/README.md) and
+[adapter plan](docs/plans/2026-09-30-herdr-projects-adapter.md) propose a versioned
+snapshot/exporter proof before a reduced-capability inventory adapter. M3
+source-contract proof M3a.1 was subsequently authorised with “Let’s continue” and
+is engineering-qualified and complete for its synthetic contract-proof scope,
+unreleased; [receipt](docs/reviews/2026-09-30-herdr-projects-exporter/README.md).
+The user subsequently approved the identity/coverage design slice. The
+[selected contract](docs/design/herdr-projects-identity-coverage.md) uses explicit
+registration/retained records, locked partial observations and omission guards;
+native identity stays unsupported. This documentation slice is complete;
+the user subsequently promoted mapper/cache implementation. It is implemented
+and engineering-qualified with 739 Rust tests/61 runs, 28 shell tests and the
+4,096-case property gate. The
+[mapper receipt](docs/reviews/2026-09-30-herdr-projects-mapper/README.md) records
+evidence; its state-cue images were subsequently approved. M3a.3 runtime integration
+was then promoted and implemented: disabled-by-default selection, owned directory
+lease, acknowledged producer/consumer, bounded polling/retries and cooperative
+shutdown. Protected caches disable attachment; identity failures latch, transient
+failures retain work, and unchanged probes neither write nor redraw. See the
+[runtime plan](docs/plans/2026-09-30-herdr-projects-runtime.md),
+[operating guide](docs/manual-test/herdr-projects-inventory.md) and
+[runtime receipt](docs/reviews/2026-09-30-herdr-projects-runtime/README.md).
+Engineering qualification passes 754 Rust tests/62 runs, 28 shell tests, the
+4,096-case property gate and release build.
+The user subsequently [approved the diagnostic images](docs/reviews/2026-09-30-herdr-projects-runtime/visual-approval.md).
+M3a.3 is complete within its synthetic inventory scope and remains unreleased.
+The [installed-source/isolated-runtime acceptance plan](docs/plans/2026-09-30-herdr-projects-acceptance.md)
+is the next proposed operational slice, not yet promoted or executed.
+Installed-source/native/live acceptance, M3b and M4–M7 remain outstanding or
+unpromoted. Existing pane-header repair, visual qualification and release evidence
+remain independent.
 
 Keep these unpromoted ideas in the backlog:
 
-- further Chronicle scope beyond the approved C1–C3 capture plan;
+- Chronicle scope outside the separately proposed living-control-plane roadmap;
 - durable mementos or a trophy shelf with a separate persistence design;
 - additional Hall station/hierarchy redesign;
 - Storybook navigation across categories;

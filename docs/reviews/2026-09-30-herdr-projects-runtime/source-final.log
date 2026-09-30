@@ -1,0 +1,21 @@
+    Blocking waiting for file lock on build directory
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.13s
+     Running tests/herdr_projects_runtime.rs (target/debug/deps/herdr_projects_runtime-f24a9fd1c47c9715)
+
+running 12 tests
+test new_attachment_error_remains_visible_while_old_cached_work_is_selected ... ok
+test protected_work_cache_disables_selected_source_before_any_project_read ... ok
+test shutdown_during_unacknowledged_delivery_does_not_publish_or_mutate_source ... ok
+test queued_capture_is_checked_against_the_lease_before_publication ... ok
+test root_replacement_before_first_valid_capture_cannot_auto_attach ... ok
+test changed_creation_latches_even_after_the_original_bytes_return ... ok
+test startup_selection_and_lifecycle_work_without_a_herdr_connection ... ok
+test obsolete_leased_capture_cannot_downgrade_a_new_generation ... ok
+test transient_read_lock_omission_and_publication_failures_retain_then_recover ... ok
+test owned_producer_acknowledges_changes_and_restarts_from_atomic_cache ... ok
+test runtime_diagnostics_export_production_surfaces_when_requested ... ok
+test synthetic_capture_cost_at_one_ten_and_one_hundred_threads ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+

@@ -1,0 +1,224 @@
+{
+  "case": "/tmp/qhdr-daaou2oq",
+  "graphics": false,
+  "native_visual": "blocked: Computer Use denies Ghostty",
+  "herdr_sha256": "d707199b988b45fe07ea39157ebe64c7cdc9502a5ebc74d91f1069d8bf3cb1d3",
+  "questmancer_sha256": "9d00b77d99e67f706c723868af84542f2ba40928d91ce72730de6de3f80afc95",
+  "checks": [
+    "managed exclusion and authored 8x12 RGBA accepted by actual Herdr",
+    "working idle blocked unknown live reports update the line",
+    "session replacement accepted; old session rejected",
+    "dummy terminal output retains its marker and contains no injected header or printf command",
+    "release followed by owned pane close clears the producer set",
+    "actual publisher SIGTERM sends acknowledged empty sync"
+  ],
+  "server_pid": 73630,
+  "initial_snapshot": {
+    "version": "0.9.0",
+    "protocol": 22,
+    "focused_workspace_id": "w1",
+    "focused_tab_id": "w1:t1",
+    "focused_pane_id": "w1:p1",
+    "workspaces": [
+      {
+        "workspace_id": "w1",
+        "number": 1,
+        "label": "Owned header repair",
+        "focused": true,
+        "pane_count": 1,
+        "tab_count": 1,
+        "active_tab_id": "w1:t1",
+        "agent_status": "unknown"
+      }
+    ],
+    "tabs": [
+      {
+        "tab_id": "w1:t1",
+        "workspace_id": "w1",
+        "number": 1,
+        "label": "1",
+        "focused": true,
+        "pane_count": 1,
+        "agent_status": "unknown"
+      }
+    ],
+    "panes": [
+      {
+        "pane_id": "w1:p1",
+        "terminal_id": "term_65b383fa2eb4e1",
+        "workspace_id": "w1",
+        "tab_id": "w1:t1",
+        "focused": true,
+        "cwd": "/private/tmp/qhdr-daaou2oq",
+        "foreground_cwd": "/private/tmp/qhdr-daaou2oq",
+        "agent_status": "unknown",
+        "scroll": {
+          "offset_from_bottom": 0,
+          "max_offset_from_bottom": 0,
+          "viewport_rows": 39
+        },
+        "revision": 0
+      }
+    ],
+    "layouts": [
+      {
+        "workspace_id": "w1",
+        "tab_id": "w1:t1",
+        "zoomed": false,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 40
+        },
+        "focused_pane_id": "w1:p1",
+        "panes": [
+          {
+            "pane_id": "w1:p1",
+            "focused": true,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 120,
+              "height": 40
+            }
+          }
+        ],
+        "splits": []
+      }
+    ],
+    "agents": []
+  },
+  "initial_report": {
+    "type": "ok"
+  },
+  "after_report_snapshot": {
+    "version": "0.9.0",
+    "protocol": 22,
+    "focused_workspace_id": "w1",
+    "focused_tab_id": "w1:t1",
+    "focused_pane_id": "w1:p1",
+    "workspaces": [
+      {
+        "workspace_id": "w1",
+        "number": 1,
+        "label": "Owned header repair",
+        "focused": true,
+        "pane_count": 1,
+        "tab_count": 1,
+        "active_tab_id": "w1:t1",
+        "agent_status": "working"
+      }
+    ],
+    "tabs": [
+      {
+        "tab_id": "w1:t1",
+        "workspace_id": "w1",
+        "number": 1,
+        "label": "1",
+        "focused": true,
+        "pane_count": 1,
+        "agent_status": "working"
+      }
+    ],
+    "panes": [
+      {
+        "pane_id": "w1:p1",
+        "terminal_id": "term_65b383fa2eb4e1",
+        "workspace_id": "w1",
+        "tab_id": "w1:t1",
+        "focused": true,
+        "cwd": "/private/tmp/qhdr-daaou2oq",
+        "foreground_cwd": "/private/tmp/qhdr-daaou2oq",
+        "agent": "pi",
+        "agent_status": "working",
+        "agent_session": {
+          "source": "herdr:pi",
+          "agent": "pi",
+          "kind": "id",
+          "value": "header-a"
+        },
+        "scroll": {
+          "offset_from_bottom": 0,
+          "max_offset_from_bottom": 0,
+          "viewport_rows": 39
+        },
+        "revision": 0
+      }
+    ],
+    "layouts": [
+      {
+        "workspace_id": "w1",
+        "tab_id": "w1:t1",
+        "zoomed": false,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 40
+        },
+        "focused_pane_id": "w1:p1",
+        "panes": [
+          {
+            "pane_id": "w1:p1",
+            "focused": true,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 120,
+              "height": 40
+            }
+          }
+        ],
+        "splits": []
+      }
+    ],
+    "agents": [
+      {
+        "terminal_id": "term_65b383fa2eb4e1",
+        "agent": "pi",
+        "agent_status": "working",
+        "screen_detection_skipped": true,
+        "agent_session": {
+          "source": "herdr:pi",
+          "agent": "pi",
+          "kind": "id",
+          "value": "header-a"
+        },
+        "workspace_id": "w1",
+        "tab_id": "w1:t1",
+        "pane_id": "w1:p1",
+        "focused": true,
+        "state_change_seq": 1,
+        "cwd": "/private/tmp/qhdr-daaou2oq",
+        "foreground_cwd": "/private/tmp/qhdr-daaou2oq",
+        "revision": 0
+      }
+    ]
+  },
+  "passed": true,
+  "final_snapshot": {
+    "version": "0.9.0",
+    "protocol": 22,
+    "workspaces": [],
+    "tabs": [],
+    "panes": [],
+    "layouts": [],
+    "agents": []
+  },
+  "final_plugins": {
+    "type": "plugin_list",
+    "plugins": []
+  },
+  "cleanup": {
+    "server_exit": 0,
+    "socket_removed": true,
+    "owned_pids_still_alive": [],
+    "errors": []
+  },
+  "owned_pids": [
+    73631,
+    73632,
+    73633
+  ]
+}

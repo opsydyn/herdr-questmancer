@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.22s
+     Running tests/herdr_projects_source.rs (target/debug/deps/herdr_projects_source-c04bc5266dfc39ec)
+
+running 1 test
+test obsolete_generation_is_rejected_before_an_old_checkpoint_can_poison_fresh_work ... FAILED
+
+failures:
+
+---- obsolete_generation_is_rejected_before_an_old_checkpoint_can_poison_fresh_work stdout ----
+
+thread 'obsolete_generation_is_rejected_before_an_old_checkpoint_can_poison_fresh_work' panicked at tests/herdr_projects_source.rs:656:5:
+assertion `left == right` failed
+  left: Err(Unlocked)
+ right: Err(Stale)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    obsolete_generation_is_rejected_before_an_old_checkpoint_can_poison_fresh_work
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 29 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test herdr_projects_source`

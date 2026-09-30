@@ -1,0 +1,31 @@
+warning: unused import: `producer::fail as source_failure`
+ --> src/sources/herdr_projects/mod.rs:9:16
+  |
+9 | pub(crate) use producer::fail as source_failure;
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `questmancer` (lib) generated 1 warning (run `cargo fix --lib -p questmancer` to apply 1 suggestion)
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.77s
+     Running tests/herdr_projects_runtime.rs (target/debug/deps/herdr_projects_runtime-7c17203cc12942a0)
+
+running 1 test
+test root_replacement_before_first_valid_capture_cannot_auto_attach ... FAILED
+
+failures:
+
+---- root_replacement_before_first_valid_capture_cannot_auto_attach stdout ----
+
+thread 'root_replacement_before_first_valid_capture_cannot_auto_attach' panicked at tests/herdr_projects_runtime.rs:87:5:
+replacement must never become a campaign
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    root_replacement_before_first_valid_capture_cannot_auto_attach
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `--test herdr_projects_runtime`

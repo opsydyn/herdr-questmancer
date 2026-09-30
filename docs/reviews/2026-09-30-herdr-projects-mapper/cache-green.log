@@ -1,0 +1,9 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.70s
+     Running tests/herdr_projects_source.rs (target/debug/deps/herdr_projects_source-c04bc5266dfc39ec)
+
+running 1 test
+test mapped_projection_and_identity_checkpoint_restart_as_one_v2_cache ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.05s
+

@@ -48,6 +48,8 @@ pub struct RuntimeLifecycle {
     connection: Option<RuntimeConnection>,
     persistence: PersistenceClient,
     persistence_worker: tokio::task::JoinHandle<()>,
+    projects: Option<crate::sources::herdr_projects::Producer>,
+    projects_inbox: Option<crate::work::source::SourceInbox>,
 }
 
 impl RuntimeLifecycle {
@@ -61,6 +63,8 @@ impl RuntimeLifecycle {
                 connection: environment.map(RuntimeConnection::start),
                 persistence,
                 persistence_worker,
+                projects: None,
+                projects_inbox: None,
             },
             diagnostics,
         )
@@ -74,10 +78,50 @@ impl RuntimeLifecycle {
         &mut self.persistence
     }
 
-    fn live_parts_mut(&mut self) -> Option<(&mut RuntimeConnection, &mut PersistenceClient)> {
+    pub fn start_projects(
+        &mut self,
+        selection: Option<crate::sources::herdr_projects::RuntimeSelection>,
+        cache: &crate::persistence::WorkCache,
+        model: &mut Model,
+    ) {
+        let Some(selection) = selection else {
+            return;
+        };
+        if self.projects.is_some() {
+            return;
+        }
+        let source = selection.source().clone();
+        match crate::sources::herdr_projects::Producer::start(
+            selection,
+            model.work(),
+            cache.herdr_projects(&source).cloned(),
+        ) {
+            Ok((producer, inbox)) => {
+                self.projects = Some(producer);
+                self.projects_inbox = Some(inbox);
+            }
+            Err(error) => crate::sources::herdr_projects::source_failure(
+                model,
+                &source,
+                &error.to_string(),
+                true,
+            ),
+        }
+    }
+    pub fn projects_inbox_mut(&mut self) -> &mut Option<crate::work::source::SourceInbox> {
+        &mut self.projects_inbox
+    }
+
+    fn live_parts_mut(
+        &mut self,
+    ) -> Option<(
+        &mut RuntimeConnection,
+        &mut PersistenceClient,
+        &mut Option<crate::work::source::SourceInbox>,
+    )> {
         self.connection
             .as_mut()
-            .map(|connection| (connection, &mut self.persistence))
+            .map(|connection| (connection, &mut self.persistence, &mut self.projects_inbox))
     }
 
     pub async fn complete(self, exit: Option<RuntimeExit>) -> Result<Option<RuntimeExit>> {
@@ -85,7 +129,18 @@ impl RuntimeLifecycle {
             connection,
             persistence,
             persistence_worker,
+            projects,
+            projects_inbox,
         } = self;
+        drop(projects_inbox);
+        let projects_result = if let Some(producer) = projects {
+            producer
+                .shutdown()
+                .await
+                .context("join project source producer")
+        } else {
+            Ok(())
+        };
         let runtime_result = if let Some(connection) = connection {
             connection
                 .shutdown()
@@ -95,7 +150,9 @@ impl RuntimeLifecycle {
             Ok(())
         };
         let persistence_result = shutdown_persistence(&persistence, persistence_worker).await;
-        runtime_result.and(persistence_result)?;
+        projects_result
+            .and(runtime_result)
+            .and(persistence_result)?;
         Ok(exit)
     }
 }
@@ -341,9 +398,10 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
     }
     let clock = RuntimeClock::new(sample_wall_time());
     model.set_now(clock.now());
+    lifecycle.start_projects(startup.projects, &startup.work_cache, &mut model);
 
     let loop_result = if environment.is_some() {
-        let (connection, persistence) = lifecycle
+        let (connection, persistence, projects_inbox) = lifecycle
             .live_parts_mut()
             .expect("live lifecycle starts a runtime connection");
         run_live_loop(
@@ -352,6 +410,7 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
                 shutdown: &mut shutdown,
                 clock: &clock,
                 portraits: &portraits,
+                projects_inbox,
             },
             &mut model,
             connection,
@@ -367,9 +426,10 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
                 shutdown: &mut shutdown,
                 clock: &clock,
                 portraits: &portraits,
+                projects_inbox: &mut lifecycle.projects_inbox,
             },
             &mut model,
-            lifecycle.persistence_mut(),
+            &mut lifecycle.persistence,
             &mut persistence_diagnostics,
             &mut collected_diagnostics,
         )
@@ -392,6 +452,7 @@ struct RuntimeLoopContext<'a> {
     shutdown: &'a mut Shutdown,
     clock: &'a RuntimeClock,
     portraits: &'a PortraitGallery,
+    projects_inbox: &'a mut Option<crate::work::source::SourceInbox>,
 }
 
 fn draw_scene_application(
@@ -436,11 +497,29 @@ async fn run_live_loop(
     let mut input = EventStream::new();
     let mut render_invalidation = AnimationScheduler::new();
     let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
+    let mut rendered_frame = None;
+    let mut redraw = true;
 
     loop {
-        let scene_frame =
-            draw_scene_application(context.terminal, model, &mut buffer, context.portraits)?;
-        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, context.clock);
+        if redraw {
+            let viewport = context.terminal.size()?;
+            model.set_work_viewport_size(viewport.width, viewport.height);
+            let frame =
+                draw_scene_application(context.terminal, model, &mut buffer, context.portraits)?;
+            let next_wake = [
+                frame.next_frame_in,
+                model.work().next_attention_in(model.now()),
+            ]
+            .into_iter()
+            .flatten()
+            .min();
+            render_invalidation.reset_after(model.now(), next_wake, context.clock);
+            rendered_frame = Some(frame);
+        }
+        let scene_frame = rendered_frame
+            .as_ref()
+            .expect("initial draw produces a scene frame");
+        redraw = true;
 
         tokio::select! {
             event = input.next() => {
@@ -449,11 +528,11 @@ async fn run_live_loop(
                 };
                 let event = event.context("read terminal input")?;
                 model.set_now(context.clock.now());
-                let action = ui::input::action_for_scene_event_in(&event, model.modal(), &scene_frame);
+                let action = ui::input::action_for_scene_event_in(&event, model.modal(), scene_frame);
                 let reduction = crate::interaction::reduce_scene_action(
                     model,
                     action,
-                    &scene_frame,
+                    scene_frame,
                 );
                 let effects = dispatch_action_effects(persistence, model, reduction).await;
                 connection.schedule(effects.agent_commands);
@@ -466,10 +545,19 @@ async fn run_live_loop(
                     return Ok(exit);
                 }
             }
+            observation = next_projects(context.projects_inbox) => {
+                model.set_now(context.clock.now());
+                redraw = observation.consume(persistence, model).await;
+            }
             runtime_event = connection.next_event() => {
                 let observed_at = context.clock.now();
                 model.set_now(observed_at);
                 match runtime_event {
+                    RuntimeEvent::Work(envelope) => {
+                        if let Err(message)=crate::work::runtime::accept(persistence,model,envelope).await {
+                            model.set_action_feedback(message);
+                        }
+                    }
                     RuntimeEvent::Connection(update) => {
                         let effects = apply_connection_update(model, update, observed_at);
                         if effects.resubscribe { connection.resubscribe(); }
@@ -516,11 +604,29 @@ async fn run_offline_loop(
     let mut input = EventStream::new();
     let mut render_invalidation = AnimationScheduler::new();
     let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
+    let mut rendered_frame = None;
+    let mut redraw = true;
 
     loop {
-        let scene_frame =
-            draw_scene_application(context.terminal, model, &mut buffer, context.portraits)?;
-        render_invalidation.reset_after(model.now(), scene_frame.next_frame_in, context.clock);
+        if redraw {
+            let viewport = context.terminal.size()?;
+            model.set_work_viewport_size(viewport.width, viewport.height);
+            let frame =
+                draw_scene_application(context.terminal, model, &mut buffer, context.portraits)?;
+            let next_wake = [
+                frame.next_frame_in,
+                model.work().next_attention_in(model.now()),
+            ]
+            .into_iter()
+            .flatten()
+            .min();
+            render_invalidation.reset_after(model.now(), next_wake, context.clock);
+            rendered_frame = Some(frame);
+        }
+        let scene_frame = rendered_frame
+            .as_ref()
+            .expect("initial draw produces a scene frame");
+        redraw = true;
 
         tokio::select! {
             event = input.next() => {
@@ -529,11 +635,11 @@ async fn run_offline_loop(
                 };
                 let event = event.context("read terminal input")?;
                 model.set_now(context.clock.now());
-                let action = ui::input::action_for_scene_event_in(&event, model.modal(), &scene_frame);
+                let action = ui::input::action_for_scene_event_in(&event, model.modal(), scene_frame);
                 let reduction = crate::interaction::reduce_scene_action(
                     model,
                     action,
-                    &scene_frame,
+                    scene_frame,
                 );
                 let effects = dispatch_action_effects(persistence, model, reduction).await;
                 if !effects.agent_commands.is_empty() {
@@ -550,6 +656,10 @@ async fn run_offline_loop(
                     return Ok(exit);
                 }
             }
+            observation = next_projects(context.projects_inbox) => {
+                model.set_now(context.clock.now());
+                redraw = observation.consume(persistence, model).await;
+            }
             exit = context.shutdown.requested() => return Ok(exit),
             Some(diagnostic) = persistence_diagnostics.recv() => {
                 record_diagnostic(model, collected_diagnostics, diagnostic);
@@ -558,6 +668,15 @@ async fn run_offline_loop(
                 model.set_now(context.clock.now());
             }
         }
+    }
+}
+
+async fn next_projects(
+    inbox: &mut Option<crate::work::source::SourceInbox>,
+) -> crate::sources::herdr_projects::Observation {
+    match inbox {
+        Some(inbox) => inbox.next_projects().await,
+        None => std::future::pending().await,
     }
 }
 

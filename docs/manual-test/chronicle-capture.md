@@ -71,3 +71,13 @@ hook authority. Verify pane absence after closing, remove only the test-created
 link, verify the final empty pane inventory, and stop only the server this run
 launched. Native UI approval, real-agent completion and snapshot-only live capture
 remain separate from these synthetic metadata observations.
+
+## Real-agent metadata acceptance
+
+The approved 2026-09-09 isolated Pi test observed genuine working/done lifecycle
+metadata, two persisted v2 records, one spoil and 10 XP. Restart preserved history
+and XP; owned-resource cleanup passed. See the
+[receipt](../reviews/2026-09-09-real-agent-chronicle/README.md). This qualifies the
+real metadata path for that configuration, not live snapshot-only capture or
+native completion visuals. The earlier synthetic-only C3 procedure remains scoped
+to synthetic testing; real-agent runs require their own approved disposable scope.

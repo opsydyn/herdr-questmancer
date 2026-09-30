@@ -26,6 +26,7 @@ use tokio::{
 #[derive(Debug, PartialEq)]
 pub enum RuntimeEvent {
     Connection(ConnectionUpdate),
+    Work(crate::work::source::Envelope),
     Command(CommandResult),
     CommandTaskFailed(String),
 }
@@ -53,11 +54,20 @@ pub struct ActionRuntimeEffects {
 
 pub async fn dispatch_action_effects(
     client: &mut PersistenceClient,
-    model: &Model,
+    model: &mut Model,
     reduction: ActionReduction,
 ) -> ActionRuntimeEffects {
-    let persistence_errors =
+    let mut persistence_errors =
         dispatch_persistence_effects(client, model, reduction.persistence).await;
+    if let Some(work) = reduction.work_intent {
+        match client.publish_work(work.clone()).await {
+            Ok(()) => model.settle_work_intent(Some(work)),
+            Err(error) => {
+                model.settle_work_intent(None);
+                persistence_errors.push(error);
+            }
+        }
+    }
     ActionRuntimeEffects {
         agent_commands: reduction.commands,
         persistence_errors,
@@ -88,6 +98,7 @@ pub async fn dispatch_persistence_effects(
 
 #[derive(Debug)]
 pub struct RuntimeConnection {
+    work_source: Option<crate::work::source::SourceInbox>,
     executor: CommandExecutor,
     supervisor: ConnectionSupervisor,
     update_rx: mpsc::Receiver<ConnectionUpdate>,
@@ -102,7 +113,11 @@ pub struct RuntimeConnection {
     pending_snapshot: Option<AgentCommand>,
     pending_output: Option<AgentCommand>,
     last_sidebar_projection: Option<SidebarProjection>,
-    last_pane_headers: std::collections::BTreeMap<PaneId, String>,
+    // Header I/O is ordered, bounded to one request plus the newest pending projection.
+    header_tasks: JoinSet<CommandResult>,
+    pending_headers: Option<Vec<PaneHeaderProjection>>,
+    last_pane_headers: Vec<PaneHeaderProjection>,
+    next_header_renewal: Option<tokio::time::Instant>,
     /// Whether Questmancer asked Herdr to order its agent list. Tracked so
     /// shutdown clears exactly what was set and nothing else.
     urgency_view_set: bool,
@@ -122,6 +137,7 @@ impl RuntimeConnection {
         let supervisor_task = tokio::spawn(supervisor.clone().run(update_tx, shutdown_rx));
 
         Self {
+            work_source: None,
             executor,
             supervisor,
             update_rx,
@@ -134,9 +150,16 @@ impl RuntimeConnection {
             pending_snapshot: None,
             pending_output: None,
             last_sidebar_projection: None,
-            last_pane_headers: std::collections::BTreeMap::new(),
+            last_pane_headers: Vec::new(),
+            header_tasks: JoinSet::new(),
+            pending_headers: None,
+            next_header_renewal: None,
             urgency_view_set: false,
         }
+    }
+
+    pub fn attach_work_source(&mut self, source: crate::work::source::SourceInbox) {
+        self.work_source = Some(source);
     }
 
     pub fn schedule(&mut self, commands: impl IntoIterator<Item = AgentCommand>) {
@@ -156,25 +179,11 @@ impl RuntimeConnection {
                     self.last_sidebar_projection = Some(projection.clone());
                 }
                 AgentCommand::PublishPaneHeaders(projection) => {
-                    let next: std::collections::BTreeMap<PaneId, String> = projection
-                        .iter()
-                        .map(|header| (header.pane_id.clone(), header.label.clone()))
-                        .collect();
-                    let stale = self
-                        .last_pane_headers
-                        .keys()
-                        .filter(|pane| !next.contains_key(*pane))
-                        .cloned()
-                        .collect::<Vec<_>>();
-                    if !stale.is_empty() {
-                        let executor = self.executor.clone();
-                        self.command_tasks.spawn(async move {
-                            executor
-                                .execute(AgentCommand::ClearPaneHeaders(stale))
-                                .await
-                        });
-                    }
-                    self.last_pane_headers = next;
+                    self.last_pane_headers.clone_from(projection);
+                    self.pending_headers = Some(projection.clone());
+                    self.next_header_renewal = None;
+                    self.start_pending_headers();
+                    continue;
                 }
                 AgentCommand::SetUrgencyView => self.urgency_view_set = true,
                 _ => {}
@@ -182,6 +191,19 @@ impl RuntimeConnection {
             let executor = self.executor.clone();
             self.command_tasks
                 .spawn(async move { executor.execute(command).await });
+        }
+    }
+
+    fn start_pending_headers(&mut self) {
+        if self.header_tasks.is_empty()
+            && let Some(headers) = self.pending_headers.take()
+        {
+            let executor = self.executor.clone();
+            self.header_tasks.spawn(async move {
+                executor
+                    .execute(AgentCommand::PublishPaneHeaders(headers))
+                    .await
+            });
         }
     }
 
@@ -215,6 +237,12 @@ impl RuntimeConnection {
     /// The shared Herdr server and counsel/focus/output task sets are untouched.
     pub fn resubscribe(&mut self) {
         self.cancel_snapshots();
+        self.header_tasks.abort_all();
+        self.last_pane_headers.clear();
+        self.pending_headers = self.executor.has_pane_header_attempts().then(Vec::new);
+        self.next_header_renewal = None;
+        self.executor.reset_header_capability();
+        self.start_pending_headers();
         if let Some(task) = self.supervisor_task.take() {
             task.abort();
         }
@@ -233,21 +261,61 @@ impl RuntimeConnection {
             let has_commands = !self.command_tasks.is_empty();
             let has_output = !self.output_tasks.is_empty();
             let has_snapshots = !self.snapshot_tasks.is_empty();
-            if !self.updates_open && !has_commands && !has_output && !has_snapshots {
+            let has_headers = !self.header_tasks.is_empty();
+            let renewal = self.next_header_renewal;
+            if !self.updates_open
+                && !has_commands
+                && !has_output
+                && !has_snapshots
+                && !has_headers
+                && self.work_source.is_none()
+                && renewal.is_none()
+            {
                 return std::future::pending().await;
             }
 
             tokio::select! {
+                work = async {
+                    match self.work_source.as_mut() { Some(source)=>source.next().await, None=>std::future::pending().await }
+                } => return RuntimeEvent::Work(work),
                 update = self.update_rx.recv(), if self.updates_open => {
                     if let Some(update) = update {
                         if !matches!(update, ConnectionUpdate::Event(_)) {
                             self.cancel_snapshots();
+                            self.header_tasks.abort_all();
+                            self.last_pane_headers.clear();
+                            self.pending_headers = self.executor.has_pane_header_attempts().then(Vec::new);
+                            self.next_header_renewal = None;
+                            self.start_pending_headers();
+                            self.executor.reset_header_capability();
                             self.pending_output = None;
                             self.output_tasks.abort_all();
                         }
                         return RuntimeEvent::Connection(update);
                     }
                     self.updates_open = false;
+                }
+                () = async { if let Some(deadline) = renewal { tokio::time::sleep_until(deadline).await; }
+                    else { std::future::pending::<()>().await; } }, if renewal.is_some() => {
+                    self.next_header_renewal = None;
+                    self.pending_headers = Some(self.last_pane_headers.clone());
+                    self.start_pending_headers();
+                }
+                completion = self.header_tasks.join_next(), if has_headers => {
+                    if self.pending_headers.is_some() {
+                        self.start_pending_headers();
+                    } else if !self.last_pane_headers.is_empty()
+                        && !matches!(&completion, Some(Ok(CommandResult::PaneHeadersPublished { available: false }))) {
+                        // Lease renewal is independent of rendering and never loads terminal output.
+                        self.next_header_renewal = Some(tokio::time::Instant::now() + Duration::from_secs(10));
+                    }
+                    match completion {
+                        Some(Ok(result)) => return RuntimeEvent::Command(result),
+                        Some(Err(error)) if !error.is_cancelled() => {
+                            return RuntimeEvent::CommandTaskFailed(error.to_string());
+                        }
+                        _ => {}
+                    }
                 }
                 completion = self.snapshot_tasks.join_next(), if has_snapshots => {
                     self.start_pending_snapshot();
@@ -283,6 +351,7 @@ impl RuntimeConnection {
     }
 
     pub async fn shutdown(mut self) -> Result<(), tokio::task::JoinError> {
+        self.work_source = None;
         let _ = self.shutdown_tx.send(true);
         let supervisor_task = self
             .supervisor_task
@@ -300,6 +369,7 @@ impl RuntimeConnection {
             &mut self.command_tasks,
             &mut self.output_tasks,
             &mut self.snapshot_tasks,
+            &mut self.header_tasks,
         ] {
             tasks.abort_all();
             while let Some(result) = tasks.join_next().await {
@@ -318,15 +388,8 @@ impl RuntimeConnection {
             )
             .await;
         }
-        if !self.last_pane_headers.is_empty() {
-            let panes: Vec<PaneId> = self.last_pane_headers.keys().cloned().collect();
-            self.last_pane_headers.clear();
-            let _ = tokio::time::timeout(
-                Duration::from_millis(250),
-                self.executor.clear_pane_headers(&panes),
-            )
-            .await;
-        }
+        let _ =
+            tokio::time::timeout(Duration::from_secs(2), self.executor.clear_pane_headers()).await;
         if self.urgency_view_set {
             self.urgency_view_set = false;
             let _ = tokio::time::timeout(
@@ -345,6 +408,7 @@ impl Drop for RuntimeConnection {
         if let Some(supervisor_task) = self.supervisor_task.take() {
             supervisor_task.abort();
         }
+        self.header_tasks.abort_all();
         self.command_tasks.abort_all();
         self.output_tasks.abort_all();
         self.snapshot_tasks.abort_all();
@@ -383,6 +447,7 @@ pub fn apply_connection_update(
     let discover_reviewr = matches!(connection_update, ConnectionUpdate::Connected(_));
     let publish_marginalia = matches!(&connection_update, ConnectionUpdate::Connected(_));
     let diagnostic_is_connection = matches!(&connection_update, ConnectionUpdate::Disconnected(_));
+    let before_headers = PaneHeaderProjection::from_model(model);
     let before_marginalia = SidebarProjection::from_domain(
         model.domain(),
         model.now(),
@@ -446,11 +511,12 @@ pub fn apply_connection_update(
             .agent_commands
             .push(AgentCommand::PublishMarginalia(after_marginalia.clone()));
     }
-    effects
-        .agent_commands
-        .push(AgentCommand::PublishPaneHeaders(
-            PaneHeaderProjection::from_sidebar(&after_marginalia, model.managed_pane_id()),
-        ));
+    let after_headers = PaneHeaderProjection::from_model(model);
+    if publish_marginalia || diagnostic_is_connection || after_headers != before_headers {
+        effects
+            .agent_commands
+            .push(AgentCommand::PublishPaneHeaders(after_headers));
+    }
     effects
 }
 
@@ -491,6 +557,7 @@ pub fn apply_command_result(
     result: CommandResult,
     observed_at: Timestamp,
 ) -> RuntimeEffects {
+    let before_headers = PaneHeaderProjection::from_model(model);
     let mut effects = RuntimeEffects::default();
     match result {
         CommandResult::Focused(pane_id) => {
@@ -534,7 +601,7 @@ pub fn apply_command_result(
         }
         CommandResult::UrgencyViewSet
         | CommandResult::MarginaliaPublished
-        | CommandResult::PaneHeadersPublished => {}
+        | CommandResult::PaneHeadersPublished { .. } => {}
         CommandResult::MarginaliaFailed { message } => {
             model.set_integration_diagnostic(format!("sidebar marginalia failed: {message}"));
         }
@@ -542,47 +609,7 @@ pub fn apply_command_result(
             model.set_integration_diagnostic(format!("pane header failed: {message}"));
         }
         CommandResult::SnapshotLoaded { request, snapshot } => {
-            let valid = valid_refresh(model, &snapshot, observed_at);
-            let subscribed = model.snapshot_refresh.subscriptions_match(&snapshot);
-            match model.snapshot_refresh.complete(request, valid, subscribed) {
-                SnapshotCompletion::Ignore => {}
-                SnapshotCompletion::Retry(next) => {
-                    if !valid {
-                        model.set_integration_diagnostic(
-                            "Chronicle snapshot withheld: conflicting or ambiguous evidence"
-                                .to_owned(),
-                        );
-                    }
-                    effects
-                        .agent_commands
-                        .push(AgentCommand::RefreshSnapshot(next));
-                }
-                SnapshotCompletion::Resubscribe => {
-                    if !valid {
-                        model.set_integration_diagnostic(
-                            "Chronicle snapshot withheld: conflicting or ambiguous evidence"
-                                .to_owned(),
-                        );
-                    }
-                    model.set_connection_at(ConnectionState::Connecting, observed_at);
-                    effects.resubscribe = true;
-                }
-                SnapshotCompletion::Apply => {
-                    let before = selected_revision(model);
-                    apply_domain_event(
-                        model,
-                        AppEvent::SnapshotReplaced {
-                            purpose: SnapshotPurpose::Refresh(request),
-                            snapshot,
-                            observed_at,
-                            excluded_pane: model.managed_pane_id().cloned(),
-                        },
-                        &mut effects,
-                    );
-                    refresh_output_after_update(model, before.as_ref(), false, &mut effects);
-                    queue_pending_snapshot(model, &mut effects);
-                }
-            }
+            apply_loaded_snapshot(model, request, *snapshot, observed_at, &mut effects);
         }
         CommandResult::SnapshotFailed { request, message } => {
             if model.snapshot_refresh.fail(request) {
@@ -594,7 +621,61 @@ pub fn apply_command_result(
             model.set_action_feedback(format!("{operation} failed: {message}"));
         }
     }
+    let after_headers = PaneHeaderProjection::from_model(model);
+    if after_headers != before_headers {
+        effects
+            .agent_commands
+            .push(AgentCommand::PublishPaneHeaders(after_headers));
+    }
     effects
+}
+
+fn apply_loaded_snapshot(
+    model: &mut Model,
+    request: crate::snapshot_refresh::SnapshotRequest,
+    snapshot: crate::herdr::protocol::SessionSnapshot,
+    observed_at: Timestamp,
+    effects: &mut RuntimeEffects,
+) {
+    let valid = valid_refresh(model, &snapshot, observed_at);
+    let subscribed = model.snapshot_refresh.subscriptions_match(&snapshot);
+    match model.snapshot_refresh.complete(request, valid, subscribed) {
+        SnapshotCompletion::Ignore => {}
+        SnapshotCompletion::Retry(next) => {
+            if !valid {
+                model.set_integration_diagnostic(
+                    "Chronicle snapshot withheld: conflicting or ambiguous evidence".to_owned(),
+                );
+            }
+            effects
+                .agent_commands
+                .push(AgentCommand::RefreshSnapshot(next));
+        }
+        SnapshotCompletion::Resubscribe => {
+            if !valid {
+                model.set_integration_diagnostic(
+                    "Chronicle snapshot withheld: conflicting or ambiguous evidence".to_owned(),
+                );
+            }
+            model.set_connection_at(ConnectionState::Connecting, observed_at);
+            effects.resubscribe = true;
+        }
+        SnapshotCompletion::Apply => {
+            let before = selected_revision(model);
+            apply_domain_event(
+                model,
+                AppEvent::SnapshotReplaced {
+                    purpose: SnapshotPurpose::Refresh(request),
+                    snapshot: Box::new(snapshot),
+                    observed_at,
+                    excluded_pane: model.managed_pane_id().cloned(),
+                },
+                effects,
+            );
+            refresh_output_after_update(model, before.as_ref(), false, effects);
+            queue_pending_snapshot(model, effects);
+        }
+    }
 }
 
 fn apply_domain_event(model: &mut Model, event: AppEvent, effects: &mut RuntimeEffects) {
@@ -760,6 +841,33 @@ mod tests {
         },
     };
 
+    #[tokio::test]
+    async fn work_source_is_independent_of_herdr_updates_and_detaches_on_shutdown() {
+        let dir = tempfile::tempdir().unwrap();
+        let (mut connection, _herdr) = test_connection(dir.path().join("unused.sock"));
+        let source = crate::work::SourceId::new("fixture-auth");
+        let (sender, inbox) = crate::work::source::channel(source, 1);
+        connection.attach_work_source(inbox);
+        let message =
+            crate::work::fixture::FixtureSource::authentication(Timestamp::from_millis(100))
+                .remove(0);
+        sender
+            .send(crate::work::source::Envelope {
+                version: 1,
+                message,
+            })
+            .await
+            .unwrap();
+        assert!(matches!(
+            tokio::time::timeout(Duration::from_secs(1), connection.next_event())
+                .await
+                .unwrap(),
+            RuntimeEvent::Work(_)
+        ));
+        connection.shutdown().await.unwrap();
+        assert!(sender.is_closed());
+    }
+
     fn test_connection(
         socket_path: PathBuf,
     ) -> (RuntimeConnection, mpsc::Sender<ConnectionUpdate>) {
@@ -767,6 +875,7 @@ mod tests {
         let (shutdown_tx, _shutdown_rx) = watch::channel(false);
         (
             RuntimeConnection {
+                work_source: None,
                 supervisor: ConnectionSupervisor::new(
                     HerdrClient::new(&socket_path),
                     Backoff::default(),
@@ -782,11 +891,68 @@ mod tests {
                 pending_snapshot: None,
                 pending_output: None,
                 last_sidebar_projection: None,
-                last_pane_headers: std::collections::BTreeMap::new(),
+                last_pane_headers: Vec::new(),
+                header_tasks: JoinSet::new(),
+                pending_headers: None,
+                next_header_renewal: None,
                 urgency_view_set: false,
             },
             update_tx,
         )
+    }
+
+    #[tokio::test]
+    async fn pane_headers_coalesce_in_order_and_shutdown_clears_the_whole_owned_set() {
+        let dir = tempfile::tempdir().unwrap();
+        let socket = dir.path().join("headers.sock");
+        let listener = UnixListener::bind(&socket).unwrap();
+        let (mut connection, _tx) = test_connection(socket);
+        let header = |label: &str| PaneHeaderProjection {
+            pane_id: PaneId::new("w1:p1"),
+            terminal_id: "terminal-1".into(),
+            agent_session: crate::herdr::protocol::AgentSessionInfo {
+                source: "pi".into(),
+                agent: "pi".into(),
+                kind: "id".into(),
+                value: "session-a".into(),
+            },
+            label: label.into(),
+            rgba: vec![255; 384],
+        };
+        connection.schedule([AgentCommand::PublishPaneHeaders(vec![header("first")])]);
+        let (mut info_stream, info) = accept_request(&listener).await;
+        assert_eq!(info["method"], "pane.viewport_header.info");
+        respond_to(&mut info_stream, &info, serde_json::json!({"type":"ok"})).await;
+        let (mut first_stream, first) = accept_request(&listener).await;
+        connection.schedule([AgentCommand::PublishPaneHeaders(vec![header("discarded")])]);
+        connection.schedule([AgentCommand::PublishPaneHeaders(vec![header("newest")])]);
+        assert!(
+            timeout(Duration::from_millis(30), listener.accept())
+                .await
+                .is_err()
+        );
+        respond_to(&mut first_stream, &first, serde_json::json!({"type":"ok"})).await;
+        assert!(matches!(
+            connection.next_event().await,
+            RuntimeEvent::Command(CommandResult::PaneHeadersPublished { available: true })
+        ));
+        let (mut newest_stream, newest) = accept_request(&listener).await;
+        assert_eq!(newest["params"]["headers"][0]["label"], "newest");
+        assert!(newest["params"]["sequence"].as_u64() > first["params"]["sequence"].as_u64());
+        respond_to(
+            &mut newest_stream,
+            &newest,
+            serde_json::json!({"type":"ok"}),
+        )
+        .await;
+        let _ = connection.next_event().await;
+        let shutdown = tokio::spawn(connection.shutdown());
+        let (mut clear_stream, clear) = accept_request(&listener).await;
+        assert_eq!(clear["method"], "pane.viewport_header.sync");
+        assert_eq!(clear["params"]["headers"], serde_json::json!([]));
+        assert!(clear["params"]["sequence"].as_u64() > newest["params"]["sequence"].as_u64());
+        respond_to(&mut clear_stream, &clear, serde_json::json!({"type":"ok"})).await;
+        shutdown.await.unwrap().unwrap();
     }
 
     fn output_command(number: u32) -> AgentCommand {
@@ -1142,6 +1308,7 @@ mod tests {
         });
         let (shutdown_tx, _shutdown_rx) = watch::channel(false);
         let connection = RuntimeConnection {
+            work_source: None,
             supervisor: ConnectionSupervisor::new(
                 HerdrClient::new(PathBuf::from("missing.sock")),
                 Backoff::default(),
@@ -1157,7 +1324,10 @@ mod tests {
             pending_snapshot: None,
             pending_output: None,
             last_sidebar_projection: None,
-            last_pane_headers: std::collections::BTreeMap::new(),
+            last_pane_headers: Vec::new(),
+            header_tasks: JoinSet::new(),
+            pending_headers: None,
+            next_header_renewal: None,
             urgency_view_set: false,
         };
         first_sent_rx.await.unwrap();
@@ -1202,6 +1372,7 @@ mod tests {
         let (_update_tx, update_rx) = mpsc::channel(1);
         let (shutdown_tx, _shutdown_rx) = watch::channel(false);
         let connection = RuntimeConnection {
+            work_source: None,
             supervisor: ConnectionSupervisor::new(
                 HerdrClient::new(&socket_path),
                 Backoff::default(),
@@ -1234,7 +1405,10 @@ mod tests {
                         .collect(),
                 }],
             }),
-            last_pane_headers: std::collections::BTreeMap::new(),
+            last_pane_headers: Vec::new(),
+            header_tasks: JoinSet::new(),
+            pending_headers: None,
+            next_header_renewal: None,
         };
 
         connection.shutdown().await.unwrap();

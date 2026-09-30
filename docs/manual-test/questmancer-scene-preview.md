@@ -224,3 +224,81 @@ Inspect plugin logs before declaring the environment restored:
 ```bash
 herdr plugin log list --plugin opsydyn.questmancer --limit 50
 ```
+
+## Pane adventurer line repair check
+
+Use paired development binaries with the optional `pane.viewport_header.info`
+and `pane.viewport_header.sync` API. Published Herdr 0.9.0 does not advertise
+these methods. Put `ui.pane_viewport_header = true` and
+`terminal.kitty_graphics = true` only in the test server's temporary config.
+
+1. Start a fresh owned Herdr server with temporary session and plugin storage.
+   Record its PID, socket, config, binaries, panes and registration. Do not reuse
+   historical IDs, restart a shared server or change global configuration.
+2. Create a disposable plain pane with a startup command that prints a fixed
+   marker and waits. Do not type a synthetic `printf` command into a shell prompt;
+   its echo can be mistaken for the header. Report a complete synthetic agent
+   session identity only on this owned pane. Start the managed Questmancer pane.
+3. Confirm the line shows the adventurer's live name, class and condition, with
+   its personalised authored 8×12 sprite. The first PTY line must remain below it.
+   Confirm the managed Questmancer pane has no adventurer annotation.
+4. Change working/resting/blocked/unknown facts, retaining the qualified session.
+   Check the line changes without fetching output or writing terminal input.
+   Replace the session, release the synthetic identity, and close the pane:
+   old labels and images must disappear. A stale tuple must be rejected.
+5. Review narrow, split, zoomed and tiny panes, plus scrolling and retained
+   redraws. Review text-only fallback in a separate owned graphics-disabled
+   server. The reserved row must not overwrite a border or any PTY cell.
+6. Close Questmancer and verify both text and image clear. Separately terminate
+   only the test publisher without shutdown and wait for the 30-second lease;
+   this checks crash cleanup. Reopen to check negotiation and fresh publication.
+7. Release each synthetic identity before closing its owned pane. Remove only
+   the plugin registration and server created here. Inspect logs, confirm the
+   socket/PIDs are gone, and record final Git status. Restore focus only when
+   the original pane still exists.
+
+Record socket acknowledgements, rendered-buffer checks and native visual review
+separately. Automated tests do not establish Ghostty art approval or repair the
+user's already-running shared Herdr instance. The actual sprite/text review and
+any shared-server rollout remain explicit gates.
+
+## Quest Board fixture review (M1, unreleased)
+
+The seven `Interaction / ... Quest Board` Storybook stories use production
+parchment rendering and an inert authentication fixture. They need no Herdr
+server, agent, pane registration or persistent state. Run `just storybook`, switch
+to Interactions, then inspect populated, empty, offline, deferred, resolved,
+narrow and departed-worker states. Resize the narrow story independently.
+Storybook's fixed-story navigation is separate from production Board input.
+
+The normal plugin installs no synthetic source. Its Board is empty unless a work
+source supplies facts or an existing work cache is restored. Production controls
+are `b` to open, `j/k` or Tab/Shift-Tab to select work, Up/Down or wheel to scroll,
+Space to mark seen, `s` to defer 15 minutes, Enter to observe a verified live
+adventurer binding, and Esc to close. `!` cycles source obligations then existing
+summons. No source answer or agent counsel is sent from this Board.
+
+Review these facts separately: source freshness, an open decision despite active
+work, locally deferred versus resolved, historical assignment after worker exit,
+unknown artifact validation, and cached/unverified restart state. In the resolved
+story, the web quest remains Active; resolution does not assert work delivery.
+Retained [production cell exports](../reviews/2026-09-30-durable-obligations/README.md)
+are renderer evidence, not native terminal captures or live adapter acceptance.
+
+
+## War Table fixture review (M2, unreleased)
+
+Six `Interaction / ... War Table` stories use the real static RGB map and
+parchment path: populated, narrow, empty, offline, cyclic and large. They need no
+Herdr resource or persisted state. Inspect the DAG direction, source lifecycle,
+source-open human marker and full selected details. The cyclic fixture reports
+its cycle and uses an inventory; the 100-quest fixture follows selection by page.
+Resize to check narrow details and tiny status-only rendering independently.
+
+Production input is `w` open/close, `j/k` quests, Tab/Shift-Tab campaigns,
+Up/Down or wheel details, `b` Board, Enter verified observe and `!` existing
+summons. Storybook remains fixed-story navigation, not an interactive live source.
+No test here opens a real pane or answers a source request. The
+[review pack](../reviews/2026-09-30-war-table/README.md) retains production cell
+exports; native terminal interactions, portraits and live adapter acceptance
+remain separate.

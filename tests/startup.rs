@@ -314,6 +314,7 @@ async fn startup_data_has_no_settings_owner_outside_the_model() {
         model,
         paths,
         diagnostics,
+        ..
     } = startup;
 
     assert_eq!(model.settings().output_preview_lines.get(), 80);

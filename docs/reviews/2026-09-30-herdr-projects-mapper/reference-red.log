@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.92s
+     Running tests/herdr_projects_source.rs (target/debug/deps/herdr_projects_source-c04bc5266dfc39ec)
+
+running 1 test
+test changed_report_bytes_advance_the_reference_slot_and_unsafe_pr_paths_have_no_uri ... FAILED
+
+failures:
+
+---- changed_report_bytes_advance_the_reference_slot_and_unsafe_pr_paths_have_no_uri stdout ----
+
+thread 'changed_report_bytes_advance_the_reference_slot_and_unsafe_pr_paths_have_no_uri' panicked at tests/herdr_projects_source.rs:280:5:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    changed_report_bytes_advance_the_reference_slot_and_unsafe_pr_paths_have_no_uri
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test herdr_projects_source`

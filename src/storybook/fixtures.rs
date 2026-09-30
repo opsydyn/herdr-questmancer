@@ -309,3 +309,157 @@ fn fixture_agent(
         persona: AdventurerPersona::for_key(PersonaKey::new(format!("storybook-{name}"))),
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub enum WorkBoardState {
+    Populated,
+    Empty,
+    Offline,
+    Deferred,
+    Resolved,
+    Narrow,
+    WorkerExited,
+}
+pub fn quest_board_fixture(context: StoryContext, state: WorkBoardState) -> Model {
+    use crate::work::{
+        self, LiveBinding, Message, ObligationId, QuestId, SourceId, WorkSelection,
+        fixture::FixtureSource,
+    };
+    let mut model = guild_world_fixture(context);
+    if matches!(state, WorkBoardState::Empty) {
+        model.open_quest_board();
+        return model;
+    }
+    let key = model
+        .domain()
+        .agents
+        .keys()
+        .next()
+        .expect("fixture party")
+        .clone();
+    let agent = model
+        .domain_mut()
+        .agents
+        .get_mut(&key)
+        .expect("fixture agent");
+    agent.name = "Linus".into();
+    agent.presence = Presence::Working;
+    agent.attention = GuildAttention::Clear;
+    agent.capture_identity = crate::domain::CaptureIdentity::from_parts(
+        "fixture-terminal",
+        Some(&crate::herdr::protocol::AgentSessionInfo {
+            source: "storybook".into(),
+            agent: "Linus".into(),
+            kind: "fixture".into(),
+            value: "auth-1".into(),
+        }),
+    );
+    let binding = LiveBinding {
+        agent: key.clone(),
+        pane: agent.pane_id.clone(),
+        identity: agent
+            .capture_identity
+            .fingerprint()
+            .expect("qualified fixture"),
+        counsel_since: None,
+    };
+    let source = SourceId::new("fixture-auth");
+    let quest = QuestId::new(&source, "web");
+    let id = ObligationId::new(&source, "compatibility");
+    let mut projection = work::Projection::default();
+    for mut event in FixtureSource::authentication(context.now) {
+        if let Message::Baseline { bindings, .. } = &mut event {
+            bindings.insert(quest.clone(), binding.clone());
+        }
+        projection = work::reduce(projection, event).expect("authored source");
+    }
+    match state {
+        WorkBoardState::Offline => {
+            projection = work::reduce(projection, Message::Disconnected(source.clone()))
+                .expect("disconnect");
+        }
+        WorkBoardState::Deferred => {
+            projection.acknowledge(&id, Some(context.now.plus(Model::SNOOZE)));
+        }
+        WorkBoardState::Resolved => {
+            projection = work::reduce(projection, FixtureSource::resolution(context.now))
+                .expect("resolution");
+        }
+        WorkBoardState::WorkerExited => {
+            model
+                .domain_mut()
+                .agents
+                .get_mut(&key)
+                .expect("fixture agent")
+                .presence = Presence::Exited;
+            projection = work::reduce(projection, Message::BindingRemoved { source, quest })
+                .expect("binding removal");
+        }
+        WorkBoardState::Populated | WorkBoardState::Empty | WorkBoardState::Narrow => {}
+    }
+    model.replace_work(projection);
+    model.select_work(WorkSelection::Obligation(id));
+    model
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum WarTableState {
+    Populated,
+    Narrow,
+    Empty,
+    Offline,
+    Cyclic,
+    Large,
+}
+pub fn war_table_fixture(context: StoryContext, state: WarTableState) -> Model {
+    use crate::work::{self, Change, Message, QuestId, SourceId, WorkSelection};
+    let board = match state {
+        WarTableState::Empty => WorkBoardState::Empty,
+        WarTableState::Offline => WorkBoardState::Offline,
+        _ => WorkBoardState::Populated,
+    };
+    let mut model = quest_board_fixture(context, board);
+    let source = SourceId::new("fixture-auth");
+    let mut changes = Vec::new();
+    if matches!(state, WarTableState::Cyclic | WarTableState::Large) {
+        let seed = model
+            .work()
+            .quest(&QuestId::new(&source, "api"))
+            .expect("auth fixture")
+            .clone();
+        if matches!(state, WarTableState::Cyclic) {
+            let mut q = seed;
+            q.revision += 1;
+            q.dependencies = vec![QuestId::new(&source, "tests")];
+            changes.push(Change::Quest(q));
+        } else {
+            for i in 0..96 {
+                let mut q = seed.clone();
+                q.id = QuestId::new(&source, &format!("extra-{i:03}"));
+                q.revision = 1;
+                q.assignment = None;
+                q.dependencies.clear();
+                q.title = format!("Synthetic campaign work {i:03}");
+                changes.push(Change::Quest(q));
+            }
+        }
+        let projection = work::reduce(
+            model.work().clone(),
+            Message::Update {
+                source: source.clone(),
+                generation: 1,
+                occurred_at: context.now,
+                cursor: 2,
+                event: "table-scenario".into(),
+                changes,
+            },
+        )
+        .expect("authored table scenario");
+        model.replace_work(projection);
+    }
+    if matches!(state, WarTableState::Cyclic) {
+        model.select_work(WorkSelection::Quest(QuestId::new(&source, "api")));
+    }
+    model.open_war_table();
+    model
+}

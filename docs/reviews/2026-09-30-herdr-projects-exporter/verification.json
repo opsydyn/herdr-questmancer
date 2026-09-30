@@ -1,0 +1,70 @@
+{
+  "date": "2026-09-30",
+  "head": "f380720ba63424b279980ff4f1c164d8fd4ef735",
+  "branch": "main",
+  "dirty": true,
+  "slice": "M3a.1 snapshot/exporter proof",
+  "authorisation": "User said Let\u2019s continue after the M3 source-contract plan was written; bounded M3a.1 scope stated before edits.",
+  "engineering": "passed",
+  "published": false,
+  "full_m3_acceptance": "outstanding",
+  "scope": {
+    "work_mapping": false,
+    "runtime_attachment": false,
+    "persistence_migration": false,
+    "live_source_commands": false,
+    "real_project_homes_read": false,
+    "ui_changed": false,
+    "native_durable_identity": "unsupported",
+    "coverage": "partial"
+  },
+  "checks": {
+    "verify": {
+      "exit_code": 0,
+      "rust_tests": 722,
+      "rust_runs": 61,
+      "shell_tests": 28,
+      "format": true,
+      "clippy_warnings_denied": true,
+      "all_targets_features": true,
+      "script_syntax": true,
+      "log": "verify.log"
+    },
+    "property": {
+      "exit_code": 0,
+      "rust_tests": 107,
+      "rust_runs": 6,
+      "configured_cases": 4096,
+      "log": "property.log"
+    },
+    "focused": {
+      "exit_code": 0,
+      "tests": 15,
+      "log": "focused.log",
+      "scope": "Before the final TOML diagnostic and temp-directory portability edits; full gate covers final source."
+    },
+    "release_build": {
+      "exit_code": 0,
+      "log": "release-build.log"
+    },
+    "diff_check": {
+      "exit_code": 0
+    }
+  },
+  "host": "macOS ARM64",
+  "rust_version": "1.90.0",
+  "native_source_or_other_host_acceptance": "unperformed",
+  "source_sha256": {
+    "src/sources/mod.rs": "bf71fd700114b8cdde7b4ae46bc2eaf4f49d4d0e0aee88249fe1698b2ce16227",
+    "src/sources/herdr_projects/mod.rs": "d4b2dc940060e846b81e3fb308d744bf61e878b34744fe3e5597d323a93387b8",
+    "src/sources/herdr_projects/contract.rs": "e2a2f0880809d26190334f1cf5fa453fe1305aa2dced2319b97f3119f440c20c",
+    "src/sources/herdr_projects/files.rs": "0969fc8de2372df80ff60c24f898151022bdf748b14b0b85f62ac9fa21898318",
+    "src/sources/herdr_projects/read.rs": "4ad8f6040be7c84b0d8e03d3a3a5fa35e3ba3d6706d8d88172f23097d58493ef",
+    "tests/herdr_projects_source.rs": "1e9b3ed714f34ee6949416d318e9cd273913918fab91088a1825caa9c3b2f502",
+    "Cargo.toml": "63f90d74da091415e54643d63b521a561e6a202d73f8f8061203a32debd01e02",
+    "Cargo.lock": "ae85d1cd91ae4cd61df9d446cc3b655c928b1db665dda2beee9ac4c0e953f788",
+    "justfile": "75705d60088d7ed31ad8cda1e88ec603aa74b7dcfd9f089cdb5c61f0bdd40ef7"
+  },
+  "synthetic_example_sha256": "daae593f27624ccb6ed0d909d4915ffe731c3583028d5b69b2589a7c711198de",
+  "git_status": "git-status.txt"
+}

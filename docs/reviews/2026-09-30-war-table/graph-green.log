@@ -1,0 +1,43 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0308]: arguments to this function are incorrect
+  --> src/scene/render/war_table.rs:73:35
+   |
+73 |             QuestState::Active => blit(target, roster::state_marker(ScenePose::Working), origin),
+   |                                   ^^^^ ------  ----------------------------------------  ------ expected `&mut RgbBuffer`, found `PixelPoint`
+   |                                        |       |
+   |                                        |       expected `PixelPoint`, found `&'static SpriteFrame`
+   |                                        expected `&SpriteFrame`, found `&mut RgbBuffer`
+   |
+note: function defined here
+  --> src/scene/sprite.rs:35:8
+   |
+35 | pub fn blit(frame: &SpriteFrame, origin: PixelPoint, target: &mut RgbBuffer) {
+   |        ^^^^
+help: reorder these arguments
+   |
+73 -             QuestState::Active => blit(target, roster::state_marker(ScenePose::Working), origin),
+73 +             QuestState::Active => blit(roster::state_marker(ScenePose::Working), origin, target),
+   |
+
+error[E0308]: arguments to this function are incorrect
+  --> src/scene/render/war_table.rs:74:38
+   |
+74 |             QuestState::Completed => blit(target, roster::state_marker(ScenePose::Settled), origin),
+   |                                      ^^^^ ------  ----------------------------------------  ------ expected `&mut RgbBuffer`, found `PixelPoint`
+   |                                           |       |
+   |                                           |       expected `PixelPoint`, found `&'static SpriteFrame`
+   |                                           expected `&SpriteFrame`, found `&mut RgbBuffer`
+   |
+note: function defined here
+  --> src/scene/sprite.rs:35:8
+   |
+35 | pub fn blit(frame: &SpriteFrame, origin: PixelPoint, target: &mut RgbBuffer) {
+   |        ^^^^
+help: reorder these arguments
+   |
+74 -             QuestState::Completed => blit(target, roster::state_marker(ScenePose::Settled), origin),
+74 +             QuestState::Completed => blit(roster::state_marker(ScenePose::Settled), origin, target),
+   |
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `questmancer` (lib) due to 2 previous errors

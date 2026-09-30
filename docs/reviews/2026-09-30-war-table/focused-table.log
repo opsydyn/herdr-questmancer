@@ -1,0 +1,14 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.62s
+     Running tests/war_table.rs (target/debug/deps/war_table-76151bf431d8d852)
+
+running 6 tests
+test table_projects_dependencies_without_turning_attention_into_work_state ... ok
+test cycles_missing_and_outside_dependencies_are_attributed_without_readiness ... ok
+test deferred_request_remains_a_fact_without_becoming_an_alert ... ok
+test navigation_reaches_every_quest_and_source_qualified_campaign_and_repairs_removal ... ok
+test table_renders_deterministically_without_domain_mutation_or_animation ... ok
+test narrow_details_scroll_to_literal_requests_and_large_inventory_keeps_selection ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+

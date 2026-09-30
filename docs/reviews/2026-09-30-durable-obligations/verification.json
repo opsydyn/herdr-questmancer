@@ -1,0 +1,67 @@
+{
+  "date": "2026-09-30",
+  "head": "f380720ba63424b279980ff4f1c164d8fd4ef735",
+  "branch": "main",
+  "dirty": true,
+  "engineering": "passed",
+  "production_visual_approval": "approved",
+  "native_terminal_acceptance": "unperformed",
+  "live_adapter_acceptance": "unperformed",
+  "published": false,
+  "checks": {
+    "verify": {
+      "exit_code": 0,
+      "rust_tests": 696,
+      "rust_runs": 59,
+      "log": "verify.log",
+      "shell_tests": 28,
+      "format": true,
+      "clippy_warnings_denied": true,
+      "all_targets_features": true,
+      "script_syntax": true
+    },
+    "property": {
+      "exit_code": 0,
+      "rust_tests": 82,
+      "rust_runs": 4,
+      "log": "property.log",
+      "configured_cases": 4096,
+      "scope": "Retained M1 gate before UI correction; generated domain properties unchanged."
+    },
+    "release_build": {
+      "exit_code": 0,
+      "log": "release-build.log"
+    },
+    "work": {
+      "exit_code": 0,
+      "tests": 29,
+      "log": "work.log"
+    },
+    "diff_check": {
+      "exit_code": 0,
+      "output": ""
+    }
+  },
+  "git_status": "git-status.txt",
+  "image_sha256": {
+    "artifact.png": "0210506888da75307470252a196a2dbc2280a0b4231097227eaa1e30d32ebc6d",
+    "cached.png": "cc2458a55e51b3c8c3b12db2f27c448d562d7baf90226a84be4f063032b54199",
+    "deferred.png": "0238b793b2a971b6a61a804e857093a88f21b11368c7db55903eb6fe36361375",
+    "empty.png": "75b014f99fd2db2880e5215dc25bf465342648b0e61db1319d2bfb01a0e013a1",
+    "narrow.png": "36309f3aca6d10654598c9a321c80a067ebc88054d6dfdab5a7c4919061cec29",
+    "offline.png": "16f84c0f321fc9a32f49bdf024300ea253d461d7f6b23682e7645959d2ada184",
+    "populated.png": "5246730941f6299feb4b7cb31ba637a68fe7b514749c47353e1010b351465d29",
+    "resolved.png": "2c06fd767280f786dcee9399376a57ce2365861bd4bac5d08f6b553375b302ae",
+    "worker-exited.png": "608919d2866fd39fd4e6eb69e3366891e0b587c7a4a196c47774638800917510"
+  },
+  "truncation_repair": {
+    "red_exit_code": 101,
+    "red_log": "truncation-red.log",
+    "green_exit_code": 0,
+    "green_log": "truncation-green.log",
+    "production_exports_regenerated": true
+  },
+  "production_visual_approval_date": "2026-09-30",
+  "production_visual_approval_evidence": "User replied Approved after the corrected production Quest Board preview and truncation repair.",
+  "m1_status": "complete_unreleased"
+}

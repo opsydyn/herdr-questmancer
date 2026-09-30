@@ -1,0 +1,173 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.50s
+     Running tests/herdr_projects_source.rs (target/debug/deps/herdr_projects_source-180ecefc297f3c3d)
+
+running 26 tests
+test frozen_snapshot_example_decodes_through_the_contract ... ok
+test duplicate_identity_never_selects_a_later_closure ... ok
+test changed_report_bytes_advance_the_reference_slot_and_unsafe_pr_paths_have_no_uri ... ok
+test mapper_preserves_identity_on_reopen_and_equivalent_creation_and_ignores_probe_times ... ok
+test mapper_requires_locked_registered_context_and_checked_observer_order ... ok
+test decoder_rejects_future_versions_false_capabilities_and_duplicate_thread_keys ... ok
+test partial_thread_omission_cannot_remove_or_close_known_work ... ok
+test mapper_revokes_reference_slots_and_never_promotes_group_hash_or_ack_to_validation ... ok
+test missing_lock_is_partial_and_never_creates_source_files ... ok
+test mapped_projection_and_identity_checkpoint_restart_as_one_v2_cache ... ok
+test mapped_consumer_retains_facts_on_omission_and_failed_publication_then_recovers ... ok
+test selection_rejects_identity_and_path_escapes ... ok
+test source_writer_helper_process ... ok
+test registered_identity_isolation_and_repeated_observations_are_inert ... ok
+test multiline_context_is_literal_and_terminal_controls_are_rejected ... ok
+test missing_native_identity_cannot_be_upgraded_by_retention_or_record_reuse ... ok
+test registered_mapper_rejects_changed_creation_and_partial_omission_before_reduction ... ok
+test snapshot_is_versioned_literal_partial_and_does_not_write_to_the_source ... ok
+test malformed_or_unknown_required_records_reject_the_whole_capture ... ok
+test reports_are_only_home_references_with_matching_hash_evidence ... ok
+test v2_cache_protects_invalid_future_and_duplicate_identity_evidence ... ok
+test symlinked_roots_ancestors_records_and_reports_are_not_followed ... ok
+test v1_migration_and_ordinary_intent_writes_preserve_registered_checkpoints ... ok
+test captures_at_one_ten_and_one_hundred_are_deterministic_and_do_not_invent_work ... ok
+test cooperative_writer_process_cannot_publish_a_mixed_record_pair ... ok
+test file_inventory_and_snapshot_sizes_are_bounded ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/persistence_worker.rs (target/debug/deps/persistence_worker-cb904b507572f7f8)
+
+running 19 tests
+test disabled_paths_are_successful_no_ops ... ok
+test failed_state_write_is_non_fatal_and_only_a_distinct_state_retries ... ok
+test diagnostic_queue_remains_bounded_under_repeated_failures ... ok
+test bounded_runtime_shutdown_returns_filesystem_failure_after_worker_exit ... ok
+test acknowledged_append_survives_restart_after_a_truncated_chronicle_tail ... ok
+test chronicle_append_is_acknowledged_after_the_record_is_durable ... ok
+test flush_publishes_dirty_state_without_waiting_for_the_debounce ... ok
+test coalesces_state_to_the_latest_value_after_250_milliseconds ... ok
+test bounded_runtime_shutdown_flushes_latest_state_after_prior_append ... ok
+test malformed_state_survives_initial_snapshot_flush_while_chronicle_stays_writable ... ok
+test flush_acknowledges_after_an_earlier_append_and_dirty_state_are_durable ... ok
+test quit_lifecycle_stops_real_runtime_then_flushes_writer ... ok
+test saturated_diagnostic_queue_retains_the_latest_failure ... ok
+test runtime_dispatch_durably_appends_before_staging_the_following_state ... ok
+test unchanged_state_is_not_staged_or_republished ... ok
+test shutdown_publishes_dirty_state_and_exits ... ok
+test offline_view_change_preserves_restored_selection_for_reconnect ... ok
+test an_expired_state_deadline_precedes_sustained_queued_appends ... ok
+test a_later_distinct_state_resets_the_debounce_deadline ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+
+     Running tests/runtime_loop.rs (target/debug/deps/runtime_loop-3d37458c6a850383)
+
+running 55 tests
+test available_reviewr_discovery_clears_the_prior_typed_integration_notice ... ok
+test available_reviewr_discovery_preserves_a_newer_adapter_diagnostic ... ok
+test connection_snapshot_excludes_the_managed_webmaster_pane ... ok
+test a_pending_read_cannot_populate_the_managed_pane ... ok
+test connection_bootstrap_updates_model_and_lazily_loads_selected_output ... ok
+test disconnected_refresh_does_not_read_a_retained_agent_snapshot ... ok
+test an_exit_event_invalidates_the_pending_read_without_loading_the_exited_pane ... ok
+test disconnect_preserves_the_last_connected_snapshot ... ok
+test conflicting_equal_revision_status_requests_snapshot_without_history ... ok
+test conflicting_equal_revision_snapshot_requires_reconciliation ... ok
+test marginalia_failure_is_an_integration_diagnostic_not_an_action_error ... ok
+test a_refresh_from_before_disconnect_cannot_replace_the_new_connection_baseline ... ok
+test connected_clears_only_connection_notice ... ok
+test blocked_transition_routes_history_and_state_to_persistence ... ok
+test duplicate_and_late_results_cannot_complete_a_new_snapshot_request ... ok
+test offline_and_unsolicited_snapshot_results_cannot_establish_a_baseline ... ok
+test failed_enter_becomes_a_submission_only_retry ... ok
+test even_the_latest_output_request_cannot_regress_the_current_revision ... ok
+test only_finished_work_is_worth_standing ... ok
+test explicit_duplicate_and_stale_status_updates_have_no_runtime_effects ... ok
+test older_output_result_cannot_overwrite_a_newer_selected_preview ... ok
+test local_interaction_and_marginalia_do_not_supersede_snapshot_work ... ok
+test operational_results_use_approved_guild_copy ... ok
+test leaving_and_reselecting_an_adventurer_invalidates_the_old_output_request ... ok
+test output_and_discovery_results_update_app_state ... ok
+test matching_snapshot_failure_releases_only_one_coalesced_pending_request ... ok
+test output_failure_is_scoped_to_the_selected_scrying_preview ... ok
+test output_result_must_match_both_request_and_pane ... ok
+test pane_headers_publish_changed_facts_clear_disconnect_and_ignore_metadata_echoes ... ok
+test replacing_the_selected_agent_on_the_same_pane_invalidates_output ... ok
+test runtime_domain_update_keeps_the_newly_selected_distinct_persona_selected ... ok
+test resync_does_not_launch_a_competing_command_snapshot ... ok
+test selected_status_change_refreshes_only_that_output ... ok
+test removal_and_recreation_of_a_pane_cannot_revive_its_old_output_request ... ok
+test refresh_with_unsubscribed_panes_requires_a_quiet_new_baseline ... ok
+test startup_with_plugin_environment_begins_connecting ... ok
+test startup_without_plugin_environment_is_usefully_offline ... ok
+test snapshot_result_excludes_the_managed_webmaster_pane ... ok
+test terminal_runtime_is_async ... ok
+test stale_output_failure_preserves_newer_text_and_feedback ... ok
+test snapshot_result_preserves_persistence_effect_after_durable_overlay ... ok
+test superseded_output_does_not_settle_a_newer_pending_read_even_at_a_higher_revision ... ok
+test snapshot_refresh_bursts_coalesce_and_pending_work_uses_installed_facts ... ok
+test unsolicited_output_results_are_ignored_without_a_selected_request ... ok
+test runtime_clock_advances_from_one_epoch_sample_using_tokio_time ... ok
+test the_urgency_view_is_only_requested_when_the_user_asked_for_it ... ok
+test the_urgency_view_is_requested_again_after_reconnecting ... ok
+test topology_hints_supersede_refreshes_before_the_new_party_is_known ... ok
+test reconnect_does_not_replay_completion_but_a_new_done_event_can ... ok
+test runtime_connection_exposes_owned_work_as_typed_events ... ok
+test unsupported_and_ambiguous_snapshots_never_replace_the_qualified_party ... ok
+test runtime_shutdown_cancels_supervisor_and_command_tasks ... ok
+test two_overtaken_refreshes_resubscribe_without_rolling_back_or_backfilling ... ok
+test every_connection_boundary_rejects_old_reads_and_reloads_unchanged_selection ... ok
+test party_counsel_gestures_follow_presence_episodes_across_reports_and_reconnects ... ok
+
+test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/war_table.rs (target/debug/deps/war_table-5953d75653ba5320)
+
+running 12 tests
+test production_table_review_exports_when_requested ... ok
+test table_input_is_contextual_and_ignores_agent_editing_keys ... ok
+test deferred_request_remains_a_fact_without_becoming_an_alert ... ok
+test cycles_missing_and_outside_dependencies_are_attributed_without_readiness ... ok
+test table_projects_dependencies_without_turning_attention_into_work_state ... ok
+test navigation_reaches_every_quest_and_source_qualified_campaign_and_repairs_removal ... ok
+test unknown_and_closed_use_neutral_map_markers_without_working_or_success_cues ... ok
+test text_parchment_clears_rgb_half_blocks_before_writing ... ok
+test table_renders_deterministically_without_domain_mutation_or_animation ... ok
+test large_inventory_pages_every_selected_quest_without_hiding_dependency_facts ... ok
+test generated_dag_layers_keep_every_prerequisite_before_its_dependent ... ok
+test narrow_details_scroll_to_literal_requests_and_large_inventory_keeps_selection ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/work.rs (target/debug/deps/work-05030895ee6af6f7)
+
+running 29 tests
+test complete_coverage_cannot_be_undone_by_an_old_entity_revision ... ok
+test attention_ranks_human_requests_then_age_and_identity ... ok
+test an_unknown_close_is_a_tombstone_for_late_old_requests ... ok
+test duplicate_payload_conflict_and_exact_resolution ... ok
+test deferred_decisions_remain_open_and_schedule_one_expiry_wake ... ok
+test fixture_replay_is_equivalent_and_supervisor_waits_do_not_alert ... ok
+test closed_incarnation_intent_never_hides_new_request_and_dependencies_stay_source_owned ... ok
+test fixture_disconnect_retains_open_work_and_reconciliation_requires_baseline ... ok
+test malformed_baseline_map_keys_are_not_normalised_into_valid_entities ... ok
+test inbox_cannot_write_another_sources_namespace ... ok
+test partial_baseline_preserves_references_and_complete_cannot_roll_back ... ok
+test missing_dependencies_and_completed_cycles_remain_unready ... ok
+test old_head_validation_does_not_claim_current_artifact_passed ... ok
+test qualified_ids_and_exit_preserve_obligations ... ok
+test explicit_session_binding_controls_observe_and_duplicate_collapse ... ok
+test production_board_review_exports_when_requested ... ok
+test source_tombstone_retains_supersession_without_success ... ok
+test stale_generations_and_gaps_cannot_change_source_facts ... ok
+test urgency_reaches_work_without_live_agent_and_seen_never_resolves ... ok
+test production_board_displays_literal_reason_freshness_and_unavailable_observe ... ok
+test board_inventory_wraps_complete_titles_and_keeps_selection_visible ... ok
+test restart_preserves_intent_as_unverified_without_live_bindings ... ok
+test local_intent_is_committed_only_after_worker_acknowledgement ... ok
+test live_identity_is_omitted_and_startup_has_no_synthetic_source ... ok
+test corrupt_future_and_failed_publication_protect_prior_state ... ok
+test narrow_details_are_reachable_and_inventory_is_keyboard_complete ... ok
+test composed_source_progress_exit_restart_and_matching_resolution ... ok
+test unrelated_updates_and_duplicate_delivery_keep_obligation_open ... ok
+test measure_work_attention_and_scene_capacity_at_one_ten_and_one_hundred ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+

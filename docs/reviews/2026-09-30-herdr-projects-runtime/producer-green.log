@@ -1,0 +1,41 @@
+warning: unused import: `producer::fail as source_failure`
+ --> src/sources/herdr_projects/mod.rs:9:16
+  |
+9 | pub(crate) use producer::fail as source_failure;
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `questmancer` (lib) generated 1 warning (run `cargo fix --lib -p questmancer` to apply 1 suggestion)
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.67s
+     Running tests/config.rs (target/debug/deps/config-6bdca2d5149204e0)
+
+running 16 tests
+test discovers_each_plugin_directory_independently ... ok
+test missing_plugin_directories_disable_only_their_own_paths ... ok
+test parses_a_complete_configuration ... ok
+test accepts_chronicle_entry_bounds ... ok
+test accepts_output_preview_line_bounds ... ok
+test accepts_every_color_mode_value ... ok
+test malformed_toml_rejects_the_whole_file ... ok
+test accepts_every_motion_value ... ok
+test accepts_every_view_value ... ok
+test accepts_every_character_set_value ... ok
+test empty_reviewr_action_rejects_the_whole_file ... ok
+test empty_configuration_uses_complete_defaults ... ok
+test rejects_chronicle_entries_outside_bounds ... ok
+test enabled_projects_source_requires_explicit_registration_and_pinned_format ... ok
+test rejects_output_preview_lines_outside_bounds ... ok
+test arbitrary_config_bytes_never_panic ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/herdr_projects_runtime.rs (target/debug/deps/herdr_projects_runtime-7c17203cc12942a0)
+
+running 2 tests
+test changed_creation_latches_even_after_the_original_bytes_return ... ok
+test owned_producer_acknowledges_changes_and_restarts_from_atomic_cache ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

@@ -1,0 +1,143 @@
+<style>
+#quest-board-review .qb-product{--qb-paper:#e6d09b;--qb-ink:#493623;--qb-edge:#85472d;--qb-gold:#e6b955;--qb-room:#352921;background:var(--qb-room);color:var(--qb-ink);font:14px/1.6 Menlo,Consolas,monospace;padding:20px;box-sizing:border-box}
+#quest-board-review .qb-product *{box-sizing:border-box}
+#quest-board-review .qb-chrome{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--qb-gold);margin-bottom:12px}
+#quest-board-review .qb-paper{border:3px double var(--qb-edge);background:var(--qb-paper);padding:16px;box-shadow:0 4px 0 #1f1816}
+#quest-board-review .qb-heading{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #9c7850;padding-bottom:10px;margin-bottom:12px}
+#quest-board-review .qb-heading strong{font-weight:500}
+#quest-board-review .qb-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:20px}
+#quest-board-review .qb-detail{border-left:1px solid #9c7850;padding-left:20px;min-width:0}
+#quest-board-review .qb-title{font-weight:500;margin:0 0 8px;font-size:16px}
+#quest-board-review .qb-product button{font:inherit;color:var(--qb-ink);background:transparent;border:1px solid #9c7850;padding:7px 9px;white-space:normal;text-align:left;max-width:100%;cursor:inherit}
+#quest-board-review .qb-product button[aria-pressed=true]{background:#d5b97c;border-color:#6a432d}
+#quest-board-review .qb-product button:disabled{opacity:.62}
+#quest-board-review .qb-item{display:block;width:100%;margin:8px 0}
+#quest-board-review .qb-meta{display:block;color:#6b5133;font-size:12px;margin-top:8px;overflow-wrap:anywhere}
+#quest-board-review .qb-detail p{margin:6px 0 12px}
+#quest-board-review .qb-facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:14px 0}
+#quest-board-review .qb-facts dt{color:#6b5133}
+#quest-board-review .qb-facts dd{margin:0;overflow-wrap:anywhere}
+#quest-board-review .qb-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}
+#quest-board-review .qb-product summary{cursor:inherit;color:var(--qb-ink);padding:7px 0}
+#quest-board-review .qb-inventory{margin-top:16px;border-top:1px solid #9c7850}
+#quest-board-review .qb-quests{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}
+#quest-board-review .qb-bottom{margin-top:14px;color:var(--qb-gold);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+#quest-board-review .qb-product .qb-bottom button{color:var(--qb-gold);border-color:var(--qb-edge)}
+#quest-board-review .qb-notice{color:#5d4230;margin-top:12px;min-height:2em}
+#quest-board-review .qb-product.qb-narrow .qb-layout{grid-template-columns:1fr}
+#quest-board-review .qb-product.qb-narrow .qb-detail{border-left:0;border-top:1px solid #9c7850;padding:16px 0 0}
+#quest-board-review .qb-product.qb-narrow .qb-quests{grid-template-columns:1fr}
+@media(max-width:540px){#quest-board-review .qb-product{padding:10px}#quest-board-review .qb-paper{padding:12px}#quest-board-review .qb-layout{grid-template-columns:1fr}#quest-board-review .qb-detail{border-left:0;border-top:1px solid #9c7850;padding:16px 0 0}#quest-board-review .qb-quests{grid-template-columns:1fr}#quest-board-review .qb-facts{grid-template-columns:1fr;gap:2px}#quest-board-review .qb-facts dd{margin-bottom:8px}}
+@media(pointer:coarse){#quest-board-review .qb-product button{min-height:44px}}
+</style>
+<div id="quest-board-review">
+  <div class="viz-controls">
+    <label class="form-label">Fixture state
+      <select class="form-select" id="qb-scenario">
+        <option value="live">Live party</option><option value="exited">Adventurer exited</option>
+        <option value="restart">Restart · cached facts</option><option value="offline">Source unavailable</option>
+        <option value="resolved">Source resolved the decision</option><option value="empty">No work source</option>
+      </select>
+    </label>
+    <button class="btn" type="button" id="qb-progress">Progress event</button>
+    <button class="btn" type="button" id="qb-time">Advance 16 minutes</button>
+  </div>
+  <div class="qb-product" aria-label="Quest Board parchment concept">
+    <div class="qb-chrome"><span>QUESTMANCER / GUILD HALL</span><span>Quest Board · concept</span></div>
+    <section class="qb-paper" aria-label="Quest Board">
+      <div class="qb-heading"><strong>QUEST BOARD</strong><span id="qb-count">1 waiting on you</span></div>
+      <div class="qb-layout">
+        <div>
+          <span>SUMMONS</span>
+          <button class="qb-item cursor-interaction" id="qb-decision" type="button" aria-pressed="true">? Compatibility decision<span class="qb-meta">Web auth migration · Linus</span></button>
+          <span class="qb-meta" id="qb-local">Open · unseen · requested 12m ago</span>
+          <span class="qb-meta" id="qb-queue-note">Your answer is needed.</span>
+        </div>
+        <div class="qb-detail" aria-live="polite">
+          <div class="qb-title" id="qb-title">Should the old token endpoint remain for backwards compatibility?</div>
+          <p id="qb-context">The web auth migration needs a compatibility policy before its endpoint behaviour can be settled.</p>
+          <dl class="qb-facts">
+            <dt>Campaign</dt><dd id="qb-campaign">Replace Authentication Layer</dd>
+            <dt>Quest</dt><dd id="qb-quest">Web auth migration · active</dd>
+            <dt>Adventurer</dt><dd id="qb-worker">Linus · working · pane verified</dd>
+            <dt>Dependencies</dt><dd id="qb-deps">Auth investigation completed. Integration trial still depends on both migrations.</dd>
+            <dt>Spoils</dt><dd id="qb-artifact">PR #481 · fixture reference · checks unknown</dd>
+            <dt>Source</dt><dd id="qb-source">Auth fixture · current · decision d1</dd>
+          </dl>
+          <div class="qb-actions">
+            <button class="cursor-interaction" type="button" id="qb-seen">Space · mark seen</button>
+            <button class="cursor-interaction" type="button" id="qb-defer">s · set aside 15m</button>
+            <button class="cursor-interaction" type="button" id="qb-observe">Enter · observe</button>
+          </div>
+          <span class="qb-meta" id="qb-answer">Answer through the source. This board retains the request until the source closes it.</span>
+        </div>
+      </div>
+      <details class="qb-inventory" id="qb-inventory"><summary>Campaign quests · 4</summary>
+        <div class="qb-quests">
+          <button class="cursor-interaction" type="button" data-quest="a">✓ Auth investigation · completed</button>
+          <button class="cursor-interaction" type="button" data-quest="b">+ API auth migration · active</button>
+          <button class="cursor-interaction" type="button" data-quest="c">? Web auth migration · active</button>
+          <button class="cursor-interaction" type="button" data-quest="d">o Integration trial · planned</button>
+        </div>
+      </details>
+      <div class="qb-notice" id="qb-notice" role="status">The request stays open while work continues.</div>
+    </section>
+    <div class="qb-bottom"><button class="cursor-interaction" type="button" id="qb-jump">! · next summons</button><span>b Quest Board · Esc return to Hall</span></div>
+  </div>
+</div>
+<script>
+(()=>{
+const root=document.getElementById('quest-board-review');
+const el=id=>root.querySelector('#qb-'+id);
+const defaults={scenario:'live',seen:false,deferredUntil:0,minutes:0,progress:0,selected:'c',notice:'The request stays open while work continues.'};
+let state={...defaults};
+const layout={compact:false};
+const saved=window.openai?.widgetState?.privateContent;
+if(saved?.version===1&&['live','exited','restart','offline','resolved','empty'].includes(saved.scenario)) state={...defaults,...saved};
+const names={a:'Auth investigation',b:'API auth migration',c:'Web auth migration',d:'Integration trial'};
+const statuses={a:'completed',b:'active',c:'active',d:'planned'};
+const set=(id,text)=>el(id).textContent=text;
+function render(){
+ const empty=state.scenario==='empty',closed=state.scenario==='resolved',cached=['offline','restart'].includes(state.scenario),alive=state.scenario==='live';
+ const deferred=state.deferredUntil>state.minutes,waiting=!empty&&!closed&&!deferred;
+ const decision=state.selected==='c';
+ root.querySelector('.qb-product').classList.toggle('qb-narrow',layout.compact);
+ el('scenario').value=state.scenario;
+ set('count',waiting?'1 waiting on you':deferred&&!empty&&!closed?'0 waiting · 1 set aside':'0 waiting on you');
+ el('decision').hidden=empty;
+ el('decision').setAttribute('aria-pressed',String(decision&&!empty));
+ set('local',empty?'No work source connected.':closed?'Resolved by source · record retained':deferred?`Open · set aside for ${state.deferredUntil-state.minutes}m`:`Open · ${state.seen?'seen':'unseen'} · requested ${12+state.minutes}m ago`);
+ set('queue-note',empty?'Existing adventurer summons remain available.':closed?'The answer closed this request.':deferred?'The request is retained while set aside.':'Your answer is needed.');
+ set('title',empty?'Campaign work will appear here.':decision?'Should the old token endpoint remain for backwards compatibility?':names[state.selected]);
+ set('context',empty?'The Guild Hall continues to show the live party.':decision?closed?'Source answer: retain the endpoint for one compatibility release.':'The web auth migration needs a compatibility policy before its endpoint behaviour can be settled.':state.selected==='d'?'Prerequisites are incomplete. Their completion will not start this quest automatically.':'Campaign work remains readable independently of the adventurer session.');
+ set('campaign',empty?'—':'Replace Authentication Layer');
+ set('quest',empty?'—':names[state.selected]+' · '+statuses[state.selected]);
+ set('worker',empty?'—':state.selected==='a'?'Completed assignment retained':state.selected==='d'?'Unassigned':alive?(state.selected==='b'?'Ada':'Linus')+' · working · pane verified':state.scenario==='exited'?(state.selected==='b'?'Ada':'Linus')+' · session exited · assignment retained':(state.selected==='b'?'Ada':'Linus')+' · live binding unverified');
+ set('deps',empty?'—':state.selected==='d'?'API migration and web migration are incomplete.':'Auth investigation completed. Integration trial still depends on both migrations.');
+ set('artifact',empty?'—':'PR #481 · fixture reference · checks unknown');
+ set('source',empty?'—':state.scenario==='restart'?'Auth fixture · cached · awaiting verification':state.scenario==='offline'?'Auth fixture · unavailable · last-known facts':`Auth fixture · current · ${decision?'decision d1':'quest '+state.selected}`);
+ for(const id of ['seen','defer'])el(id).disabled=empty||closed||!decision;
+ el('observe').disabled=empty||!alive||!['b','c'].includes(state.selected);
+ set('answer',empty?'Open the Hall to observe your party.':!decision?'Source lifecycle is shown as reported.':closed?'Resolution is independent of the quest lifecycle.':cached?'The source is unverified. This last-known request remains open.':'Answer through the source. This board retains the request until the source closes it.');
+ el('inventory').hidden=empty;
+ set('notice',state.notice);
+ for(const b of root.querySelectorAll('[data-quest]'))b.setAttribute('aria-pressed',String(b.dataset.quest===state.selected));
+}
+function persist(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{concept:'Quest Board',scenario:state.scenario,localSeen:state.seen,deferred:state.deferredUntil>state.minutes,selectedQuest:names[state.selected],compact:layout.compact},privateContent:{version:1,...state}}).catch(()=>{});}
+function act(fn){fn();render();persist();}
+function jump(){act(()=>{if(state.scenario==='empty'||state.scenario==='resolved'||state.deferredUntil>state.minutes){state.notice='No eligible summons. Your selection stays here.';return;}state.selected='c';state.notice='Selected the open compatibility decision.';});}
+el('scenario').addEventListener('change',e=>act(()=>{state.scenario=e.target.value;state.notice={live:'The request stays open while work continues.',exited:'The adventurer exited; the decision and assignment remain.',restart:'Concept restart restored the request and local intent; source verification is pending.',offline:'Last-known open obligations remain visible.',resolved:'The source resolved d1. The quest remains active.',empty:'No work source. Existing Hall and adventurer controls remain available.'}[state.scenario];}));
+el('decision').addEventListener('click',()=>act(()=>{state.selected='c';state.notice='Selected compatibility decision.';}));
+el('jump').addEventListener('click',jump);
+el('seen').addEventListener('click',()=>act(()=>{state.seen=true;state.notice='Marked seen. An answer is still owed.';}));
+el('defer').addEventListener('click',()=>act(()=>{state.deferredUntil=state.minutes+15;state.notice='Set aside for 15 minutes. The request remains open.';}));
+el('observe').addEventListener('click',()=>act(()=>{state.notice='Concept: observe the verified adventurer pane; the request stays open.';}));
+el('progress').addEventListener('click',()=>act(()=>{state.progress++;state.notice=state.scenario==='empty'?'No work source to update.':`Progress event ${state.progress} received. ${state.scenario==='resolved'?'The decision remains resolved.':'The decision remains open.'}`;}));
+el('time').addEventListener('click',()=>act(()=>{state.minutes+=16;state.notice='Sixteen minutes elapsed. Any expired deferral returns to the queue.';}));
+for(const b of root.querySelectorAll('[data-quest]'))b.addEventListener('click',()=>act(()=>{state.selected=b.dataset.quest;state.notice='Selected '+names[state.selected]+'.';}));
+root.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT')return;if(e.key==='!'){e.preventDefault();jump();}if(e.key===' '&&e.target.tagName!=='BUTTON'&&!el('seen').disabled){e.preventDefault();el('seen').click();}if(e.key==='s'&&!el('defer').disabled){e.preventDefault();el('defer').click();}});
+window.addEventListener('openai:set_globals',e=>{const s=e.detail?.globals?.widgetState?.privateContent;if(s?.version===1&&Object.keys(names).includes(s.selected)&&['live','exited','restart','offline','resolved','empty'].includes(s.scenario)){state={...defaults,...s};render();}});
+render();
+if(globalThis.Tweak){const tweak=new Tweak({container:root.querySelector('.qb-product'),onChange:()=>{render();persist();}});tweak.addToggle(layout,'compact',{label:'Stacked narrow layout'});}
+})();
+</script>

@@ -1,0 +1,20 @@
+bun test ./scripts/docs
+bun test v1.4.2 (744846f84)
+
+scripts/docs/versions.test.ts:
+(pass) normalizeVersion > normalizes 0.7.5 [0.03ms]
+(pass) normalizeVersion > normalizes v0.7.5
+(pass) normalizeVersion > rejects non-release refs [0.35ms]
+(pass) sortVersionsNewestFirst > sorts semantic versions numerically [0.39ms]
+
+scripts/docs/preview.integration.test.ts:
+(pass) preview documentation snapshots > snapshots and validates the selected commit exactly [219.48ms]
+(pass) preview documentation snapshots > rejects snapshot drift [124.00ms]
+
+scripts/docs/versions.integration.test.ts:
+(pass) documentation release publishing > publishes immutable tagged snapshots and validates maintained corrections [419.91ms]
+
+ 7 pass
+ 0 fail
+ 21 expect() calls
+Ran 7 tests across 3 files. [773.00ms]

@@ -646,6 +646,7 @@ fn render_with_presentation_frame(
 ) -> (RgbBuffer, SceneFrame) {
     let presentation = questmancer::scene::presentation::ScenePresentation {
         world,
+        war_table: None,
         selected_agent: None,
         transition_floor: None,
         party_rest_since: None,

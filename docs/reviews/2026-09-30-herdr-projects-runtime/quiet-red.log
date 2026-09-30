@@ -1,0 +1,10 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0308]: mismatched types
+  --> tests/herdr_projects_runtime.rs:66:14
+   |
+66 |     assert!(!inbox.next_projects().await.consume(&client, &mut model).await);
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `bool`, found `()`
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `questmancer` (test "herdr_projects_runtime") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

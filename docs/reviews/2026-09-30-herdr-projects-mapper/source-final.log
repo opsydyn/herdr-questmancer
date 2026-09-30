@@ -1,0 +1,39 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.19s
+     Running tests/herdr_projects_source.rs (target/debug/deps/herdr_projects_source-180ecefc297f3c3d)
+
+running 31 tests
+test mapped_context_shows_literal_source_values_without_rust_option_syntax ... ok
+test changed_report_bytes_advance_the_reference_slot_and_unsafe_pr_paths_have_no_uri ... ok
+test decoder_rejects_future_versions_false_capabilities_and_duplicate_thread_keys ... ok
+test duplicate_prepared_proposal_does_not_downgrade_acknowledged_current_facts ... ok
+test frozen_snapshot_example_decodes_through_the_contract ... ok
+test mapper_preserves_identity_on_reopen_and_equivalent_creation_and_ignores_probe_times ... ok
+test mapper_requires_locked_registered_context_and_checked_observer_order ... ok
+test mapped_projection_and_identity_checkpoint_restart_as_one_v2_cache ... ok
+test obsolete_generation_is_rejected_before_an_old_checkpoint_can_poison_fresh_work ... ok
+test mapper_revokes_reference_slots_and_never_promotes_group_hash_or_ack_to_validation ... ok
+test missing_lock_is_partial_and_never_creates_source_files ... ok
+test registered_mapping_production_surfaces_export_when_requested ... ok
+test multiline_context_is_literal_and_terminal_controls_are_rejected ... ok
+test missing_native_identity_cannot_be_upgraded_by_retention_or_record_reuse ... ok
+test malformed_or_unknown_required_records_reject_the_whole_capture ... ok
+test source_writer_helper_process ... ok
+test registered_mapper_rejects_changed_creation_and_partial_omission_before_reduction ... ok
+test duplicate_identity_never_selects_a_later_closure ... ok
+test partial_thread_omission_cannot_remove_or_close_known_work ... ok
+test registered_identity_isolation_and_repeated_observations_are_inert ... ok
+test selection_rejects_identity_and_path_escapes ... ok
+test snapshot_is_versioned_literal_partial_and_does_not_write_to_the_source ... ok
+test reports_are_only_home_references_with_matching_hash_evidence ... ok
+test mapped_consumer_retains_facts_on_omission_and_failed_publication_then_recovers ... ok
+test stale_prepared_proposal_cannot_overwrite_a_newer_atomic_observation ... ok
+test v2_cache_protects_invalid_future_and_duplicate_identity_evidence ... ok
+test symlinked_roots_ancestors_records_and_reports_are_not_followed ... ok
+test v1_migration_and_ordinary_intent_writes_preserve_registered_checkpoints ... ok
+test captures_at_one_ten_and_one_hundred_are_deterministic_and_do_not_invent_work ... ok
+test cooperative_writer_process_cannot_publish_a_mixed_record_pair ... ok
+test file_inventory_and_snapshot_sizes_are_bounded ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+

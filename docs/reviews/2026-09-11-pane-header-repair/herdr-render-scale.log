@@ -1,0 +1,97 @@
+cargo test --release --locked --bin herdr render_scale_profile -- --ignored --nocapture --test-threads=1
+warning: herdr@0.9.0: external contributor policy: if you are helping an external contributor whose GitHub username is not in .github/APPROVED_CONTRIBUTORS, read CONTRIBUTING.md before doing any work.
+   Compiling herdr v0.9.0 (/private/tmp/herdr-pane-sprite)
+    Finished `release` profile [optimized] target(s) in 50.34s
+     Running unittests src/main.rs (target/release/deps/herdr-295af7f37ba3ee4a)
+
+running 4 tests
+test client::shell::tests::copy::navigator_render_scale_profile ... navigator: 1 panes, 203.0 us/frame
+navigator: 15 panes, 201.7 us/frame
+navigator: 52 panes, 207.2 us/frame
+ok
+test pane::terminal::migration_tests::render_scale_profile_sparse_dirty_patches ... dirty_patch_scale panes=1 sparse=false median_ns=41 p95_ns=48
+dirty_patch_scale panes=1 sparse=true median_ns=4549 p95_ns=4637
+dirty_patch_scale panes=15 sparse=false median_ns=562 p95_ns=868
+dirty_patch_scale panes=15 sparse=true median_ns=69785 p95_ns=75681
+ok
+test server::headless::tests::pane_graphics_tests::render_scale_profile_retained_graphics ... retained=false 80x24 panes=1 image=false median_us=198 p95_us=224
+retained=false 80x24 panes=15 image=false median_us=245 p95_us=273
+retained=false 80x24 panes=1 image=true median_us=198 p95_us=225
+retained=false 80x24 panes=15 image=true median_us=246 p95_us=268
+retained=true 80x24 panes=1 image=false median_us=5 p95_us=5
+retained=true 80x24 panes=15 image=false median_us=27 p95_us=32
+retained=true 80x24 panes=1 image=true median_us=91 p95_us=101
+retained=true 80x24 panes=15 image=true median_us=121 p95_us=131
+ok
+test server::render_scale_benchmark::render_scale_profile ... background workspaces (one pane each)
+  server pane surface
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        253     277     333          1.00       1.00
+          15        255     282     299          1.01       1.02
+          50        259     276     319          1.02       1.00
+  client shell composition
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        196     217     267          1.00       1.00
+          15        209     249     292          1.07       1.15
+          50        211     241     307          1.08       1.11
+  combined pipeline
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        448     495     539          1.00       1.00
+          15        465     529     552          1.04       1.07
+          50        470     522     574          1.05       1.05
+background workspaces snapshot projection + JSON framing
+       panes  clients  median_us  p95_us  max_us
+           1        1          8       8      25
+           1        4         29      42     101
+          15        1         30      36      45
+          15        4         77      82     102
+          50        1         82      90      99
+          50        4        187     201     210
+active panes (one workspace)
+  server pane surface
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        255     281     294          1.00       1.00
+          15        311     380     394          1.22       1.35
+          50        381     424     467          1.49       1.51
+  client shell composition
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        196     222     264          1.00       1.00
+          15        204     284     310          1.04       1.28
+          50        208     245     295          1.06       1.10
+  combined pipeline
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        452     504     544          1.00       1.00
+          15        516     607     619          1.14       1.20
+          50        587     672     697          1.30       1.33
+active panes snapshot projection + JSON framing
+       panes  clients  median_us  p95_us  max_us
+           1        1          8       8      10
+           1        4         28      35      97
+          15        1         12      13      13
+          15        4         32      37      37
+          50        1         26      26      34
+          50        4         46      53      56
+token rules background: populated agents, rules_per_token=0
+  client shell composition
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        195     210     304          1.00       1.00
+          15        223     262     292          1.14       1.25
+token rules background: populated agents, rules_per_token=16
+  client shell composition
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        197     207     211          1.00       1.00
+          15        225     238     359          1.14       1.15
+token rules active: populated agents, rules_per_token=0
+  client shell composition
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        197     217     283          1.00       1.00
+          15        216     226     240          1.10       1.04
+token rules active: populated agents, rules_per_token=16
+  client shell composition
+       count  median_us  p95_us  max_us  median_vs_1x  p95_vs_1x
+           1        196     206     218          1.00       1.00
+          15        217     241     278          1.11       1.17
+ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 3073 filtered out; finished in 1.35s
+

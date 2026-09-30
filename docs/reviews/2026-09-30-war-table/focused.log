@@ -1,0 +1,109 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.03s
+     Running tests/input.rs (target/debug/deps/input-71b44e3d62015509)
+
+running 11 tests
+test clicking_a_rendered_adventurer_selects_only_that_agent ... ok
+test counsel_modal_treats_global_shortcuts_as_composed_text ... ok
+test global_keys_map_to_explicit_actions ... ok
+test guild_hall_navigation_and_actions_have_explicit_keys ... ok
+test clicking_empty_world_space_dismisses_the_adventurer_card ... ok
+test ledger_modal_accepts_only_navigation_and_dismissal_keys ... ok
+test number_and_function_keys_switch_views ... ok
+test resize_requests_a_redraw ... ok
+test scene_targets_keep_librarian_hits_distinct_from_agents ... ok
+test scrying_modal_accepts_only_refresh_scrolling_and_dismissal ... ok
+test unrelated_keys_are_ignored ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/keymap.rs (target/debug/deps/keymap-7dec0990d609a44b)
+
+running 4 tests
+test authored_ledger_pages_are_untouched ... ok
+test every_documented_binding_is_still_reachable ... ok
+test the_ledger_keyring_page_is_generated_from_the_bindings ... ok
+test every_bound_key_is_documented ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scene_overlays.rs (target/debug/deps/scene_overlays-d3098e5576324721)
+
+running 36 tests
+test a_narrow_room_drops_the_badge_rather_than_the_scene ... ok
+test a_notice_reaches_the_frame_and_not_only_the_model ... ok
+test ascii_roster_labels_use_ascii_separators_truncation_and_state_glyphs ... ok
+test a_nameplate_never_paints_through_another_adventurer ... ok
+test a_crowded_party_keeps_a_nameplate_for_every_adventurer ... ok
+test an_empty_chronicle_says_so ... ok
+test a_failed_send_keeps_the_draft_and_says_so ... ok
+test a_reopened_parchment_starts_at_the_top ... ok
+test chronicle_v2_records_label_their_time_as_a_local_observation ... ok
+test every_visible_sprite_has_an_agent_state_nameplate ... ok
+test counsel_uses_a_centered_parchment_without_replacing_the_world ... ok
+test nameplate_truncation_shortens_the_name_and_keeps_the_state_word ... ok
+test neighbouring_nameplates_never_touch ... ok
+test chapter_requests_are_local_frozen_in_time_and_return_to_the_existing_records ... ok
+test overlays_are_safe_at_zero_and_minimum_viewports ... ok
+test librarian_ledger_is_the_single_responsive_help_surface ... ok
+test scrolling_stops_at_the_end_of_the_text ... ok
+test search_and_scrying_are_contextual_overlays ... ok
+test scrying_can_be_scrolled_to_reach_output_below_the_fold ... ok
+test selected_adventurer_card_exposes_fantasy_and_system_identity ... ok
+test campaign_crest_is_visible_on_the_adventurers_parchment ... ok
+test the_counsel_parchment_reports_a_send_in_flight ... ok
+test long_live_labels_cannot_displace_card_status_keepsake_or_controls ... ok
+test selected_adventurer_does_not_force_the_card_open ... ok
+test the_adventurer_card_does_not_cover_the_standing_badge ... ok
+test the_chronicle_parchment_shows_recorded_events_over_the_world ... ok
+test the_standing_badge_sits_in_the_top_right_corner ... ok
+test command_ribbon_expires_after_three_seconds ... ok
+test the_ribbon_greets_someone_who_has_not_pressed_anything ... ok
+test keepsake_art_changes_only_its_reserved_card_section ... ok
+test the_ledger_shows_the_whole_keyring ... ok
+test campaign_crest_keeps_the_same_named_identity_in_ascii_and_both_rooms ... ok
+test roster_labels_preserve_the_rgb_state_cue_in_final_terminal_cells ... ok
+test an_on_demand_chapter_counts_events_and_exposes_timestamped_sources ... ok
+test only_correlated_confirmed_counsel_receives_a_parchment_seal ... ok
+test keepsake_details_follow_the_saved_assignment_without_crowding_card_facts ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/war_table.rs (target/debug/deps/war_table-76151bf431d8d852)
+
+running 1 test
+test table_projects_dependencies_without_turning_attention_into_work_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/work.rs (target/debug/deps/work-d05697b6bc3326fb)
+
+running 25 tests
+test complete_coverage_cannot_be_undone_by_an_old_entity_revision ... ok
+test an_unknown_close_is_a_tombstone_for_late_old_requests ... ok
+test duplicate_payload_conflict_and_exact_resolution ... ok
+test fixture_disconnect_retains_open_work_and_reconciliation_requires_baseline ... ok
+test fixture_replay_is_equivalent_and_supervisor_waits_do_not_alert ... ok
+test attention_ranks_human_requests_then_age_and_identity ... ok
+test malformed_baseline_map_keys_are_not_normalised_into_valid_entities ... ok
+test deferred_decisions_remain_open_and_schedule_one_expiry_wake ... ok
+test closed_incarnation_intent_never_hides_new_request_and_dependencies_stay_source_owned ... ok
+test partial_baseline_preserves_references_and_complete_cannot_roll_back ... ok
+test inbox_cannot_write_another_sources_namespace ... ok
+test missing_dependencies_and_completed_cycles_remain_unready ... ok
+test qualified_ids_and_exit_preserve_obligations ... ok
+test old_head_validation_does_not_claim_current_artifact_passed ... ok
+test source_tombstone_retains_supersession_without_success ... ok
+test stale_generations_and_gaps_cannot_change_source_facts ... ok
+test urgency_reaches_work_without_live_agent_and_seen_never_resolves ... ok
+test production_board_displays_literal_reason_freshness_and_unavailable_observe ... ok
+test board_inventory_wraps_complete_titles_and_keeps_selection_visible ... ok
+test restart_preserves_intent_as_unverified_without_live_bindings ... ok
+test narrow_details_are_reachable_and_inventory_is_keyboard_complete ... ok
+test local_intent_is_committed_only_after_worker_acknowledgement ... ok
+test corrupt_future_and_failed_publication_protect_prior_state ... ok
+test unrelated_updates_and_duplicate_delivery_keep_obligation_open ... ok
+test composed_source_progress_exit_restart_and_matching_resolution ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+

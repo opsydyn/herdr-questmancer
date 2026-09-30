@@ -1,0 +1,85 @@
+{
+  "date": "2026-09-30",
+  "slice": "M3a.2 identity/coverage design only",
+  "authorisation": "User Approved the recommendation to settle identity/coverage before durable mapping; documentation scope stated before work.",
+  "questmancer": {
+    "head": "f380720ba63424b279980ff4f1c164d8fd4ef735",
+    "branch": "main",
+    "dirty": true,
+    "unrelated_changes_preserved": true
+  },
+  "upstream": {
+    "repository": "https://github.com/eliasstravik/herdr-projects",
+    "commit": "4e4548c3c43888e6be1c96906215998f07dc63f0",
+    "version": "0.2.34",
+    "checkout_clean": true,
+    "source_sha256": {
+      "src/thread.rs": "c9c58806c25c9afaa97974944467b7c4659c4e2bc0cdcb2dd18df7a31f2a7876",
+      "src/threads.rs": "04b1c8da31847d26efd6f4d91cf2d2b951859b74dd7f8912de269fdd48610499",
+      "src/project.rs": "ad7297fc802e30f8cd41fdd156dab4b1c9bc66eea7a208f305a2aa3c47028580",
+      "src/sweep.rs": "7e087922f084c28e3d824094861a6db46a29bc58414b2219453e151688f42220",
+      "src/rename.rs": "1cdc63fccb3b32928e3115afe623f8dcfe4dbc0d29a9f0efe8e3b44cd14c7d7d",
+      "src/lifecycle.rs": "5e01874acb4d975540bd9451714888ccbc0d310512657a9d566929b7aef55513"
+    }
+  },
+  "questmancer_inspected_sha256": {
+    "src/work/types.rs": "1a3c56253bc893be99bf599fd6fa923ea942ca2cf169bf2377da60de2b55a5e7",
+    "src/work/reducer.rs": "b1b6148d5bbce432dd0f80e0264a30f3e1416a8a0d524c7fd1a26f2077502ab1",
+    "src/work/runtime.rs": "c0b8a76e56811e42a73f7070285ab46bede015592618bd98750cf9af5097da57",
+    "src/work/source.rs": "ad2e289f4bc90c49c42f25b5ce7af0f3a75287a10e5b61ce633434720ad4a260",
+    "src/persistence/work_cache.rs": "d2ce73211128e81ed6e3a296a14e5c072083570b4ab049a7801f8d71854f30f9",
+    "src/persistence/worker.rs": "fe6ae68dc153d29494843870d1c3bac086dbb8f2959d56dc6c9294a08cd2d402"
+  },
+  "documents_sha256": {
+    "AGENTS.md": "6397bdcdd5adcea6034b937245f89eab03481016367da79213366cd79028adce",
+    "PLAN.md": "8e9bb60575208422b501b32d43b860f5cac99909337ac506e89983b32ee52a20",
+    "README.md": "7d89a19de421f739a8c07099b8a14cc33a25ee074997d4b147999be438e1171b",
+    "docs/design/herdr-projects-identity-coverage.md": "b9830686d23add5dc7d7d309de02775ec3bd0cc6886eb98d69815730ffbd099a",
+    "docs/design/herdr-projects-snapshot-contract.md": "c6ac7cdc44c999e47edb584c661eddbac374a5960058e4e747704b8ef2e945a5",
+    "docs/design/questmancer-living-control-plane.md": "20001dcb939d6cd762abb89d87b89aa37d7f21d966e7f3982aeaa0e5a8273f19",
+    "docs/plans/2026-09-30-herdr-projects-adapter.md": "a930d3603a2629e8fed9747a8a646ae25fb9f33c0f265b52e01cd30ed553610b",
+    "docs/plans/2026-09-27-living-control-plane-roadmap.md": "a2d11ddcef4d1f649aa9422c416e95d35f9dfeae2ecde7a0cb3a5df8c933c90e",
+    "docs/reviews/2026-09-30-herdr-projects-identity/README.md": "0617aaa7dd9e88ef7bb1cd00a6b3de76875f7700d2be2012b29151b7b18100ce"
+  },
+  "checks": {
+    "local_links": {
+      "passed": true,
+      "count": 103
+    },
+    "pinned_source_line_anchors": {
+      "passed": true,
+      "count": 6
+    },
+    "m3a1_source_test_config_hashes_unchanged": {
+      "passed": true,
+      "count": 9
+    },
+    "upstream_prior_hashes_unchanged": true,
+    "json_roundtrip": true,
+    "diff_check_exit_code": 0
+  },
+  "acceptance": {
+    "design_documentation": "complete",
+    "mapper_cache_implementation": "not_promoted_or_performed",
+    "runtime_attachment": "not_promoted_or_performed",
+    "specified_test_vectors": "not_executed",
+    "tests_or_full_gate": "not_rerun_for_documentation_only_changes",
+    "upstream_build_run_install": "none",
+    "real_project_homes": "not_read",
+    "shared_server_or_live_agents": "not_operated",
+    "native_visual_live_or_release": "not_claimed"
+  },
+  "selected_policy": {
+    "identity": "explicit_registration_retained_records",
+    "native_durable_identity": "unsupported",
+    "coverage": "partial",
+    "durable_mapping_requires": [
+      "cooperative_record_lock",
+      "known_thread_omission_guard",
+      "matching_creation_evidence",
+      "trusted_registration_capture_context",
+      "atomic_projection_checkpoint_acknowledgement"
+    ]
+  },
+  "git_status": "git-status.txt"
+}

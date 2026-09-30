@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.72s
+     Running tests/config.rs (target/debug/deps/config-6bdca2d5149204e0)
+
+running 1 test
+test enabled_projects_source_requires_explicit_registration_and_pinned_format ... FAILED
+
+failures:
+
+---- enabled_projects_source_requires_explicit_registration_and_pinned_format stdout ----
+
+thread 'enabled_projects_source_requires_explicit_registration_and_pinned_format' panicked at tests/config.rs:159:9:
+assertion failed: QuestmancerConfig::parse(format!("[herdr_projects]\nenabled = true\n{fields}").as_bytes()).is_err()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    enabled_projects_source_requires_explicit_registration_and_pinned_format
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test config`

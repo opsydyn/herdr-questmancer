@@ -1,0 +1,17 @@
+[
+  {
+    "capture_micros": 4931,
+    "snapshot_bytes": 956,
+    "threads": 1
+  },
+  {
+    "capture_micros": 3430,
+    "snapshot_bytes": 3405,
+    "threads": 10
+  },
+  {
+    "capture_micros": 6167,
+    "snapshot_bytes": 27976,
+    "threads": 100
+  }
+]

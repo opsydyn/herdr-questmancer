@@ -1,0 +1,61 @@
+{
+  "kind": "concept-browser-only",
+  "checks": [
+    "progress preserves decision",
+    "exit disables observe and preserves decision",
+    "seen retains eligibility",
+    "defer retained through concept restart",
+    "expired defer re-enters queue",
+    "source resolution removes obligation and preserves active quest",
+    "empty board available",
+    "no horizontal overflow at 320/360/800",
+    "no browser errors"
+  ],
+  "captures": [
+    {
+      "name": "open",
+      "width": 800,
+      "state": "live"
+    },
+    {
+      "name": "worker-exited",
+      "width": 800,
+      "state": "exited"
+    },
+    {
+      "name": "restart",
+      "width": 800,
+      "state": "restart"
+    },
+    {
+      "name": "offline",
+      "width": 800,
+      "state": "offline"
+    },
+    {
+      "name": "resolved",
+      "width": 800,
+      "state": "resolved"
+    },
+    {
+      "name": "empty",
+      "width": 800,
+      "state": "empty"
+    },
+    {
+      "name": "narrow",
+      "width": 360,
+      "state": "live"
+    },
+    {
+      "name": "minimum",
+      "width": 320,
+      "state": "exited"
+    }
+  ],
+  "concept_sha256": "0faee0fea4891deea5e20c3a95e359a0c2bf43f518108fe6a29d74ff0381bbec",
+  "visual_inspection": [
+    "open at 800px",
+    "worker-exited at 320px"
+  ]
+}

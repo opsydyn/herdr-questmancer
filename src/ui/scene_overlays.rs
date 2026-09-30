@@ -236,6 +236,8 @@ pub fn render_scene_overlays(
         SceneOverlay::LibrarianLedger => render_librarian_ledger(frame, model, portraits),
         SceneOverlay::Scrying => render_scrying_parchment(frame, model),
         SceneOverlay::Chronicle => render_chronicle_parchment(frame, model),
+        SceneOverlay::WarTable => crate::ui::war_table::render(frame, model, presentation),
+        SceneOverlay::QuestBoard => crate::ui::work_board::render(frame, model),
         SceneOverlay::None => {
             render_standing_badge(frame, model);
             render_adventurer_card(frame, model, portraits);
@@ -863,7 +865,7 @@ fn render_command_ribbon(frame: &mut Frame<'_>, model: &Model) {
     // The urgency jump earns ribbon space only while somebody is actually
     // waiting, and it carries the count — so the ribbon answers "does anyone
     // need me?" before the key is ever pressed.
-    let waiting = model.adventurers_awaiting_a_human().len();
+    let waiting = crate::work::queue(model).len();
     let urgent = if waiting == 0 {
         String::new()
     } else {
@@ -872,7 +874,7 @@ fn render_command_ribbon(frame: &mut Frame<'_>, model: &Model) {
     // `?` earns its place: it is the one binding that leads to all the others,
     // and the ribbon is most often read by somebody who knows none of them.
     let text = format!(
-        "[1] Guild  [2] Delve  [j/k] Select  [Enter] Observe{counsel}{urgent}  [c] Chronicle  [/] Search  [?] Keys"
+        "[1] Guild  [2] Delve  [j/k] Select  [Enter] Observe{counsel}{urgent}  [b] Board  [c] Chronicle  [/] Search  [?] Keys"
     );
     frame.render_widget(Clear, ribbon);
     frame.render_widget(Paragraph::new(text).style(PARCHMENT_BORDER), ribbon);

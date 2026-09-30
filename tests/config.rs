@@ -149,6 +149,37 @@ fn malformed_toml_rejects_the_whole_file() {
 }
 
 #[test]
+fn enabled_projects_source_requires_explicit_registration_and_pinned_format() {
+    for fields in [
+        "",
+        "source_id = 'projects:auth'\ncampaign_id = 'auth'\nproject_path = 'relative'\nformat = 'herdr-projects-0.2.34'\nidentity_policy = 'registered_retained_records'",
+        "source_id = 'projects:auth'\ncampaign_id = 'auth'\nproject_path = '/private/tmp/auth'\nformat = 'future'\nidentity_policy = 'registered_retained_records'",
+        "source_id = 'projects:auth'\ncampaign_id = 'auth'\nproject_path = '/private/tmp/auth'\nformat = 'herdr-projects-0.2.34'\nidentity_policy = 'guess_from_path'",
+    ] {
+        assert!(
+            QuestmancerConfig::parse(
+                format!("[herdr_projects]\nenabled = true\n{fields}").as_bytes()
+            )
+            .is_err()
+        );
+    }
+}
+
+#[test]
+fn projects_source_is_opt_in_and_rejects_nested_typographical_errors() {
+    assert!(QuestmancerConfig::default().herdr_projects.is_none());
+    assert!(
+        QuestmancerConfig::parse(b"[herdr_projects]\nenabled = false")
+            .unwrap()
+            .herdr_projects
+            .is_none()
+    );
+    let config=QuestmancerConfig::parse(b"[herdr_projects]\nenabled = true\nsource_id = 'projects:auth'\ncampaign_id = 'auth'\nproject_path = '/private/tmp/auth'\nformat = 'herdr-projects-0.2.34'\nidentity_policy = 'registered_retained_records'").unwrap();
+    assert_eq!(config.herdr_projects.unwrap().source().0, "projects:auth");
+    assert!(QuestmancerConfig::parse(b"[herdr_projects]\nenbaled = true").is_err());
+}
+
+#[test]
 fn discovers_each_plugin_directory_independently() {
     let paths = PersistencePaths::from_lookup(|name| match name {
         "HERDR_PLUGIN_CONFIG_DIR" => Some("/tmp/config".into()),

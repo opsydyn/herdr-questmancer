@@ -422,7 +422,8 @@ agent processes or persistent state:
 just storybook
 ```
 
-It contains forty-five fixed production stories, with each asset owned once:
+It contains fifty-eight fixed production stories, with each asset owned once
+and additional state variants sharing the Quest Board and War Table assets:
 
 - two worlds: Guild Hall and Delve;
 - twenty-one asset galleries: classic world and portrait masters, Barbarian, Wizard,
@@ -433,8 +434,10 @@ It contains forty-five fixed production stories, with each asset owned once:
 - fourteen native class cards: Artificer, Barbarian, Bard, Cleric, Druid, Mage,
   Paladin, Pathseeker, Ranger, Rogue, Runewright, Sorcerer, Testmender and Wizard;
 - two reserved event-art cards: Goblin and Orc;
-- six interactions: selected adventurer, counsel, search, scrying, Librarian's
-  Ledger and narrow parchment.
+- nineteen interactions: selected adventurer, counsel, search, scrying, Librarian's
+  Ledger, narrow parchment, and seven Quest Board states (populated, empty,
+  offline, deferred, resolved, narrow and departed worker), plus six War Table
+  states (populated, narrow, empty, offline, cyclic and large).
 
 Use `j`/`k` or Up/Down within a category, `h`/`l` or Left/Right to change
 category, `Enter` to inspect, `Esc` to return, and `q` to exit. Run its
@@ -589,3 +592,108 @@ best viewed with ratatui
 80x24 minimum
 the guild hall is always open
 ```
+
+### Optional adventurer line inside terminal panes
+
+Paired development builds of Herdr and Questmancer can show a small adventurer
+sprite, live name, class and condition in a reserved row above terminal content.
+This is an opt-in Herdr capability, not part of the published Herdr 0.9.0 API:
+
+```toml
+[ui]
+pane_viewport_header = true
+
+[terminal]
+kitty_graphics = true
+```
+
+Questmancer probes `pane.viewport_header.info` before publishing. An older or
+disabled server leaves this feature inactive. The row remains text-only when
+native graphics cannot fit or are disabled; the managed Questmancer pane never
+receives an adventurer annotation. Only connected, unambiguous terminal/session
+identities qualify. These headers are ephemeral: replacement, departure and
+shutdown clear them, with a 30-second server lease covering a lost publisher.
+They never enter terminal output, saved state, pane titles or sidebar settings.
+See [the guarded procedure](docs/manual-test/questmancer-scene-preview.md#pane-adventurer-line-repair-check).
+
+## Durable work and the Quest Board (unreleased M1)
+
+`b` opens a contextual Quest Board over the current world. Wide inventory titles
+wrap onto indented continuation lines; selection follows the wrapped row heights. `!` reaches the next
+human obligation, including work with no live adventurer, then falls back to the
+existing summons. In the Board, `j/k` or Tab/Shift-Tab select work; Up/Down or wheel
+scroll details. Space marks seen and `s` sets an obligation aside for 15 minutes.
+These actions are saved locally and never answer or resolve a source request.
+Enter observes only a verified live adventurer binding; Esc closes the Board.
+
+Work sources own campaign objectives, quest lifecycle and dependencies, requests,
+assignments and spoils. Questmancer displays their literal facts and freshness.
+`work-state.json` caches accepted work checkpoints and local intent separately
+from `state.json` and the Chronicle. Restored facts are unverified until a source
+baseline confirms them. Invalid or future cache files are protected from writes.
+Live Herdr topology, terminal output and session/pane bindings are never cached.
+
+M1 uses a deterministic authentication campaign in tests and Storybook. Normal
+startup installs no synthetic campaign or live work adapter, so an empty Board is
+expected until a source is provided. The
+[implementation receipt and production review pack](docs/reviews/2026-09-30-durable-obligations/README.md)
+separate engineering checks, the 2026-09-30 production visual approval after
+the truncation repair, and unperformed native-terminal acceptance. M1 is complete
+for its fixture-backed scope and unreleased.
+
+
+## War Table (unreleased M2)
+
+`w` opens a contextual campaign map over the Hall or Delve, or follows the
+selected Board work into its campaign. Links point from prerequisite to dependent;
+state and source-open human requests remain separate. `j/k` selects quests,
+Tab/Shift-Tab changes campaigns, Up/Down or wheel reads the complete details,
+`b` opens the selected quest in the Board, and Esc or `w` closes. Enter observes
+only a verified adventurer binding; `!` keeps the existing attention policy.
+
+Cards show source lifecycle, historical ownership, open human requests (`?`) and
+human review requests (`R`). Complete counts are source quest facts, not delivery
+or merge evidence. Source freshness stays visible; unknown artifact validation
+stays unknown. Cycles and campaigns too large for the map use a labelled inventory
+that follows selection. Smaller panes retain the selected-work parchment; tiny
+panes show status only. Full names, dependencies, requests and artifacts are
+reachable in details even when a map label ends in an explicit `...` marker.
+
+The opt-in Herdr Projects reader below supplies a partial record inventory;
+native/live-source acceptance remains separate from the fixture proof.
+[Plan](docs/plans/2026-09-30-war-table.md) and
+[engineering receipt and production review](docs/reviews/2026-09-30-war-table/README.md)
+record the M2 gates. M2 is engineering-qualified and production-visually approved
+on 2026-09-30, complete within its fixture-backed scope and unreleased. Native
+terminal and live-source acceptance remain separate. It does not alter source
+work, persistence formats or awards.
+
+## Herdr Projects inventory (unreleased M3a)
+
+A pinned read-only snapshot exporter and strict decoder are engineering-qualified
+against synthetic source trees. An explicit opt-in runtime source now feeds the
+existing Board/Table through acknowledged storage. Every export retains Partial coverage and
+explicit unsupported native identity, request and binding capabilities.
+[Contract](docs/design/herdr-projects-snapshot-contract.md),
+[receipt](docs/reviews/2026-09-30-herdr-projects-exporter/README.md) and
+[M3 plan](docs/plans/2026-09-30-herdr-projects-adapter.md) record the limits.
+The subsequent [identity/coverage contract](docs/design/herdr-projects-identity-coverage.md)
+selects explicit registration/retained records with locked partial observations
+and omission guards. The user subsequently approved the mapper/cache proof.
+It now maps literal campaign/thread facts into neutral work states and publishes
+the projection plus typed identity checkpoint in one v2 cache, preserving valid
+v1 work and local intent. Its production visuals were subsequently approved. See the
+[mapper receipt and production review images](docs/reviews/2026-09-30-herdr-projects-mapper/README.md).
+Native identity, structured summons, dependencies and live bindings remain
+unsupported. The runtime owns a read-only directory lease, one capture/delivery
+at a time, five-second healthy polling, bounded retries and cooperative shutdown.
+Identity failures latch until owner reconciliation; transient failures retain work.
+Unchanged observations do not write or redraw. Configuration is disabled by default;
+see the [selection and operating guide](docs/manual-test/herdr-projects-inventory.md)
+and [runtime qualification receipt](docs/reviews/2026-09-30-herdr-projects-runtime/README.md).
+The [diagnostic images are approved](docs/reviews/2026-09-30-herdr-projects-runtime/visual-approval.md);
+M3a.3 is complete within its synthetic inventory scope and remains unreleased.
+Only disposable source trees have been exercised. Installed-source compatibility,
+native interaction and live Herdr remain unperformed. The next
+[bounded acceptance plan](docs/plans/2026-09-30-herdr-projects-acceptance.md)
+has not been promoted or executed.
