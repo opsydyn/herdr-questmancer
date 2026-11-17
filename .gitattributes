@@ -1,0 +1,5 @@
+# Captured test output and terminal grids preserve their original bytes, including
+# blank lines and right-padding. Keep normal whitespace checks on source and docs.
+docs/reviews/**/*.log -whitespace
+docs/design/reviews/**/*.log -whitespace
+docs/reviews/**/restart-pty-screen.txt -whitespace

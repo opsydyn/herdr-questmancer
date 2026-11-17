@@ -75,3 +75,10 @@ This is self-review supported by host checks, not independent review. Credential
 signature scanning of changed/untracked files found no matches; the largest
 new review file is below 9 MB. No raw Pi session identity or credentials are
 added. Clean-source packaging and remote distribution remain the next gates.
+
+Staged diff checking exposed preserved blank lines/right-padding in old and new
+raw logs and PTY grids. The initial local commit command continued after that
+check failed; no push occurred. A narrow `.gitattributes` rule now excludes only
+review `.log` captures and `restart-pty-screen.txt` grids from whitespace lint.
+Their bytes remain intact; source and prose keep the normal check. The complete
+upstream-to-candidate diff must pass before publication.
