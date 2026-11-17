@@ -25,6 +25,10 @@ const DEBOUNCE: Duration = Duration::from_millis(250);
 const DIAGNOSTIC_CAPACITY: usize = 16;
 
 enum PersistenceMessage {
+    RememberOwner {
+        state: PersistedStateV1,
+        acknowledgement: oneshot::Sender<Result<(), PersistenceError>>,
+    },
     PublishWorkProposal {
         proposal: Box<crate::sources::herdr_projects::Proposal>,
         acknowledgement: oneshot::Sender<Result<(), PersistenceError>>,
@@ -69,6 +73,21 @@ pub struct PersistenceClient {
 }
 
 impl PersistenceClient {
+    pub async fn remember_owner(
+        &mut self,
+        state: PersistedStateV1,
+    ) -> Result<(), PersistenceError> {
+        let (acknowledgement, response) = oneshot::channel();
+        self.sender
+            .send(PersistenceMessage::RememberOwner {
+                state: state.clone(),
+                acknowledgement,
+            })
+            .map_err(|_| channel_error("remember owner"))?;
+        receive_acknowledgement(response, "remember owner").await?;
+        self.last_staged = Some(state);
+        Ok(())
+    }
     pub async fn publish_work_proposal(
         &self,
         proposal: crate::sources::herdr_projects::Proposal,
@@ -278,6 +297,12 @@ async fn run(
         tokio::select! {
             biased;
             message = messages.recv() => match message {
+                Some(PersistenceMessage::RememberOwner { state, acknowledgement }) => {
+                    // Ordered publication supersedes older debounced intent.
+                    dirty_state = None; debounce = None;
+                    let result = if let Some(path) = &paths.state { super::atomic_json::publish_selected_state(path, &state).await } else { Err(channel_error("selection storage unavailable")) };
+                    let _ = acknowledgement.send(result);
+                }
                 Some(PersistenceMessage::PublishWorkProposal { proposal, acknowledgement }) => {
                     let result=if let Some(path)=paths.work_path() {
                         super::publish_work_proposal(&path,&proposal).await.map(drop)

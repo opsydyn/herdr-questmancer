@@ -1,0 +1,86 @@
+[
+  {
+    "actors": 5,
+    "columns": 120,
+    "file": "fit-five-120x34.png",
+    "image_cells": [
+      10,
+      2,
+      100,
+      29
+    ],
+    "librarian": 1,
+    "rows": 34,
+    "scale": 5
+  },
+  {
+    "actors": 5,
+    "columns": 96,
+    "file": "fit-five-96x28.png",
+    "image_cells": [
+      8,
+      2,
+      80,
+      23
+    ],
+    "librarian": 1,
+    "rows": 28,
+    "scale": 4
+  },
+  {
+    "actors": 5,
+    "columns": 80,
+    "file": "fit-five-80x24.png",
+    "image_cells": [
+      10,
+      3,
+      60,
+      17
+    ],
+    "librarian": 1,
+    "rows": 24,
+    "scale": 3
+  },
+  {
+    "actors": 11,
+    "columns": 120,
+    "file": "fit-eleven-120x34.png",
+    "image_cells": [
+      10,
+      2,
+      100,
+      29
+    ],
+    "librarian": 1,
+    "rows": 34,
+    "scale": 5
+  },
+  {
+    "actors": 11,
+    "columns": 96,
+    "file": "fit-eleven-96x28.png",
+    "image_cells": [
+      8,
+      2,
+      80,
+      23
+    ],
+    "librarian": 1,
+    "rows": 28,
+    "scale": 4
+  },
+  {
+    "actors": 11,
+    "columns": 80,
+    "file": "fit-eleven-80x24.png",
+    "image_cells": [
+      10,
+      3,
+      60,
+      17
+    ],
+    "librarian": 1,
+    "rows": 24,
+    "scale": 3
+  }
+]

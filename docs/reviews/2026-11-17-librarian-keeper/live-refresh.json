@@ -1,0 +1,13 @@
+{
+  "pane_id": "w8:pY",
+  "previous_pid": 60816,
+  "new_pid": 78790,
+  "candidate_sha256": "341432c415ff0d97e209685984a75c6736c36f5c68973dabc977d88c3f9f0d5a",
+  "owned_revision": 7,
+  "owned_store_unchanged": true,
+  "saved_personas_unchanged": true,
+  "synthetic_party_retained": true,
+  "ui_not_an_adventurer": true,
+  "shared_server_restarted": false,
+  "native_appearance": "Pending human review; runtime refresh checked only"
+}

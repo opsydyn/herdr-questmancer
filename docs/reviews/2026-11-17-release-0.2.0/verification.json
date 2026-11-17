@@ -1,0 +1,158 @@
+{
+  "version": "0.2.0",
+  "recorded_at_utc": "2026-11-17T21:24:26.490867+00:00",
+  "provenance": "Host-captured local checks; no native visual acceptance or independent review",
+  "verify": {
+    "command": "just verify",
+    "exit": 0,
+    "rust_tests": 841,
+    "rust_runs": 67,
+    "shell_tests": 28
+  },
+  "property": {
+    "command": "just property-test 4096",
+    "exit": 0,
+    "tests": 151,
+    "runs": 8,
+    "cases": 4096
+  },
+  "builds": [
+    {
+      "command": "cargo build --release --locked --offline",
+      "exit": 0
+    },
+    {
+      "command": "cargo build --features storybook --bin questmancer-storybook --locked --offline",
+      "exit": 0
+    },
+    {
+      "command": "cargo doc --all-features --no-deps --locked --offline",
+      "exit": 0
+    }
+  ],
+  "site": {
+    "command": "bun run verify (site/)",
+    "exit": 0
+  },
+  "artifact_sha256": {
+    "target/release/questmancer": "aeff2ced112f267f7ad46d755a1f958d4892adbebd65316a576dec57fe36df85",
+    "target/debug/questmancer-storybook": "0590fb2655c2c2eccf365870c9cb486c7b4ff918534d00c189d9551efe41884f"
+  },
+  "scene_pty": [
+    {
+      "mode": "native",
+      "exit": 0,
+      "raw_mode_restored": true,
+      "alternate_screen_restored": true,
+      "mouse_capture_restored": true
+    },
+    {
+      "mode": "unsupported",
+      "exit": 0,
+      "raw_mode_restored": true,
+      "alternate_screen_restored": true,
+      "mouse_capture_restored": true
+    },
+    {
+      "mode": "missing-geometry",
+      "exit": 0,
+      "raw_mode_restored": true,
+      "alternate_screen_restored": true,
+      "mouse_capture_restored": true
+    },
+    {
+      "mode": "native-interrupt",
+      "exit": 0,
+      "raw_mode_restored": true,
+      "alternate_screen_restored": true,
+      "mouse_capture_restored": true
+    }
+  ],
+  "profile_pty": [
+    {
+      "scenario": "guild-initial-world-120x34",
+      "exit": 0,
+      "terminal_restored": true
+    },
+    {
+      "scenario": "guild-initial-world-80x24",
+      "exit": 0,
+      "terminal_restored": true
+    },
+    {
+      "scenario": "delve-initial-world-120x34",
+      "exit": 0,
+      "terminal_restored": true
+    },
+    {
+      "scenario": "delve-initial-world-80x24",
+      "exit": 0,
+      "terminal_restored": true
+    }
+  ],
+  "transport_pixels": [
+    {
+      "scope": "Pinned fixed Storybook executable native-transport pixel round trip with synthetic PTY replies",
+      "dimensions": [
+        800,
+        464
+      ],
+      "image_id": "195207034",
+      "all_rgba_pixels_identical_to_fit_projection": true,
+      "rgba_sha256": "1ebd381a10fe4f62c015123a68cd6794af9d21133a5eb8f2165e4943d85ce827",
+      "limitation": "Producer verified; terminal display, animation, resize and mouse acceptance remain human checks",
+      "transcript": "guild-initial-world-120x34.ansi",
+      "expected": "guild-32-120x34.png"
+    },
+    {
+      "scope": "Pinned fixed Storybook executable native-transport pixel round trip with synthetic PTY replies",
+      "dimensions": [
+        800,
+        464
+      ],
+      "image_id": "2319815617",
+      "all_rgba_pixels_identical_to_fit_projection": true,
+      "rgba_sha256": "c2b8d54a55ab4927eb3fc5c21414c02fe16bda9d96c4d485abc7f3edf02e23dd",
+      "limitation": "Producer verified; terminal display, animation, resize and mouse acceptance remain human checks",
+      "transcript": "delve-initial-world-120x34.ansi",
+      "expected": "delve-32-120x34.png"
+    }
+  ],
+  "owned_authoring_pty": {
+    "scope": "automated macOS PTY input and restart; no native visual approval or Herdr server",
+    "steps": [
+      {
+        "revision": 0,
+        "acknowledged": true
+      },
+      {
+        "revision": 1,
+        "acknowledged": true
+      },
+      {
+        "revision": 2,
+        "acknowledged": true
+      },
+      {
+        "revision": 3,
+        "acknowledged": true
+      },
+      {
+        "revision": 4,
+        "acknowledged": true
+      },
+      {
+        "revision": 5,
+        "acknowledged": true
+      }
+    ],
+    "restart_answer_visible": true,
+    "restart_authority_unchanged": true,
+    "owned_children_exited": true,
+    "herdr_resources_created": 0,
+    "temporary_resources_removed": true
+  },
+  "source_package": "pending clean commit",
+  "publication": "pending",
+  "registry_enabled": false
+}

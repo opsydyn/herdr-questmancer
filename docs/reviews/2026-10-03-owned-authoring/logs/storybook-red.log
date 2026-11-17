@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.19s
+     Running tests/storybook.rs (target/debug/deps/storybook-ea0efe9762ab1444)
+
+running 1 test
+test owned_authoring_has_fixed_production_recovery_and_narrow_stories ... FAILED
+
+failures:
+
+---- owned_authoring_has_fixed_production_recovery_and_narrow_stories stdout ----
+
+thread 'owned_authoring_has_fixed_production_recovery_and_narrow_stories' panicked at tests/storybook.rs:85:9:
+missing interaction.owned-actions
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    owned_authoring_has_fixed_production_recovery_and_narrow_stories
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test storybook`

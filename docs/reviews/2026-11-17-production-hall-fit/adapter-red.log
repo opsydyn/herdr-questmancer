@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0432]: unresolved import `questmancer::ui::hall_fit`
+ --> tests/hall_fit.rs:7:9
+  |
+7 |     ui::hall_fit::{HallFit, render_application},
+  |         ^^^^^^^^ could not find `hall_fit` in `ui`
+
+error[E0599]: no method named `set_view` found for struct `Model` in the current scope
+   --> tests/hall_fit.rs:60:11
+    |
+ 60 |     model.set_view(View::Delve);
+    |           ^^^^^^^^
+    |
+help: there is a method `view` with a similar name, but with different arguments
+   --> /Users/alancurrie/Projects/herdr-web-master/src/app.rs:689:5
+    |
+689 |     pub const fn view(&self) -> View {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some errors have detailed explanations: E0432, E0599.
+For more information about an error, try `rustc --explain E0432`.
+error: could not compile `questmancer` (test "hall_fit") due to 2 previous errors

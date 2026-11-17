@@ -1,0 +1,21 @@
+{
+  "pane_id": "w8:pY",
+  "previous_pid": 37045,
+  "new_pid": 60816,
+  "candidate_sha256": "8885d7cbabe0103fd2ceb9864c191f0147396e0453a580eed37627eab1b86f9f",
+  "owned_store_unchanged": true,
+  "owned_revision": 7,
+  "synthetic_party_retained": true,
+  "shared_server_restarted": false,
+  "native_appearance": "Pending human review; only runtime refresh and card text checked",
+  "state_keys": [
+    "schema_version",
+    "last_view",
+    "preferences",
+    "selected_persona",
+    "personas",
+    "seen_attention",
+    "experience",
+    "owned_store"
+  ]
+}

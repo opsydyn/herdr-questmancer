@@ -5,8 +5,15 @@ P0 interaction concept approved 2026-09-30. M1 is complete for its approved
 fixture-backed scope; engineering qualification and production visual approval
 are tracked in the
 [M1 receipt](../reviews/2026-09-30-durable-obligations/README.md).
-Direction: durable human obligations and campaign work context, with execution
-and orchestration retained by their current owners.
+Direction revised on 2026-10-01: own the durable project/work backend and its
+human commands, with Questmancer as the interface and Herdr providing execution.
+The user agreed to this direction, then approved L1a implementation on 2026-10-03.
+The backend proof and subsequently promoted L1b implementation are present.
+See the [L1b receipt](../reviews/2026-10-03-owned-authoring/README.md); production
+form images are subsequently approved; native/live acceptance remains unperformed. The [owned-work contract](../design/questmancer-owned-work.md)
+and [L1 plan](2026-10-01-owned-work.md) specify the next proposed slice.
+See the concrete [L1b design](../design/questmancer-owned-authoring.md) and
+[implementation proposal](2026-10-03-owned-authoring.md) for the current review target.
 [Design contract](../design/questmancer-living-control-plane.md).
 
 ## Success criteria
@@ -25,18 +32,21 @@ claim established by deterministic tests.
 | P0: ownership and interaction | Review the design contract, identity rules, persistence extension and Quest Board concept | Recorded design decisions and reviewed interaction concept |
 | M1: durable obligations | Fixture source, work projection, atomic restart cache, derived queue, `!`, selected-work parchment | Decisive restart scenario, reducer/property/runtime tests, full gate and separate visual approval |
 | M2: War Table | Selected campaign dependencies, ownership/context, obligations and artifacts through existing RGB renderer | Deterministic composition, keyboard navigation, small-viewport fallbacks and visual approval |
-| M3: first live source | M3a: pinned read-only export contract, faithful campaign/thread inventory and reconciliation; M3b: explicit request/session binding contracts | Separate contract, inventory and attention/binding receipts; isolated owned-resource evidence and stale/offline/restart checks |
-| M4: Forge evidence | PR, revision-bound checks, review and merge observations, optional explicit navigation | No false delivery/completion under stale revision, re-run or missing evidence; visual review |
-| M5: source knowledge | Attributed project knowledge through Librarian, fixed help retained | Lazy loading, source freshness and unavailable-source tests; help remains accessible |
-| M6: historical reconstruction | Work journal/checkpoints, migrations, read-only historical model and time controls | Deterministic reconstruction, corruption recovery and zero command effects during replay |
-| M7: second source and scale | Firstmate or another source, multiple homes, aggregate fleet navigation | Adapter conformance, source isolation, duplicate binding checks and 1/10/100 review |
+| L1a: owned backend proof | Authoritative local store, five typed human commands, durable decision answer, LocalWorkSource and composed cache/restart proof | Rejection/retry/indeterminate-commit tests, store reopening, source isolation and full engineering gate; no authoring UI yet |
+| L1b: owned authoring | Explicit selection and minimal Board forms: create campaign/quest, request/answer decision, register artifact | Reviewed forms, complete human workflow and restart; separate native/live acceptance |
+| L2: controlled work lifecycle | Explicit lifecycle, dependency and assignment commands; qualified Herdr association | No inferred execution/completion; stale/replaced session checks and human control |
+| L3: Forge and knowledge | Revision-bound PR/check/review evidence and lazy attributed knowledge, fixed help retained | No false success under stale evidence; source availability and visual review |
+| L4: historical reconstruction | Separately designed owned journal/checkpoints and read-only time controls | Deterministic reconstruction, recovery and zero command effects during replay |
+| L5: justified expansion | Consider a separate planning/delegation module, multiple sources and fleet scale | Real-use evidence, explicit scope/authority, conformance and 1/10/100 review |
 
 M1 is detailed in [the first-slice plan](2026-09-27-durable-obligations.md).
 Phases are individually bounded. Completion evidence and approval to begin the
 next phase remain separate; this roadmap does not authorize all phases at once.
-M3 may precede M2 after M1 if live usefulness outweighs graph work; record that
-choice rather than silently expanding the current slice. Forge and knowledge
-depend on an accepted source contract. M6 follows a separate journal design.
+P0/M1/M2 and the implemented M3a adapter remain recorded evidence, not work to
+repeat. L1 replaces external-adapter qualification as the next product dependency.
+L1a and L1b now implement the five-action workflow and restart. Production form
+images are approved; native use remains the next acceptance gate for the user milestone.
+Later stages do not follow automatically from agreeing to own the backend.
 
 ## M1 product proof
 
@@ -49,37 +59,34 @@ The decision stays visible after a progress update, worker exit and restart.
 Only explicit matching source resolution closes it. Local seen/deferred intent
 does not impersonate an answer. Dependency readiness remains a derived fact.
 
-## Adapter strategy
+## Owned source and optional adapters
 
 Herdr remains the live agent/pane source throughout M1; no replacement of the
 existing projection is scheduled. Herdr alone cannot supply durable quests or
 decision semantics that it does not expose.
 
-Herdr Projects is the proposed first adapter because it shares Herdr and has
-durable projects, thread records, reports and operational groupings. Reinspect
-its supported exports at a pinned revision before committing to implementation.
-The 2026-09-30 [source assessment](../reviews/2026-09-30-herdr-projects-source/README.md)
-found no coherent versioned project export at `0.2.34`. The
-[M3 plan](2026-09-30-herdr-projects-adapter.md) proposes an exporter contract first,
-then a reduced-capability inventory adapter; structured request and live-binding
-acceptance are separate M3b work. Do not infer a structured question from a group
-label or parse prose into answers.
-Polling is allowed inside an adapter; rendering never polls upstream services.
+The owned backend will be authoritative for our campaigns, quests, decisions and
+artifact registrations. Its adapter feeds the existing reducer and UI. The current
+work cache remains a cache, and external sources still own their own records.
+No Projects or Firstmate installation is required to complete the owned milestone.
 
-Firstmate is the proposed second-source conformance case because keyed decisions,
-worker state and hierarchy test the abstraction. Consume its authoritative folds
-or exports rather than cloning their semantics. Do not read remote homes merely
-because a path appears in source metadata. Sources without required semantics
-advertise reduced capability and retain unknowns.
+The completed Projects synthetic proof is retained, disabled by default. Its
+installed-source trial, writer-fixture proposal and M3b contracts are parked.
+The [source assessment](../reviews/2026-09-30-herdr-projects-source/README.md)
+and [acceptance audit](../reviews/2026-09-30-herdr-projects-acceptance/README.md)
+remain historical evidence with their original limits. Firstmate/Projects are
+design references and optional future conformance cases. Their features do not
+establish demand for an owned orchestration engine. Rendering never polls source
+storage or services, and group labels never become invented human questions.
 
 ## Dependencies and existing work
 
-The existing pane-header repair remains independently uncommitted, with native
-visual and Windows checks incomplete in its dated receipt. This roadmap does not
-qualify, publish or roll it out. Before M1, inventory the actual checkout and
-record the implementation baseline; preserve unrelated changes and separate
-new-feature checks from existing repair evidence. No new worktree, shared-server
-restart or subagent workflow is implied.
+Accumulated work, including the earlier pane-header repair, is committed at
+`4923a05`; the prerequisite audit is committed at `9c52761`. Pane-header native
+visual and Windows checks retain the limits in their dated receipt. Current
+source wins over historical implementation baselines. The owned planning slice
+changes no runtime behaviour and authorises no installation, shared-server
+restart, new worktree, subagent workflow, release or imported user data.
 
 ## Deferred product ideas
 
@@ -148,3 +155,35 @@ remain prohibited.
   [upstream-writer fixture proposal](2026-09-30-herdr-projects-writer-fixtures.md)
   is unpromoted and does not establish installed-source/live acceptance.
   Full M3 attention/binding acceptance and M4–M7 remain unpromoted.
+- On 2026-10-01 the user said they wanted our own version for full control and
+  agreed to owning the project/work backend. The active sequence is now L1–L5
+  above. Projects installed-source acceptance, writer fixtures and M3b are parked;
+  its implemented opt-in adapter and original qualification remain intact.
+  The [owned-work contract](../design/questmancer-owned-work.md) and
+  [first milestone plan](2026-10-01-owned-work.md) are written. L1a/L1b implementation
+  remains unpromoted. The [planning receipt](../reviews/2026-10-01-owned-work-plan/README.md)
+  records source preservation and static checks separately from earlier engineering gates.
+
+- 2026-10-03: the user approved L1a. The authoritative command/store/source proof is
+  implemented and its full gate passes 775 Rust tests/63 runs and 28 shell tests.
+  See the [backend receipt](../reviews/2026-10-03-owned-work-backend/README.md).
+  Ordinary startup and human authoring remain unimplemented; L1b form review is
+  the next proposal. No commit, installation, live operation or release occurred.
+- 2026-10-03: the user subsequently approved L1b form and boundary review. The
+  [form design](../design/questmancer-owned-authoring.md) and
+  [implementation proposal](2026-10-03-owned-authoring.md) are written; the
+  [review receipt](../reviews/2026-10-03-owned-authoring-plan/README.md) records
+  documentation-only validation. L1b implementation, production form visuals and
+  native interaction remain unpromoted. Earlier backend code/evidence is preserved.
+
+- 2026-10-03: the user subsequently promoted L1b implementation. Explicit store
+  selection/startup, owned pickers, five forms and checked answered detail are
+  implemented. The [receipt](../reviews/2026-10-03-owned-authoring/README.md) separates
+  engineering and actual-input PTY evidence from unapproved form visuals, native
+  terminal use, installation and release. L2–L5 remain unpromoted.
+
+- 2026-10-03: the user approved the L1b production form images. A fresh Ghostty
+  availability check was refused by Computer Use for safety reasons. The
+  [native receipt](../reviews/2026-10-03-owned-authoring-native/README.md) records no
+  operational resources or native acceptance; the [isolated manual plan](2026-10-03-owned-authoring-native.md)
+  is prepared. Existing engineering evidence is preserved, and L2–L5 remain unpromoted.

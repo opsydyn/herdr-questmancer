@@ -1,0 +1,56 @@
+{
+  "scope": "Refresh only existing owned UI; preserve remaining synthetic identity and do not recreate missing panes",
+  "missing_synthetic_before": [
+    "w8:pS",
+    "w8:pT",
+    "w8:pV"
+  ],
+  "remaining_synthetic_count": 1,
+  "before_runtime": {
+    "pane_id": "w8:pY",
+    "pid": 45568,
+    "started_at": 1794931026,
+    "initial_view": "guild"
+  },
+  "pane": "w8:pY",
+  "terminal": "term_660769b53dfe0f",
+  "binary_sha256": "24d0c7bb282938d8ef05269f7bc13eb7b6adeb2f12f980b2f757a123c522321f",
+  "owned_work_sha256_before": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "persona_record_count": 8,
+  "personas_sha256_before": "97fae1aa3d844f0bc6f3cb084cfa1c5be28b0adf7a614f863391deac1f2c6551",
+  "focus_before": "wA:p3",
+  "after_runtime": {
+    "pane_id": "w8:pY",
+    "pid": 53975,
+    "started_at": 1794937400,
+    "initial_view": "delve"
+  },
+  "owned_work_sha256_after": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "personas_unchanged": true,
+  "personas_sha256_after": "97fae1aa3d844f0bc6f3cb084cfa1c5be28b0adf7a614f863391deac1f2c6551",
+  "remaining_synthetic_unchanged": true,
+  "focus_after": "wA:p3",
+  "party_retained": true,
+  "native_visual_acceptance": "unverified",
+  "plugin_logs": {
+    "logs": [],
+    "type": "plugin_log_list"
+  },
+  "text_receipt": {
+    "half_blocks": 10710,
+    "native_footer": false,
+    "card_visible": false,
+    "limitation": "Text buffer only; not visual acceptance"
+  },
+  "plugin_logs_final": {
+    "logs": [],
+    "type": "plugin_log_list"
+  },
+  "final_audit": {
+    "owned_ui_process_verified": true,
+    "remaining_synthetic_verified": true,
+    "authoritative_work_unchanged": true,
+    "focus_commands_sent": false,
+    "current_focus": "w8:p1"
+  }
+}

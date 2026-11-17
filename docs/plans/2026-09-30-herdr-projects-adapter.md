@@ -1,5 +1,10 @@
 # M3: Herdr Projects source contract and read-only adapter
 
+Current direction, 2026-10-01: further Projects acceptance and M3b work are parked.
+Keep the completed M3a synthetic implementation/evidence below. The
+[owned-work L1 plan](2026-10-01-owned-work.md) now owns the next proposed slice;
+Projects is optional and is not a dependency for that product work.
+
 Date: 2026-09-30. **Source inspection/planning, M3a.1 snapshot/exporter proof and
 the subsequent identity/coverage design slice authorised. The user later approved
 mapper/cache implementation and its production visuals. M3a.3 runtime integration

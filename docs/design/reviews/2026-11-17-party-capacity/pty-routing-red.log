@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "/Users/alancurrie/Projects/herdr-web-master/docs/design/reviews/2026-11-17-party-capacity/pty_probe.py", line 173, in <module>
+    results=[run(world,opened,size) for world in ['guild','delve']
+             ~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/alancurrie/Projects/herdr-web-master/docs/design/reviews/2026-11-17-party-capacity/pty_probe.py", line 141, in run
+    press(b'c');wait(lambda:'ADVENTURER' in text(),'open profile');check_layout(True)
+                ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/alancurrie/Projects/herdr-web-master/docs/design/reviews/2026-11-17-party-capacity/pty_probe.py", line 110, in wait
+    raise AssertionError(description+'; tail='+text()[-1200:])
+AssertionError: open profile; tail= 􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮          
+          􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮          
+          􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮          
+          􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮          
+          􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮          
+          􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮          
+          􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮􎻮          
+                                                                                                                        
+Adventurer 01 / Barbarian / Working / 8 need counsel                                                                    
+Tab adventurer / c card / L Ledger / Esc back                                                                           

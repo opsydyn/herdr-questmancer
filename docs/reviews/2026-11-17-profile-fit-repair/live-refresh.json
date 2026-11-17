@@ -1,0 +1,39 @@
+{
+  "scope": "Preserve fitted rooms beneath profiles in the existing owned UI; preserve Herdr resources, personas and work",
+  "missing_synthetic_before": [
+    "w8:pS",
+    "w8:pT",
+    "w8:pV"
+  ],
+  "remaining_synthetic_count": 1,
+  "before_runtime": {
+    "pane_id": "w8:pY",
+    "pid": 68375,
+    "started_at": 1794939569,
+    "initial_view": "delve"
+  },
+  "pane": "w8:pY",
+  "terminal": "term_660769b53dfe0f",
+  "binary_sha256": "f9e2f32004e9dcda299ba549a3fc334fc21512ff4cca29080f8a4f3bd85ae5b9",
+  "owned_work_sha256_before": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "persona_record_count": 13,
+  "personas_sha256_before": "4daf13072d81b5cd452254559de9c2cc92ec4c5e2b1b888c42d10fe15e8f7420",
+  "focus_before": "w8:p1",
+  "after_runtime": {
+    "pane_id": "w8:pY",
+    "pid": 98140,
+    "started_at": 1794942648,
+    "initial_view": "delve"
+  },
+  "owned_work_sha256_after": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "personas_unchanged": true,
+  "personas_sha256_after": "4daf13072d81b5cd452254559de9c2cc92ec4c5e2b1b888c42d10fe15e8f7420",
+  "remaining_synthetic_unchanged": true,
+  "focus_after": "w8:p1",
+  "party_retained": true,
+  "native_visual_acceptance": "unverified",
+  "plugin_logs": {
+    "logs": [],
+    "type": "plugin_log_list"
+  }
+}

@@ -492,12 +492,12 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     let second = render(&snapshot, WorldScene::Delve, VIEWPORT);
     assert_eq!(first.pixels(), second.pixels());
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
-    // Quiet canonical RGB scene, including the approved arcane ritual masters.
-    // The Mage/Sorcerer production review's 05-card-and-delve-check.png shows this exact
-    // fixture; changing the hash requires inspecting that rendered scene.
+    // Quiet canonical RGB scene, including the approved Sunward Chaplain Cleric.
+    // The 2026-11-17 Cleric production review's 04-canonical-delve.png shows this
+    // exact fixture; changing the hash requires inspecting that rendered scene.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "5ab466c7677e1815b5e5f07806a4bd4a56fea78a620ea9552ff9c2272db60626"
+        "6baaf0f61bc4ddeb24db765776ff3b2aa30c6b67409101daf0c286169750667d"
     );
 
     let non_clear = first
@@ -564,13 +564,9 @@ fn delvers_at_one_station_never_overlap() {
 
     let (_, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
 
-    // A station holds what its chamber can honestly fit; the rest are
-    // reported by the overflow marker. Whatever is drawn must not be drawn on
-    // top of a neighbour.
-    assert!(
-        !frame.actors.is_empty(),
-        "a working party must place someone"
-    );
+    // Saturated chambers now use a full roster when it fits. Whatever is drawn
+    // must remain complete and must not be drawn on top of a neighbour.
+    assert_eq!(frame.actors.len(), 6);
     for (index, actor) in frame.actors.iter().enumerate() {
         for other in frame.actors.iter().skip(index + 1) {
             let overlaps = actor.bounds.x < other.bounds.x + i32::from(other.bounds.width)
@@ -783,4 +779,162 @@ fn rgb_hash(buffer: &RgbBuffer) -> blake3::Hash {
         .flat_map(|pixel| [pixel.r, pixel.g, pixel.b])
         .collect::<Vec<_>>();
     blake3::hash(&bytes)
+}
+
+#[test]
+fn saturated_delve_stations_keep_the_complete_party_in_the_dungeon() {
+    let mut snapshot = mixed_snapshot();
+    snapshot.agents = (0..11)
+        .map(|i| {
+            agent(
+                &format!("worker-{i}"),
+                "moss-vault",
+                Presence::Working,
+                AccentTone::Cyan,
+            )
+        })
+        .collect();
+    let (_, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+    assert_eq!(
+        frame.actors.len(),
+        11,
+        "station overflow must retain the full party in the dungeon"
+    );
+    let keys = frame
+        .actors
+        .iter()
+        .map(|a| &a.agent)
+        .collect::<HashSet<_>>();
+    assert_eq!(keys.len(), 11);
+}
+
+#[test]
+fn resting_party_overflow_keeps_the_dungeon_and_full_world_sprites() {
+    let mut snapshot = mixed_snapshot();
+    snapshot.agents = (0..5)
+        .map(|i| {
+            agent(
+                &format!("rest-{i}"),
+                "moss-vault",
+                if i == 3 {
+                    Presence::Unknown
+                } else {
+                    Presence::Idle
+                },
+                AccentTone::Cyan,
+            )
+        })
+        .collect();
+    let (actual, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+    assert_eq!(frame.actors.len(), 5);
+    assert!(
+        frame
+            .actors
+            .iter()
+            .all(|a| (a.bounds.width, a.bounds.height) == (16, 24)),
+        "an ordinary resting party must keep its full authored masters"
+    );
+    let mut empty = snapshot.clone();
+    empty.agents.clear();
+    let expected = render(&empty, WorldScene::Delve, VIEWPORT);
+    for y in 0..8 {
+        for x in 0..160 {
+            assert_eq!(
+                actual.get(x, y),
+                expected.get(x, y),
+                "dungeon architecture lost at {x},{y}"
+            );
+        }
+    }
+    assert!(
+        frame
+            .actors
+            .iter()
+            .all(|a| a.bounds.x > 0 && a.bounds.y > 8)
+    );
+}
+
+#[test]
+fn gathered_and_dense_crowds_preserve_the_room_complete_bounds_and_readable_spacing() {
+    for count in [3, 5, 11, 16, 17, 64] {
+        let mut snapshot = mixed_snapshot();
+        snapshot.agents = (0..count)
+            .map(|i| {
+                agent(
+                    &format!("crowd-{i}"),
+                    "moss-vault",
+                    Presence::Idle,
+                    AccentTone::Cyan,
+                )
+            })
+            .collect();
+        let (rgb, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+        assert_eq!(frame.actors.len(), count);
+        let mut empty = snapshot.clone();
+        empty.agents.clear();
+        let backdrop = render(&empty, WorldScene::Delve, VIEWPORT);
+        for x in 0..160 {
+            assert_eq!(
+                rgb.get(x, 89),
+                backdrop.get(x, 89),
+                "dungeon edge lost for {count}"
+            );
+        }
+        for (index, actor) in frame.actors.iter().enumerate() {
+            let b = actor.bounds;
+            let expected = if count <= 16 { (16, 24) } else { (8, 12) };
+            assert_eq!((b.width, b.height), expected);
+            assert!(
+                b.x >= 0
+                    && b.y >= 0
+                    && b.x + i32::from(b.width) <= 160
+                    && b.y + i32::from(b.height) <= 90
+            );
+            for other in frame.actors.iter().skip(index + 1) {
+                assert!(!rects_intersect(b, other.bounds));
+            }
+        }
+    }
+}
+
+#[test]
+fn gathered_completion_is_bounded_and_reduced_motion_needs_no_cleanup_redraw() {
+    use std::time::Duration;
+    for motion in [Motion::Full, Motion::Reduced, Motion::None] {
+        let mut snapshot = mixed_snapshot();
+        snapshot.motion = motion;
+        snapshot.agents = (0..3)
+            .map(|i| {
+                let mut a = agent(
+                    &format!("returning-{i}"),
+                    "moss-vault",
+                    Presence::Done,
+                    AccentTone::Cyan,
+                );
+                a.transition = Some(SceneTransition {
+                    summons: GuildSummons::SpoilsReturned,
+                    since: Timestamp::from_millis(1_000),
+                });
+                a
+            })
+            .collect();
+        snapshot.now = Timestamp::from_millis(1_125);
+        let (fresh, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+        if motion == Motion::Full {
+            assert_eq!(frame.next_frame_in, Some(Duration::from_millis(125)));
+        } else {
+            assert_eq!(frame.next_frame_in, None);
+        }
+        snapshot.now = Timestamp::from_millis(4_000);
+        let (settled, frame) = render_with_frame(&snapshot, WorldScene::Delve, VIEWPORT);
+        assert_eq!(frame.next_frame_in, None);
+        if motion != Motion::Full {
+            assert!(
+                fresh == settled,
+                "{motion:?} gathered completion would require a cleanup redraw"
+            );
+        }
+        snapshot.now = Timestamp::from_millis(30_000);
+        assert!(render(&snapshot, WorldScene::Delve, VIEWPORT) == settled);
+    }
 }

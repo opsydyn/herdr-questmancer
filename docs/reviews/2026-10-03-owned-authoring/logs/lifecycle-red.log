@@ -1,0 +1,28 @@
+    Blocking waiting for file lock on build directory
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0599]: no method named `start_owned` found for struct `RuntimeLifecycle` in the current scope
+  --> tests/owned_authoring.rs:14:15
+   |
+14 |     lifecycle.start_owned(&mut model).unwrap();
+   |               ^^^^^^^^^^^ method not found in `RuntimeLifecycle`
+
+error[E0599]: no method named `dispatch_owned` found for struct `RuntimeLifecycle` in the current scope
+  --> tests/owned_authoring.rs:17:15
+   |
+17 |     lifecycle.dispatch_owned(&mut model);
+   |               ^^^^^^^^^^^^^^ method not found in `RuntimeLifecycle`
+
+error[E0599]: no method named `consume_owned` found for struct `RuntimeLifecycle` in the current scope
+  --> tests/owned_authoring.rs:18:15
+   |
+18 |     lifecycle.consume_owned(&mut model).await;
+   |               ^^^^^^^^^^^^^ method not found in `RuntimeLifecycle`
+
+error[E0599]: no method named `finish_owned` found for struct `RuntimeLifecycle` in the current scope
+  --> tests/owned_authoring.rs:20:15
+   |
+20 |     lifecycle.finish_owned(&mut model).await.unwrap();
+   |               ^^^^^^^^^^^^ method not found in `RuntimeLifecycle`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `questmancer` (test "owned_authoring") due to 4 previous errors

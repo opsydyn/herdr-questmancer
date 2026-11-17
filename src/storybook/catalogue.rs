@@ -169,6 +169,223 @@ macro_rules! story {
     };
 }
 
+fn fit_stories() -> Vec<Story> {
+    vec![
+        Story {
+            id: StoryId::new("world.guild-fit"),
+            title: "Prototype / Hall Fit — Five",
+            category: Category::Worlds,
+            description: "Storybook-only native fit. Enter inspect; Tab selects; c card; L Ledger; click actors.",
+            viewport: WORLD_VIEWPORT,
+            build: guild_fit,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::GuildHall)],
+        },
+        Story {
+            id: StoryId::new("world.guild-fit-eleven"),
+            title: "Prototype / Hall Fit — Eleven",
+            category: Category::Worlds,
+            description: "Distributed eleven-person fixture; all actors must fit before native output is allowed.",
+            viewport: WORLD_VIEWPORT,
+            build: guild_fit_eleven,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::GuildHall)],
+        },
+        Story {
+            id: StoryId::new("world.guild-fit-crowded"),
+            title: "Prototype / Hall Fit — Crowded",
+            category: Category::Worlds,
+            description: "Eleven full masters retain the complete fitted Hall even when source stations are crowded.",
+            viewport: WORLD_VIEWPORT,
+            build: guild_fit_crowded,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::GuildHall)],
+        },
+        Story {
+            id: StoryId::new("world.delve-fit"),
+            title: "Fit / Delve — Five",
+            category: Category::Worlds,
+            description: "Complete dungeon at integer pixel scale. Enter inspect; Tab selects; c card; click actors.",
+            viewport: WORLD_VIEWPORT,
+            build: delve_fit,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::Delve)],
+        },
+        Story {
+            id: StoryId::new("world.delve-fit-crowded"),
+            title: "Fit / Delve — Crowded",
+            category: Category::Worlds,
+            description: "Automatic density retains eleven full masters in steady distributed dungeon seats.",
+            viewport: WORLD_VIEWPORT,
+            build: delve_fit_crowded,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::Delve)],
+        },
+        Story {
+            id: StoryId::new("world.delve-fit-resting"),
+            title: "Fit / Delve — Resting Crowd",
+            category: Category::Worlds,
+            description: "Four resting adventurers plus one unknown retain their full masters and the dungeon backdrop.",
+            viewport: WORLD_VIEWPORT,
+            build: delve_fit_resting,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::Delve)],
+        },
+        Story {
+            id: StoryId::new("world.guild-fit-profile"),
+            title: "Fit / Hall — Profile Open",
+            category: Category::Worlds,
+            description: "The existing profile overlays the fitted Hall without moving its camera or changing scale.",
+            viewport: WORLD_VIEWPORT,
+            build: guild_fit_profile,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::GuildHall)],
+        },
+        Story {
+            id: StoryId::new("world.delve-fit-profile"),
+            title: "Fit / Delve — Profile Open",
+            category: Category::Worlds,
+            description: "The existing profile overlays the fitted dungeon; resize or Esc without a rendering-mode jump.",
+            viewport: WORLD_VIEWPORT,
+            build: delve_fit_profile,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::Delve)],
+        },
+    ]
+}
+
+fn capacity_stories() -> Vec<Story> {
+    use super::density::{PartySize, fixture};
+    use crate::app::View;
+    let entries: [(&'static str, &'static str, StoryBuilder, SceneFirstAsset); 8] = [
+        (
+            "world.capacity-hall-7-large",
+            "Experiment / Hall capacity / 7 large",
+            |context| {
+                StoryFixture::WorldFit(Box::new(fixture(context, PartySize::Seven, View::Guild)))
+            },
+            SceneFirstAsset::GuildHall,
+        ),
+        (
+            "world.capacity-hall-7-small",
+            "Experiment / Hall capacity / 7 small",
+            |context| {
+                StoryFixture::WorldFit(Box::new(fixture(context, PartySize::Seven, View::Guild)))
+            },
+            SceneFirstAsset::GuildHall,
+        ),
+        (
+            "world.capacity-hall-24-small",
+            "Experiment / Hall capacity / 24 small",
+            |context| {
+                StoryFixture::WorldFit(Box::new(fixture(
+                    context,
+                    PartySize::TwentyFour,
+                    View::Guild,
+                )))
+            },
+            SceneFirstAsset::GuildHall,
+        ),
+        (
+            "world.capacity-hall-32-small",
+            "Experiment / Hall capacity / 32 small",
+            |context| {
+                StoryFixture::WorldFit(Box::new(fixture(
+                    context,
+                    PartySize::ThirtyTwo,
+                    View::Guild,
+                )))
+            },
+            SceneFirstAsset::GuildHall,
+        ),
+        (
+            "world.capacity-delve-7-large",
+            "Experiment / Delve capacity / 7 large",
+            |context| {
+                StoryFixture::WorldFit(Box::new(fixture(context, PartySize::Seven, View::Delve)))
+            },
+            SceneFirstAsset::Delve,
+        ),
+        (
+            "world.capacity-delve-7-small",
+            "Experiment / Delve capacity / 7 small",
+            |context| {
+                StoryFixture::WorldFit(Box::new(fixture(context, PartySize::Seven, View::Delve)))
+            },
+            SceneFirstAsset::Delve,
+        ),
+        (
+            "world.capacity-delve-24-small",
+            "Experiment / Delve capacity / 24 small",
+            |context| {
+                StoryFixture::WorldFit(Box::new(fixture(
+                    context,
+                    PartySize::TwentyFour,
+                    View::Delve,
+                )))
+            },
+            SceneFirstAsset::Delve,
+        ),
+        (
+            "world.capacity-delve-32-small",
+            "Experiment / Delve capacity / 32 small",
+            |context| {
+                StoryFixture::WorldFit(Box::new(fixture(
+                    context,
+                    PartySize::ThirtyTwo,
+                    View::Delve,
+                )))
+            },
+            SceneFirstAsset::Delve,
+        ),
+    ];
+    entries.into_iter().map(|(id,title,build,asset)| Story {
+        id: StoryId::new(id), title, category: Category::Worlds,
+        description: "Experimental distributed seating; existing full or authored small sprites. Tab selects; c profile; click actors. Production unchanged.",
+        viewport: WORLD_VIEWPORT, build, owns: &[],
+        shows: if asset == SceneFirstAsset::GuildHall { &[AssetId(SceneFirstAsset::GuildHall)] } else { &[AssetId(SceneFirstAsset::Delve)] },
+    }).collect()
+}
+
+fn automatic_density_stories() -> [Story; 2] {
+    use super::density::{PartySize, fixture};
+    use crate::app::View;
+    [
+        Story {
+            id: StoryId::new("world.guild-fit-auto"),
+            title: "Fit / Hall / Automatic density — 32",
+            category: Category::Worlds,
+            description: "Production automatic density: 32 smaller authored adventurers in the complete Hall. Tab selects; c profile; click actors.",
+            viewport: WORLD_VIEWPORT,
+            build: |context| {
+                StoryFixture::WorldFit(Box::new(fixture(
+                    context,
+                    PartySize::ThirtyTwo,
+                    View::Guild,
+                )))
+            },
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::GuildHall)],
+        },
+        Story {
+            id: StoryId::new("world.delve-fit-auto"),
+            title: "Fit / Delve / Automatic density — 32",
+            category: Category::Worlds,
+            description: "Production automatic density: 32 smaller authored adventurers in the complete dungeon. Tab selects; c profile; click actors.",
+            viewport: WORLD_VIEWPORT,
+            build: |context| {
+                StoryFixture::WorldFit(Box::new(fixture(
+                    context,
+                    PartySize::ThirtyTwo,
+                    View::Delve,
+                )))
+            },
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::Delve)],
+        },
+    ]
+}
+
 fn build_catalogue() -> Vec<Story> {
     let mut guild = story!(
         "world.guild",
@@ -246,6 +463,9 @@ fn build_catalogue() -> Vec<Story> {
             NarrowParchment
         ),
     ];
+    stories.splice(1..1, fit_stories());
+    stories.extend(capacity_stories());
+    stories.extend(automatic_density_stories());
     stories.extend(board_stories());
     stories.extend(table_stories());
     stories.splice(2..2, asset_stories());
@@ -540,6 +760,53 @@ fn scene(model: crate::app::Model) -> StoryFixture {
 
 fn guild_world(context: StoryContext) -> StoryFixture {
     scene(fixtures::guild_world_fixture(context))
+}
+
+fn guild_fit(context: StoryContext) -> StoryFixture {
+    StoryFixture::WorldFit(Box::new(fixtures::hall_fit_fixture(
+        context,
+        fixtures::FitParty::Five,
+    )))
+}
+fn guild_fit_eleven(context: StoryContext) -> StoryFixture {
+    StoryFixture::WorldFit(Box::new(fixtures::hall_fit_fixture(
+        context,
+        fixtures::FitParty::Eleven,
+    )))
+}
+fn guild_fit_crowded(context: StoryContext) -> StoryFixture {
+    StoryFixture::WorldFit(Box::new(fixtures::hall_fit_fixture(
+        context,
+        fixtures::FitParty::Crowded,
+    )))
+}
+
+fn delve_fit(context: StoryContext) -> StoryFixture {
+    StoryFixture::WorldFit(Box::new(fixtures::delve_fit_fixture(
+        context,
+        fixtures::FitParty::Five,
+    )))
+}
+fn delve_fit_crowded(context: StoryContext) -> StoryFixture {
+    StoryFixture::WorldFit(Box::new(fixtures::delve_fit_fixture(
+        context,
+        fixtures::FitParty::Crowded,
+    )))
+}
+
+fn delve_fit_resting(context: StoryContext) -> StoryFixture {
+    StoryFixture::WorldFit(Box::new(fixtures::delve_resting_fit_fixture(context)))
+}
+
+fn guild_fit_profile(context: StoryContext) -> StoryFixture {
+    let mut model = fixtures::hall_fit_fixture(context, fixtures::FitParty::Five);
+    model.show_adventurer_card();
+    StoryFixture::WorldFit(Box::new(model))
+}
+fn delve_fit_profile(context: StoryContext) -> StoryFixture {
+    let mut model = fixtures::delve_fit_fixture(context, fixtures::FitParty::Five);
+    model.show_adventurer_card();
+    StoryFixture::WorldFit(Box::new(model))
 }
 
 fn barbarian_poses(_context: StoryContext) -> StoryFixture {
@@ -928,6 +1195,58 @@ fn board_stories() -> Vec<Story> {
     for (index, (id, title, build)) in board_variants.into_iter().enumerate() {
         stories.push(Story{id:StoryId::new(id),title,category:Category::Interactions,description:"Synthetic work facts through the production parchment; no live services or persistence.",viewport:if index==5 {NARROW_VIEWPORT}else{CARD_VIEWPORT},build,owns:if index==0 {&[AssetId(SceneFirstAsset::QuestBoardParchment)]}else{&[]},shows:if index==0 {&[]}else{&[AssetId(SceneFirstAsset::QuestBoardParchment)]}});
     }
+    for (id, title, build, viewport) in [
+        (
+            "interaction.owned-actions",
+            "Interaction / Owned Actions",
+            owned_actions as StoryBuilder,
+            CARD_VIEWPORT,
+        ),
+        (
+            "interaction.owned-empty-campaign",
+            "Interaction / Empty Owned Campaign",
+            owned_empty,
+            CARD_VIEWPORT,
+        ),
+        (
+            "interaction.owned-answer",
+            "Interaction / Owned Answer Form",
+            owned_answer,
+            CARD_VIEWPORT,
+        ),
+        (
+            "interaction.owned-answer-narrow",
+            "Interaction / Narrow Owned Answer",
+            owned_narrow,
+            Viewport::new(40, 20, 1, 1),
+        ),
+        (
+            "interaction.owned-view-pending",
+            "Interaction / Saved Owned View Pending",
+            owned_pending,
+            CARD_VIEWPORT,
+        ),
+        (
+            "interaction.owned-indeterminate",
+            "Interaction / Uncertain Owned Save",
+            owned_uncertain,
+            CARD_VIEWPORT,
+        ),
+        (
+            "interaction.owned-answered",
+            "Interaction / Answered Owned Decision",
+            owned_answered,
+            CARD_VIEWPORT,
+        ),
+        (
+            "interaction.owned-small",
+            "Interaction / Owned Form Resize Limit",
+            owned_small,
+            Viewport::new(27, 11, 1, 1),
+        ),
+    ] {
+        stories.push(Story {id:StoryId::new(id),title,category:Category::Interactions,description:"Fixed owned facts and production authoring overlay; no filesystem or live services.",viewport,build,owns:&[],shows:&[AssetId(SceneFirstAsset::QuestBoardParchment)]});
+    }
     stories
 }
 
@@ -1007,4 +1326,60 @@ fn table_stories() -> Vec<Story> {
         owns:if index==0 {&[AssetId(SceneFirstAsset::WarTableMap)]} else {&[]},
         shows:if index==0 {&[]} else {&[AssetId(SceneFirstAsset::WarTableMap)]},
     }).collect()
+}
+
+fn owned_actions(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::owned_authoring_fixture(
+        context,
+        fixtures::OwnedAuthoringState::Actions,
+    )))
+}
+
+fn owned_empty(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::owned_authoring_fixture(
+        context,
+        fixtures::OwnedAuthoringState::EmptyCampaign,
+    )))
+}
+
+fn owned_answer(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::owned_authoring_fixture(
+        context,
+        fixtures::OwnedAuthoringState::Answer,
+    )))
+}
+
+fn owned_narrow(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::owned_authoring_fixture(
+        context,
+        fixtures::OwnedAuthoringState::Narrow,
+    )))
+}
+
+fn owned_pending(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::owned_authoring_fixture(
+        context,
+        fixtures::OwnedAuthoringState::ViewPending,
+    )))
+}
+
+fn owned_uncertain(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::owned_authoring_fixture(
+        context,
+        fixtures::OwnedAuthoringState::Indeterminate,
+    )))
+}
+
+fn owned_answered(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::owned_authoring_fixture(
+        context,
+        fixtures::OwnedAuthoringState::Answered,
+    )))
+}
+
+fn owned_small(context: StoryContext) -> StoryFixture {
+    StoryFixture::SceneApplication(Box::new(fixtures::owned_authoring_fixture(
+        context,
+        fixtures::OwnedAuthoringState::Small,
+    )))
 }

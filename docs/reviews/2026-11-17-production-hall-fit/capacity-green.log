@@ -1,0 +1,9 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.77s
+     Running tests/scene_guild_hall.rs (target/debug/deps/scene_guild_hall-a6aa4f5c8fa4e80d)
+
+running 1 test
+test crowded_canonical_stations_fall_back_without_losing_party_members ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 29 filtered out; finished in 0.02s
+

@@ -1,0 +1,11 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.43s
+     Running unittests src/lib.rs (target/debug/deps/questmancer-56d13dc227a93494)
+
+running 3 tests
+test storybook::density::tests::small_state_cues_keep_their_authored_pixels_and_large_overflow_is_explicit ... ok
+test storybook::density::tests::thirty_two_small_adventurers_keep_the_complete_room_and_mouse_targets ... ok
+test storybook::density::tests::status_changes_keep_seats_room_landmarks_and_density_stable ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.45s
+

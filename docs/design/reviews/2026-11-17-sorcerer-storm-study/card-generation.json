@@ -1,0 +1,13 @@
+{
+  "mode": "built-in image_gen",
+  "intent": "New class portrait study, one targeted proportion refinement",
+  "selected_source": "/Users/alancurrie/.codex/generated_images/01a082e5-9751-7a73-9f0d-782f45086659/exec-b1dc80b7-d2fc-49f1-bfc5-fc2f8bc94e9b.png",
+  "initial_source": "/Users/alancurrie/.codex/generated_images/01a082e5-9751-7a73-9f0d-782f45086659/exec-021f18f0-f556-46f3-8387-876cc65d61cb.png",
+  "saved_draft": "storm-channeler-card-draft.png",
+  "prompts": [
+    "card-prompt.txt",
+    "card-refinement-prompt.txt"
+  ],
+  "transparent_background": true,
+  "production_replaced": false
+}

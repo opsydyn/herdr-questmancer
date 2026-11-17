@@ -1,5 +1,5 @@
 use std::{
-    io::{self, Stdout},
+    io::{self, Stdout, Write},
     panic,
     sync::{Arc, Mutex, OnceLock, Weak, atomic::AtomicBool},
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -8,7 +8,10 @@ use std::{
 use anyhow::{Context, Result};
 use crossterm::{
     cursor::{Hide, Show},
-    event::{DisableMouseCapture, EnableMouseCapture, EventStream},
+    event::{
+        DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
+        EventStream,
+    },
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -32,13 +35,8 @@ use crate::{
         apply_connection_update, bootstrap_model, dispatch_action_effects,
         dispatch_persistence_effects,
     },
-    scene::{
-        pixel::{PixelSize, Rgb, RgbBuffer},
-        presentation::ScenePresentation,
-        render_scene_for_world,
-        snapshot::SceneSnapshot,
-    },
-    ui::{self, scene_adapter::flush_rgb},
+    scene::pixel::{Rgb, RgbBuffer},
+    ui::world_fit::{WorldFit, delete_image, render_application},
 };
 
 pub(crate) type Tui = Terminal<CrosstermBackend<Stdout>>;
@@ -48,6 +46,8 @@ pub struct RuntimeLifecycle {
     connection: Option<RuntimeConnection>,
     persistence: PersistenceClient,
     persistence_worker: tokio::task::JoinHandle<()>,
+    owned: Option<crate::owned_work::OwnedRuntime>,
+    owned_paths: crate::persistence::WorkerPaths,
     projects: Option<crate::sources::herdr_projects::Producer>,
     projects_inbox: Option<crate::work::source::SourceInbox>,
 }
@@ -57,12 +57,15 @@ impl RuntimeLifecycle {
         environment: Option<&HerdrEnvironment>,
         paths: crate::persistence::WorkerPaths,
     ) -> (Self, DiagnosticReceiver) {
-        let (persistence, diagnostics, persistence_worker) = PersistenceWorker::start(paths);
+        let (persistence, diagnostics, persistence_worker) =
+            PersistenceWorker::start(paths.clone());
         (
             Self {
                 connection: environment.map(RuntimeConnection::start),
                 persistence,
                 persistence_worker,
+                owned: None,
+                owned_paths: paths,
                 projects: None,
                 projects_inbox: None,
             },
@@ -76,6 +79,33 @@ impl RuntimeLifecycle {
 
     pub const fn persistence_mut(&mut self) -> &mut PersistenceClient {
         &mut self.persistence
+    }
+
+    pub fn start_owned(&mut self, model: &mut Model) -> Result<(), String> {
+        if self.owned.is_none() {
+            self.owned = Some(crate::owned_work::OwnedRuntime::start(
+                &self.owned_paths,
+                model,
+            )?);
+        }
+        self.dispatch_owned(model);
+        Ok(())
+    }
+    pub fn dispatch_owned(&mut self, model: &mut Model) {
+        if let Some(owned) = &mut self.owned {
+            owned.dispatch(model);
+        }
+    }
+    pub async fn consume_owned(&mut self, model: &mut Model) {
+        if let Some(owned) = &mut self.owned {
+            owned.consume_next(&mut self.persistence, model).await;
+        }
+    }
+    pub async fn finish_owned(&mut self, model: &mut Model) -> Result<(), String> {
+        if let Some(mut owned) = self.owned.take() {
+            owned.shutdown(&mut self.persistence, model).await?;
+        }
+        Ok(())
     }
 
     pub fn start_projects(
@@ -118,10 +148,16 @@ impl RuntimeLifecycle {
         &mut RuntimeConnection,
         &mut PersistenceClient,
         &mut Option<crate::work::source::SourceInbox>,
+        &mut Option<crate::owned_work::OwnedRuntime>,
     )> {
-        self.connection
-            .as_mut()
-            .map(|connection| (connection, &mut self.persistence, &mut self.projects_inbox))
+        self.connection.as_mut().map(|connection| {
+            (
+                connection,
+                &mut self.persistence,
+                &mut self.projects_inbox,
+                &mut self.owned,
+            )
+        })
     }
 
     pub async fn complete(self, exit: Option<RuntimeExit>) -> Result<Option<RuntimeExit>> {
@@ -131,7 +167,10 @@ impl RuntimeLifecycle {
             persistence_worker,
             projects,
             projects_inbox,
+            owned,
+            owned_paths: _,
         } = self;
+        drop(owned);
         drop(projects_inbox);
         let projects_result = if let Some(producer) = projects {
             producer
@@ -324,7 +363,13 @@ impl TerminalGuard {
         register_restore_gate(&restore);
         let guard = Self { restore };
         let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen, EnableMouseCapture, Hide)?;
+        execute!(
+            stdout,
+            EnterAlternateScreen,
+            EnableMouseCapture,
+            EnableBracketedPaste,
+            Hide
+        )?;
 
         let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
         Ok((guard, terminal))
@@ -389,8 +434,15 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
         .ok()
         .filter(|value| !value.is_empty())
         .map(PaneId::new);
-    let portraits =
-        PortraitGallery::detect_in_herdr(environment.as_ref(), managed_pane_id.as_ref()).await;
+    let picker = ratatui_image::picker::Picker::from_query_stdio();
+    let portraits = match &picker {
+        Ok(picker) => PortraitGallery::from_picker(picker),
+        Err(error) => {
+            PortraitGallery::fallback(format!("portrait capability detection failed: {error}"))
+        }
+    };
+    let mut world_fit =
+        WorldFit::from_picker(picker.as_ref().ok(), std::env::var_os("TMUX").is_some());
     let mut model = bootstrap_model(startup.model, environment.as_ref());
     model.set_managed_pane_id(managed_pane_id);
     if let Some(diagnostic) = collected_diagnostics.last() {
@@ -399,9 +451,12 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
     let clock = RuntimeClock::new(sample_wall_time());
     model.set_now(clock.now());
     lifecycle.start_projects(startup.projects, &startup.work_cache, &mut model);
+    lifecycle
+        .start_owned(&mut model)
+        .map_err(anyhow::Error::msg)?;
 
     let loop_result = if environment.is_some() {
-        let (connection, persistence, projects_inbox) = lifecycle
+        let (connection, persistence, projects_inbox, owned) = lifecycle
             .live_parts_mut()
             .expect("live lifecycle starts a runtime connection");
         run_live_loop(
@@ -410,7 +465,9 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
                 shutdown: &mut shutdown,
                 clock: &clock,
                 portraits: &portraits,
+                world_fit: &mut world_fit,
                 projects_inbox,
+                owned,
             },
             &mut model,
             connection,
@@ -426,7 +483,9 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
                 shutdown: &mut shutdown,
                 clock: &clock,
                 portraits: &portraits,
+                world_fit: &mut world_fit,
                 projects_inbox: &mut lifecycle.projects_inbox,
+                owned: &mut lifecycle.owned,
             },
             &mut model,
             &mut lifecycle.persistence,
@@ -436,6 +495,11 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
         .await
     };
 
+    let graphics_result = cleanup_world_images(&world_fit.shutdown());
+    let owned_result = lifecycle
+        .finish_owned(&mut model)
+        .await
+        .map_err(anyhow::Error::msg);
     let lifecycle_result = lifecycle
         .complete(loop_result.as_ref().ok().copied())
         .await
@@ -444,7 +508,11 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
     drop(guard);
     emit_diagnostics(&collected_diagnostics);
 
-    loop_result.map(drop).and(lifecycle_result)
+    loop_result
+        .map(drop)
+        .and(graphics_result)
+        .and(owned_result)
+        .and(lifecycle_result)
 }
 
 struct RuntimeLoopContext<'a> {
@@ -452,7 +520,21 @@ struct RuntimeLoopContext<'a> {
     shutdown: &'a mut Shutdown,
     clock: &'a RuntimeClock,
     portraits: &'a PortraitGallery,
+    world_fit: &'a mut WorldFit,
     projects_inbox: &'a mut Option<crate::work::source::SourceInbox>,
+    owned: &'a mut Option<crate::owned_work::OwnedRuntime>,
+}
+
+fn cleanup_world_images(ids: &[u32]) -> Result<()> {
+    if ids.is_empty() {
+        return Ok(());
+    }
+    let mut stdout = io::stdout().lock();
+    for id in ids {
+        stdout.write_all(delete_image(*id).as_bytes())?;
+    }
+    stdout.flush()?;
+    Ok(())
 }
 
 fn draw_scene_application(
@@ -460,32 +542,24 @@ fn draw_scene_application(
     model: &Model,
     buffer: &mut RgbBuffer,
     portraits: &PortraitGallery,
+    world_fit: &mut WorldFit,
 ) -> Result<crate::scene::SceneFrame> {
-    let presentation = ScenePresentation::from_model(model);
-    let snapshot = SceneSnapshot::from_model(model);
+    world_fit.refresh_geometry();
     let mut rendered = None;
     terminal.draw(|frame| {
-        let area = frame.area();
-        let scene_frame = render_scene_for_world(
-            &snapshot,
-            &presentation,
-            PixelSize::new(area.width, area.height.saturating_mul(2)),
+        rendered = Some(render_application(
+            frame,
+            model,
             buffer,
-        );
-        flush_rgb(
-            frame.buffer_mut(),
-            area,
-            buffer,
-            Rgb::BLACK,
-            model.preferences().color_mode,
-        );
-        ui::scene_overlays::render_scene_identity_labels(frame, model, &scene_frame);
-        ui::scene_overlays::render_scene_overlays(frame, model, &presentation, Some(portraits));
-        rendered = Some(scene_frame);
+            Some(portraits),
+            world_fit,
+        ));
     })?;
+    cleanup_world_images(&world_fit.finish_frame())?;
     rendered.context("scene application draw did not produce a frame")
 }
 
+#[allow(clippy::too_many_lines)] // One select loop keeps all existing runtime effects ordered.
 async fn run_live_loop(
     context: RuntimeLoopContext<'_>,
     model: &mut Model,
@@ -504,8 +578,13 @@ async fn run_live_loop(
         if redraw {
             let viewport = context.terminal.size()?;
             model.set_work_viewport_size(viewport.width, viewport.height);
-            let frame =
-                draw_scene_application(context.terminal, model, &mut buffer, context.portraits)?;
+            let frame = draw_scene_application(
+                context.terminal,
+                model,
+                &mut buffer,
+                context.portraits,
+                context.world_fit,
+            )?;
             let next_wake = [
                 frame.next_frame_in,
                 model.work().next_attention_in(model.now()),
@@ -528,13 +607,18 @@ async fn run_live_loop(
                 };
                 let event = event.context("read terminal input")?;
                 model.set_now(context.clock.now());
-                let action = ui::input::action_for_scene_event_in(&event, model.modal(), scene_frame);
+                if crate::owned_work::authoring::handle_event(model,&event) {
+                    if let Some(owned)=context.owned { owned.dispatch(model); }
+                    continue;
+                }
+                let action = context.world_fit.action_for_event(&event, model, scene_frame);
                 let reduction = crate::interaction::reduce_scene_action(
                     model,
                     action,
                     scene_frame,
                 );
                 let effects = dispatch_action_effects(persistence, model, reduction).await;
+                if let Some(owned)=context.owned {owned.dispatch(model);}
                 connection.schedule(effects.agent_commands);
                 record_dispatch_errors(
                     model,
@@ -545,6 +629,7 @@ async fn run_live_loop(
                     return Ok(exit);
                 }
             }
+            () = next_owned(context.owned) => { if let Some(owned)=context.owned {owned.consume_next(persistence,model).await;owned.dispatch(model);} }
             observation = next_projects(context.projects_inbox) => {
                 model.set_now(context.clock.now());
                 redraw = observation.consume(persistence, model).await;
@@ -611,8 +696,13 @@ async fn run_offline_loop(
         if redraw {
             let viewport = context.terminal.size()?;
             model.set_work_viewport_size(viewport.width, viewport.height);
-            let frame =
-                draw_scene_application(context.terminal, model, &mut buffer, context.portraits)?;
+            let frame = draw_scene_application(
+                context.terminal,
+                model,
+                &mut buffer,
+                context.portraits,
+                context.world_fit,
+            )?;
             let next_wake = [
                 frame.next_frame_in,
                 model.work().next_attention_in(model.now()),
@@ -635,13 +725,18 @@ async fn run_offline_loop(
                 };
                 let event = event.context("read terminal input")?;
                 model.set_now(context.clock.now());
-                let action = ui::input::action_for_scene_event_in(&event, model.modal(), scene_frame);
+                if crate::owned_work::authoring::handle_event(model,&event) {
+                    if let Some(owned)=context.owned { owned.dispatch(model); }
+                    continue;
+                }
+                let action = context.world_fit.action_for_event(&event, model, scene_frame);
                 let reduction = crate::interaction::reduce_scene_action(
                     model,
                     action,
                     scene_frame,
                 );
                 let effects = dispatch_action_effects(persistence, model, reduction).await;
+                if let Some(owned)=context.owned {owned.dispatch(model);}
                 if !effects.agent_commands.is_empty() {
                     model.set_persistence_diagnostic(
                         "offline: action unavailable until connected to Herdr".to_owned(),
@@ -656,6 +751,7 @@ async fn run_offline_loop(
                     return Ok(exit);
                 }
             }
+            () = next_owned(context.owned) => { if let Some(owned)=context.owned {owned.consume_next(persistence,model).await;owned.dispatch(model);} }
             observation = next_projects(context.projects_inbox) => {
                 model.set_now(context.clock.now());
                 redraw = observation.consume(persistence, model).await;
@@ -668,6 +764,14 @@ async fn run_offline_loop(
                 model.set_now(context.clock.now());
             }
         }
+    }
+}
+
+async fn next_owned(owned: &mut Option<crate::owned_work::OwnedRuntime>) {
+    if let Some(owned) = owned {
+        owned.wait_result().await;
+    } else {
+        std::future::pending::<()>().await;
     }
 }
 
@@ -788,6 +892,7 @@ fn restore() {
         io::stdout(),
         Show,
         DisableMouseCapture,
+        DisableBracketedPaste,
         LeaveAlternateScreen
     );
 }

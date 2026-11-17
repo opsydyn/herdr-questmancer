@@ -22,6 +22,7 @@ fn paths(config_dir: Option<&Path>, state_dir: Option<&Path>) -> PersistencePath
 
 fn state(last_view: View, preferences: DisplayPreferences) -> PersistedStateV1 {
     PersistedStateV1 {
+        owned_store: None,
         experience: 0,
         schema_version: 1,
         last_view,
@@ -206,7 +207,7 @@ async fn invalid_config_uses_safe_runtime_defaults_but_keeps_valid_state() {
 async fn future_state_is_ignored_without_hiding_valid_chronicle_history() {
     let state_dir = tempfile::tempdir().unwrap();
     let mut future = state(View::Delve, DisplayPreferences::default());
-    future.schema_version = 2;
+    future.schema_version = 3;
     tokio::fs::write(
         state_dir.path().join("state.json"),
         serde_json::to_vec(&future).unwrap(),

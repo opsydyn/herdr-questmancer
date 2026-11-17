@@ -1,0 +1,20 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/scene_guild_hall.rs (target/debug/deps/scene_guild_hall-a6aa4f5c8fa4e80d)
+
+running 1 test
+
+thread 'crowded_canonical_stations_fall_back_without_losing_party_members' panicked at tests/scene_guild_hall.rs:1119:5:
+assertion `left == right` failed: station saturation must select a complete composition
+  left: 5
+ right: 11
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test crowded_canonical_stations_fall_back_without_losing_party_members ... FAILED
+
+failures:
+
+failures:
+    crowded_canonical_stations_fall_back_without_losing_party_members
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 29 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test scene_guild_hall`

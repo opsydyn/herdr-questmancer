@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-15",
+  "scope": "User-approved installed Herdr upgrade and accessible acceptance checks",
+  "installed": {
+    "before_version": "0.9.0",
+    "before_sha256": "32b53df09872628059c789a69f02a6b8e29e14ddf26711421f3463f70c1aef17",
+    "binary_path": "/Users/alancurrie/.local/bin/herdr",
+    "backup": "/tmp/questmancer-herdr-upgrade-zpz8kha9/herdr-0.9.0-backup",
+    "target_version": "0.9.5",
+    "server_before": "not running",
+    "installed_version": "0.9.5",
+    "installed_sha256": "fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2",
+    "official_asset_digest_verified": true,
+    "integrations": {
+      "claude": "current v11",
+      "codex": "current v10"
+    },
+    "codex_config_preserved": true,
+    "claude_non_herdr_settings_preserved": true,
+    "server_after": "not running"
+  },
+  "candidate_binary": {
+    "path": "target/release/questmancer",
+    "sha256": "3e8573aff8c715eb9fd6048adf8a49e3b7f53d43c1938b47d7a0dedd46e438e9"
+  },
+  "checks": {
+    "release_build_exit_code": 0,
+    "isolated_herdr_version": "0.9.5",
+    "isolated_protocol": 22,
+    "isolated_runtime": "passed",
+    "owned_resource_cleanup": "passed",
+    "automated_owned_authoring_restart": "passed",
+    "integration_config_parsing": "passed",
+    "non_herdr_configuration_preservation": "passed"
+  },
+  "native_acceptance": "not performed; Ghostty access restriction and prepared human trial remain",
+  "full_rust_gate": "No production Rust changes in this upgrade; latest full gate on 2026-10-14: 789 Rust and 28 shell tests passed",
+  "historical_evidence_note": "The prior PTY harness regenerated the October 3 restart-pty-screen.txt with October 15 synthetic identifiers/timestamp. It is explicitly labelled in that review; original approved production images remain unchanged. Its structural pty-receipt.json equals the original logs/pty.log JSON.",
+  "uncommitted": true,
+  "published": false
+}

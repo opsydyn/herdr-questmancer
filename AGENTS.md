@@ -7,7 +7,7 @@ older plan or historical review.
 
 ## Product truth
 
-Questmancer `0.1.10` is a Herdr `0.9.0` / protocol `22` plugin that turns
+Questmancer `0.2.0` is a Herdr `0.9.4+` / protocol `22` plugin that turns
 coding-agent state into a cozy, 16-bit adventurers' guild. The user is the **Questmancer**. Herdr workspaces are
 **campaigns** and agents are **adventurers**.
 
@@ -16,8 +16,9 @@ There are two views of the same live state:
 - **Guild Hall**: the warm operational home of the whole party.
 - **Delve**: the dungeon view of active work.
 
-The production UI is a scene-first RGB pixel world rendered through Ratatui
-half-block cells. Contextual parchment overlays provide selection details,
+The production UI is a scene-first RGB pixel world. Its Guild Hall and Delve can fit
+their canonical rooms through negotiated Kitty output; responsive Ratatui
+half-block cells remain the fallback. Contextual parchment overlays provide selection details,
 counsel, search and scrying. The persistent Guild Hall Librarian owns the fixed
 help handbook through the Librarian's Ledger. Do not reintroduce a
 text-dashboard view or a second production renderer.
@@ -31,6 +32,14 @@ Webmaster/cybercafe vocabulary.
 
 Herdr owns live topology and agent facts. Questmancer owns presentation and a
 small amount of durable local intent.
+
+The 2026-10-01 owned-work direction adds an authoritative backend for
+our campaigns, quests, decisions and artifact registrations. L1a and L1b are implemented: explicit Board store setup, remembered startup Open
+and five authoring forms use a serial owned backend.
+UI commands must go through that backend; external source facts
+remain externally owned. Read `docs/design/questmancer-owned-work.md` and
+`docs/plans/2026-10-01-owned-work.md` before work on this extension. Herdr remains
+the execution substrate; planning/delegation and agent spawning are deferred.
 
 - Presence and attention are separate domains.
 - Sprite identity, station, pose and effects derive from Herdr state. There are
@@ -110,17 +119,27 @@ deterministic for a fixed snapshot, viewport and time.
 - Completion theatre is a one-shot transition, not a permanent animation.
 - Unknown and exited states remain truthful; never infer a successful outcome.
 
-The two rooms deliberately have different small-viewport contracts:
+Negotiated Kitty fitting uses a complete 160x90 room in both views. Automatic
+tiers retain 16x24 masters through eleven visible adventurers, use staggered 8x12
+sprites for twelve through thirty-two, and denser 8x12 seating through sixty-four.
+Identity determines steady seats; state cues/poses and profiles convey live facts.
+The dense tier omits the Librarian actor but retains keyboard Ledger access.
+Above that capacity, unavailable graphics/geometry or insufficient native hit
+resolution, use the existing explicit fallback. Never accept a partial native fit.
+
+The raw half-block fallback rooms deliberately have different small-viewport contracts:
 
 - The canonical Guild Hall is `160x90` RGB pixels with eleven party slots.
   It falls through capacity-checked compact `16x24` actors (minimum `64x40`),
   authored `8x12` roster actors (minimum `20x27`), a single `16x24` priority
   vignette, then status-only rendering. Selection wins vignette priority;
   otherwise a blocked adventurer wins. Do not restore Hall camera cropping.
-- The Delve keeps its authored camera crop, but below `100` pixels wide or
+- The fallback Delve keeps its authored camera crop, but below `100` pixels wide or
   `56` pixels high it uses the same roster tier when the viewport is at least
-  `20x27` and the entire party fits. Otherwise it keeps the crop and its
-  independently tested station/overflow contract; it has no Hall vignette.
+  `20x27` and the entire party fits. In a complete room, saturated stations first
+  use a centered gathering of up to sixteen full `16x24` masters. Denser parties
+  use the authored roster over the dungeon backdrop, never a blank floor. If no
+  complete party composition fits, retain the tested crop/overflow contract.
 - Both rosters retain static tool, lantern, Z, check and question-mark state
   cues when names cannot fit. Full-motion fresh spoils end at three seconds;
   reduced/still rosters require no decorative or cleanup wake.
@@ -174,7 +193,7 @@ Librarian's Ledger has a separate native illustration. All paths must retain a
 non-empty authored RGB sprite fallback.
 
 Native images inside a Herdr-managed pane require both a compatible terminal
-and Herdr's graphics bridge (enabled by default in 0.9):
+and Herdr's native Kitty transport (enabled by default):
 
 ```toml
 [terminal]
@@ -251,8 +270,9 @@ without Herdr, agent processes or persistent state:
 just storybook
 ```
 
-It owns fifty-eight fixed production stories: two worlds, thirty-seven asset
-views and nineteen interactions. `j`/`k` and Up/Down select within the current
+It owns eighty-four fixed production/comparison stories: twenty world states,
+thirty-seven asset views and twenty-seven interactions, including eight
+owned-authoring states. `j`/`k` and Up/Down select within the current
 category; `h`/`l` and Left/Right change category. `Enter` enters inspection,
 `Esc` returns and `q` exits. Resize Ghostty while viewing `World / Guild Hall`
 to review canonical, compact, roster, vignette and status-only compositions;
@@ -268,7 +288,7 @@ and the direction in `docs/design/questmancer-sprite-art-direction.md`.
 
 ## Local Herdr workflow
 
-Requirements are Herdr `0.9.0`, protocol `22` and Rust `1.90.0`.
+Requirements are Herdr `0.9.4`, protocol `22` and Rust `1.90.0`.
 
 For a source-linked checkout:
 
@@ -305,7 +325,7 @@ to reuse.
 - Restore the original focus when the pane still exists.
 - Inspect plugin logs and final `git status` before claiming restoration.
 
-Herdr `0.9.0` can synthesize `idle`, `working`, `blocked` and `unknown`. It
+Herdr `0.9.4` can synthesize `idle`, `working`, `blocked` and `unknown`. It
 cannot synthesize an explicit `done` transition. Fixture coverage is the honest
 automated proof for completion visuals; it is not live acceptance.
 
@@ -319,7 +339,8 @@ service beyond Herdr's local socket.
 
 - `config.toml`: user-owned, read-only configuration.
 - `runtime.json`: ephemeral singleton registration.
-- `state.json`: atomic, versioned local intent and persona assignments.
+- `state.json`: atomic v2 local intent, persona assignments and optional owned path/source pin; v1 migrates explicitly.
+- `owned-work.json`: explicitly selected authoritative v1 work snapshot, answer records and bounded receipts; sibling lifetime writer lock.
 - `chronicle.jsonl`: append-only semantic history.
 - `work-state.json`: versioned source work facts, revision tombstones and local
   seen/deferred intent. Atomic acknowledged publication; no Herdr topology,
@@ -330,6 +351,17 @@ flushes acknowledged work. Preserve forward/future-version failure behaviour
 and malformed-file diagnostics.
 
 ## Current product status and remaining gates
+
+The 2026-11-17 owner request authorizes committing/pushing all accumulated work
+and releasing 0.2.0. See `docs/reviews/2026-11-17-release-0.2.0/README.md` for the
+fresh qualification/publication state and `CHANGELOG.md` for included features.
+Dated “unreleased” sections below are slice history, superseded by that release
+scope when published. The supported Pi integration is separately installed v9
+and qualified with Pi 1.5.2 / Herdr 0.9.5; existing Pi sessions need manual
+`/reload`. Working/resting reports do not prove completion or award XP.
+Preserve the retained synthetic party. Native authoring, exhaustive native input
+and visual acceptance, other-platform execution and registry publication remain
+separate gates. No agent execution/delegation is introduced by 0.2.0.
 
 The v0.1 engineering scope and the approved party-delight sequence are complete.
 Do not reopen dashboard, cybercafe or legacy-renderer milestones. Work inline;
@@ -396,7 +428,7 @@ capture, other agent integrations and native completion visuals remain unverifie
 The Questmancer accepted the sidebar, Hall and Delve screenshots, but reported
 native card and Librarian art regressing to fallbacks. Herdr 0.9 managed-plugin
 panes acknowledged Kitty while omitting CSI 16t replies and PTY pixel dimensions.
-Plain panes did not reproduce the failure. Startup now fills missing PTY pixel
+Plain panes did not reproduce the failure. The historical 0.9.0 repair filled missing PTY pixel
 axes from the own-pane `pane.graphics.info` response before the existing Picker
 query. It preserves the character grid/known axes, rejects zero/overflow and
 bounds the request to 500 ms. It never forces a protocol or adds frame requests.
@@ -408,6 +440,7 @@ in Ghostty after reopening the repaired binary; consult
 `docs/reviews/2026-09-08-native-portrait-regression/README.md` and its receipt for
 that result. The repair was subsequently committed, clean-qualified and published
 at `98f557d` as `v0.1.9`; consult the publication receipt for final evidence.
+Its socket geometry workaround is retired in the 0.9.4 compatibility slice below.
 
 ## Current presentation contracts — 2026-09-08
 
@@ -598,6 +631,364 @@ reports 0.9.0, below the pinned upstream manifest's 0.9.1 minimum. The inspected
 normal thread-start/adopt paths start a ticker, outside this no-launch scope.
 See `docs/reviews/2026-09-30-herdr-projects-acceptance/README.md`. Do not silently
 install, upgrade or launch agents to complete that trial. The smaller
-`docs/plans/2026-09-30-herdr-projects-writer-fixtures.md` is proposed, not promoted.
+`docs/plans/2026-09-30-herdr-projects-writer-fixtures.md` was proposed, not promoted;
+both it and further Projects acceptance/M3b work are now parked by the owned-work
+direction below. Preserve the implemented opt-in adapter and its evidence.
 Native/live acceptance, M3b, upstream contributions and M4–M7 remain separate or
 unpromoted.
+
+## Owned work direction — 2026-10-01 (planning only)
+
+The user clarified that we should build our own version for full control and
+agreed to an owned project/work backend. Projects and Firstmate are design
+references, not required dependencies. The current roadmap now uses L1–L5;
+old M3–M7 plans remain historical or parked, not automatic next work.
+
+`docs/design/questmancer-owned-work.md` defines proposed authoritative commands,
+identity, decision-answer storage and commit/retry boundaries. `work-state.json`
+remains a projection cache; Chronicle remains observation history. Neither becomes
+an owned source of truth or an imported project store. Proposed `owned-work.json`
+is a separate versioned local store, with no Herdr topology or live bindings.
+
+`docs/plans/2026-10-01-owned-work.md` bounds L1a backend proof and L1b human authoring.
+The first complete milestone is create campaign/quest -> request/answer decision
+-> register artifact -> restart through the existing Board/Table. L1a is the next
+proposed implementation; L1b requires reviewed forms. No code, dependencies,
+configuration, installation, live resources or release changed in this planning
+slice. Direction/planning approval does not promote implementation or future
+planning/delegation, spawning, worktree, merge or replay capabilities.
+See `docs/reviews/2026-10-01-owned-work-plan/README.md` for planning-only validation.
+
+## L1a owned work backend — 2026-10-03 (unreleased)
+
+The user approved L1a implementation. `src/owned_work/` now owns explicit create,
+request, answer and artifact commands, pure revision/incarnation/retry validation
+and a separate versioned atomic store. Requester attribution and literal answers
+remain durable beyond the bounded 128 command receipts. The lifetime OS lock,
+physical selection/file identity and acknowledged file/directory sync protect
+publication. Indeterminate commands block further writes until reconciliation.
+`src/sources/local_work.rs` emits Complete baselines through the existing reducer
+and acknowledged cache. Store commit and cache publication remain separate.
+
+This is backend proof behind explicit library calls: ordinary startup, store
+selection/configuration and authoring forms are not installed. Cache schema v2,
+Projects checkpoints, external facts, counsel and the single renderer are preserved.
+No agent commands, assignment/readiness inference, Chronicle/XP, import, orchestration
+or journal/replay were added. Source IDs use `owned:` plus an opaque token.
+
+The full gate passes 775 Rust tests across 63 runs and 28 shell tests; the
+4,096-case property and release results are in
+`docs/reviews/2026-10-03-owned-work-backend/README.md` and its receipt. All changes
+remain uncommitted and unreleased. Native/live/visual acceptance is not claimed.
+The user subsequently approved L1b form and typed command/detail review. See the
+next section for its documentation-only result. Preserve the earlier planning and
+Projects evidence.
+
+## L1b authoring review — 2026-10-03 (proposal only)
+
+`docs/design/questmancer-owned-authoring.md` and
+`docs/plans/2026-10-03-owned-authoring.md` define the proposed Board Actions menu,
+owned campaign/decision pickers, five forms, explicit store setup and readable
+answered detail. They propose a remembered path/source pin in state schema v2,
+a dedicated bounded owner, checked selected-detail queries and distinct receipt/
+view-pending/indeterminate feedback. These are future changes, not current APIs.
+Board Enter/seen/defer, external authority, counsel and the RGB renderer remain
+the existing contracts. No code was changed by the review.
+
+Read the design and implementation proposal before promoting L1b. Implementation,
+production form visuals, native interaction/restart, commit, installation and release
+remain separate. `docs/reviews/2026-10-03-owned-authoring-plan/README.md` records
+static review and preservation evidence; it is not an implementation test gate.
+
+
+## L1b owned authoring — 2026-10-03 (unreleased)
+
+The user promoted the reviewed implementation. Board `a` opens contextual Actions,
+owned campaign/decision pickers and five forms. Explicit Create/Open remembers one
+physical absolute path and expected source in state v2; no pin creates no store.
+Restart opens exactly the pin. Missing/protected/replaced selections disable writing.
+Empty campaigns and answered decisions remain reachable; selected answers use checked
+owner reads and never enter the work cache, Chronicle or logs. Config stays read-only.
+
+RuntimeLifecycle owns a dedicated serial filesystem worker in live and offline loops.
+One request is outstanding; monotonic tags fence responses. Accepted commands freeze
+identity/revision/time/text. Selection acknowledgement, backend commit and cache/view
+publication are separate. View retry never resubmits a saved command. Indeterminate
+recovery reconciles the exact command; an unchanged prior revision retains an unsaved
+draft. Shutdown drains and joins before the persistence worker; OS calls cannot be
+forcibly cancelled. Store lock is cooperative, not a concurrent external writer API.
+
+Forms wrap by display cells, support bounded literal bracketed paste, append/backspace,
+multiline input and scroll. Below 28 columns or 12 rows drafts survive and submission
+is disabled. Esc retains one volatile draft; explicit discard clears it; quit loses it.
+Board observe/seen/defer, counsel, external source authority and the RGB scene remain
+unchanged. No spawning, assignments, lifecycle edits, URI opening or execution added.
+
+Read `docs/reviews/2026-10-03-owned-authoring/README.md` and
+`docs/manual-test/owned-work-authoring.md` for qualification and operation. Automated
+PTY input/restart is separate from native terminal visual approval. The user
+subsequently approved production form fixture images on 2026-10-03; see
+`docs/reviews/2026-10-03-owned-authoring/visual-approval.md`. A fresh Computer Use
+Ghostty access check was refused for safety reasons. Native/live use remains
+unperformed; do not bypass that restriction using other UI automation. The bounded
+manual trial is `docs/plans/2026-10-03-owned-authoring-native.md`; its availability
+receipt is `docs/reviews/2026-10-03-owned-authoring-native/README.md`. Installation,
+commit and release remain separate gates.
+L2–L5 are unpromoted. Preserve all prior L1a/planning and Projects evidence.
+
+## Herdr 0.9.4 compatibility — 2026-10-14
+
+The current source requires Herdr 0.9.4 while retaining protocol 22. Native
+portraits use the standard terminal Picker query and Kitty output; the removed
+`pane.graphics.*` API and its PTY pixel-size workaround are no longer used.
+`events_lost` keeps its server diagnostic and reconnects through a quiet
+post-subscription baseline. The experimental pane-header API remains separately
+negotiated and unavailable in published Herdr 0.9.4. See
+`docs/reviews/2026-10-14-herdr-094/README.md` for qualification and opportunities.
+This is a source compatibility update, not a new published Questmancer release.
+
+## Installed Herdr upgrade — 2026-10-15
+
+The user approved the host upgrade. The stable updater installed Herdr 0.9.5
+(the 0.9.4 hotfix), protocol 22. Its binary matches the official asset digest.
+Existing Claude and Codex integrations were refreshed; Codex turn hooks are
+removed upstream and status uses screen detection again. Installed user settings
+were backed up; Codex TOML and unrelated Claude settings were preserved.
+No shared server was running or restarted. The installed binary passed a fresh
+isolated linked-plugin runtime and cleanup check; automated owned authoring and
+restart also passed. Native human acceptance remains unperformed. See
+`docs/reviews/2026-10-15-herdr-upgrade/README.md`. The source minimum stays 0.9.4;
+this does not publish or commit Questmancer.
+
+## Druid Bramble Sage — 2026-11-17 (unreleased)
+
+The user selected B from the Druid study. Its turned face, leaf cloak and
+right-hand living staff now supply all eight Druid ritual frames and the
+existing personalised card fallback. The native PNG, roster, saved identities
+and timing are unchanged. Qualification passes 791 Rust tests / 64 runs and
+28 shell tests, plus release build. See
+`docs/reviews/2026-11-17-druid-bramble/README.md` for production sheets,
+the inspected Delve golden update and the owned dogfood UI refresh. Static
+direction approval is recorded; production pose/animation and native visual
+approval remain pending. Only the test-owned UI was reopened; its authoritative
+work bytes and four synthetic identities were preserved. No commit or release.
+
+
+## Librarian Keeper of the Stacks — 2026-11-17 (unreleased)
+
+The user selected B from the Librarian world study. The production world sprite
+now uses Keeper of the Stacks, with a matching independently authored `24x32`
+Ledger fallback. The native illustration, static accessors, help behavior,
+click bounds and small-tier omissions are unchanged. Qualification passes
+793 Rust tests / 64 runs, 28 shell tests and the release build. See
+`docs/reviews/2026-11-17-librarian-keeper/README.md`. Only the test-owned dogfood
+UI was reopened; authoritative work bytes and saved personas were preserved,
+and the party remains open. World direction is approved; production fallback
+and native visual review remain pending. No commit or release.
+
+## Sorcerer Storm Channeler — 2026-11-17 (unreleased)
+
+The user approved the paired Storm Channeler direction. The Sorcerer now uses
+swept hair, a pale streak, an asymmetric plum mantle and a persistent orb in all
+eight ritual frames, with the same personalised card fallback and a matching
+native `384x512` PNG. Saved persona roles, roster, timing and renderers remain
+unchanged. Qualification passes 796 Rust tests / 64 runs, 28 shell tests and
+the release build. See `docs/reviews/2026-11-17-sorcerer-storm/README.md` for
+production sheets, the inspected Delve golden update and bounded live refresh.
+The retained test-owned UI runs the candidate with the resting Sorcerer selected.
+All four synthetic identities remain open; owned work matches its retained
+revision-7 snapshot. Direction approval is recorded; production animation and
+native visual acceptance remain pending. No commit or release.
+
+## Cleric Sunward Chaplain — 2026-11-17 (unreleased)
+
+The user selected A from the Cleric study. Its open face, beard, silver
+shoulders, cream tabard, sun mace and prayerbook now supply all eight Cleric
+ritual frames and the existing personalised card fallback. All native PNGs,
+roster, saved identities and timing remain unchanged. Qualification passes
+798 Rust tests / 64 runs, 28 shell tests and the release build. See
+`docs/reviews/2026-11-17-cleric-sunward/README.md` for production sheets,
+the inspected Delve golden update and bounded live refresh. The test-owned UI
+runs the candidate with the Delve open and card closed. Authoritative work,
+saved personas and all four synthetic identities/statuses were preserved.
+Direction A is approved; production animation and native visual acceptance
+remain pending. No commit or release.
+
+## Storybook proportional Hall fit — 2026-11-17 (experimental)
+
+The user approved the right-hand whole-room fit mockup and explicitly chose
+Storybook first. Three experimental World-category stories now fit the existing
+160x90 RGB Hall through negotiated Kitty output, with integer physical-pixel
+scaling, local selection/mouse mapping, card/Ledger handling and explicit fallback.
+They are isolated behind the existing `storybook` feature; production output,
+assets, source authority, persistence and native-world policy are unchanged.
+See `docs/adr/0001-storybook-hall-fit.md`,
+`docs/reviews/2026-11-17-storybook-hall-fit/README.md` and
+`docs/manual-test/storybook-hall-fit.md` before further work. Qualification passes
+807 Rust tests / 65 runs, 28 shell tests, native/graphics-off synthetic PTY checks
+and a byte-exact native-payload pixel comparison. Human native appearance,
+font-zoom, visibility/reconnect and animation performance remain unqualified.
+The live party was not operated for that experiment. Production integration
+was subsequently approved explicitly; see ADR-0002 and the section below.
+
+
+## Production Hall fitting — 2026-11-17 (unreleased)
+
+The user explicitly promoted the approved Storybook direction with “yes integrate
+the hall”. `src/scene/fit.rs` now owns the shared integer physical-pixel transform
+and checked canonical projection. `src/ui/hall_fit.rs` adds an output adapter for
+the same RGB renderer; production imports no Storybook code. A single startup
+Picker query serves portraits and Hall fitting. Native fitting requires negotiated
+Kitty, valid cell pixels, no tmux, every actor and Librarian addressable, and no
+open parchment/card. ANSI16 preference, overlays and the Delve use half-blocks.
+One header and two footer rows keep text outside image placeholders; the footer
+reports selected identity, presence and counsel count. Input uses transformed
+cell regions with the existing action/reducer path. Canonical capacity checks
+actual station allocation before falling back, preventing silent party omission.
+
+The cache owns at most two image identities, reuses unchanged RGB/geometry and
+returns narrow deletions for post-flush cleanup and shutdown. Existing semantic
+scene deadlines own animation; no timer, agent facts or persistence were added.
+Kernel pixel axes refresh geometry when complete; missing axes retain startup
+negotiation, so font zoom may require reopening. Consult
+`docs/adr/0002-production-hall-fit.md`,
+`docs/reviews/2026-11-17-production-hall-fit/README.md` and
+`docs/manual-test/production-hall-fit.md` for evidence and native acceptance limits.
+
+
+## Proportional Delve fitting — 2026-11-17 (unreleased)
+
+The user promoted the Hall's fit/fallback behavior to the dungeon. ADR-0003
+extends ADR-0002: `src/ui/world_fit.rs` / `WorldFit` now replace the Hall-only
+adapter, with one two-ID cache across both rooms. `src/scene/fit.rs` checks
+canonical station capacity for the selected world. Delve source size remains
+160x90 with native 16x24 sprite masters and no Librarian actor. Scrying remains
+the existing output parchment and suspends native fitting while open, as do
+all other cards/parchments. No output fetch occurs during rendering.
+
+Saturated Delve stations choose a complete authored 8x12 roster at any viewport
+where it fits. Only when that cannot fit does the existing crop/overflow contract
+remain. Native fitting is refused whenever canonical placement is incomplete.
+Two fixed Storybook cases (`world.delve-fit`, `world.delve-fit-crowded`) bring
+the catalogue to 71 stories: 66 original production states and five fit studies.
+See `docs/reviews/2026-11-17-production-delve-fit/README.md` and
+`docs/manual-test/production-delve-fit.md` for qualification and native limits.
+
+Qualification for the Delve slice passes 821 Rust tests / 66 runs, 28 shell tests,
+release/Storybook builds, Rustdoc, five isolated PTY scenarios and two exact
+native-payload comparisons. The still-owned dogfood UI was refreshed and left
+on the Delve with current crowded-party roster fallback. Three earlier synthetic
+panes were already absent; only the remaining tracked synthetic resource was
+retained. Saved personas and authoritative work were unchanged; no focus command,
+commit, release or shared-server change. Native acceptance remains unreviewed.
+
+
+## Crowded Delve room regression — 2026-11-17 (unreleased)
+
+The user's screenshot rejected the flat-floor fallback. ADR-0004 supersedes
+ADR-0003's crowd policy. The Delve retains its authored background for every
+party composition. Saturated stations use a centered gathering of up to sixteen
+full 16x24 masters in a complete room; independent short-row centering, cue/name
+clearance and foreground-before-party order keep every actor visible. Static
+five-pixel tool/lantern/Z/check/question cues carry literal presence. Larger or
+smaller fallback compositions retain authored 8x12 roster art over the dungeon.
+Native fit checks effective composition capacity, not raw station slots alone.
+
+Roster backdrops use fixed room centering so time-sensitive attention cameras
+cannot change reduced/still pixels without a wake. Gathered spoils follow actual
+actor bounds and remain quiet by three seconds. The new fixed
+`world.delve-fit-resting` case reproduces four resting plus one unknown adventurer;
+Storybook now has 72 stories. No Herdr facts, command authority, persona identity,
+persistence, transport cache or Hall behavior changed. See
+`docs/reviews/2026-11-17-delve-crowd-repair/README.md` for current qualification.
+
+Final crowd-repair qualification passes 825 Rust tests / 66 runs, 28 shell tests,
+release/Storybook builds, Rustdoc, five isolated executable PTY scenarios and two
+exact image comparisons. The owned UI is refreshed on the Delve and its native
+fit branch is active for the current party. Remaining resources, saved personas
+and authoritative work were preserved. Native appearance remains human review.
+
+
+## Profiles preserve responsive fitting — 2026-11-17 (unreleased)
+
+The user reported that opening a profile loses fitting in both views. ADR-0005
+supersedes that exception in earlier decisions. Profiles now keep the same
+world transform and image lease; public ratatui-image row slicing paints only
+visible top/left/bottom bands outside the profile and its right gutter. The
+profile renderer and input share `adventurer_card_area`. Only complete uncovered
+actors remain clickable; mouse input inside the profile is inert and keyboard
+selection still reaches the full party. A completely hidden world retains its
+lease, defers its first transmission if necessary and has no animation wake.
+
+Native portrait routing, fallback profiles, card dimensions and commands are
+unchanged. Other modal parchments still suspend the native world as before.
+Storybook uses the same mask helpers and adds `world.guild-fit-profile` and
+`world.delve-fit-profile`, bringing the catalogue to 74 stories. See
+`docs/adr/0005-profile-keeps-world-fit.md` and `docs/manual-test/profile-fit.md`.
+
+Qualification passes 830 Rust tests / 66 runs, 28 shell tests, release/Storybook
+builds, Rustdoc, eight isolated executable PTY scenarios and two exact image
+comparisons. The verified owned dogfood UI is refreshed and left on the Delve;
+remaining resources, all persona records, owned-work bytes and focus are preserved.
+Native profile appearance, compositing, mouse and resize remain human acceptance.
+See `docs/reviews/2026-11-17-profile-fit-repair/README.md`. No commit or release.
+
+## Resting-party composition regression — 2026-11-17 (repair pending)
+
+The owner's subsequent screenshots reject bottom-packed Hall fallback and the
+Delve gathered row. The profile repair does not resolve station saturation:
+six resting plus one unknown allocate only five Hall canonical positions, so
+native fitting is rejected; Delve saturation moves the whole party into the
+eight-column gathering. These are reproduced current policies, not native visual
+acceptance. Existing passing count/bounds tests do not establish composition.
+See `docs/design/reviews/2026-11-17-party-layout-regression/README.md` for source
+evidence, forty exports and the capacity review. No production fix is included.
+Next bounded direction: preview preservation of valid station placements plus
+authored distributed overflow, retaining the complete fitted room, state cues,
+full sprites, click targets and profile behavior before refreshing production.
+
+## Larger-party Storybook comparison — 2026-11-17 (experimental)
+
+The owner requested UX capacity improvements including smaller adventurers.
+ADR-0006 adds eight isolated `world.capacity-*` studies: seven full and small
+sprites, plus 24 and 32 small sprites in each room. Storybook now has 82 stories.
+`src/storybook/density.rs` composes existing authored 16x24/8x12 assets over
+production room backdrops using stable fixture seats and literal state cues.
+It is a visual density experiment, not a production station policy or an
+automatic density setting. Production must not import this module.
+
+The shared fit preview retains full-size profiles, covered-click protection,
+bounded image ownership and local keyboard selection. Runtime input is routed
+to the installed preview fixture rather than two hard-coded ID prefixes.
+Full verification passes 834 Rust tests / 66 runs and 28 shell tests; source
+exports and four executable PTY scenarios cover 32-person profiles/resize.
+Native visual/usability acceptance, small-class art approval and production
+promotion remain pending. Existing live resources and release binary are
+unchanged. See `docs/design/reviews/2026-11-17-party-capacity/README.md`.
+
+
+## Automatic fitted-room density — 2026-11-17 (unreleased)
+
+The user approved automatic size tiers. ADR-0007 promotes the capacity direction:
+native fitted rooms keep detailed 16x24 sprites through eleven actors, switch to
+authored 8x12 staggered seats for 12–32, and denser 8x12 seats for 33–64. Exited
+adventurers do not count. Stable source identity determines seating within a tier;
+status changes update poses/cues without regrouping the whole party. Neutral room
+seats do not assign source work. Profiles retain full-size native/fallback art.
+
+`src/scene/render/party.rs` is a composition in the existing RGB engine, sharing
+real-snapshot Hall/Delve environment passes and existing semantic animation. The
+actual composed actor set and cell hit resolution guard native fitting. Raw
+half-block/camera fallbacks remain; parties above 64 cannot claim a complete fit.
+Dense seating omits the Librarian actor, retaining `?`. Production never imports
+Storybook; fixed comparison stories share promoted seat geometry. Two automatic
+production stories bring Storybook to 84.
+
+Qualification passes 841 Rust tests / 67 runs and 28 shell tests, release and
+Storybook builds, Rustdoc, eight executable PTY scenarios, 42 source exports and
+two exact native-image comparisons. The verified owned dogfood UI is refreshed
+on its existing Delve view with seven full-size adventurers. Remaining synthetic
+resources, all persona records, authoritative work and focus are preserved.
+Native appearance, mouse, resize and animation acceptance remain human review.
+See `docs/reviews/2026-11-17-automatic-density/README.md` and
+`docs/manual-test/automatic-density.md`. No commit or publication occurred.

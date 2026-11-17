@@ -28,7 +28,7 @@ fn capture_contains_only_durable_intent() {
 
     let state = PersistedStateV1::capture(&model);
 
-    assert_eq!(state.schema_version, 1);
+    assert_eq!(state.schema_version, STATE_SCHEMA_VERSION);
     assert_eq!(state.selected_persona, Some(expected_persona.clone()));
     assert_eq!(state.personas[&expected_persona].key, expected_persona);
     assert!(state.seen_attention.contains(&AttentionEpisodeKey {
@@ -123,7 +123,7 @@ fn failed_seed_is_atomic_and_cannot_cross_persona_identities() {
 #[test]
 fn validation_rejects_an_unsupported_schema_version() {
     let mut state = captured_state();
-    state.schema_version = 2;
+    state.schema_version = 3;
 
     assert!(state.validate().is_err());
 }
@@ -358,6 +358,7 @@ fn standing_is_captured_and_seeded_back() {
     intent.earn(120);
 
     let captured = PersistedStateV1 {
+        owned_store: None,
         experience: intent.experience(),
         schema_version: STATE_SCHEMA_VERSION,
         last_view: View::Guild,

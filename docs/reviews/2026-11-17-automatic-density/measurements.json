@@ -1,0 +1,632 @@
+[
+  {
+    "filename": "guild-7-120x34.png",
+    "librarian_targets": 1,
+    "party": 7,
+    "room": "guild",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7
+  },
+  {
+    "filename": "guild-7-96x28.png",
+    "librarian_targets": 1,
+    "party": 7,
+    "room": "guild",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7
+  },
+  {
+    "filename": "guild-7-80x24.png",
+    "librarian_targets": 1,
+    "party": 7,
+    "room": "guild",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7
+  },
+  {
+    "filename": "guild-11-120x34.png",
+    "librarian_targets": 1,
+    "party": 11,
+    "room": "guild",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 11
+  },
+  {
+    "filename": "guild-11-96x28.png",
+    "librarian_targets": 1,
+    "party": 11,
+    "room": "guild",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 11
+  },
+  {
+    "filename": "guild-11-80x24.png",
+    "librarian_targets": 1,
+    "party": 11,
+    "room": "guild",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 11
+  },
+  {
+    "filename": "guild-12-120x34.png",
+    "librarian_targets": 1,
+    "party": 12,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 12
+  },
+  {
+    "filename": "guild-12-96x28.png",
+    "librarian_targets": 1,
+    "party": 12,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 12
+  },
+  {
+    "filename": "guild-12-80x24.png",
+    "librarian_targets": 1,
+    "party": 12,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 12
+  },
+  {
+    "filename": "guild-24-120x34.png",
+    "librarian_targets": 1,
+    "party": 24,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 24
+  },
+  {
+    "filename": "guild-24-96x28.png",
+    "librarian_targets": 1,
+    "party": 24,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 24
+  },
+  {
+    "filename": "guild-24-80x24.png",
+    "librarian_targets": 1,
+    "party": 24,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 24
+  },
+  {
+    "filename": "guild-32-120x34.png",
+    "librarian_targets": 1,
+    "party": 32,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 32
+  },
+  {
+    "filename": "guild-32-96x28.png",
+    "librarian_targets": 1,
+    "party": 32,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 32
+  },
+  {
+    "filename": "guild-32-80x24.png",
+    "librarian_targets": 1,
+    "party": 32,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 32
+  },
+  {
+    "filename": "guild-33-120x34.png",
+    "librarian_targets": 0,
+    "party": 33,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 33
+  },
+  {
+    "filename": "guild-33-96x28.png",
+    "librarian_targets": 0,
+    "party": 33,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 33
+  },
+  {
+    "filename": "guild-33-80x24.png",
+    "librarian_targets": 0,
+    "party": 33,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 33
+  },
+  {
+    "filename": "guild-64-120x34.png",
+    "librarian_targets": 0,
+    "party": 64,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 64
+  },
+  {
+    "filename": "guild-64-96x28.png",
+    "librarian_targets": 0,
+    "party": 64,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 64
+  },
+  {
+    "filename": "guild-64-80x24.png",
+    "librarian_targets": 0,
+    "party": 64,
+    "room": "guild",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 64
+  },
+  {
+    "filename": "delve-7-120x34.png",
+    "librarian_targets": 0,
+    "party": 7,
+    "room": "delve",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7
+  },
+  {
+    "filename": "delve-7-96x28.png",
+    "librarian_targets": 0,
+    "party": 7,
+    "room": "delve",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7
+  },
+  {
+    "filename": "delve-7-80x24.png",
+    "librarian_targets": 0,
+    "party": 7,
+    "room": "delve",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7
+  },
+  {
+    "filename": "delve-11-120x34.png",
+    "librarian_targets": 0,
+    "party": 11,
+    "room": "delve",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 11
+  },
+  {
+    "filename": "delve-11-96x28.png",
+    "librarian_targets": 0,
+    "party": 11,
+    "room": "delve",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 11
+  },
+  {
+    "filename": "delve-11-80x24.png",
+    "librarian_targets": 0,
+    "party": 11,
+    "room": "delve",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 11
+  },
+  {
+    "filename": "delve-12-120x34.png",
+    "librarian_targets": 0,
+    "party": 12,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 12
+  },
+  {
+    "filename": "delve-12-96x28.png",
+    "librarian_targets": 0,
+    "party": 12,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 12
+  },
+  {
+    "filename": "delve-12-80x24.png",
+    "librarian_targets": 0,
+    "party": 12,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 12
+  },
+  {
+    "filename": "delve-24-120x34.png",
+    "librarian_targets": 0,
+    "party": 24,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 24
+  },
+  {
+    "filename": "delve-24-96x28.png",
+    "librarian_targets": 0,
+    "party": 24,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 24
+  },
+  {
+    "filename": "delve-24-80x24.png",
+    "librarian_targets": 0,
+    "party": 24,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 24
+  },
+  {
+    "filename": "delve-32-120x34.png",
+    "librarian_targets": 0,
+    "party": 32,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 32
+  },
+  {
+    "filename": "delve-32-96x28.png",
+    "librarian_targets": 0,
+    "party": 32,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 32
+  },
+  {
+    "filename": "delve-32-80x24.png",
+    "librarian_targets": 0,
+    "party": 32,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 32
+  },
+  {
+    "filename": "delve-33-120x34.png",
+    "librarian_targets": 0,
+    "party": 33,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 33
+  },
+  {
+    "filename": "delve-33-96x28.png",
+    "librarian_targets": 0,
+    "party": 33,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 33
+  },
+  {
+    "filename": "delve-33-80x24.png",
+    "librarian_targets": 0,
+    "party": 33,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 33
+  },
+  {
+    "filename": "delve-64-120x34.png",
+    "librarian_targets": 0,
+    "party": 64,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 64
+  },
+  {
+    "filename": "delve-64-96x28.png",
+    "librarian_targets": 0,
+    "party": 64,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 64
+  },
+  {
+    "filename": "delve-64-80x24.png",
+    "librarian_targets": 0,
+    "party": 64,
+    "room": "delve",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 64
+  }
+]

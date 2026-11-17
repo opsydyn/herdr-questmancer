@@ -8,13 +8,25 @@ for engineering evidence and the separate native terminal acceptance boundary. T
 [Roadmap](../plans/2026-09-27-living-control-plane-roadmap.md) and
 [first-slice plan](../plans/2026-09-27-durable-obligations.md) own sequencing.
 
+On 2026-10-01 the user agreed to owning the project/work backend for full control.
+The [owned-work extension](questmancer-owned-work.md) now governs that source's
+authority and proposed human commands. Herdr Projects qualification is parked.
+The earlier observation-only authority rules remain applicable to external work;
+they do not prohibit explicit commands to our own backend. Implementation of that
+extension's L1a backend proof was approved and implemented on 2026-10-03;
+authoring remains a separate L1b slice.
+The subsequent [L1b form review](questmancer-owned-authoring.md) is written with
+explicit setup and recovery; its implementation and production visuals are pending.
+
 ## Purpose
 
 Answer: what needs the human next, why, and what work does it affect?
 Retain the scene-first guild, truthful facts, local-first runtime and useful
 single-agent experience. At fleet scale, show obligations and campaign context
-before individual actors. Herdr owns execution topology; sources/orchestrators
-own work and delegation; Questmancer owns presentation and local attention intent.
+before individual actors. Herdr owns execution topology. Our owned backend owns
+our durable work and decision resolution; external sources own their records.
+Questmancer's interface owns presentation and local attention intent. Planning
+and delegation remain deferred to a separately promoted module.
 
 The earlier ideation is direction, not an API specification. This design narrows
 it to a work projection beside the existing live domain, preserving its reducer,
@@ -42,8 +54,8 @@ campaign completion. A done agent is not proof of delivered work.
 | Concept | Authority | Questmancer responsibility |
 | --- | --- | --- |
 | Workspace, pane, session, live presence | Herdr | Existing live projection |
-| Durable campaign, quest, assignment, dependencies | Originating work source | Versioned cached projection |
-| Obligation request and resolution | Source that owns the obligation | Retain, explain and rank |
+| Durable campaign, quest, assignment, dependencies | Owned backend or originating external work source | Typed human commands to the owned backend; versioned projected facts |
+| Obligation request and resolution | Source that owns the obligation | Explicit request/answer for owned decisions; retain, explain and rank all sources |
 | Artifact and validation assertions | Producing source, with evidence | Display provenance and applicability |
 | Acknowledgement, defer time, selection | Human through Questmancer | Durable local intent |
 | Help handbook | Questmancer | Keep accessible independently of project knowledge |
@@ -98,8 +110,10 @@ Decision choices/answers are typed detail where the source exposes them.
 Local acknowledgement means seen. Defer means omit from the active queue until
 a durable deadline. Neither closes the source obligation. M1 supports reading,
 acknowledging, deferring and observing a verified pane; it cannot answer an
-external decision. A later reply requires an adapter capability and correlated
-delivery result; source resolution is independent from delivery acknowledgement.
+external decision. The proposed owned extension adds an explicit AnswerDecision
+command only for its own source and current incarnation. A reply to another source
+still requires an adapter capability and correlated delivery result; source
+resolution is independent from delivery acknowledgement.
 
 Artifact contains identity, campaign/quest, kind, title, optional URI and typed
 evidence. Keep commit/head revision, producer, check-run identity and validation

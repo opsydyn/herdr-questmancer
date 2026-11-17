@@ -1,4 +1,5 @@
 pub mod assets;
+pub mod fit;
 pub mod heraldry;
 pub mod pixel;
 pub mod presentation;
@@ -110,11 +111,7 @@ pub fn render_scene_for_world(
     viewport: PixelSize,
     target: &mut RgbBuffer,
 ) -> SceneFrame {
-    let mut plan = stage::project_for_world(snapshot, viewport, presentation.world);
-    plan.suppress_transitions_through(snapshot, presentation.transition_floor);
-    render::interaction::apply_selection(&mut plan, presentation);
-    plan.goblin_outbreak = presentation.goblin_outbreak;
-    plan.party_rest_since = presentation.party_rest_since;
+    let plan = presented_plan(snapshot, presentation, viewport);
     let mut frame = render::paint(snapshot, &plan, viewport, target);
     if presentation.overlay == presentation::SceneOverlay::WarTable {
         let table = war_table::TablePlan::project(presentation.war_table.as_ref(), viewport);
@@ -124,6 +121,30 @@ pub fn render_scene_for_world(
         frame.next_frame_in = None;
     }
     frame
+}
+
+fn presented_plan(
+    snapshot: &SceneSnapshot,
+    presentation: &ScenePresentation,
+    viewport: PixelSize,
+) -> ScenePlan {
+    let mut plan = stage::project_for_world(snapshot, viewport, presentation.world);
+    plan.suppress_transitions_through(snapshot, presentation.transition_floor);
+    render::interaction::apply_selection(&mut plan, presentation);
+    plan.goblin_outbreak = presentation.goblin_outbreak;
+    plan.party_rest_since = presentation.party_rest_since;
+    plan
+}
+
+pub(crate) fn render_fitted_scene_for_world(
+    snapshot: &SceneSnapshot,
+    presentation: &ScenePresentation,
+    target: &mut RgbBuffer,
+) -> SceneFrame {
+    let viewport = PixelSize::new(160, 90);
+    let plan = presented_plan(snapshot, presentation, viewport);
+    render::party::paint(snapshot, &plan, target)
+        .unwrap_or_else(|| render::paint(snapshot, &plan, viewport, target))
 }
 
 #[cfg(feature = "storybook")]

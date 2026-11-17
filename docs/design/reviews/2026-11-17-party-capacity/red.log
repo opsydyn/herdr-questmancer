@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.86s
+     Running unittests src/lib.rs (target/debug/deps/questmancer-56d13dc227a93494)
+
+running 1 test
+test storybook::density::tests::thirty_two_small_adventurers_keep_the_complete_room_and_mouse_targets ... FAILED
+
+failures:
+
+---- storybook::density::tests::thirty_two_small_adventurers_keep_the_complete_room_and_mouse_targets stdout ----
+
+thread 'storybook::density::tests::thirty_two_small_adventurers_keep_the_complete_room_and_mouse_targets' panicked at src/storybook/density.rs:60:41:
+Guild: capacity study lost room fitting: canonical composition shows 9/32; using responsive fallback
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    storybook::density::tests::thirty_two_small_adventurers_keep_the_complete_room_and_mouse_targets
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

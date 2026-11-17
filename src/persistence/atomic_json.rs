@@ -27,14 +27,17 @@ pub struct PersistenceError {
 }
 
 pub fn parse_state(path: &Path, bytes: &[u8]) -> Result<PersistedStateV1, PersistenceDiagnostic> {
-    let state = serde_json::from_slice::<PersistedStateV1>(bytes).map_err(|error| {
-        PersistenceDiagnostic {
+    let mut state = super::strict_json::parse(bytes)
+        .and_then(serde_json::from_value::<PersistedStateV1>)
+        .map_err(|error| PersistenceDiagnostic {
             operation: "parse state",
             path: path.to_owned(),
             line: (error.line() > 0).then(|| error.line()),
             source_message: error.to_string(),
-        }
-    })?;
+        })?;
+    if state.schema_version == 1 && state.owned_store.is_none() {
+        state.schema_version = super::STATE_SCHEMA_VERSION;
+    }
     state.validate().map_err(|error| PersistenceDiagnostic {
         operation: "validate state",
         path: path.to_owned(),
@@ -138,4 +141,40 @@ fn temporary_path(path: &Path) -> PathBuf {
     let mut temporary = path.as_os_str().to_os_string();
     temporary.push(".tmp");
     temporary.into()
+}
+
+/// Strong acknowledgement for a remembered owner pin, separate from work commit.
+pub(super) async fn publish_selected_state(
+    path: &Path,
+    state: &PersistedStateV1,
+) -> Result<(), PersistenceError> {
+    if let Some(existing) = load_state(path).await.map_err(|e| PersistenceError {
+        operation: e.operation,
+        path: e.path,
+        line: e.line,
+        source_message: e.source_message,
+    })? {
+        existing.validate().map_err(|e| PersistenceError {
+            operation: "validate selection intent",
+            path: path.to_owned(),
+            line: None,
+            source_message: e.to_string(),
+        })?;
+    }
+    publish_state(path, state).await?;
+    let parent = path.parent().unwrap_or_else(|| Path::new(".")).to_owned();
+    tokio::task::spawn_blocking(move || std::fs::File::open(parent).and_then(|f| f.sync_all()))
+        .await
+        .map_err(|e| PersistenceError {
+            operation: "join selection sync",
+            path: path.to_owned(),
+            line: None,
+            source_message: e.to_string(),
+        })?
+        .map_err(|e| PersistenceError {
+            operation: "sync selection directory",
+            path: path.to_owned(),
+            line: None,
+            source_message: e.to_string(),
+        })
 }

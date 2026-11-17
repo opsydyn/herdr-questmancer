@@ -20,10 +20,10 @@ protocol-test:
     cargo test --test environment --test protocol --test framing --test client --test subscription --test supervisor
 
 source-test:
-    cargo test --test herdr_projects_source --test herdr_projects_runtime
+    cargo test --test herdr_projects_source --test herdr_projects_runtime --test owned_work --test owned_authoring
 
 domain-test:
-    cargo test --test domain_types --test persona --test normalization --test chronicle --test reducer --test work --test war_table
+    cargo test --test domain_types --test persona --test normalization --test chronicle --test reducer --test work --test war_table --test owned_work --test owned_authoring
 
 guild-test:
     cargo test --test app --test actions --test command --test runtime_loop --test input --test interaction --test scene_guild_hall --test scene_roster --test scene_interaction --test scene_overlays --test war_table
@@ -32,11 +32,11 @@ delve-test:
     cargo test --test scene_pixel --test scene_delve --test scene_roster --test scene_stage --test scene_runtime --test scene_adapter --test runtime_loop --test interaction
 
 persistence-test:
-    cargo test --test config --test persisted_state --test atomic_state --test chronicle_persistence --test persistence_worker --test startup --test work
+    cargo test --test config --test persisted_state --test atomic_state --test chronicle_persistence --test persistence_worker --test startup --test work --test owned_work --test owned_authoring
 
 # The count is positional: just property-test 4096
 property-test cases="1024":
-    PROPTEST_CASES={{cases}} cargo test --test property_domain --test persisted_state --test chronicle_capture --test work --test war_table --test herdr_projects_source
+    PROPTEST_CASES={{cases}} cargo test --test property_domain --test persisted_state --test chronicle_capture --test work --test war_table --test herdr_projects_source --test owned_work --test owned_authoring
 
 persistence-verify: verify persistence-test property-test release-check
 

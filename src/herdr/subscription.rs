@@ -87,6 +87,7 @@ struct SubscriptionSpec {
 #[derive(Debug)]
 pub struct HerdrSubscription {
     reader: BufReader<UnixStream>,
+    request_id: String,
 }
 
 impl HerdrSubscription {
@@ -99,13 +100,25 @@ impl HerdrSubscription {
         let mut reader = BufReader::new(stream);
         let response: Value = read_json_line(&mut reader).await?;
         validate_ack(response, &request.id)?;
-        Ok(Self { reader })
+        Ok(Self {
+            reader,
+            request_id: request.id,
+        })
     }
 
     pub async fn next_event(&mut self) -> Result<Option<WireEvent>, ClientError> {
-        read_optional_json_line(&mut self.reader)
-            .await
-            .map_err(ClientError::Framing)
+        let Some(response) = read_optional_json_line::<_, Value>(&mut self.reader).await? else {
+            return Ok(None);
+        };
+        if response.get("error").is_some() {
+            let error: ErrorResponse = serde_json::from_value(response)?;
+            ensure_response_id(&self.request_id, &error.id)?;
+            return Err(ClientError::Server {
+                code: error.error.code,
+                message: error.error.message,
+            });
+        }
+        Ok(Some(serde_json::from_value(response)?))
     }
 }
 

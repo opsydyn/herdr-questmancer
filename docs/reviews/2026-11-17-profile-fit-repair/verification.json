@@ -1,0 +1,24 @@
+{
+  "result": "engineering-qualified; native visual review pending",
+  "base_commit": "9c52761",
+  "working_tree": "dirty main; prior work preserved",
+  "rust_tests": 830,
+  "rust_runs": 66,
+  "shell_tests": 28,
+  "commands": [
+    "just verify",
+    "cargo build --release --locked",
+    "cargo build --features storybook --bin questmancer-storybook",
+    "cargo doc --all-features --no-deps",
+    "python3 docs/reviews/2026-11-17-profile-fit-repair/pty_probe.py",
+    "bash docs/reviews/2026-11-17-profile-fit-repair/regenerate.sh",
+    "python3 docs/reviews/2026-11-17-profile-fit-repair/verify_transport.py"
+  ],
+  "release_sha256": "f9e2f32004e9dcda299ba549a3fc334fc21512ff4cca29080f8a4f3bd85ae5b9",
+  "storybook_sha256": "c5659eeda3a96f1744bc250b2f73c294765aada3af3178ff3af0e6f748c7f824",
+  "pty_scenarios": 8,
+  "byte_exact_image_comparisons": 2,
+  "native_visual_acceptance": "unverified",
+  "publication": "none",
+  "build_note": "The local Cargo archive cache was unavailable; a locked release build restored existing pinned archives. Manifests and lockfile unchanged."
+}

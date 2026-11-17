@@ -1,0 +1,26 @@
+{
+  "result": "Storybook prototype complete; production promotion and native visual review pending",
+  "base_commit": "9c52761",
+  "worktree": "dirty main; earlier work preserved",
+  "new_stories": 8,
+  "total_stories": 82,
+  "source_exports": 24,
+  "contact_sheets": 3,
+  "rust_tests": 834,
+  "rust_runs": 66,
+  "shell_tests": 28,
+  "full_gate": "just verify passed; temporary local socket tests required normal sandbox escalation",
+  "executable_pty_scenarios": 4,
+  "storybook_sha256": "39cd2d0a3fb1af9210cedff34d3dab98760c60fae123cb650fba309bc897f750",
+  "unchanged_release_sha256": "f9e2f32004e9dcda299ba549a3fc334fc21512ff4cca29080f8a4f3bd85ae5b9",
+  "production_renderer_changed": false,
+  "live_resources_operated": false,
+  "native_visual_acceptance": "unreviewed",
+  "intermediate_failure": "One earlier full-gate run failed an unrelated owned-store lock selection assertion; isolated owned_work suite and final full gate passed with no store changes. Cause not established; log retained.",
+  "commands": [
+    "just verify",
+    "cargo build --features storybook --bin questmancer-storybook",
+    "bash docs/design/reviews/2026-11-17-party-capacity/regenerate.sh",
+    "python3 docs/design/reviews/2026-11-17-party-capacity/pty_probe.py"
+  ]
+}

@@ -1108,3 +1108,30 @@ fn canonical_campaign_pennants_reach_the_rgb_frame_without_covering_actors() {
         }
     }
 }
+
+#[test]
+fn crowded_canonical_stations_fall_back_without_losing_party_members() {
+    let mut snapshot = mixed_snapshot();
+    snapshot.agents = (0..11)
+        .map(|i| {
+            agent(
+                &format!("crowded-{i}"),
+                "amber-library",
+                Presence::Working,
+                AccentTone::Cyan,
+            )
+        })
+        .collect();
+    let (_, frame) = render_with_frame(&snapshot, VIEWPORT);
+    assert_eq!(
+        frame.actors.len(),
+        11,
+        "station saturation must select a complete composition"
+    );
+    let keys = frame
+        .actors
+        .iter()
+        .map(|a| &a.agent)
+        .collect::<HashSet<_>>();
+    assert_eq!(keys.len(), 11);
+}

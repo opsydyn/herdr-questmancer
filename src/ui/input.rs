@@ -27,6 +27,7 @@ pub enum Action {
     NextCampaign,
     OpenChronicle,
     OpenQuestBoard,
+    OpenAuthoring,
     OpenWarTable,
     ToggleChronicleChapter,
     NextResult,
@@ -114,6 +115,7 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
     if matches!(modal, Modal::QuestBoard) {
         return match key.code {
             KeyCode::Esc | KeyCode::Char('b') => Action::Dismiss,
+            KeyCode::Char('a') => Action::OpenAuthoring,
             KeyCode::Char('w') => Action::OpenWarTable,
             KeyCode::Char('!') => Action::NextUrgent,
             KeyCode::Char('j') | KeyCode::Tab => Action::Next,

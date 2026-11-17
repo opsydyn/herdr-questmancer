@@ -1,0 +1,19 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.89s
+     Running tests/world_fit.rs (target/debug/deps/world_fit-74ade85e376992ce)
+
+running 11 tests
+test crowded_delve_refuses_native_fit_and_falls_back_to_the_complete_roster ... ok
+test production_fallback_retains_complete_crowded_parties_and_has_no_world_upload ... ok
+test delve_capacity_uses_all_five_station_types_and_ignores_exited_adventurers ... ok
+test production_clicks_reuse_existing_selection_and_ledger_actions ... ok
+test capability_geometry_and_tiny_panes_fall_back_without_forcing_a_protocol ... ok
+test scrying_parchment_suspends_the_delve_fit_then_resumes_without_changing_work ... ok
+test production_cache_and_overlay_view_fallback_transitions_release_only_owned_images ... ok
+test production_fit_uses_visible_cells_for_every_actor_and_librarian ... ok
+test delve_fit_preserves_every_source_pixel_and_visible_mouse_target ... ok
+test animated_fit_keeps_semantic_deadlines_and_reuses_identical_frames ... ok
+test every_parchment_and_ansi_preference_suspends_native_placeholders ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
+

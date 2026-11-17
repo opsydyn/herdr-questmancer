@@ -1,0 +1,46 @@
+{
+  "scope": "Owned synthetic party/UI inventory only; other panes omitted",
+  "focused_pane_id": "w8:pY",
+  "owned_panes": [
+    {
+      "pane_id": "w8:pS",
+      "terminal_id": "term_6607693afc088a",
+      "agent": "dogfood-forge",
+      "agent_status": "working",
+      "tab_id": "w8:t1",
+      "focused": false
+    },
+    {
+      "pane_id": "w8:pV",
+      "terminal_id": "term_6607693affa35c",
+      "agent": "dogfood-rest",
+      "agent_status": "idle",
+      "tab_id": "w8:t1",
+      "focused": false
+    },
+    {
+      "pane_id": "w8:pT",
+      "terminal_id": "term_6607693afde3db",
+      "agent": "dogfood-review",
+      "agent_status": "blocked",
+      "tab_id": "w8:t1",
+      "focused": false
+    },
+    {
+      "pane_id": "w8:pW",
+      "terminal_id": "term_6607693b01997d",
+      "agent": "dogfood-mist",
+      "agent_status": "unknown",
+      "tab_id": "w8:t1",
+      "focused": false
+    },
+    {
+      "pane_id": "w8:pY",
+      "terminal_id": "term_660769b53dfe0f",
+      "agent": null,
+      "agent_status": "unknown",
+      "tab_id": "w8:tE",
+      "focused": true
+    }
+  ]
+}

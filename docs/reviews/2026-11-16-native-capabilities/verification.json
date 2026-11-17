@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-16",
+  "trial_root": "/tmp/qmnative-8hk1qa2m",
+  "build_sha256": "0c489be3462d71ea3ea06c34da8aab1cfa370448649ca40955687a56fc9e7a08",
+  "head": "9c52761f10e0bf81f993e7e7e168b11edf83eb65",
+  "worktree": "existing owned-work/compatibility edits preserved; new evidence/probe tools only",
+  "versions": {
+    "herdr": "0.9.5",
+    "protocol": 22,
+    "ghostty": "1.4.0"
+  },
+  "build": "passed after authorized dependency download",
+  "full_verify": {
+    "exit_code": 0,
+    "rust_tests": 789,
+    "rust_runs": 64,
+    "shell_tests": 28,
+    "note": "Initial sandbox run failed to bind seven disposable Unix sockets; authorized rerun passed."
+  },
+  "isolated_runtime": {
+    "status": "passed",
+    "party_size": 6,
+    "retained": true,
+    "server_pid": 14060,
+    "scope": "headless production plugin and synthetic transitions; no native appearance inferred"
+  },
+  "native_access": "BLOCKED: Computer Use is not allowed to use com.mitchellh.ghostty for safety reasons",
+  "native_appearance": "PENDING human attachment, graphics refresh and review",
+  "native_authoring_restart": "PENDING human workflow; no store prepopulated",
+  "probe": "Headless baseline received Kitty, animation-frame and relative-placement acknowledgements and visibility responses. Geometry query had no reply. Enhanced feature queries returned EINVAL; feature support remains unknown. Native display and visibility propagation unverified.",
+  "clipboard": "No clipboard queries or reads performed",
+  "cleanup": "Intentionally deferred at user request; only trial resources retained",
+  "attach": "python3 /tmp/qmnative-8hk1qa2m/control.py attach",
+  "native_graphics_refresh": "python3 /tmp/qmnative-8hk1qa2m/control.py refresh",
+  "cleanup_command": "python3 /tmp/qmnative-8hk1qa2m/control.py cleanup"
+}

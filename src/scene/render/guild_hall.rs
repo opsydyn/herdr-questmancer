@@ -99,7 +99,11 @@ pub fn paint(
     viewport: PixelSize,
     target: &mut RgbBuffer,
 ) -> SceneFrame {
-    match composition_for(viewport, plan.actors.len()) {
+    match composition_for(
+        viewport,
+        plan.actors.len(),
+        canonical_actor_capacity(snapshot, plan),
+    ) {
         GuildHallComposition::Canonical => {}
         GuildHallComposition::Compact => return paint_compact(snapshot, plan, viewport, target),
         GuildHallComposition::Roster => return paint_roster(snapshot, plan, viewport, target),
@@ -110,23 +114,7 @@ pub fn paint(
             return paint_status_only(snapshot, plan, viewport, target);
         }
     }
-    target.ensure_size(viewport.width, viewport.height, VOID);
-    let origin = room_origin(snapshot, plan, viewport);
-    let seed = room_seed(snapshot);
-
-    paint_materials(target, origin, seed);
-    paint_architecture(target, origin);
-    let cat_deadline = paint_cat(snapshot, plan, target, origin);
-    paint_furnishings(snapshot, target, origin);
-    for pennant in table_pennants(snapshot) {
-        blit(
-            &CampaignCrest::for_workspace(&pennant.workspace).frame(),
-            translate(origin, pennant.origin.x, pennant.origin.y),
-            target,
-        );
-    }
-    apply_connection_light(snapshot, target, origin);
-    restore_landmark_signatures(target, origin);
+    let (origin, cat_deadline) = paint_environment(snapshot, plan, viewport, target);
     let (actor_deadline, actors) = paint_actors(snapshot, plan, target, origin);
     let interactables = paint_librarian(
         target,
@@ -153,6 +141,50 @@ pub fn paint(
         actors,
         interactables,
     }
+}
+
+fn paint_environment(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    viewport: PixelSize,
+    target: &mut RgbBuffer,
+) -> (PixelPoint, Option<Duration>) {
+    target.ensure_size(viewport.width, viewport.height, VOID);
+    let origin = room_origin(snapshot, plan, viewport);
+    paint_materials(target, origin, room_seed(snapshot));
+    paint_architecture(target, origin);
+    let deadline = paint_cat(snapshot, plan, target, origin);
+    paint_furnishings(snapshot, target, origin);
+    for pennant in table_pennants(snapshot) {
+        blit(
+            &CampaignCrest::for_workspace(&pennant.workspace).frame(),
+            translate(origin, pennant.origin.x, pennant.origin.y),
+            target,
+        );
+    }
+    apply_connection_light(snapshot, target, origin);
+    restore_landmark_signatures(target, origin);
+    (origin, deadline)
+}
+
+pub(crate) fn paint_fitted_backdrop(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    target: &mut RgbBuffer,
+) -> SceneFrame {
+    let (origin, deadline) = paint_environment(snapshot, plan, PixelSize::new(160, 90), target);
+    let goblins = paint_goblin_outbreak(plan, target, origin);
+    paint_connection_fact(snapshot, target, origin);
+    SceneFrame {
+        world: plan.world,
+        next_frame_in: deadline.into_iter().chain(goblins).min(),
+        actors: Vec::new(),
+        interactables: Vec::new(),
+    }
+}
+
+pub(crate) fn paint_fitted_librarian(target: &mut RgbBuffer) -> Option<SceneInteractableRegion> {
+    paint_librarian(target, LIBRARIAN_CANONICAL_ORIGIN)
 }
 
 /// The shelf reservation remains clear of adventurers in the canonical Hall.
@@ -202,10 +234,16 @@ enum GuildHallComposition {
     StatusOnly,
 }
 
-fn composition_for(viewport: PixelSize, actor_count: usize) -> GuildHallComposition {
+/// Actual station capacity; total party count alone cannot establish a complete Hall.
+pub fn canonical_actor_capacity(snapshot: &SceneSnapshot, plan: &ScenePlan) -> usize {
+    actor_anchors(snapshot, plan).len()
+}
+
+fn composition_for(viewport: PixelSize, actor_count: usize, placed: usize) -> GuildHallComposition {
     if viewport.width >= CANONICAL_WIDTH
         && viewport.height >= CANONICAL_HEIGHT
         && actor_count <= CANONICAL_PARTY_CAPACITY
+        && placed == actor_count
     {
         GuildHallComposition::Canonical
     } else if viewport.width >= COMPACT_MIN_WIDTH

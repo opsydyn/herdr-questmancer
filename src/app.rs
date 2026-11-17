@@ -266,6 +266,7 @@ pub enum Modal {
     Scrying,
     Chronicle,
     QuestBoard,
+    OwnedAuthoring,
     WarTable,
 }
 
@@ -391,6 +392,7 @@ impl PartyActivity {
 pub struct Model {
     pub(crate) snapshot_refresh: crate::snapshot_refresh::SnapshotRefresh,
     view: View,
+    authoring: crate::owned_work::authoring::Authoring,
     work: crate::work::Projection,
     work_source_notice: Option<crate::work::source::SourceNotice>,
     pending_work: Option<crate::work::Projection>,
@@ -442,6 +444,7 @@ impl Model {
         Self {
             snapshot_refresh: crate::snapshot_refresh::SnapshotRefresh::default(),
             view,
+            authoring: crate::owned_work::authoring::Authoring::default(),
             work: crate::work::Projection::default(),
             work_source_notice: None,
             pending_work: None,
@@ -475,6 +478,20 @@ impl Model {
             active_counsel: BTreeMap::new(),
             next_counsel_request: 0,
         }
+    }
+
+    pub fn owned_form_fits(&self) -> bool {
+        self.board_viewport_width >= 28 && self.work_viewport_height >= 12
+    }
+    pub fn authoring(&self) -> &crate::owned_work::authoring::Authoring {
+        &self.authoring
+    }
+    pub fn authoring_mut(&mut self) -> &mut crate::owned_work::authoring::Authoring {
+        &mut self.authoring
+    }
+    pub fn open_owned_authoring(&mut self) {
+        self.keep_counsel_draft();
+        self.modal = Modal::OwnedAuthoring;
     }
 
     pub fn work(&self) -> &crate::work::Projection {
@@ -1430,6 +1447,7 @@ impl Model {
             | Modal::Search { .. }
             | Modal::Scrying
             | Modal::Chronicle
+            | Modal::OwnedAuthoring
             | Modal::QuestBoard
             | Modal::WarTable => None,
         }
@@ -1451,6 +1469,7 @@ impl Model {
             | Modal::LibrarianLedger { .. }
             | Modal::Scrying
             | Modal::Chronicle
+            | Modal::OwnedAuthoring
             | Modal::QuestBoard
             | Modal::WarTable => {}
         }
@@ -1491,6 +1510,7 @@ impl Model {
             | Modal::LibrarianLedger { .. }
             | Modal::Scrying
             | Modal::Chronicle
+            | Modal::OwnedAuthoring
             | Modal::QuestBoard
             | Modal::WarTable => {}
         }
@@ -1508,6 +1528,7 @@ impl Model {
             | Modal::LibrarianLedger { .. }
             | Modal::Scrying
             | Modal::Chronicle
+            | Modal::OwnedAuthoring
             | Modal::QuestBoard
             | Modal::WarTable => {}
         }

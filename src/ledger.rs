@@ -66,8 +66,8 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
             id,
             title: "Reading the Party",
             body: &[
-                "Working adventurers are carrying out a commission. Needs counsel means an adventurer is waiting for you.",
-                "Completed marks observed spoils. Resting is idle, and Unknown remains unknown.",
+                "Tool: working. Lantern: needs counsel. Z: resting. Check: observed spoils. Question mark: unknown.",
+                "Fitted parties keep steady seats and use smaller sprites as they grow. Select a profile for detail; seats do not assign work.",
                 "The guild never invents a successful ending that Herdr did not report.",
             ],
         },
@@ -89,8 +89,10 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
             id,
             title: "Keeping a Safe Chronicle",
             body: &[
-                "Questmancer stays local. Herdr owns topology and live agent facts; Questmancer stores small durable intent, its Chronicle and a separate source work cache.",
+                "Questmancer stays local. Herdr owns topology and live agent facts; Questmancer stores local intent, its Chronicle and a separate source work cache. Explicitly selected owned stores hold our campaign, quest, decision and artifact records.",
                 "The Quest Board keeps source obligations separate from adventurer presence. Seen and deferred never mean source-resolved; cached work stays unverified until confirmed.",
+                "In the Board, a opens owned work actions. Create/Open a local store explicitly, choose an owned campaign, then create work, request/answer decisions or register spoils. Seen/deferred never answers a decision.",
+                "Saved and view pending are separate results. Retry view only republishes saved work; check uncertain outcomes before another command. Drafts are volatile and disappear on quit. Decisions keeps answered records readable after restart.",
                 "New Chronicle records say when a fact was observed locally. Reconnects add no backfilled history; old records keep their wording.",
                 "In the Chronicle, Tab requests a last-hour guild chapter or returns to records. Chapters count retained events and keep their UTC window fixed until requested again; missing history is not inferred.",
                 "The managed Questmancer pane is never an adventurer and cannot receive focus, counsel, output or Reviewr commands.",

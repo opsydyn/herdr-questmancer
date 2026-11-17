@@ -56,7 +56,7 @@ impl ScenePresentation {
                 Modal::Search { .. } => SceneOverlay::Search,
                 Modal::Scrying => SceneOverlay::Scrying,
                 Modal::Chronicle => SceneOverlay::Chronicle,
-                Modal::QuestBoard => SceneOverlay::QuestBoard,
+                Modal::QuestBoard | Modal::OwnedAuthoring => SceneOverlay::QuestBoard,
                 Modal::WarTable => SceneOverlay::WarTable,
             },
         }

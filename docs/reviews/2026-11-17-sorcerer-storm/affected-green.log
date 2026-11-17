@@ -1,0 +1,64 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.82s
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-afe93fc53e2b58e9)
+
+running 21 tests
+test every_class_has_an_authored_roster_master_at_the_small_tier ... ok
+test every_core_archetype_uses_a_world_master ... ok
+test druid_rituals_preserve_bramble_head_and_feet_with_distinct_semantic_poses ... ok
+test every_domain_class_routes_to_authored_world_and_portrait_assets ... ok
+test garb_changes_the_sprite_without_changing_the_class ... ok
+test druid_world_and_card_use_the_approved_bramble_silhouette ... ok
+test core_archetype_masters_are_pairwise_distinct_at_both_scales ... ok
+test pose_decorations_leave_most_of_the_class_master_intact ... ok
+test every_core_archetype_has_a_portrait_canvas ... ok
+test barbarian_v2_has_truthful_pose_specific_world_frames ... ok
+test no_two_classes_share_a_world_or_portrait_master ... ok
+test roster_silhouette_families_are_pairwise_distinct ... ok
+test same_family_personas_stay_distinguishable_at_roster_scale ... ok
+test persona_substitution_is_deterministic_for_a_fixed_persona ... ok
+test persona_substitution_preserves_the_authored_silhouette ... ok
+test same_class_personas_with_different_appearance_render_distinct_world_masters ... ok
+test sorcerer_storm_rituals_keep_head_feet_and_orb_with_distinct_state_gestures ... ok
+test sorcerer_storm_world_and_card_retain_the_approved_quiet_orb_silhouettes ... ok
+test returning_and_resting_change_every_class_sprite ... ok
+test ritual_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching ... ok
+test sorcerer_storm_native_route_embeds_the_selected_card ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/scene_delve.rs (target/debug/deps/scene_delve-24345dcdb9922799)
+
+running 14 tests
+test delve_has_its_indexed_environment_families_in_order ... ok
+test a_narrow_delve_recomposes_the_party_instead_of_cropping_it ... ok
+test delvers_at_one_station_never_overlap ... ok
+test the_unknown_treatment_drains_identity_without_draining_light ... ok
+test truthful_station_regions_intersect_their_authored_actors_and_exited_is_absent ... ok
+test narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible ... ok
+test reduced_and_still_delve_actors_have_no_invisible_cadence ... ok
+test no_motion_delve_is_byte_identical_across_fresh_completion_timestamps ... ok
+test minimum_viewport_is_a_camera_crop_of_the_same_canonical_dungeon ... ok
+test canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall ... FAILED
+test reconnecting_preserves_the_authored_dungeon_under_connection_light ... ok
+test unknown_delvers_stay_legible_against_the_floor_they_stand_on ... ok
+test unknown_dimming_preserves_transparent_sprite_pixels ... ok
+test every_authored_floor_pixel_doorway_and_named_region_is_connected ... ok
+
+failures:
+
+---- canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall stdout ----
+
+thread 'canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall' panicked at tests/scene_delve.rs:498:5:
+assertion `left == right` failed
+  left: "c59fdc01df164dbbb9d02dcc6ccedddf8d45246266f837b6a7680ae58833dbd9"
+ right: "204e1dc77dd98d1df21bb36a5d7c8a609d194b42ac12c484fe289b42343540f8"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall
+
+test result: FAILED. 13 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `--test scene_delve`

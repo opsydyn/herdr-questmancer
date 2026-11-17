@@ -1,0 +1,8 @@
+{
+  "time_utc": "2026-11-17T19:22:06Z",
+  "filesystem": "Filesystem      Size    Used   Avail Capacity iused ifree %iused  Mounted on\n/dev/disk3s5   460Gi   418Gi    12Gi    98%    9.1M  130M    6%   /System/Volumes/Data\n",
+  "build_and_review_sizes": "6.2G\ttarget\n5.6G\ttarget/debug\n508M\ttarget/release\n 45M\tdocs/reviews\n 31M\tdocs/design/reviews\n",
+  "tracked_trial_state_size": "1.4M\t/private/tmp/qmdogfood-74b_9_02\n",
+  "assessment": "13 GiB free is sufficient for bounded source exports and focused verification. Existing build output is 6.2 GiB. No cleanup required or performed.",
+  "note": "APFS used, available and capacity figures are reported as provided by df; they are not additive. This is a local filesystem observation, not a platform artifact quota measurement."
+}

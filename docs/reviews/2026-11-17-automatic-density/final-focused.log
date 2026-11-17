@@ -1,0 +1,49 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.90s
+     Running tests/party_density.rs (target/debug/deps/party_density-abf24e7555620dba)
+
+running 6 tests
+test seven_resting_adventurers_keep_full_sprites_fitted_in_both_rooms ... ok
+test exited_adventurers_release_capacity_and_parties_beyond_the_limit_are_explicit ... ok
+test full_motion_is_semantic_and_completion_is_quiet_at_three_seconds ... ok
+test reduced_and_still_motion_have_no_cleanup_wake_or_time_dependent_pixels ... ok
+test presence_changes_do_not_change_density_or_move_the_rest_of_the_party ... ok
+test size_tiers_keep_every_actor_complete_distinct_and_clickable ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.09s
+
+     Running tests/storybook_fit.rs (target/debug/deps/storybook_fit-e41466df89e0f50a)
+
+running 6 tests
+test integer_fit_matches_literal_pane_geometry_and_rejects_invalid_axes ... ok
+test fitted_hall_has_explicit_storybook_fixtures_without_replacing_production_worlds ... ok
+test delve_fit_stories_cover_native_and_crowded_dungeon_without_changing_source_facts ... ok
+test crowded_station_capacity_keeps_every_adventurer_in_the_fitted_room ... ok
+test distributed_party_and_librarian_are_clickable_after_offset_and_resize ... ok
+test every_authored_source_pixel_survives_at_each_review_size ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/world_fit.rs (target/debug/deps/world_fit-74ade85e376992ce)
+
+running 17 tests
+test production_fallback_retains_complete_parties_when_graphics_are_unavailable ... ok
+test capability_geometry_and_tiny_panes_fall_back_without_forcing_a_protocol ... ok
+test production_clicks_reuse_existing_selection_and_ledger_actions ... ok
+test delve_capacity_uses_all_five_station_types_and_ignores_exited_adventurers ... ok
+test profile_open_at_start_and_full_occlusion_do_not_lose_first_world_upload ... ok
+test production_cache_and_overlay_view_fallback_transitions_release_only_owned_images ... ok
+test scrying_parchment_suspends_the_delve_fit_then_resumes_without_changing_work ... ok
+test production_fit_uses_visible_cells_for_every_actor_and_librarian ... ok
+test five_resting_or_unknown_adventurers_keep_the_fitted_dungeon ... ok
+test automatic_small_party_keeps_its_image_and_safe_hit_map_beneath_profiles ... ok
+test covered_profile_clicks_never_dispatch_to_hidden_adventurers ... ok
+test profile_preserves_fitted_world_scale_and_image_lease_in_both_rooms ... ok
+test delve_fit_preserves_every_source_pixel_and_visible_mouse_target ... ok
+test crowded_delve_keeps_native_room_and_full_masters ... ok
+test animated_fit_keeps_semantic_deadlines_and_reuses_identical_frames ... ok
+test visible_world_upload_prefixes_stay_outside_profile_at_every_review_size ... ok
+test every_parchment_and_ansi_preference_suspends_native_placeholders ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+

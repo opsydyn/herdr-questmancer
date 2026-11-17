@@ -1,0 +1,124 @@
+{
+  "date": "2026-11-17",
+  "scope": "Responsiveness assessment; no production integration",
+  "unchanged_source_baseline_files": 232,
+  "exports": 18,
+  "parties": [
+    5,
+    11
+  ],
+  "repeat_png_hashes": "identical",
+  "output_sha256": {
+    "02-current-breakpoints.png": "30f780b54d0b7d05c7466733f2ff56729071be7c08fcaaba10b9555d141fd376",
+    "01-current-versus-fit.png": "8f68a338da61153be9b64cb817625d2b7b4f91bf3a4bfc363c60179a54cfc5ef"
+  },
+  "all_returned_actor_bounds": "complete and within their viewport",
+  "incomplete_party_cases": [
+    {
+      "party": 5,
+      "columns": 40,
+      "rows": 18,
+      "actor_sizes": [
+        [
+          16,
+          24
+        ]
+      ],
+      "visible_actors": 1,
+      "librarian_visible": false,
+      "actor_height_fraction": 0.6666666666666666
+    },
+    {
+      "party": 5,
+      "columns": 20,
+      "rows": 14,
+      "actor_sizes": [
+        [
+          16,
+          24
+        ]
+      ],
+      "visible_actors": 1,
+      "librarian_visible": false,
+      "actor_height_fraction": 0.8571428571428571
+    },
+    {
+      "party": 11,
+      "columns": 180,
+      "rows": 50,
+      "actor_sizes": [
+        [
+          16,
+          24
+        ]
+      ],
+      "visible_actors": 7,
+      "librarian_visible": true,
+      "actor_height_fraction": 0.24
+    },
+    {
+      "party": 11,
+      "columns": 160,
+      "rows": 45,
+      "actor_sizes": [
+        [
+          16,
+          24
+        ]
+      ],
+      "visible_actors": 7,
+      "librarian_visible": true,
+      "actor_height_fraction": 0.26666666666666666
+    },
+    {
+      "party": 11,
+      "columns": 60,
+      "rows": 20,
+      "actor_sizes": [
+        [
+          16,
+          24
+        ]
+      ],
+      "visible_actors": 1,
+      "librarian_visible": false,
+      "actor_height_fraction": 0.6
+    },
+    {
+      "party": 11,
+      "columns": 40,
+      "rows": 18,
+      "actor_sizes": [
+        [
+          16,
+          24
+        ]
+      ],
+      "visible_actors": 1,
+      "librarian_visible": false,
+      "actor_height_fraction": 0.6666666666666666
+    },
+    {
+      "party": 11,
+      "columns": 20,
+      "rows": 14,
+      "actor_sizes": [
+        [
+          16,
+          24
+        ]
+      ],
+      "visible_actors": 1,
+      "librarian_visible": false,
+      "actor_height_fraction": 0.8571428571428571
+    }
+  ],
+  "native_fit": "Hypothetical integer-scale compositing of existing canonical RGB buffer; not native transport evidence",
+  "physical_cell_assumption": [
+    8,
+    16
+  ],
+  "text_and_mouse": "Not demonstrated by image comparison",
+  "live_operations": "None",
+  "full_gate": "Not rerun for review-only artifacts; prior Cleric full gate passed 798 Rust tests and 28 shell tests"
+}

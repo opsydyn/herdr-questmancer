@@ -1,0 +1,26 @@
+{
+  "scope": "review only; application rendering policies unchanged",
+  "result": "complete",
+  "base_commit": "9c52761",
+  "branch": "main; earlier dirty work preserved",
+  "production_source_unchanged_during_render_generations": true,
+  "source_hashes": "source-hashes.json",
+  "render_count": 40,
+  "two_render_generations_identical": true,
+  "render_hashes": "render-hashes.json",
+  "focused_tests": 64,
+  "focused_test_suites": {
+    "delve": 18,
+    "hall": 30,
+    "world_fit": 16
+  },
+  "cargo_fmt_check": "pass",
+  "clippy_all_targets_all_features_warnings_denied": "pass",
+  "full_gate_this_review": "not rerun; no production edits",
+  "release_binary_sha256": "f9e2f32004e9dcda299ba549a3fc334fc21512ff4cca29080f8a4f3bd85ae5b9",
+  "storybook_binary_sha256": "e2eb20f605da750a7de60f39affd22f62e3bc745188f75737236c09e2782bc04",
+  "live_operations": "none",
+  "cleanup": "none",
+  "native_visual_acceptance": "user screenshots establish reported defects; no automated native acceptance of a replacement",
+  "next": "needs follow-up: Storybook station-preserving overflow preview before production repair"
+}

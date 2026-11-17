@@ -1,0 +1,14 @@
+{
+  "pane_id": "w8:pY",
+  "previous_pid": 97649,
+  "new_pid": 3116,
+  "candidate_sha256": "a08b70bb57dd3daeb7cd7d34044030656caaa13510cdefaa7b3cc02995dff886",
+  "owned_store_unchanged": true,
+  "owned_sha256": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "saved_personas_unchanged": true,
+  "synthetic_party_retained": true,
+  "ui_not_an_adventurer": true,
+  "left_view": "Delve / card closed; no agent selected by the harness",
+  "shared_server_restarted": false,
+  "native_appearance": "Pending human review"
+}

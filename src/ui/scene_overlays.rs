@@ -311,20 +311,15 @@ fn render_standing_badge(frame: &mut Frame<'_>, model: &Model) -> u16 {
     1
 }
 
-fn render_adventurer_card(
-    frame: &mut Frame<'_>,
-    model: &Model,
-    portraits: Option<&PortraitGallery>,
-) {
-    if !model.adventurer_card_visible() {
-        return;
-    }
-    let Some(agent) = model.selected_agent() else {
-        return;
-    };
-    let area = frame.area();
-    if area.width < 60 || area.height < 14 {
-        return;
+/// The shared presentation/input footprint of an actually visible profile.
+pub fn adventurer_card_area(area: Rect, model: &Model) -> Option<Rect> {
+    if model.modal() != &crate::app::Modal::None
+        || !model.adventurer_card_visible()
+        || model.selected_agent().is_none()
+        || area.width < 60
+        || area.height < 14
+    {
+        return None;
     }
     let detailed = area.width >= 96 && area.height >= 20;
     let width = area
@@ -332,8 +327,26 @@ fn render_adventurer_card(
         .saturating_sub(4)
         .min(if detailed { 78 } else { 48 });
     let height = (if detailed { 18 } else { 13 }).min(area.height.saturating_sub(2));
-    // One row below the standing badge, which owns the same corner.
-    let card = Rect::new(area.right() - width - 1, area.y + 2, width, height);
+    Some(Rect::new(
+        area.right() - width - 1,
+        area.y + 2,
+        width,
+        height,
+    ))
+}
+
+fn render_adventurer_card(
+    frame: &mut Frame<'_>,
+    model: &Model,
+    portraits: Option<&PortraitGallery>,
+) {
+    let Some(card) = adventurer_card_area(frame.area(), model) else {
+        return;
+    };
+    let Some(agent) = model.selected_agent() else {
+        return;
+    };
+    let detailed = frame.area().width >= 96 && frame.area().height >= 20;
     let campaign = model
         .domain()
         .campaigns

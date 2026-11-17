@@ -27,6 +27,33 @@ marks the selected adventurer; contextual parchment overlays handle counsel,
 search and scrying without replacing the scene with a dashboard. A persistent
 Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
 
+## What's new in 0.2.0
+
+- **Rooms that fit the party.** The Hall and Delve fit their complete rooms
+  proportionally in compatible Kitty panes. Up to eleven adventurers retain
+  detailed `16x24` sprites; 12–32 use authored `8x12` sprites in staggered seats,
+  and 33–64 use denser seating. Identity keeps seats stable as presence changes.
+  Profiles retain their full-size art and the fitted world beneath them.
+- **Durable work you can author.** Create campaigns and quests, request and
+  answer decisions, and register artifacts in an explicitly selected local
+  store. The Quest Board and War Table keep work available independently of
+  live agent sessions. Seen/deferred requests remain separate from answers.
+- **Clearer characters.** Bramble Sage Druid, Storm Channeler Sorcerer,
+  Sunward Chaplain Cleric and the Librarian's Keeper of the Stacks refresh
+  improve class silhouettes while retaining authored sprite fallbacks.
+- **Current Herdr and Pi setup.** Herdr 0.9.4+ / protocol 22 compatibility,
+  standard Kitty transport, and a qualified supported Pi integration recipe.
+  Pi working/resting reports retain native session identity; resting alone
+  never proves successful delivery or earns spoils.
+
+Selection and counsel counts remain readable below fitted rooms. Other modal
+parchments and unsupported graphics/geometry use responsive half-block output.
+Parties above 64 use the explicit fallback; they are not silently omitted from
+a claimed complete fit. See [automatic density](docs/manual-test/automatic-density.md),
+[owned work authoring](docs/manual-test/owned-work-authoring.md) and the
+[release notes](CHANGELOG.md#020---2026-11-17). Automated PTY/pixel checks and
+recorded production-art approvals are separate from exhaustive native acceptance.
+
 ## Two rooms, one party
 
 | Guild Hall · the whole-party home | Delve · active work in connected chambers |
@@ -61,7 +88,7 @@ not native terminal screenshots. [Review all six screens](docs/design/reviews/20
 
 ## Before the first quest
 
-- Herdr `0.9.0`, protocol `22`
+- Herdr `0.9.4` or newer, protocol `22` (qualified locally with `0.9.5`)
 - Rust `1.90.0` for source builds (selected by `rust-toolchain.toml`)
 - `jq` for the migration and guarded smoke-test recipes below
 - `just` only for contributor shortcuts
@@ -81,6 +108,34 @@ The installer selects the archives matching `herdr-plugin.toml` and verifies
 `SHA256SUMS`. Release archives cover macOS and Linux on ARM64 and x86-64.
 See the [release process](docs/release-process.md) for dated verification and
 [source linking](#link-a-local-guild) when developing from this checkout.
+
+## Use with Pi
+
+Install Pi and configure a working provider/model in Pi, then install Herdr's
+supported integration:
+
+```bash
+herdr integration install pi
+herdr integration status
+```
+
+Run interactive `pi` in a Herdr pane. For each Pi session already running,
+enter `/reload` when it is ready; new sessions load the extension automatically.
+Herdr owns recognition and status, and Questmancer displays the resulting
+adventurer. The integration is not installed automatically by Questmancer.
+
+The qualified combination is Herdr `0.9.5`, Pi `1.5.2` and integration `v9`.
+A real `openai-codex/gpt-6.1-sol` turn produced stable native identity and
+working → resting Chronicle records; reload/restart added no duplicate history.
+The tested account rejected `gpt-5.5`, so choose a model your account supports.
+An error can also return Pi to resting. The v9 hook has no explicit done report,
+so this integration test does not establish completion or XP.
+
+If Chronicle observations are withheld, inspect the adventurer's fresh Herdr
+metadata: its terminal ID and all four session fields must be present. A plain
+synthetic report without native session identity may remain unqualified.
+See the [Pi activation guide](docs/manual-test/pi-integration.md) and
+[qualification receipt](docs/reviews/2026-11-17-pi-integration/README.md).
 
 ## Build the binary (optional)
 
@@ -164,9 +219,12 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `Space` | Acknowledge the selected unread summons locally |
 | `s` | Set the selected summons aside for a while |
 | `o` | Refresh the selected adventurer's recent output |
-| `!` | Jump to the next adventurer waiting on you |
+| `!` | Jump to the next human obligation or eligible summons |
 | `Tab` | Move to the next campaign's party |
 | `c` | Open the Chronicle |
+| `b` | Open the Quest Board |
+| `w` | Open or close the War Table |
+| `a` in Quest Board | Open owned-work Actions and store setup |
 | `Tab` in Chronicle | Last-hour guild chapter / records |
 | `/` | Search the party and campaigns |
 | `n` / `N` | Walk to the next / previous search match |
@@ -179,7 +237,8 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `Esc` | Dismiss the active parchment |
 | `q` / `Ctrl-C` | Close Questmancer when no text parchment is open |
 
-`!` cycles the adventurers who are waiting on a human, most urgent first: an
+`!` first cycles eligible durable human obligations, including work without a
+live adventurer. It then falls back to adventurers waiting on a human, most urgent first: an
 unanswered call for counsel, then one already seen but unresolved, then the
 quieter summons, and within each rank whoever has waited longest. Deferred
 summons are skipped until their snooze expires. When nobody is waiting the
@@ -216,7 +275,7 @@ for at most three seconds, then leave the completed cue. Reduced and still
 modes keep that cue without a redraw timer. Newer presence or disconnection
 interrupts the return, and reconnecting does not replay retained completion.
 
-The Guild Hall chooses canonical, compact, roster, single-adventurer vignette,
+When native fitting is unavailable, the Guild Hall chooses canonical, compact, roster, single-adventurer vignette,
 then status-only layouts according to size and party capacity. The Delve
 uses its authored crop, with a whole-party roster below `100x56` RGB when it
 fits at least `20x27`. The Librarian's clickable sprite appears in canonical
@@ -379,7 +438,7 @@ needs a human — the same ranking `!` uses inside Questmancer. It is off by
 default because it changes shared Herdr UI, it sorts without ever filtering so
 no agent is hidden, and it is released when Questmancer closes.
 
-Available within the current Herdr `0.9.0` / protocol `22` requirement.
+Available within the current Herdr `0.9.4` / protocol `22` requirement.
 
 ## The guild's standing
 
@@ -407,8 +466,10 @@ service; runtime communication stays on Herdr's local socket.
 |---|---|
 | `$HERDR_PLUGIN_CONFIG_DIR/config.toml` | User-owned read-only configuration |
 | `$HERDR_PLUGIN_STATE_DIR/runtime.json` | Ephemeral singleton-pane registration |
-| `$HERDR_PLUGIN_STATE_DIR/state.json` | Atomic, versioned local intent and persona assignments |
+| `$HERDR_PLUGIN_STATE_DIR/state.json` | Atomic v2 local intent, persona assignments and optional owned-store pin |
 | `$HERDR_PLUGIN_STATE_DIR/chronicle.jsonl` | Append-only semantic event history |
+| `$HERDR_PLUGIN_STATE_DIR/work-state.json` | Acknowledged source projection cache, never work authority |
+| Explicitly selected `owned-work.json` | Authoritative owned records, answers and bounded receipts; sibling writer lock |
 
 The state store does not copy Herdr-owned output or topology. The Chronicle file
 has no automatic size bound and grows until the user removes it.
@@ -422,8 +483,9 @@ agent processes or persistent state:
 just storybook
 ```
 
-It contains fifty-eight fixed production stories, with each asset owned once
-and additional state variants sharing the Quest Board and War Table assets:
+It contains sixty-six fixed production stories plus eighteen fit/profile/capacity
+studies (84 total), with each asset owned once and additional state variants
+sharing the Quest Board and War Table assets:
 
 - two worlds: Guild Hall and Delve;
 - twenty-one asset galleries: classic world and portrait masters, Barbarian, Wizard,
@@ -434,10 +496,23 @@ and additional state variants sharing the Quest Board and War Table assets:
 - fourteen native class cards: Artificer, Barbarian, Bard, Cleric, Druid, Mage,
   Paladin, Pathseeker, Ranger, Rogue, Runewright, Sorcerer, Testmender and Wizard;
 - two reserved event-art cards: Goblin and Orc;
-- nineteen interactions: selected adventurer, counsel, search, scrying, Librarian's
+- twenty-seven interactions: selected adventurer, counsel, search, scrying, Librarian's
   Ledger, narrow parchment, and seven Quest Board states (populated, empty,
   offline, deferred, resolved, narrow and departed worker), plus six War Table
-  states (populated, narrow, empty, offline, cyclic and large).
+  states (populated, narrow, empty, offline, cyclic and large), and eight owned
+  authoring states (actions, empty campaign, answer, narrow answer, view pending,
+  indeterminate outcome, answered detail and below minimum).
+
+Eight experimental capacity studies compare seven full/small adventurers and
+24/32 small adventurers in both rooms. See
+[`docs/design/reviews/2026-11-17-party-capacity/README.md`](docs/design/reviews/2026-11-17-party-capacity/README.md)
+for images and direct comparison commands. The eight experiments keep their
+forced comparison sizes. Production now chooses size tiers automatically in
+both native fitted rooms: 16x24 masters through eleven adventurers, authored
+8x12 staggered seats for 12–32 and denser 8x12 seats for 33–64. Full-size profiles
+remain; graphics/geometry and bounded-capacity fallbacks are explicit. The
+`world.guild-fit-auto` and `world.delve-fit-auto` stories exercise the production
+32-person fit. See [the native review checklist](docs/manual-test/automatic-density.md).
 
 Use `j`/`k` or Up/Down within a category, `h`/`l` or Left/Right to change
 category, `Enter` to inspect, `Esc` to return, and `q` to exit. Run its
@@ -484,7 +559,7 @@ was visually approved on 2026-09-08. Native illustrations and roster families
 remain in use. The final [Mage and Sorcerer storyboard](docs/design/reviews/2026-09-08-mage-sorcerer-storyboard/README.md)
 was visually approved. Its green-censer and silver-focus gestures now use the
 shared timing and persona paths, completing rituals for all fourteen classes.
-Two new pose galleries bring Storybook to 45 stories. Their
+The Mage/Sorcerer pose galleries originally brought Storybook to 45 stories. Their
 [production review](docs/design/reviews/2026-09-08-mage-sorcerer-production/README.md)
 was visually approved on 2026-09-08. Their card fallbacks now centre the same
 personalised world sprites at native size, completing continuity for all
@@ -499,7 +574,7 @@ world stories do not play a live animation timeline; the review GIFs sample
 the production renderer at explicit times.
 
 Native Kitty portraits inside a Herdr-managed pane also require Herdr's
-graphics bridge (enabled by default in 0.9):
+native Kitty transport (enabled by default):
 
 ```toml
 [terminal]
@@ -514,6 +589,16 @@ Kitty-compatible is not sufficient on its own.
 
 See [Native portrait rendering through Herdr](docs/troubleshooting/native-portrait-rendering.md)
 for the complete failure analysis, recovery sequence and guarded smoke test.
+
+Herdr 0.9.4 retains protocol 22. Since 0.9.2, `pane.graphics.*` is removed;
+Questmancer now uses the standard terminal capability query and Kitty output
+without a socket geometry workaround. Lost event history triggers a reconnect
+and a quiet baseline. See [0.9.4 compatibility and opportunities](docs/reviews/2026-10-14-herdr-094/README.md).
+
+For a GitHub-installed plugin, `herdr plugin update opsydyn.questmancer` fetches
+the published version; reopen Questmancer afterward to use it. Locally linked
+checkouts are skipped: rebuild with `cargo build --release` and reopen the pane.
+Version 0.2.0 includes these compatibility and responsive-scene changes.
 
 ## Guarded live smoke test
 
@@ -544,7 +629,7 @@ herdr pane release-agent "$PANE_ID" \
   --seq 3
 ```
 
-Herdr `0.9.0` can report `idle`, `working`, `blocked` and `unknown`; it cannot
+Herdr `0.9.4` can report `idle`, `working`, `blocked` and `unknown`; it cannot
 synthesize an explicit `done` transition. Do not claim live completion-state
 acceptance from this recipe.
 
@@ -597,7 +682,7 @@ the guild hall is always open
 
 Paired development builds of Herdr and Questmancer can show a small adventurer
 sprite, live name, class and condition in a reserved row above terminal content.
-This is an opt-in Herdr capability, not part of the published Herdr 0.9.0 API:
+This is an opt-in Herdr capability, not part of the published Herdr 0.9.4 API:
 
 ```toml
 [ui]
@@ -616,7 +701,7 @@ shutdown clear them, with a 30-second server lease covering a lost publisher.
 They never enter terminal output, saved state, pane titles or sidebar settings.
 See [the guarded procedure](docs/manual-test/questmancer-scene-preview.md#pane-adventurer-line-repair-check).
 
-## Durable work and the Quest Board (unreleased M1)
+## Durable work and the Quest Board
 
 `b` opens a contextual Quest Board over the current world. Wide inventory titles
 wrap onto indented continuation lines; selection follows the wrapped row heights. `!` reaches the next
@@ -634,15 +719,16 @@ baseline confirms them. Invalid or future cache files are protected from writes.
 Live Herdr topology, terminal output and session/pane bindings are never cached.
 
 M1 uses a deterministic authentication campaign in tests and Storybook. Normal
-startup installs no synthetic campaign or live work adapter, so an empty Board is
-expected until a source is provided. The
+startup installs no synthetic campaign. Create/Open an owned store through Actions
+to supply your own work, or explicitly configure the optional source below. The
 [implementation receipt and production review pack](docs/reviews/2026-09-30-durable-obligations/README.md)
 separate engineering checks, the 2026-09-30 production visual approval after
 the truncation repair, and unperformed native-terminal acceptance. M1 is complete
-for its fixture-backed scope and unreleased.
+for its fixture-backed scope and included in 0.2.0; native-terminal acceptance
+remains separate.
 
 
-## War Table (unreleased M2)
+## War Table
 
 `w` opens a contextual campaign map over the Hall or Delve, or follows the
 selected Board work into its campaign. Links point from prerequisite to dependent;
@@ -664,11 +750,49 @@ native/live-source acceptance remains separate from the fixture proof.
 [Plan](docs/plans/2026-09-30-war-table.md) and
 [engineering receipt and production review](docs/reviews/2026-09-30-war-table/README.md)
 record the M2 gates. M2 is engineering-qualified and production-visually approved
-on 2026-09-30, complete within its fixture-backed scope and unreleased. Native
+on 2026-09-30, complete within its fixture-backed scope and included in 0.2.0. Native
 terminal and live-source acceptance remain separate. It does not alter source
 work, persistence formats or awards.
 
-## Herdr Projects inventory (unreleased M3a)
+## Owned work authoring
+
+The agreed direction is an authoritative project/work backend we own, with
+Questmancer as its human interface and Herdr providing execution. Its backend owns
+campaigns, quests, decision answers and artifact registrations through explicit
+commands. The existing Board/Table and work reducer remain projections; the work
+cache and Chronicle do not become authoritative stores.
+
+The [design contract](docs/design/questmancer-owned-work.md) and
+[first milestone plan](docs/plans/2026-10-01-owned-work.md) cover backend proof,
+then minimal authoring and restart. L1a implements five commands, a separate locked
+`owned-work.json` store and Complete source projection behind explicit library
+calls. L1b now connects a serial owner to startup and Board parchment forms.
+Open the Board with `b`, then Actions with `a`. Explicitly Create/Open a store,
+choose an owned campaign (including empty campaigns), and create a campaign/quest,
+request/answer a decision or register an artifact. Decisions keeps open and
+answered records. Answers are read from the checked owner; seen/defer is not Answer.
+
+Tab moves focus, Enter activates a focused button or inserts a multiline newline,
+Up/Down or wheel reads context, and bracketed paste is literal and bounded. Esc keeps
+one draft while returning to Actions/Board; Discard clears it and quit loses it.
+Below 28 columns or 12 rows, resize before submitting. Saved/view pending and uncertain
+outcomes have separate recovery actions; retrying a view cannot duplicate a command.
+
+The remembered path/source pin is local state v2; legacy v1 intent migrates. No pin
+creates no store, and missing/protected/replaced stores are never replaced implicitly.
+See the [operating recipe](docs/manual-test/owned-work-authoring.md),
+[implementation and review receipt](docs/reviews/2026-10-03-owned-authoring/README.md),
+[backend receipt](docs/reviews/2026-10-03-owned-work-backend/README.md) and
+[form design](docs/design/questmancer-owned-authoring.md). Engineering/automated PTY
+qualification is separate from native use and real Herdr use. Included in 0.2.0,
+this first milestone provides local authoring, not agent delegation. The user
+approved the [production form images](docs/reviews/2026-10-03-owned-authoring/visual-approval.md);
+Computer Use refuses Ghostty access, so the [native trial](docs/plans/2026-10-03-owned-authoring-native.md)
+is prepared for human execution and remains unperformed.
+Projects and Firstmate are design references; neither needs to be installed.
+Further Projects qualification is parked and its existing optional adapter retained.
+
+## Herdr Projects inventory (optional, parked qualification)
 
 A pinned read-only snapshot exporter and strict decoder are engineering-qualified
 against synthetic source trees. An explicit opt-in runtime source now feeds the
@@ -692,7 +816,8 @@ Unchanged observations do not write or redraw. Configuration is disabled by defa
 see the [selection and operating guide](docs/manual-test/herdr-projects-inventory.md)
 and [runtime qualification receipt](docs/reviews/2026-09-30-herdr-projects-runtime/README.md).
 The [diagnostic images are approved](docs/reviews/2026-09-30-herdr-projects-runtime/visual-approval.md);
-M3a.3 is complete within its synthetic inventory scope and remains unreleased.
+M3a.3 is included in 0.2.0 within its synthetic inventory scope and remains
+disabled by default, with further qualification parked.
 Only disposable source trees have been exercised. Installed-source compatibility,
 native interaction and live Herdr remain unperformed. The next
 [bounded acceptance plan](docs/plans/2026-09-30-herdr-projects-acceptance.md)
@@ -701,4 +826,6 @@ found no Herdr Projects on PATH or in local registration, installed Herdr 0.9.0
 below the upstream minimum, and automatic ticker startup in normal thread creation.
 No operational trial was started. Accumulated work is committed at `4923a05`;
 the [upstream-writer fixture proposal](docs/plans/2026-09-30-herdr-projects-writer-fixtures.md)
-is the recommended next step.
+and further acceptance/M3b work are parked following the owned-work decision.
+The next gate is separately qualified native use; production form images are approved.
+L2 lifecycle work needs its own bounded plan and promotion.

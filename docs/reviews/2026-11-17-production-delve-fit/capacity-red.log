@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.67s
+     Running tests/scene_delve.rs (target/debug/deps/scene_delve-24345dcdb9922799)
+
+running 1 test
+test saturated_delve_stations_use_a_complete_roster_even_in_a_large_pane ... FAILED
+
+failures:
+
+---- saturated_delve_stations_use_a_complete_roster_even_in_a_large_pane stdout ----
+
+thread 'saturated_delve_stations_use_a_complete_roster_even_in_a_large_pane' panicked at tests/scene_delve.rs:793:5:
+assertion `left == right` failed: station overflow must use the full-party roster when it fits
+  left: 2
+ right: 11
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    saturated_delve_stations_use_a_complete_roster_even_in_a_large_pane
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test scene_delve`

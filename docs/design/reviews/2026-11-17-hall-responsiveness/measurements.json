@@ -1,0 +1,254 @@
+[
+  {
+    "party": 5,
+    "columns": 180,
+    "rows": 50,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 5,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.24
+  },
+  {
+    "party": 5,
+    "columns": 160,
+    "rows": 45,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 5,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.26666666666666666
+  },
+  {
+    "party": 5,
+    "columns": 160,
+    "rows": 44,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 5,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.2727272727272727
+  },
+  {
+    "party": 5,
+    "columns": 120,
+    "rows": 34,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 5,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.35294117647058826
+  },
+  {
+    "party": 5,
+    "columns": 96,
+    "rows": 28,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 5,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.42857142857142855
+  },
+  {
+    "party": 5,
+    "columns": 80,
+    "rows": 24,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 5,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.5
+  },
+  {
+    "party": 5,
+    "columns": 60,
+    "rows": 20,
+    "actor_sizes": [
+      [
+        8,
+        12
+      ]
+    ],
+    "visible_actors": 5,
+    "librarian_visible": false,
+    "actor_height_fraction": 0.3
+  },
+  {
+    "party": 5,
+    "columns": 40,
+    "rows": 18,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 1,
+    "librarian_visible": false,
+    "actor_height_fraction": 0.6666666666666666
+  },
+  {
+    "party": 5,
+    "columns": 20,
+    "rows": 14,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 1,
+    "librarian_visible": false,
+    "actor_height_fraction": 0.8571428571428571
+  },
+  {
+    "party": 11,
+    "columns": 180,
+    "rows": 50,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 7,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.24
+  },
+  {
+    "party": 11,
+    "columns": 160,
+    "rows": 45,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 7,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.26666666666666666
+  },
+  {
+    "party": 11,
+    "columns": 160,
+    "rows": 44,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 11,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.2727272727272727
+  },
+  {
+    "party": 11,
+    "columns": 120,
+    "rows": 34,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 11,
+    "librarian_visible": true,
+    "actor_height_fraction": 0.35294117647058826
+  },
+  {
+    "party": 11,
+    "columns": 96,
+    "rows": 28,
+    "actor_sizes": [
+      [
+        8,
+        12
+      ]
+    ],
+    "visible_actors": 11,
+    "librarian_visible": false,
+    "actor_height_fraction": 0.21428571428571427
+  },
+  {
+    "party": 11,
+    "columns": 80,
+    "rows": 24,
+    "actor_sizes": [
+      [
+        8,
+        12
+      ]
+    ],
+    "visible_actors": 11,
+    "librarian_visible": false,
+    "actor_height_fraction": 0.25
+  },
+  {
+    "party": 11,
+    "columns": 60,
+    "rows": 20,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 1,
+    "librarian_visible": false,
+    "actor_height_fraction": 0.6
+  },
+  {
+    "party": 11,
+    "columns": 40,
+    "rows": 18,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 1,
+    "librarian_visible": false,
+    "actor_height_fraction": 0.6666666666666666
+  },
+  {
+    "party": 11,
+    "columns": 20,
+    "rows": 14,
+    "actor_sizes": [
+      [
+        16,
+        24
+      ]
+    ],
+    "visible_actors": 1,
+    "librarian_visible": false,
+    "actor_height_fraction": 0.8571428571428571
+  }
+]

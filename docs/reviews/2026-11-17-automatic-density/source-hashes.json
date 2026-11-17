@@ -1,0 +1,11 @@
+{
+  "src/scene/render/party.rs": "10dd7cc19549a9015719b0817629e518efc3645e6719c13c454a36d1c77647f4",
+  "src/scene/render/guild_hall.rs": "99461a0504eaea382f1d736889c2e7e38c3da27ce68dff4ce929d9182447f6bf",
+  "src/scene/render/delve.rs": "a34948d03a25c35e3bb26746a18c3b219a0b67e2c06be1bc017d1dd896ff8f22",
+  "src/scene/mod.rs": "11f37842afd34b4a0633b48e172cee3e842240177d6dff1ba00eb4615364d5aa",
+  "src/scene/fit.rs": "5f4e7cea7a178b313ba2fb5338226002f4d2966614d4d6164172cacd69526796",
+  "src/ui/world_fit.rs": "2f5d77a6c9a1faecfda16a76426f42b239701c7f04b459ed09ebc6c601f27dac",
+  "src/ledger.rs": "df8cbf13f5d5818641d1cb107f0dd68f6eb55ba312a0e83eb2a53357f9620a77",
+  "tests/party_density.rs": "459d0a5a84b1a647ebe0452e1dd88dd00b259a5f994c361f36c6ec7242faabc9",
+  "tests/world_fit.rs": "cd8cdf3fa931ffd02fcbf063c4f83eff6ccdf2f99d634cff7159f3371ce598ca"
+}

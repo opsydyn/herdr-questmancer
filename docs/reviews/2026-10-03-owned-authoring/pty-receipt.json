@@ -1,0 +1,34 @@
+{
+  "scope": "automated macOS PTY input and restart; no native visual approval or Herdr server",
+  "steps": [
+    {
+      "revision": 0,
+      "acknowledged": true
+    },
+    {
+      "revision": 1,
+      "acknowledged": true
+    },
+    {
+      "revision": 2,
+      "acknowledged": true
+    },
+    {
+      "revision": 3,
+      "acknowledged": true
+    },
+    {
+      "revision": 4,
+      "acknowledged": true
+    },
+    {
+      "revision": 5,
+      "acknowledged": true
+    }
+  ],
+  "restart_answer_visible": true,
+  "restart_authority_unchanged": true,
+  "owned_children_exited": true,
+  "herdr_resources_created": 0,
+  "temporary_resources_removed": true
+}

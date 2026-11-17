@@ -1,0 +1,16 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.36s
+     Running unittests src/lib.rs (target/debug/deps/questmancer-56d13dc227a93494)
+
+running 8 tests
+test storybook::runtime::tests::event_stream_end_requests_a_clean_exit ... ok
+test storybook::runtime::tests::quit_event_requests_a_clean_exit ... ok
+test storybook::runtime::tests::preflight_returns_the_catalogue_and_fixed_context ... ok
+test storybook::runtime::tests::event_wins_without_replacing_the_interrupt_listener_then_interrupt_exits ... ok
+test storybook::runtime::tests::preflight_rejects_invalid_catalogue_validation ... ok
+test storybook::fit_preview::tests::unsupported_geometry_and_partial_station_placement_never_emit_a_native_world ... ok
+test storybook::fit_preview::tests::cache_reuses_static_frames_and_deletes_only_its_two_owned_ids_after_resize ... ok
+test storybook::fit_preview::tests::cards_ledger_and_help_release_world_images_and_restore_the_fit_on_return ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.16s
+

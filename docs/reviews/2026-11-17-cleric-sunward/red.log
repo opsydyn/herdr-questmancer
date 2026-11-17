@@ -1,0 +1,31 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.36s
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-6aa0bc9b84c87623)
+
+running 2 tests
+test cleric_sunward_world_and_fallback_use_the_approved_open_face_and_equipment ... FAILED
+test cleric_sunward_rituals_keep_equipment_and_anchors_with_distinct_gestures ... FAILED
+
+failures:
+
+---- cleric_sunward_world_and_fallback_use_the_approved_open_face_and_equipment stdout ----
+
+thread 'cleric_sunward_world_and_fallback_use_the_approved_open_face_and_equipment' panicked at tests/archetype_assets.rs:41:17:
+assertion `left == right` failed: Cleric Porcelain approved A silhouette at (1,1)
+  left: true
+ right: false
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- cleric_sunward_rituals_keep_equipment_and_anchors_with_distinct_gestures stdout ----
+
+thread 'cleric_sunward_rituals_keep_equipment_and_anchors_with_distinct_gestures' panicked at tests/archetype_assets.rs:76:9:
+prayerbook stays visible in Settled
+
+
+failures:
+    cleric_sunward_rituals_keep_equipment_and_anchors_with_distinct_gestures
+    cleric_sunward_world_and_fallback_use_the_approved_open_face_and_equipment
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--test archetype_assets`

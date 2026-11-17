@@ -1,0 +1,8 @@
+{
+  "src/storybook/density.rs": "5c85d41d0be8fdf6747d343fba99ab9c7a4bfde8069524f87d50a24d47b7f722",
+  "src/storybook/catalogue.rs": "5ac7c1f184425e661ee5b82a64c792a26bd7284c2e108f835148221e141404e5",
+  "src/storybook/fit_preview.rs": "96c941d01b4b3999b66ce708f88503b5b8c769692cafea0fd37e90ee95dd94b6",
+  "src/storybook/runtime.rs": "18aadd9903ee6e15e9b3f0ac52961148ae9932ea2cad5caa0d8d630190e5254d",
+  "src/storybook/mod.rs": "9335ee74559d1641ab2bac7fb69d92301c62d26a668a875d2d7911a6754e6709",
+  "tests/storybook.rs": "23de25469db8be4b0fc6492bd5ba295f4d0e53a3771b09129fc83a9ba5ab8458"
+}

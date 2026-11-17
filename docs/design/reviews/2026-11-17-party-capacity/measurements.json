@@ -1,0 +1,386 @@
+[
+  {
+    "experimental": true,
+    "filename": "hall-7-Large-120x34.png",
+    "party": 7,
+    "room": "hall",
+    "scale": "Large",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "hall-7-Large-96x28.png",
+    "party": 7,
+    "room": "hall",
+    "scale": "Large",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "hall-7-Large-80x24.png",
+    "party": 7,
+    "room": "hall",
+    "scale": "Large",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "hall-7-Small-120x34.png",
+    "party": 7,
+    "room": "hall",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "hall-7-Small-96x28.png",
+    "party": 7,
+    "room": "hall",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "hall-7-Small-80x24.png",
+    "party": 7,
+    "room": "hall",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "hall-24-Small-120x34.png",
+    "party": 24,
+    "room": "hall",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 24
+  },
+  {
+    "experimental": true,
+    "filename": "hall-24-Small-96x28.png",
+    "party": 24,
+    "room": "hall",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 24
+  },
+  {
+    "experimental": true,
+    "filename": "hall-24-Small-80x24.png",
+    "party": 24,
+    "room": "hall",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 24
+  },
+  {
+    "experimental": true,
+    "filename": "hall-32-Small-120x34.png",
+    "party": 32,
+    "room": "hall",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 32
+  },
+  {
+    "experimental": true,
+    "filename": "hall-32-Small-96x28.png",
+    "party": 32,
+    "room": "hall",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 32
+  },
+  {
+    "experimental": true,
+    "filename": "hall-32-Small-80x24.png",
+    "party": 32,
+    "room": "hall",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 32
+  },
+  {
+    "experimental": true,
+    "filename": "delve-7-Large-120x34.png",
+    "party": 7,
+    "room": "delve",
+    "scale": "Large",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "delve-7-Large-96x28.png",
+    "party": 7,
+    "room": "delve",
+    "scale": "Large",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "delve-7-Large-80x24.png",
+    "party": 7,
+    "room": "delve",
+    "scale": "Large",
+    "sprite_size": [
+      16,
+      24
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "delve-7-Small-120x34.png",
+    "party": 7,
+    "room": "delve",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "delve-7-Small-96x28.png",
+    "party": 7,
+    "room": "delve",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "delve-7-Small-80x24.png",
+    "party": 7,
+    "room": "delve",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7
+  },
+  {
+    "experimental": true,
+    "filename": "delve-24-Small-120x34.png",
+    "party": 24,
+    "room": "delve",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 24
+  },
+  {
+    "experimental": true,
+    "filename": "delve-24-Small-96x28.png",
+    "party": 24,
+    "room": "delve",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 24
+  },
+  {
+    "experimental": true,
+    "filename": "delve-24-Small-80x24.png",
+    "party": 24,
+    "room": "delve",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 24
+  },
+  {
+    "experimental": true,
+    "filename": "delve-32-Small-120x34.png",
+    "party": 32,
+    "room": "delve",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 32
+  },
+  {
+    "experimental": true,
+    "filename": "delve-32-Small-96x28.png",
+    "party": 32,
+    "room": "delve",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 32
+  },
+  {
+    "experimental": true,
+    "filename": "delve-32-Small-80x24.png",
+    "party": 32,
+    "room": "delve",
+    "scale": "Small",
+    "sprite_size": [
+      8,
+      12
+    ],
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 32
+  }
+]

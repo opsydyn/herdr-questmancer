@@ -1,0 +1,101 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.16s
+     Running tests/scene_overlays.rs (target/debug/deps/scene_overlays-bdff8ab7926c6681)
+
+running 36 tests
+test a_nameplate_never_paints_through_another_adventurer ... ok
+test ascii_roster_labels_use_ascii_separators_truncation_and_state_glyphs ... ok
+test a_failed_send_keeps_the_draft_and_says_so ... ok
+test a_notice_reaches_the_frame_and_not_only_the_model ... ok
+test an_empty_chronicle_says_so ... ok
+test a_narrow_room_drops_the_badge_rather_than_the_scene ... ok
+test a_reopened_parchment_starts_at_the_top ... ok
+test a_crowded_party_keeps_a_nameplate_for_every_adventurer ... ok
+test chronicle_v2_records_label_their_time_as_a_local_observation ... ok
+test every_visible_sprite_has_an_agent_state_nameplate ... ok
+test nameplate_truncation_shortens_the_name_and_keeps_the_state_word ... ok
+test chapter_requests_are_local_frozen_in_time_and_return_to_the_existing_records ... ok
+test neighbouring_nameplates_never_touch ... ok
+test counsel_uses_a_centered_parchment_without_replacing_the_world ... ok
+test librarian_ledger_is_the_single_responsive_help_surface ... ok
+test overlays_are_safe_at_zero_and_minimum_viewports ... ok
+test scrolling_stops_at_the_end_of_the_text ... ok
+test campaign_crest_is_visible_on_the_adventurers_parchment ... ok
+test long_live_labels_cannot_displace_card_status_keepsake_or_controls ... ok
+test search_and_scrying_are_contextual_overlays ... ok
+test command_ribbon_expires_after_three_seconds ... ok
+test scrying_can_be_scrolled_to_reach_output_below_the_fold ... ok
+test the_counsel_parchment_reports_a_send_in_flight ... ok
+test the_chronicle_parchment_shows_recorded_events_over_the_world ... ok
+test selected_adventurer_card_exposes_fantasy_and_system_identity ... ok
+test selected_adventurer_does_not_force_the_card_open ... ok
+test the_adventurer_card_does_not_cover_the_standing_badge ... ok
+test the_ribbon_greets_someone_who_has_not_pressed_anything ... ok
+test the_standing_badge_sits_in_the_top_right_corner ... ok
+test keepsake_art_changes_only_its_reserved_card_section ... ok
+test the_ledger_shows_the_whole_keyring ... ok
+test campaign_crest_keeps_the_same_named_identity_in_ascii_and_both_rooms ... ok
+test an_on_demand_chapter_counts_events_and_exposes_timestamped_sources ... ok
+test roster_labels_preserve_the_rgb_state_cue_in_final_terminal_cells ... ok
+test only_correlated_confirmed_counsel_receives_a_parchment_seal ... ok
+test keepsake_details_follow_the_saved_assignment_without_crowding_card_facts ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/scene_runtime.rs (target/debug/deps/scene_runtime-fa7cb60c34bbefba)
+
+running 2 tests
+test production_draw_uses_explicit_world_and_contextual_overlays ... ok
+test normal_binary_uses_the_interactive_scene_first_runtime ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/storybook.rs (target/debug/deps/storybook-8305fdd2f3236856)
+
+running 9 tests
+test catalogue_contains_every_production_scene_interaction_once ... ok
+test owned_authoring_has_fixed_production_recovery_and_narrow_stories ... ok
+test every_production_asset_has_exactly_one_owner_with_variant_stories_allowed ... ok
+test scrying_story_contains_settled_output_without_live_io ... ok
+test below_minimum_form_clears_scene_glyphs_behind_the_resize_message ... ok
+test narrow_answer_keeps_its_action_title_while_the_focused_field_scrolls ... ok
+test core_master_galleries_name_every_reviewed_archetype ... ok
+test every_production_story_renders_at_its_minimum_viewport ... ok
+test scene_inspection_reaches_small_production_layouts_while_asset_galleries_keep_their_minimum ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+     Running tests/storybook_fit.rs (target/debug/deps/storybook_fit-e41466df89e0f50a)
+
+running 6 tests
+test integer_fit_matches_literal_pane_geometry_and_rejects_invalid_axes ... ok
+test fitted_hall_has_explicit_storybook_fixtures_without_replacing_production_worlds ... ok
+test crowded_station_capacity_refuses_to_show_a_partial_party_as_a_complete_fit ... ok
+test delve_fit_stories_cover_native_and_crowded_dungeon_without_changing_source_facts ... ok
+test distributed_party_and_librarian_are_clickable_after_offset_and_resize ... ok
+test every_authored_source_pixel_survives_at_each_review_size ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/world_fit.rs (target/debug/deps/world_fit-74ade85e376992ce)
+
+running 16 tests
+test production_fallback_retains_complete_crowded_parties_and_has_no_world_upload ... ok
+test capability_geometry_and_tiny_panes_fall_back_without_forcing_a_protocol ... ok
+test production_clicks_reuse_existing_selection_and_ledger_actions ... ok
+test delve_capacity_uses_all_five_station_types_and_ignores_exited_adventurers ... ok
+test profile_open_at_start_and_full_occlusion_do_not_lose_first_world_upload ... ok
+test scrying_parchment_suspends_the_delve_fit_then_resumes_without_changing_work ... ok
+test production_fit_uses_visible_cells_for_every_actor_and_librarian ... ok
+test production_cache_and_overlay_view_fallback_transitions_release_only_owned_images ... ok
+test profile_preserves_fitted_world_scale_and_image_lease_in_both_rooms ... ok
+test five_resting_or_unknown_adventurers_keep_the_fitted_dungeon ... ok
+test covered_profile_clicks_never_dispatch_to_hidden_adventurers ... ok
+test delve_fit_preserves_every_source_pixel_and_visible_mouse_target ... ok
+test crowded_delve_keeps_native_room_and_full_masters ... ok
+test visible_world_upload_prefixes_stay_outside_profile_at_every_review_size ... ok
+test animated_fit_keeps_semantic_deadlines_and_reuses_identical_frames ... ok
+test every_parchment_and_ansi_preference_suspends_native_placeholders ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+

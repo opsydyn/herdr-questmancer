@@ -1,0 +1,126 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-afe93fc53e2b58e9)
+
+running 21 tests
+test every_class_has_an_authored_roster_master_at_the_small_tier ... ok
+test druid_world_and_card_use_the_approved_bramble_silhouette ... ok
+test druid_rituals_preserve_bramble_head_and_feet_with_distinct_semantic_poses ... ok
+test barbarian_v2_has_truthful_pose_specific_world_frames ... ok
+test roster_silhouette_families_are_pairwise_distinct ... ok
+test every_core_archetype_has_a_portrait_canvas ... ok
+test every_core_archetype_uses_a_world_master ... ok
+test persona_substitution_is_deterministic_for_a_fixed_persona ... ok
+test persona_substitution_preserves_the_authored_silhouette ... ok
+test every_domain_class_routes_to_authored_world_and_portrait_assets ... ok
+test garb_changes_the_sprite_without_changing_the_class ... ok
+test no_two_classes_share_a_world_or_portrait_master ... ok
+test same_family_personas_stay_distinguishable_at_roster_scale ... ok
+test core_archetype_masters_are_pairwise_distinct_at_both_scales ... ok
+test pose_decorations_leave_most_of_the_class_master_intact ... ok
+test sorcerer_storm_rituals_keep_head_feet_and_orb_with_distinct_state_gestures ... ok
+test returning_and_resting_change_every_class_sprite ... ok
+test same_class_personas_with_different_appearance_render_distinct_world_masters ... ok
+test sorcerer_storm_world_and_card_retain_the_approved_quiet_orb_silhouettes ... ok
+test ritual_card_fallbacks_reuse_the_current_personalised_sprite_without_stretching ... ok
+test sorcerer_storm_native_route_embeds_the_selected_card ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/scene_delve.rs (target/debug/deps/scene_delve-24345dcdb9922799)
+
+running 14 tests
+test a_narrow_delve_recomposes_the_party_instead_of_cropping_it ... ok
+test delve_has_its_indexed_environment_families_in_order ... ok
+test truthful_station_regions_intersect_their_authored_actors_and_exited_is_absent ... ok
+test delvers_at_one_station_never_overlap ... ok
+test reduced_and_still_delve_actors_have_no_invisible_cadence ... ok
+test no_motion_delve_is_byte_identical_across_fresh_completion_timestamps ... ok
+test the_unknown_treatment_drains_identity_without_draining_light ... ok
+test minimum_viewport_is_a_camera_crop_of_the_same_canonical_dungeon ... ok
+test reconnecting_preserves_the_authored_dungeon_under_connection_light ... ok
+test narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible ... ok
+test unknown_delvers_stay_legible_against_the_floor_they_stand_on ... ok
+test unknown_dimming_preserves_transparent_sprite_pixels ... ok
+test every_authored_floor_pixel_doorway_and_named_region_is_connected ... ok
+test canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/scene_guild_hall.rs (target/debug/deps/scene_guild_hall-a6aa4f5c8fa4e80d)
+
+running 29 tests
+test a_narrow_pane_keeps_the_whole_party_visible_instead_of_one_adventurer ... ok
+test canonical_room_contains_every_owned_landmark_signature ... ok
+test a_party_too_large_for_the_roster_still_falls_back_to_the_priority_vignette ... ok
+test canonical_hearth_keeps_three_resting_adventurers_inside_the_room ... ok
+test campaign_adventurers_have_unique_anchors_per_physical_table_across_three_campaigns ... ok
+test campaign_tables_show_full_adventurer_identity_instead_of_colour_tokens ... ok
+test canonical_campaign_pennants_reach_the_rgb_frame_without_covering_actors ... ok
+test compact_and_vignette_halls_keep_a_seamless_quiet_stage_behind_the_party ... ok
+test actors_occupy_truthful_station_bounds_with_unique_final_anchors ... ok
+test canonical_hall_never_stacks_complete_adventurer_footprints ... ok
+test a_full_canonical_hall_recomposes_before_hiding_adventurers ... ok
+test compact_guild_hall_degrades_to_the_roster_before_hiding_adventurers ... ok
+test librarian_yields_vignette_and_status_only_halls_to_live_status ... ok
+test focused_campaign_crop_uses_the_same_physical_table_as_its_actor ... ok
+test a_blocked_adventurer_carries_the_authored_counsel_marker_at_every_scale ... ok
+test minimum_door_crop_keeps_incompatible_versions_visible_over_the_room ... ok
+test compact_guild_hall_keeps_the_whole_party_visible_and_clickable ... ok
+test librarian_has_one_complete_non_agent_station_in_canonical_and_compact_halls ... ok
+test minimum_guild_hall_shows_one_complete_priority_adventurer ... ok
+test roster_actors_never_share_a_silhouette_edge ... ok
+test exited_agents_have_no_actor_pixels ... ok
+test goblins_never_stand_where_an_adventurer_stands ... ok
+test the_guild_entrance_is_built_rather_than_left_flat ... ok
+test campaign_table_motion_is_authored_and_reduced_motion_does_not_wake ... ok
+test fresh_spoils_effect_ends_exactly_once_at_three_seconds ... ok
+test canonical_room_meets_density_colour_and_byte_determinism_floors ... ok
+test releasing_goblins_actually_puts_goblins_in_the_room ... ok
+test static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps ... ok
+test connection_states_change_the_door_without_replacing_the_room ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/scene_party.rs (target/debug/deps/scene_party-3cb0e982d569fff0)
+
+running 7 tests
+test every_ritual_pose_keeps_its_foot_anchor_and_native_dimensions ... ok
+test expanded_rituals_preserve_persona_masks_and_gear ... ok
+test a_counsel_gesture_settles_once_and_leaves_the_blocked_adventurer_still ... ok
+test both_rooms_play_two_working_frames_at_two_fps_for_each_ritual_class ... ok
+test each_return_places_its_spoils_then_settles_at_the_exact_three_second_deadline ... ok
+test newer_quiet_states_and_disconnect_interrupt_expanded_rituals_in_both_rooms ... ok
+test reduced_and_still_party_states_do_not_change_pixels_at_cleanup_deadlines ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s
+
+     Running tests/scene_roster.rs (target/debug/deps/scene_roster-e28b043027942e40)
+
+running 8 tests
+test final_roster_frame_disarms_the_real_animation_scheduler ... ok
+test reduced_and_still_rosters_keep_one_stable_completion_cue ... ok
+test roster_completion_moves_then_stops_at_its_three_second_deadline ... ok
+test label_free_rosters_distinguish_every_live_presence ... ok
+test full_roster_rows_keep_cues_selection_and_complete_hits_clear_of_each_other ... ok
+test a_disconnected_roster_cannot_perform_completion_theatre ... ok
+test newer_presence_cancels_stale_completion_theatre ... ok
+test roster_state_shapes_remain_distinct_after_ansi16_half_block_conversion ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/storybook.rs (target/debug/deps/storybook-8305fdd2f3236856)
+
+running 9 tests
+test owned_authoring_has_fixed_production_recovery_and_narrow_stories ... ok
+test narrow_answer_keeps_its_action_title_while_the_focused_field_scrolls ... ok
+test below_minimum_form_clears_scene_glyphs_behind_the_resize_message ... ok
+test catalogue_contains_every_production_scene_interaction_once ... ok
+test every_production_asset_has_exactly_one_owner_with_variant_stories_allowed ... ok
+test scrying_story_contains_settled_output_without_live_io ... ok
+test core_master_galleries_name_every_reviewed_archetype ... ok
+test every_production_story_renders_at_its_minimum_viewport ... ok
+test scene_inspection_reaches_small_production_layouts_while_asset_galleries_keep_their_minimum ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+

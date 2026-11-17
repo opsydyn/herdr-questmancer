@@ -1,0 +1,21 @@
+{
+  "root": "/tmp/qm094probe-cc09765i",
+  "kitty_graphics": "true",
+  "server_pid": 6815,
+  "result": "PROBE_RESULT PortraitGallery { capability: Unsupported, classes: [], librarian: false, diagnostic: None }\n",
+  "scope": "Headless server without attached graphics client: safe authored fallback. Native preparation and appearance not exercised.",
+  "passed": true,
+  "pane_closed": true,
+  "test_link_removed": true,
+  "final_snapshot": {
+    "version": "0.9.4",
+    "protocol": 22,
+    "workspaces": [],
+    "tabs": [],
+    "panes": [],
+    "layouts": [],
+    "agents": []
+  },
+  "server_exit": 0,
+  "socket_removed": true
+}

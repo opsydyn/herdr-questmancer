@@ -1,5 +1,9 @@
 # M3a.4 installed-source and isolated-runtime acceptance
 
+Parked on 2026-10-01 after the user agreed to an owned work backend. The
+[owned L1 plan](2026-10-01-owned-work.md) now owns the next proposed product work.
+Retain the audit below; no prerequisite bypass, installation or trial is planned.
+
 Status: promoted by “Commit and move to next”. The prerequisite audit is complete;
 the operational trial is blocked before resource creation. See the
 [audit receipt](../reviews/2026-09-30-herdr-projects-acceptance/README.md).
@@ -11,7 +15,7 @@ scope. No live trial, installation or source mutation was performed.
 The user previously approved M3a.3's synthetic diagnostic visuals, closing the
 [runtime slice](2026-09-30-herdr-projects-runtime.md). The steps below retain the
 promoted trial's scope. A smaller [upstream-writer fixture proposal](2026-09-30-herdr-projects-writer-fixtures.md)
-is the recommended next step; it has not been promoted.
+was the recommended next step; it was not promoted and is now also parked.
 
 ## Outcome and scope
 

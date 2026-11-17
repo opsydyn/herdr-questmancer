@@ -1,0 +1,18 @@
+{
+  "scope": "Approved proportional Delve integration; local unreleased dirty checkout",
+  "head": "9c52761",
+  "rust_tests": 821,
+  "rust_test_runs": 66,
+  "shell_tests": 28,
+  "format": true,
+  "clippy_deny_warnings": true,
+  "shell_syntax": true,
+  "release_build": true,
+  "rustdoc": true,
+  "git_diff_check": true,
+  "release_binary_sha256": "24d0c7bb282938d8ef05269f7bc13eb7b6adeb2f12f980b2f757a123c522321f",
+  "storybook_binary_sha256": "90da087445fa87a6b3d11c73d5c4609cd4dd77acd517388dcc5fcc135d5911b0",
+  "native_visual_acceptance": "unreviewed",
+  "retained": "Existing UI plus remaining synthetic pane; three tracked synthetic panes absent before refresh",
+  "commit_push_publish": false
+}

@@ -2,6 +2,7 @@ pub mod delve;
 pub mod guild_hall;
 pub(crate) mod interaction;
 pub mod lighting;
+pub(crate) mod party;
 pub(crate) mod roster;
 pub mod war_table;
 

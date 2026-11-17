@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.51s
+     Running unittests src/lib.rs (target/debug/deps/questmancer-56d13dc227a93494)
+
+running 1 test
+test storybook::fit_preview::tests::cards_ledger_and_help_release_world_images_and_restore_the_fit_on_return ... FAILED
+
+failures:
+
+---- storybook::fit_preview::tests::cards_ledger_and_help_release_world_images_and_restore_the_fit_on_return stdout ----
+
+thread 'storybook::fit_preview::tests::cards_ledger_and_help_release_world_images_and_restore_the_fit_on_return' panicked at src/storybook/fit_preview.rs:402:9:
+assertion failed: p.handle_event(&key(KeyCode::Char('j')))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    storybook::fit_preview::tests::cards_ledger_and_help_release_world_images_and_restore_the_fit_on_return
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 60 filtered out; finished in 0.10s
+
+error: test failed, to rerun pass `--lib`

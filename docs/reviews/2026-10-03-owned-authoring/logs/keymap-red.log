@@ -1,0 +1,25 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.42s
+     Running tests/keymap.rs (target/debug/deps/keymap-f068b21527ac769f)
+
+running 4 tests
+test authored_ledger_pages_are_untouched ... ok
+test every_documented_binding_is_still_reachable ... ok
+test the_ledger_keyring_page_is_generated_from_the_bindings ... ok
+test every_bound_key_is_documented ... FAILED
+
+failures:
+
+---- every_bound_key_is_documented stdout ----
+
+thread 'every_bound_key_is_documented' panicked at tests/keymap.rs:87:9:
+a key produces OpenAuthoring, which no keyring entry describes. Add it to ui::keymap::BINDINGS, or to UNLISTED with a reason.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    every_bound_key_is_documented
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test keymap`

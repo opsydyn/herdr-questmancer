@@ -160,3 +160,33 @@ async fn rejects_an_unexpected_result_kind() {
     ));
     server.await.unwrap();
 }
+#[tokio::test]
+async fn published_094_does_not_offer_experimental_pane_headers() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("herdr.sock");
+    let listener = tokio::net::UnixListener::bind(&path).unwrap();
+    let server = tokio::spawn(async move {
+        let (stream, _) = listener.accept().await.unwrap();
+        let mut reader = tokio::io::BufReader::new(stream);
+        let mut line = String::new();
+        tokio::io::AsyncBufReadExt::read_line(&mut reader, &mut line)
+            .await
+            .unwrap();
+        let request: serde_json::Value = serde_json::from_str(&line).unwrap();
+        assert_eq!(request["method"], "pane.viewport_header.info");
+        let mut response: serde_json::Value =
+            serde_json::from_str(include_str!("fixtures/herdr/0.9.4/unsupported-header.json"))
+                .unwrap();
+        response["id"] = request["id"].clone();
+        tokio::io::AsyncWriteExt::write_all(reader.get_mut(), format!("{response}\n").as_bytes())
+            .await
+            .unwrap();
+    });
+    assert!(
+        !HerdrClient::new(path)
+            .pane_headers_supported()
+            .await
+            .unwrap()
+    );
+    server.await.unwrap();
+}

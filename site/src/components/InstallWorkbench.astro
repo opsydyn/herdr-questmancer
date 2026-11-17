@@ -10,7 +10,7 @@
   </div>
   <p class="install-prerequisite">
     <span class="install-prerequisite-label">Prerequisite</span>
-    Install Herdr 0.9.0 or newer with protocol 22 support first:
+    Install Herdr 0.9.4 or newer with protocol 22 support first:
     <a href="https://herdr.dev/docs/install/" target="_blank" rel="noreferrer">
       Herdr install guide <span aria-hidden="true">↗</span>
     </a>
@@ -23,6 +23,37 @@
     <pre><code><span class="prompt">$</span> herdr plugin install opsydyn/herdr-questmancer
 <span class="prompt">$</span> herdr plugin action invoke opsydyn.questmancer.open</code></pre>
   </div>
+  <details class="install-source">
+    <summary>Using Pi with the guild</summary>
+    <p>
+      Run <code>herdr integration install pi</code>, then check
+      <code>herdr integration status</code>. Start Pi in a Herdr pane, or enter
+      <code>/reload</code> in an existing Pi session when it is ready.
+      Configure a provider and model supported by your Pi account.
+    </p>
+    <p>
+      Qualified with Herdr 0.9.5, Pi 1.5.2 and integration v9. Working and resting
+      reports retain session identity; resting alone does not prove success.
+      <a href="https://github.com/opsydyn/herdr-questmancer#use-with-pi">Read the Pi guide</a>.
+    </p>
+  </details>
+  <details class="install-source">
+    <summary>New in Questmancer 0.2.0</summary>
+    <p>
+      The Guild Hall and Delve fit the complete room in compatible terminals,
+      with smaller authored sprites and stable seating for larger parties up
+      to 64 adventurers. Profiles keep their detailed art. Other panes retain
+      responsive half-block scenes.
+    </p>
+    <p>
+      Press <code>b</code> for the Quest Board, then <code>a</code> for Actions.
+      Explicitly create or open a local store to author campaigns, quests,
+      decisions and artifact registrations. Press <code>w</code> for the War
+      Table. Work survives agent sessions; recording an answer or artifact
+      does not launch an agent or certify delivery.
+      <a href="https://github.com/opsydyn/herdr-questmancer#owned-work-authoring">Read the work guide</a>.
+    </p>
+  </details>
   <details class="install-source">
     <summary>Building from source</summary>
     <p>

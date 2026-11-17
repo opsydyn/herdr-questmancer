@@ -1,6 +1,8 @@
 # Proposed upstream-writer fixture qualification
 
-Status: proposed, not promoted or implemented. The [M3a.4 prerequisite audit](../reviews/2026-09-30-herdr-projects-acceptance/README.md)
+Status: parked on 2026-10-01, never promoted or implemented. The user agreed to
+an owned backend; the [owned L1 plan](2026-10-01-owned-work.md) replaces this as
+the next proposed work. The [M3a.4 prerequisite audit](../reviews/2026-09-30-herdr-projects-acceptance/README.md)
 found no installed Herdr Projects, Herdr 0.9.0 below the pinned plugin minimum,
 and normal thread creation's automatic ticker startup. The promoted operational
 trial remains blocked. This is a smaller evidence step with different acceptance

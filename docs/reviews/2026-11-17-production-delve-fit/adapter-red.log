@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.36s
+     Running tests/hall_fit.rs (target/debug/deps/hall_fit-06b91f658d5e54b5)
+
+running 1 test
+test delve_fit_preserves_every_source_pixel_and_visible_mouse_target ... FAILED
+
+failures:
+
+---- delve_fit_preserves_every_source_pixel_and_visible_mouse_target stdout ----
+
+thread 'delve_fit_preserves_every_source_pixel_and_visible_mouse_target' panicked at tests/hall_fit.rs:238:9:
+Delve must fit through the native adapter
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    delve_fit_preserves_every_source_pixel_and_visible_mouse_target
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--test hall_fit`

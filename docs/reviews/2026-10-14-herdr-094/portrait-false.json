@@ -1,0 +1,20 @@
+{
+  "root": "/tmp/qm094probe-thpp5jcs",
+  "kitty_graphics": "false",
+  "server_pid": 3354,
+  "result": "PROBE_RESULT PortraitGallery { capability: Unsupported, classes: [], librarian: false, diagnostic: None }\n",
+  "passed": true,
+  "pane_closed": true,
+  "test_link_removed": true,
+  "final_snapshot": {
+    "version": "0.9.4",
+    "protocol": 22,
+    "workspaces": [],
+    "tabs": [],
+    "panes": [],
+    "layouts": [],
+    "agents": []
+  },
+  "server_exit": 0,
+  "socket_removed": true
+}

@@ -1,0 +1,15 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.21s
+     Running tests/hall_fit.rs (target/debug/deps/hall_fit-06b91f658d5e54b5)
+
+running 7 tests
+test production_fallback_retains_complete_crowded_parties_and_has_no_world_upload ... ok
+test production_clicks_reuse_existing_selection_and_ledger_actions ... ok
+test capability_geometry_and_tiny_panes_fall_back_without_forcing_a_protocol ... ok
+test production_cache_and_overlay_view_fallback_transitions_release_only_owned_images ... ok
+test production_fit_uses_visible_cells_for_every_actor_and_librarian ... ok
+test animated_fit_keeps_semantic_deadlines_and_reuses_identical_frames ... ok
+test every_parchment_and_ansi_preference_suspends_native_placeholders ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+

@@ -74,6 +74,10 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
             }
             Ok(None) => {}
             Err(error) => {
+                model.authoring_mut().blocked = Some(
+                    "Work cache is protected; owned setup/attachment disabled until repaired."
+                        .into(),
+                );
                 if let Some(selected) = projects.take() {
                     crate::sources::herdr_projects::source_failure(
                         &mut model,

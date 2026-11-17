@@ -1,0 +1,510 @@
+[
+  {
+    "scenario": "guild-initial-world-120x34",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "4118126857",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "800",
+        "v": "464",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "2050318933",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "4118126857",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "2050318933",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "c5659eeda3a96f1744bc250b2f73c294765aada3af3178ff3af0e6f748c7f824",
+    "transcript_sha256": "ffa1fff79eedf42161d15be9d25dc4ab20ff5701407dd57febbe8a26fa9d1787",
+    "output_bytes": 3604166,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "guild-initial-profile-120x34",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "first/full exposure",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "2114899107",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "800",
+        "v": "464",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "4109889922",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "2114899107",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "4109889922",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "c5659eeda3a96f1744bc250b2f73c294765aada3af3178ff3af0e6f748c7f824",
+    "transcript_sha256": "4754c808fd7fe71b583a27623d80e721dd9710acb842c8d419ee0b4696c3aa9f",
+    "output_bytes": 3617012,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "guild-initial-profile-60x14",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "first/full exposure",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "4271391498",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "160",
+        "v": "96",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "1492168657",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "4271391498",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "1492168657",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "c5659eeda3a96f1744bc250b2f73c294765aada3af3178ff3af0e6f748c7f824",
+    "transcript_sha256": "2cc760bb293d58891600f6a74f5724c4469ec2ffe9180d3ee24423b89b8917e4",
+    "output_bytes": 1630397,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "guild-initial-profile-80x24",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "first/full exposure",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "1046467184",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "480",
+        "v": "272",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "2544129059",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "1046467184",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "2544129059",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "c5659eeda3a96f1744bc250b2f73c294765aada3af3178ff3af0e6f748c7f824",
+    "transcript_sha256": "5727567c080175e7958880672b73be361975da69ce1f79ee73f8e354b0be493b",
+    "output_bytes": 2271960,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "delve-initial-world-120x34",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "1177285970",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "800",
+        "v": "464",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "2911216014",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "1177285970",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "2911216014",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "c5659eeda3a96f1744bc250b2f73c294765aada3af3178ff3af0e6f748c7f824",
+    "transcript_sha256": "509980b571a151611af74dec0f3d8635ab9795e7648c7b65fc7e07fe17d686b7",
+    "output_bytes": 3604195,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "delve-initial-profile-120x34",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "first/full exposure",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "986714693",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "800",
+        "v": "464",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "3442635697",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "986714693",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "3442635697",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "c5659eeda3a96f1744bc250b2f73c294765aada3af3178ff3af0e6f748c7f824",
+    "transcript_sha256": "b0c67589637e925d5f7b47192652525159eabb289950a461b292aa24cf46aa4c",
+    "output_bytes": 3616878,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "delve-initial-profile-60x14",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "first/full exposure",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "2228287262",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "160",
+        "v": "96",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "1643114715",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "2228287262",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "1643114715",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "c5659eeda3a96f1744bc250b2f73c294765aada3af3178ff3af0e6f748c7f824",
+    "transcript_sha256": "b162ec5553881c3559a351e9ad31d7b44930dd792dc268d09a982c11c1a6aa9e",
+    "output_bytes": 1630383,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "delve-initial-profile-80x24",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "first/full exposure",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "2852454317",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "480",
+        "v": "272",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "3433436130",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "2852454317",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "3433436130",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "c5659eeda3a96f1744bc250b2f73c294765aada3af3178ff3af0e6f748c7f824",
+    "transcript_sha256": "af98ba7fb987401cc13d66d7eed5464538931b2c15fda3f0cea37ea5039acd16",
+    "output_bytes": 2272006,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  }
+]

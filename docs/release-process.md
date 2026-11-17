@@ -8,6 +8,28 @@ Three things cut a release, and each owns one job.
 | Binaries | `release.yml`, explicitly dispatched after tagging | four archives and `SHA256SUMS` on a GitHub release |
 | Registry | `release.yml`, gated | a crates.io publish when `PUBLISH_TO_CRATES=true`; live setting unverified |
 
+## Approved 0.2.0 release — 2026-11-17
+
+The owner authorized committing/pushing all accumulated work and creating the
+release, including feature/functionality and Pi setup documentation. The latest
+published remote version at preflight is 0.1.11; its version-only history must
+be merged without discarding local work. This feature release advances both
+manifests and the lockfile to 0.2.0. The curated changelog is the release body.
+
+Follow the established manual authenticated-tag path: run `just verify`, the
+4,096-case property gate, release/Storybook/Rustdoc and site checks; commit the
+complete reviewed tree; preserve upstream history; verify clean-source packaging
+and its 10 MiB limit. Push `main` and the new `v0.2.0` tag without moving any
+existing tag. Confirm the matching Release and site runs, download all four
+archives and checksums, and execute the actual installer in temporary storage.
+Inspect foreign binaries without claiming native execution on this Mac.
+
+The live repository-variable list was empty at preflight, so crates.io remains
+disabled. No registry activation, shared Herdr restart or existing Pi-session
+reload is included. Keep private qualification receipts outside the checkout;
+publish only redacted evidence. See the
+[0.2.0 qualification receipt](reviews/2026-11-17-release-0.2.0/README.md).
+
 ## Published distribution — 2026-09-09
 
 [Questmancer v0.1.10](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.1.10)

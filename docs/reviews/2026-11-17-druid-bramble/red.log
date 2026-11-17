@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.13s
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-ae436117d8a72e48)
+
+running 1 test
+test druid_world_and_card_use_the_approved_bramble_silhouette ... FAILED
+
+failures:
+
+---- druid_world_and_card_use_the_approved_bramble_silhouette stdout ----
+
+thread 'druid_world_and_card_use_the_approved_bramble_silhouette' panicked at tests/archetype_assets.rs:43:17:
+assertion `left == right` failed: Druid Porcelain must use approved B at (9,0)
+  left: false
+ right: true
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    druid_world_and_card_use_the_approved_bramble_silhouette
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test archetype_assets`

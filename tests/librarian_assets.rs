@@ -1,6 +1,56 @@
 use questmancer::portrait::librarian_asset;
 use questmancer::scene::assets::librarian::{ledger_portrait, world};
 
+fn approved_keeper() -> serde_json::Value {
+    serde_json::from_str(include_str!("fixtures/art/librarian-keeper-master.json"))
+        .expect("approved Keeper of the Stacks fixture")
+}
+
+fn approved_colour(fixture: &serde_json::Value, key: &str) -> questmancer::scene::pixel::Rgb {
+    let hex = fixture["palette"][key]
+        .as_str()
+        .expect("approved hex colour");
+    questmancer::scene::pixel::Rgb::new(
+        u8::from_str_radix(&hex[..2], 16).expect("red hex"),
+        u8::from_str_radix(&hex[2..4], 16).expect("green hex"),
+        u8::from_str_radix(&hex[4..6], 16).expect("blue hex"),
+    )
+}
+
+#[test]
+fn librarian_world_uses_the_user_selected_keeper_pixels() {
+    let approved = approved_keeper();
+    for (y, row) in approved["rows"]
+        .as_array()
+        .expect("approved rows")
+        .iter()
+        .enumerate()
+    {
+        for (x, glyph) in row.as_str().expect("pixel row").chars().enumerate() {
+            let expected = (glyph != '.').then(|| approved_colour(&approved, &glyph.to_string()));
+            assert_eq!(
+                world().pixels()[y * 16 + x],
+                expected,
+                "world Librarian must retain approved B at ({x},{y})"
+            );
+        }
+    }
+}
+
+#[test]
+fn librarian_ledger_fallback_retains_the_keepers_fur_books_and_robe() {
+    let approved = approved_keeper();
+    let portrait = ledger_portrait();
+    for key in ["F", "g", "P", "r", "b", "u", "w"] {
+        assert!(
+            portrait
+                .pixels()
+                .contains(&Some(approved_colour(&approved, key))),
+            "Ledger fallback loses Keeper material {key}"
+        );
+    }
+}
+
 #[test]
 fn librarian_world_master_is_native_scale_and_non_empty() {
     let sprite = world();

@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.73s
+     Running tests/storybook.rs (target/debug/deps/storybook-ea0efe9762ab1444)
+
+running 1 test
+test narrow_answer_keeps_its_action_title_while_the_focused_field_scrolls ... FAILED
+
+failures:
+
+---- narrow_answer_keeps_its_action_title_while_the_focused_field_scrolls stdout ----
+
+thread 'narrow_answer_keeps_its_action_title_while_the_focused_field_scrolls' panicked at tests/storybook.rs:109:5:
+the form loses its action context when editing
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    narrow_answer_keeps_its_action_title_while_the_focused_field_scrolls
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test storybook`

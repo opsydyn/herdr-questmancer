@@ -1,0 +1,222 @@
+{
+  "trial_root": "/private/tmp/qmdogfood-74b_9_02",
+  "caller_pane": "w8:p1",
+  "caller_workspace": "w8",
+  "original_focus": "w8:p1",
+  "protected_panes": [
+    "w8:p1",
+    "w8:pH",
+    "w8:pJ"
+  ],
+  "candidate_sha256": "0c489be3462d71ea3ea06c34da8aab1cfa370448649ca40955687a56fc9e7a08",
+  "server_version": "0.9.5",
+  "protocol": 22,
+  "panes": [
+    {
+      "pane_id": "w8:pS",
+      "terminal_id": "term_6607693afc088a",
+      "created": true,
+      "source": "qm-dogfood-qmdogfood-74b_9_02-dogfood-forge",
+      "agent": "dogfood-forge",
+      "state": "working",
+      "seq": 3
+    },
+    {
+      "pane_id": "w8:pT",
+      "terminal_id": "term_6607693afde3db",
+      "created": true,
+      "source": "qm-dogfood-qmdogfood-74b_9_02-dogfood-review",
+      "agent": "dogfood-review",
+      "state": "blocked",
+      "seq": 1
+    },
+    {
+      "pane_id": "w8:pV",
+      "terminal_id": "term_6607693affa35c",
+      "created": true,
+      "source": "qm-dogfood-qmdogfood-74b_9_02-dogfood-rest",
+      "agent": "dogfood-rest",
+      "state": "idle",
+      "seq": 1
+    },
+    {
+      "pane_id": "w8:pW",
+      "terminal_id": "term_6607693b01997d",
+      "created": true,
+      "source": "qm-dogfood-qmdogfood-74b_9_02-dogfood-mist",
+      "agent": "dogfood-mist",
+      "state": "unknown",
+      "seq": 1
+    }
+  ],
+  "managed_pane": "w8:pY",
+  "checks": [
+    {
+      "check": "guild_delve_guild_ledger_search_scrying",
+      "scope": "Herdr CLI input and text evidence; native appearance unreviewed"
+    },
+    {
+      "check": "owned_revision",
+      "revision": 0,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 1,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 2,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 3,
+      "authority_and_cache": true
+    },
+    {
+      "check": "seen_deferred_did_not_answer",
+      "authority_unchanged": true,
+      "source_obligation": "Open"
+    },
+    {
+      "check": "owned_revision",
+      "revision": 4,
+      "authority_and_cache": true
+    },
+    {
+      "check": "raw_send_text_newline_limitation",
+      "observed_answer": "Keep it for one release.Document removal.",
+      "scope": "Harness sent raw LF; next multiline case uses logical Enter"
+    },
+    {
+      "check": "owned_revision",
+      "revision": 5,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 6,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 7,
+      "authority_and_cache": true
+    },
+    {
+      "check": "multiline_answer",
+      "logical_enter": true,
+      "exact_text_persisted": true
+    },
+    {
+      "check": "literal_answer_privacy",
+      "cache_and_chronicle_exclude_answer": true
+    },
+    {
+      "check": "synthetic_transition",
+      "agent": "dogfood-forge",
+      "state": "working",
+      "card_text_observed": "Working"
+    },
+    {
+      "check": "managed_pane_excluded",
+      "excluded": true
+    },
+    {
+      "check": "restart_recovery",
+      "authority_unchanged": true,
+      "multiline_answer_visible": true,
+      "remembered_store_opened": true
+    },
+    {
+      "check": "below_minimum_submission_disabled",
+      "viewport": {
+        "height": 52,
+        "width": 25,
+        "x": 0,
+        "y": 0
+      },
+      "authority_unchanged": true
+    },
+    {
+      "check": "resize_draft_preserved_and_discarded",
+      "authority_unchanged": true,
+      "helpers_closed": true
+    },
+    {
+      "check": "final_resource_audit",
+      "protected_panes_present": true,
+      "synthetic_states_retained": true,
+      "resize_helpers_closed": true,
+      "source_worktree_unchanged": true,
+      "no_server_restart": true,
+      "no_counsel_sent": true
+    }
+  ],
+  "retained": true,
+  "plugin_open": {
+    "plugin_pane": {
+      "entrypoint": "guild-hall",
+      "pane": {
+        "agent_status": "unknown",
+        "cwd": "/Users/alancurrie/Projects/herdr-web-master",
+        "focused": false,
+        "foreground_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+        "label": "Questmancer",
+        "pane_id": "w8:pX",
+        "revision": 0,
+        "scroll": {
+          "max_offset_from_bottom": 0,
+          "offset_from_bottom": 0,
+          "viewport_rows": 52
+        },
+        "tab_id": "w8:tD",
+        "terminal_id": "term_66076964d1a15e",
+        "workspace_id": "w8"
+      },
+      "plugin_id": "opsydyn.questmancer"
+    },
+    "type": "plugin_pane_opened"
+  },
+  "closed_test_plugin_pane": "w8:pX",
+  "ui_terminal_id": "term_660769b53dfe0f",
+  "ui_tab": "w8:tE",
+  "ui_pid": 37045,
+  "resize_helpers": [
+    {
+      "agent_status": "unknown",
+      "cwd": "/Users/alancurrie/Projects/herdr-web-master",
+      "focused": false,
+      "foreground_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+      "pane_id": "w8:pZ",
+      "revision": 0,
+      "scroll": {
+        "max_offset_from_bottom": 0,
+        "offset_from_bottom": 0,
+        "viewport_rows": 50
+      },
+      "tab_id": "w8:tE",
+      "terminal_id": "term_66076afc6cad710",
+      "workspace_id": "w8"
+    },
+    {
+      "agent_status": "unknown",
+      "cwd": "/Users/alancurrie/Projects/herdr-web-master",
+      "focused": false,
+      "foreground_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+      "pane_id": "w8:p0",
+      "revision": 0,
+      "scroll": {
+        "max_offset_from_bottom": 0,
+        "offset_from_bottom": 0,
+        "viewport_rows": 50
+      },
+      "tab_id": "w8:tE",
+      "terminal_id": "term_66076b19dfbbb11",
+      "workspace_id": "w8"
+    }
+  ],
+  "left_focused_on_dogfood_ui": true
+}

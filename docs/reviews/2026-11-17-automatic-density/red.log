@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.38s
+     Running tests/party_density.rs (target/debug/deps/party_density-abf24e7555620dba)
+
+running 1 test
+test seven_resting_adventurers_keep_full_sprites_fitted_in_both_rooms ... FAILED
+
+failures:
+
+---- seven_resting_adventurers_keep_full_sprites_fitted_in_both_rooms stdout ----
+
+thread 'seven_resting_adventurers_keep_full_sprites_fitted_in_both_rooms' panicked at tests/party_density.rs:29:33:
+production fit lost the complete party: canonical composition shows 5/7; using responsive fallback
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    seven_resting_adventurers_keep_full_sprites_fitted_in_both_rooms
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test party_density`

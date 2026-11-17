@@ -1,0 +1,19 @@
+{
+  "root": "/tmp/qm094-bp_3pr8_",
+  "server_pid": 94854,
+  "binary_sha256": "ea20bfff9cb8c83a996081c926e6ff9370de8e543baa859bca48d19175d895ff",
+  "captured": true,
+  "identity_released": true,
+  "pane_closed": true,
+  "final_snapshot": {
+    "version": "0.9.4",
+    "protocol": 22,
+    "workspaces": [],
+    "tabs": [],
+    "panes": [],
+    "layouts": [],
+    "agents": []
+  },
+  "server_exit": 0,
+  "socket_removed": true
+}

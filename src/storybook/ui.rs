@@ -43,12 +43,24 @@ pub fn render(
     context: &StoryContext,
     portraits: Option<&crate::portrait::PortraitGallery>,
 ) {
+    render_with_fit(frame, app, stories, context, portraits, None);
+}
+
+pub fn render_with_fit(
+    frame: &mut Frame<'_>,
+    app: &StorybookApp,
+    stories: &[Story],
+    context: &StoryContext,
+    portraits: Option<&crate::portrait::PortraitGallery>,
+    fit: Option<&mut super::fit_preview::FitPreview>,
+) {
+    let fit = if app.help_visible() { None } else { fit };
     let story = app.selected_story(stories);
     let fixture = (story.build)(*context);
     if app.mode() == Mode::Inspect {
-        render_fixture(frame, frame.area(), story, &fixture, portraits);
+        render_fixture(frame, frame.area(), story, &fixture, portraits, fit);
     } else {
-        render_catalogue(frame, app, stories, story, &fixture, portraits);
+        render_catalogue(frame, app, stories, story, &fixture, portraits, fit);
     }
     if app.help_visible() {
         let area = centered(frame.area(), 58, 9);
@@ -72,6 +84,7 @@ fn render_catalogue(
     story: &Story,
     fixture: &StoryFixture,
     portraits: Option<&crate::portrait::PortraitGallery>,
+    fit: Option<&mut super::fit_preview::FitPreview>,
 ) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
@@ -101,7 +114,7 @@ fn render_catalogue(
             ])
             .split(rows[1]);
         render_story_list(frame, columns[0], app, stories);
-        render_fixture(frame, columns[1], story, fixture, portraits);
+        render_fixture(frame, columns[1], story, fixture, portraits, fit);
         frame.render_widget(
             Paragraph::new(
                 [
@@ -126,7 +139,7 @@ fn render_catalogue(
             columns[2],
         );
     } else {
-        render_fixture(frame, rows[1], story, fixture, portraits);
+        render_fixture(frame, rows[1], story, fixture, portraits, fit);
     }
     frame.render_widget(
         Paragraph::new("[j/k] story  [h/l] category  [enter] inspect  [?] help  [q] quit"),
@@ -160,6 +173,7 @@ fn render_fixture(
     story: &Story,
     fixture: &StoryFixture,
     portraits: Option<&crate::portrait::PortraitGallery>,
+    fit: Option<&mut super::fit_preview::FitPreview>,
 ) {
     if area.width < story.viewport.minimum_width || area.height < story.viewport.minimum_height {
         frame.render_widget(
@@ -172,6 +186,17 @@ fn render_fixture(
             )),
             area,
         );
+        return;
+    }
+    if let StoryFixture::WorldFit(model) = fixture {
+        if let Some(fit) = fit {
+            fit.render(frame, area, story.id.as_str(), model, portraits);
+        } else {
+            super::fit_preview::FitPreview::unavailable(
+                "Kitty and confirmed cell geometry required",
+            )
+            .render(frame, area, story.id.as_str(), model, portraits);
+        }
         return;
     }
     if let StoryFixture::ArchetypeGallery(gallery) = fixture {

@@ -1,0 +1,95 @@
+{
+  "recorded_at_utc": "2026-11-17T20:57:21.551119+00:00",
+  "provenance": "Host-captured Herdr CLI metadata, owned Pi response and temporary Questmancer persistence; no independent visual review",
+  "installation": {
+    "command": "herdr integration install pi",
+    "status": "current (v9)",
+    "path": "~/.pi/agent/extensions/herdr-agent-state.ts",
+    "sha256": "2c5272d732b475bbf91a027203b1f98d25fe43d2c1402530a442b288aeaca1e4",
+    "herdr_version": "0.9.5",
+    "protocol": 22,
+    "pi_version": "1.5.2"
+  },
+  "questmancer_release_sha256": "910056041754d2d6e8392dcd7aeceabb91b8b000f0795f2a7af2a00b7f6fed98",
+  "successful_exercise": {
+    "installed_extension_version": 9,
+    "pi_version": "1.5.2",
+    "herdr_version": "0.9.5",
+    "provider": "openai-codex",
+    "model": "gpt-6.1-sol",
+    "prompt": "Compute 137 times 29. Reply with exactly PI_QUALIFY followed by the result. Do not use tools.",
+    "answer": "PI_QUALIFY 3973",
+    "session_identity_complete": true,
+    "identity_stable": true,
+    "session_digest": "74d14e247b9ef243ee59028eb1de8fe3507ddd01bf6bfb3a64d20f9d12fdb738",
+    "observed_states": [
+      "idle",
+      "working",
+      "idle"
+    ],
+    "quiet_baseline": true,
+    "chronicle_records": [
+      {
+        "event_version": 2,
+        "evidence": {
+          "source": "pane_metadata",
+          "presence": "working"
+        },
+        "incarnation_present": true
+      },
+      {
+        "event_version": 2,
+        "evidence": {
+          "source": "pane_metadata",
+          "presence": "idle"
+        },
+        "incarnation_present": true
+      }
+    ],
+    "experience": 0
+  },
+  "configured_model_failure": {
+    "model": "gpt-5.5",
+    "reason": "not supported by this ChatGPT account",
+    "session_identity_complete": true,
+    "observed_states": [
+      "working",
+      "idle"
+    ],
+    "chronicle_records": 2,
+    "experience": 0
+  },
+  "reload_and_restart": {
+    "reload_observed": true,
+    "reload_preserved_session_identity": true,
+    "reload_history_unchanged": true,
+    "restart_history_unchanged": true,
+    "restart_experience": 0
+  },
+  "cleanup": {
+    "all_original_panes_retained": true,
+    "original_pane_count": 9,
+    "current_pane_count": 9,
+    "focus_unchanged": true,
+    "original_agents_untouched": true,
+    "remaining_unqualified_adventurers": 6,
+    "owned_ui_stopped": true,
+    "owned_pi_stopped": true,
+    "owned_panes_closed": true,
+    "temporary_auth_link_removed": true,
+    "owned_server_stopped": true,
+    "test_socket_removed": true,
+    "test_plugin_logs_empty": true
+  },
+  "global_default_model_after": "gpt-5.5",
+  "not_exercised": [
+    "existing Pi session activation",
+    "blocked transition",
+    "explicit done transition",
+    "native visual acceptance",
+    "snapshot-only capture"
+  ],
+  "application_source_changed": false,
+  "committed": false,
+  "published": false
+}

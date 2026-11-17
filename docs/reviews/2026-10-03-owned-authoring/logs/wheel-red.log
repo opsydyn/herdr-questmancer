@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.76s
+     Running tests/owned_authoring.rs (target/debug/deps/owned_authoring-cc9e0f29507c1a81)
+
+running 1 test
+test wheel_can_read_context_after_editing_without_changing_the_draft ... FAILED
+
+failures:
+
+---- wheel_can_read_context_after_editing_without_changing_the_draft stdout ----
+
+thread 'wheel_can_read_context_after_editing_without_changing_the_draft' panicked at tests/owned_authoring.rs:506:5:
+assertion failed: !model.authoring().follow_focus
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    wheel_can_read_context_after_editing_without_changing_the_draft
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test owned_authoring`

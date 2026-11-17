@@ -310,18 +310,23 @@ pub fn paint(
     viewport: PixelSize,
     target: &mut RgbBuffer,
 ) -> SceneFrame {
-    // A camera crop of the canonical dungeon is only truthful while the whole
-    // party fits inside the crop. Below that, recompose at roster scale rather
-    // than leaving delvers off-camera with no way to tell they exist.
+    let saturated = actor_anchors(plan).len() < plan.actors.len();
+    let whole_room = viewport.width >= 160 && viewport.height >= 90;
+    let layout = if saturated && whole_room && plan.actors.len() <= GATHERED_CAPACITY {
+        ActorLayout::Gathered
+    } else {
+        ActorLayout::Stations
+    };
     let below_crop_band = viewport.width < CROP_MIN_WIDTH || viewport.height < CROP_MIN_HEIGHT;
-    if below_crop_band
+    if layout == ActorLayout::Stations
+        && (below_crop_band || saturated)
         && viewport.width >= roster::MIN_WIDTH
         && viewport.height >= roster::MIN_HEIGHT
         && roster::capacity(viewport) >= plan.actors.len()
     {
-        return paint_roster(snapshot, plan, viewport, target);
+        return DelvePainter::new(snapshot, plan, viewport, target).paint_roster();
     }
-    DelvePainter::new(snapshot, plan, viewport, target).paint()
+    DelvePainter::new(snapshot, plan, viewport, target).paint(layout)
 }
 
 /// Below this the canonical crop can no longer be trusted to contain the
@@ -329,48 +334,15 @@ pub fn paint(
 const CROP_MIN_WIDTH: u16 = 100;
 const CROP_MIN_HEIGHT: u16 = 56;
 
-/// The delving party at authored roster scale, on dungeon stone under the
-/// Delve's cool ambient light.
-fn paint_roster(
-    snapshot: &SceneSnapshot,
-    plan: &ScenePlan,
-    viewport: PixelSize,
-    target: &mut RgbBuffer,
-) -> SceneFrame {
-    target.ensure_size(viewport.width, viewport.height, DEEP_BLUE_BLACK);
-    let block_top = roster::block_top(viewport, plan.actors.len());
-    paint_roster_ground(target, block_top);
-    // No ambient wash here: the ground is already painted in dungeon stone,
-    // and tinting over the party would cost exactly the local contrast this
-    // tier exists to provide.
-    let regions = roster::paint_party(snapshot, plan, target, block_top, DEEP_BLUE_BLACK);
-    let next_frame_in = roster::paint_effects(snapshot, plan, target, &regions);
-    roster::paint_connection_fact(snapshot, target);
-
-    SceneFrame {
-        world: plan.world,
-        next_frame_in,
-        actors: regions,
-        interactables: Vec::new(),
-    }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ActorLayout {
+    Stations,
+    Gathered,
 }
 
-/// A flat dungeon floor under the party. The quiet-lane rule applies here too:
-/// no mossy speckle runs through a silhouette.
-fn paint_roster_ground(target: &mut RgbBuffer, block_top: i32) {
-    let width = target.size().width;
-    let height = target.size().height;
-    target.fill_rect(PixelRect::new(0, 0, width, height), STONE_DARK);
-    let floor_top = block_top.saturating_sub(6).max(0);
-    let Ok(floor_height) = u16::try_from(i32::from(height).saturating_sub(floor_top)) else {
-        return;
-    };
-    target.fill_rect(
-        PixelRect::new(0, floor_top, width, floor_height),
-        FLOOR_DARK,
-    );
-    target.fill_rect(PixelRect::new(0, floor_top, width, 1), DEEP_BLUE_BLACK);
-}
+const GATHERED_COLUMNS: usize = 8;
+const GATHERED_CAPACITY: usize = GATHERED_COLUMNS * 2;
+const GATHERED_STRIDE_Y: usize = 36;
 
 struct DelvePainter<'a> {
     snapshot: &'a SceneSnapshot,
@@ -379,6 +351,25 @@ struct DelvePainter<'a> {
     origin: PixelPoint,
     seed: u64,
     architecture: DelveArchitectureMask,
+}
+
+pub(crate) fn paint_fitted_backdrop(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    target: &mut RgbBuffer,
+) -> SceneFrame {
+    let mut painter = DelvePainter::new(snapshot, plan, PixelSize::new(160, 90), target);
+    painter.paint_background();
+    for placed in FOREGROUND_ASSETS {
+        blit_asset(
+            placed.asset,
+            painter.target,
+            painter.origin,
+            placed.anchor.x,
+            placed.anchor.y,
+        );
+    }
+    painter.finish(Vec::new(), None)
 }
 
 impl<'a> DelvePainter<'a> {
@@ -403,7 +394,7 @@ impl<'a> DelvePainter<'a> {
         }
     }
 
-    fn paint(self) -> SceneFrame {
+    fn paint_background(&mut self) {
         paint_materials(
             self.target,
             self.origin,
@@ -414,9 +405,52 @@ impl<'a> DelvePainter<'a> {
         .expect("unrecorded material painting cannot conflict");
         paint_background_architecture(self.target, self.origin, self.seed);
         apply_lighting(self.snapshot, self.target, self.origin);
+    }
+
+    fn paint_roster(mut self) -> SceneFrame {
+        // The roster already shows the whole party. A time-sensitive station
+        // camera would change this backdrop without a reduced-motion wake.
+        self.origin = PixelPoint::new(
+            (i32::from(self.target.size().width) - WIDTH).div_euclid(2),
+            (i32::from(self.target.size().height) - HEIGHT).div_euclid(2),
+        );
+        self.paint_background();
+        for placed in FOREGROUND_ASSETS {
+            blit_asset(
+                placed.asset,
+                self.target,
+                self.origin,
+                placed.anchor.x,
+                placed.anchor.y,
+            );
+        }
+        let top = roster::block_top(self.target.size(), self.plan.actors.len());
+        let actors =
+            roster::paint_party(self.snapshot, self.plan, self.target, top, DEEP_BLUE_BLACK);
+        let deadline = roster::paint_effects(self.snapshot, self.plan, self.target, &actors);
+        roster::paint_connection_fact(self.snapshot, self.target);
+        self.finish(actors, deadline)
+    }
+
+    fn paint(mut self, layout: ActorLayout) -> SceneFrame {
+        self.paint_background();
         let (actor_deadline, actors) =
-            paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin);
-        let effect_deadline = paint_effects(self.snapshot, self.plan, self.target, self.origin);
+            paint_depth_sorted(self.snapshot, self.plan, self.target, self.origin, layout);
+        let effect_deadline = paint_effects(
+            self.snapshot,
+            self.plan,
+            self.target,
+            self.origin,
+            layout,
+            &actors,
+        );
+        self.finish(
+            actors,
+            actor_deadline.into_iter().chain(effect_deadline).min(),
+        )
+    }
+
+    fn finish(self, actors: Vec<SceneActorRegion>, deadline: Option<Duration>) -> SceneFrame {
         let goblin_deadline = if self.plan.goblin_outbreak {
             interaction::paint_goblins(self.target, self.origin, &GOBLIN_DENS);
             Some(interaction::GOBLIN_FRAME_INTERVAL)
@@ -427,11 +461,7 @@ impl<'a> DelvePainter<'a> {
 
         SceneFrame {
             world: self.plan.world,
-            next_frame_in: actor_deadline
-                .into_iter()
-                .chain(effect_deadline)
-                .chain(goblin_deadline)
-                .min(),
+            next_frame_in: deadline.into_iter().chain(goblin_deadline).min(),
             actors,
             interactables: Vec::new(),
         }
@@ -801,13 +831,12 @@ impl DepthItem<'_> {
     }
 }
 
-fn paint_depth_sorted(
-    snapshot: &SceneSnapshot,
-    plan: &ScenePlan,
-    target: &mut RgbBuffer,
-    origin: PixelPoint,
-) -> (Option<Duration>, Vec<SceneActorRegion>) {
-    let mut items = actor_anchors(plan)
+fn depth_items(plan: &ScenePlan, layout: ActorLayout) -> Vec<DepthItem<'_>> {
+    let anchors = match layout {
+        ActorLayout::Stations => actor_anchors(plan),
+        ActorLayout::Gathered => gathered_anchors(plan),
+    };
+    let mut items = anchors
         .into_iter()
         .map(|(placement, anchor)| DepthItem::Actor { placement, anchor })
         .collect::<Vec<_>>();
@@ -815,13 +844,30 @@ fn paint_depth_sorted(
         asset: placed.asset,
         anchor: placed.anchor,
     }));
-    items.extend(
-        overflow_markers(plan)
-            .into_iter()
-            .map(|(count, anchor)| DepthItem::Overflow { count, anchor }),
-    );
-    items.sort_by_key(|item| item.foot_row());
+    if layout == ActorLayout::Stations {
+        items.extend(
+            overflow_markers(plan)
+                .into_iter()
+                .map(|(count, anchor)| DepthItem::Overflow { count, anchor }),
+        );
+    }
+    items.sort_by_key(|item| {
+        (
+            layout == ActorLayout::Gathered && !matches!(item, DepthItem::Asset { .. }),
+            item.foot_row(),
+        )
+    });
+    items
+}
 
+fn paint_depth_sorted(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    target: &mut RgbBuffer,
+    origin: PixelPoint,
+    layout: ActorLayout,
+) -> (Option<Duration>, Vec<SceneActorRegion>) {
+    let items = depth_items(plan, layout);
     let mut regions = Vec::new();
     let mut next_frame_in = None;
     for item in items {
@@ -857,7 +903,11 @@ fn paint_depth_sorted(
                 } else {
                     blit(sprite, actor_origin, target);
                 }
-                interaction::paint_actor_state_marker(target, bounds, placement.pose);
+                if layout == ActorLayout::Gathered {
+                    paint_gathered_state_marker(target, bounds, placement.pose);
+                } else {
+                    interaction::paint_actor_state_marker(target, bounds, placement.pose);
+                }
                 if placement.selected {
                     paint_selection_marker(target, actor_origin, sprite.size());
                 }
@@ -875,6 +925,19 @@ fn paint_depth_sorted(
         }
     }
     (next_frame_in, regions)
+}
+
+/// Reuse the authored literal state cues without replacing full sprite masters.
+fn paint_gathered_state_marker(target: &mut RgbBuffer, bounds: PixelRect, pose: ScenePose) {
+    let marker = crate::scene::assets::roster::state_marker(pose);
+    blit(
+        marker,
+        PixelPoint::new(
+            bounds.x + (i32::from(bounds.width) - i32::from(marker.size().width)) / 2,
+            bounds.y - i32::from(marker.size().height) - 3,
+        ),
+        target,
+    );
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -932,6 +995,36 @@ const UNKNOWN_SLOTS: &[PixelPoint] = &[
     PixelPoint::new(40, 20),
     PixelPoint::new(18, 8),
 ];
+
+/// Complete capacity of the canonical station, gathering or dense composition.
+pub fn canonical_actor_capacity(plan: &ScenePlan) -> usize {
+    if plan.actors.len() <= GATHERED_CAPACITY.max(roster::capacity(PixelSize::new(160, 90))) {
+        plan.actors.len()
+    } else {
+        actor_anchors(plan).len()
+    }
+}
+
+fn gathered_anchors(plan: &ScenePlan) -> Vec<(&ActorPlacement, PixelPoint)> {
+    let count = plan.actors.len();
+    let rows = count.div_ceil(GATHERED_COLUMNS);
+    let height = rows.saturating_sub(1) * GATHERED_STRIDE_Y + 24;
+    let top = ((90_i32 - i32::try_from(height).unwrap_or(90)) / 2).max(16);
+    plan.actors
+        .iter()
+        .enumerate()
+        .map(|(index, actor)| {
+            let row = index / GATHERED_COLUMNS;
+            let in_row = (count - row * GATHERED_COLUMNS).min(GATHERED_COLUMNS);
+            let width = in_row * 18 - 2;
+            let left = (160 - width) / 2;
+            let x =
+                i32::try_from(left + index % GATHERED_COLUMNS * 18).expect("bounded gathering x");
+            let y = top + i32::try_from(row * GATHERED_STRIDE_Y).expect("bounded gathering y");
+            (actor, PixelPoint::new(x + 4, y + 10))
+        })
+        .collect()
+}
 
 fn actor_anchors(plan: &ScenePlan) -> Vec<(&ActorPlacement, PixelPoint)> {
     let mut counts = HashMap::<StationKind, usize>::new();
@@ -1055,7 +1148,7 @@ const UNCERTAIN_BLEND: u16 = 52;
 /// floor. The silhouette stays legible, and what it has lost is exactly what
 /// the state means it has lost. The `?` in the nameplate carries the literal
 /// reading; this carries the felt one.
-fn blit_uncertain(frame: &SpriteFrame, origin: PixelPoint, target: &mut RgbBuffer) {
+pub(crate) fn blit_uncertain(frame: &SpriteFrame, origin: PixelPoint, target: &mut RgbBuffer) {
     let pixels = frame
         .pixels()
         .iter()
@@ -1084,10 +1177,17 @@ fn paint_effects(
     plan: &ScenePlan,
     target: &mut RgbBuffer,
     origin: PixelPoint,
+    layout: ActorLayout,
+    actors: &[SceneActorRegion],
 ) -> Option<Duration> {
-    let mut next_frame_in = None;
+    let mut next_frame_in = if layout == ActorLayout::Gathered {
+        roster::paint_effects(snapshot, plan, target, actors)
+    } else {
+        None
+    };
     for effect in &plan.effects {
         match effect {
+            SceneEffect::FreshSpoils { .. } if layout == ActorLayout::Gathered => {}
             SceneEffect::FreshSpoils { agent, since } => {
                 let elapsed = since.elapsed_until(snapshot.now);
                 let phase = effect_animation_phase(snapshot.motion, elapsed);
@@ -1597,7 +1697,13 @@ mod tests {
             party_rest_since: None,
             goblin_outbreak: false,
         };
-        paint_depth_sorted(&snapshot, &empty_plan, &mut composed, origin);
+        paint_depth_sorted(
+            &snapshot,
+            &empty_plan,
+            &mut composed,
+            origin,
+            ActorLayout::Stations,
+        );
 
         for doorway in DOORWAYS {
             assert_eq!(

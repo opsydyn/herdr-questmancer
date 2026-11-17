@@ -1,0 +1,250 @@
+[
+  {
+    "scenario": "guild-initial-world-120x34",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "4097289917",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "800",
+        "v": "464",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "2430265106",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "4097289917",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "2430265106",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "39cd2d0a3fb1af9210cedff34d3dab98760c60fae123cb650fba309bc897f750",
+    "transcript_sha256": "b54427c7e43199c7396c654e8ab633f7901f43a04f061c471cdb4a58c9cdb01d",
+    "output_bytes": 3604588,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "guild-initial-world-80x24",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "2967633016",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "480",
+        "v": "272",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "1655654981",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "2967633016",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "1655654981",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "39cd2d0a3fb1af9210cedff34d3dab98760c60fae123cb650fba309bc897f750",
+    "transcript_sha256": "a2092c8b43a0033be58b0bb1cd56905b0e1bccefd5ed8dc1525543ebf286ad16",
+    "output_bytes": 2267643,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "delve-initial-world-120x34",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "4292970744",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "800",
+        "v": "464",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "394945878",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "4292970744",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "394945878",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "39cd2d0a3fb1af9210cedff34d3dab98760c60fae123cb650fba309bc897f750",
+    "transcript_sha256": "4e66ff79a8bc9eb1a90891776427b8647086ebbd6e7e26162845dc0073f552eb",
+    "output_bytes": 3604649,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  },
+  {
+    "scenario": "delve-initial-world-80x24",
+    "checks": [
+      "startup",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "open profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False",
+      "resize with profile",
+      "exact visible placeholder cells and source row/column coordinates; profile=True",
+      "exact visible placeholder cells and source row/column coordinates; profile=False"
+    ],
+    "world_uploads": [
+      {
+        "q": "2",
+        "i": "2874132724",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "480",
+        "v": "272",
+        "m": "1"
+      },
+      {
+        "q": "2",
+        "i": "3289034928",
+        "a": "T",
+        "U": "1",
+        "f": "32",
+        "t": "d",
+        "s": "640",
+        "v": "368",
+        "m": "1"
+      }
+    ],
+    "world_deletions": [
+      {
+        "a": "d",
+        "d": "I",
+        "i": "2874132724",
+        "q": "2"
+      },
+      {
+        "a": "d",
+        "d": "I",
+        "i": "3289034928",
+        "q": "2"
+      }
+    ],
+    "exit": 0,
+    "binary_sha256": "39cd2d0a3fb1af9210cedff34d3dab98760c60fae123cb650fba309bc897f750",
+    "transcript_sha256": "fff25f9f6646b1256336f541ebf796184695aa61b867a371a601d100ccc52467",
+    "output_bytes": 2267633,
+    "terminal_restored": true,
+    "evidence": "Isolated executable ANSI/placeholder producer; native compositing remains human review"
+  }
+]

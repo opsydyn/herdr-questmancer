@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.32s
+     Running tests/world_fit.rs (target/debug/deps/world_fit-74ade85e376992ce)
+
+running 1 test
+test profile_preserves_fitted_world_scale_and_image_lease_in_both_rooms ... FAILED
+
+failures:
+
+---- profile_preserves_fitted_world_scale_and_image_lease_in_both_rooms stdout ----
+
+thread 'profile_preserves_fitted_world_scale_and_image_lease_in_both_rooms' panicked at tests/world_fit.rs:416:9:
+Guild: profile replaced the fitted world
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    profile_preserves_fitted_world_scale_and_image_lease_in_both_rooms
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.09s
+
+error: test failed, to rerun pass `--test world_fit`

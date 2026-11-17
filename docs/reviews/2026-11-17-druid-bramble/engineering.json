@@ -1,0 +1,12 @@
+[
+  {
+    "check": "verify",
+    "exit_code": 0,
+    "log": "/tmp/questmancer-druid-verify-20261117.log"
+  },
+  {
+    "check": "release",
+    "exit_code": 0,
+    "log": "/tmp/questmancer-druid-release-20261117.log"
+  }
+]

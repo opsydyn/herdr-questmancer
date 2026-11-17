@@ -1,0 +1,56 @@
+{
+  "scope": "Repair crowd presentation in the existing owned UI; preserve Herdr resources, personas and work",
+  "missing_synthetic_before": [
+    "w8:pS",
+    "w8:pT",
+    "w8:pV"
+  ],
+  "remaining_synthetic_count": 1,
+  "before_runtime": {
+    "pane_id": "w8:pY",
+    "pid": 53975,
+    "started_at": 1794937400,
+    "initial_view": "delve"
+  },
+  "pane": "w8:pY",
+  "terminal": "term_660769b53dfe0f",
+  "binary_sha256": "3081c199743ab4177d46700ed606de74a6015539c92de2006b831043405c2350",
+  "owned_work_sha256_before": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "persona_record_count": 11,
+  "personas_sha256_before": "a2aa861d1338dc4dd2267ea35a941c046578ddb51f51171d26fa45e47cf55b6f",
+  "focus_before": "w8:p1",
+  "after_runtime": {
+    "pane_id": "w8:pY",
+    "pid": 68375,
+    "started_at": 1794939569,
+    "initial_view": "delve"
+  },
+  "owned_work_sha256_after": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "personas_unchanged": true,
+  "personas_sha256_after": "a2aa861d1338dc4dd2267ea35a941c046578ddb51f51171d26fa45e47cf55b6f",
+  "remaining_synthetic_unchanged": true,
+  "focus_after": "w8:pY",
+  "party_retained": true,
+  "native_visual_acceptance": "unverified",
+  "plugin_logs": {
+    "logs": [],
+    "type": "plugin_log_list"
+  },
+  "post_refresh_text_receipt": {
+    "native_footer": true,
+    "half_blocks": 0,
+    "card_visible": false,
+    "limitation": "Confirms selected adapter path, not native appearance"
+  },
+  "plugin_logs_final": {
+    "logs": [],
+    "type": "plugin_log_list"
+  },
+  "final_audit": {
+    "owned_ui_process_verified": true,
+    "remaining_synthetic_verified": true,
+    "authoritative_work_unchanged": true,
+    "focus_commands_sent": false,
+    "current_focus": "wA:p6"
+  }
+}

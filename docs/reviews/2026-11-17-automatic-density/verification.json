@@ -1,0 +1,33 @@
+{
+  "result": "local production integration complete; native visual review pending",
+  "base_commit": "9c52761",
+  "branch": "dirty main; prior work preserved",
+  "rust_tests": 841,
+  "rust_runs": 67,
+  "shell_tests": 28,
+  "stories": 84,
+  "release_sha256": "910056041754d2d6e8392dcd7aeceabb91b8b000f0795f2a7af2a00b7f6fed98",
+  "storybook_sha256": "d4d343daa7bdeda6fcb507ae09be474383fdf13ca5d518b6b39f58f729624a89",
+  "pty_scenarios": 8,
+  "source_exports": 42,
+  "exact_payload_comparisons": 2,
+  "size_tiers": {
+    "0-11": "16x24",
+    "12-32": "8x12 staggered",
+    "33-64": "8x12 dense; no resident actor",
+    "65+": "explicit existing fallback"
+  },
+  "native_visual_acceptance": "unreviewed",
+  "owned_ui_refreshed": true,
+  "commit_push_publication": "none",
+  "commands": [
+    "just verify",
+    "cargo build --release --locked --offline",
+    "cargo build --features storybook --bin questmancer-storybook",
+    "cargo doc --all-features --no-deps",
+    "bash docs/reviews/2026-11-17-automatic-density/regenerate.sh",
+    "python3 docs/reviews/2026-11-17-automatic-density/pty_profiles.py",
+    "python3 docs/reviews/2026-11-17-automatic-density/pty_release.py",
+    "python3 docs/reviews/2026-11-17-automatic-density/verify_transport.py"
+  ]
+}

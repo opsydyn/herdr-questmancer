@@ -1,0 +1,12 @@
+[
+  {
+    "check": "verify",
+    "exit_code": 0,
+    "log": "/tmp/questmancer-librarian-keeper-verify-20261117.log"
+  },
+  {
+    "check": "release",
+    "exit_code": 0,
+    "log": "/tmp/questmancer-librarian-keeper-release-20261117.log"
+  }
+]

@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/owned_work.rs (target/debug/deps/owned_work-ef21b1906f783c91)
+
+running 16 tests
+test owned_store_child_lock_probe ... ok
+test command_text_and_cross_campaign_references_are_checked_before_writes ... ok
+test older_store_and_generation_overflow_cannot_become_current ... ok
+test retries_rejections_and_terminal_incarnations_preserve_authority ... ok
+test owned_facts_reach_existing_board_and_table_without_domain_mutation ... ok
+test rejected_and_identical_retried_commands_do_not_publish_again ... ok
+test writer_lock_excludes_an_independent_process_and_releases_on_drop ... ok
+test evicted_receipt_cannot_reexecute_an_old_command ... ok
+test writer_lock_and_selected_identity_protect_existing_records ... ok
+test invalid_future_duplicate_and_inconsistent_stores_are_preserved ... ok
+test owned_complete_baselines_preserve_external_facts_intent_and_projects_checkpoint ... ok
+test replaced_store_lock_or_root_and_symlink_selections_fail_without_writing ... ok
+test cache_failure_does_not_undo_answer_and_complete_reconciliation_recovers_it ... ok
+test owned_records_answers_and_projection_survive_restart ... ok
+test command_sequences_preserve_revision_identity_answers_and_retry_effects ... ok
+test decision_request_attribution_survives_receipt_eviction_and_store_reopening ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
+

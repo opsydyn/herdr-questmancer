@@ -6,6 +6,30 @@ three-class pilot. Production art uses authored `16x24` world masters and
 `24x32` card canvases. All fourteen class fallbacks reuse their personalised
 world sprite at native size inside that canvas. The final Mage and Sorcerer
 card alignment was visually approved on 2026-09-08.
+The Druid's later **Bramble Sage** direction was selected on 2026-11-17 and
+is implemented through the existing eight-pose ritual route. Its turned face,
+asymmetric leaf cloak and right-hand living staff replace the earlier Druid
+world master; the card fallback follows that personalised master. The native
+card illustration and roster remain unchanged. See the
+[approved study](reviews/2026-11-17-druid-study/visual-approval.md) and
+[production review](../reviews/2026-11-17-druid-bramble/README.md). Direction
+approval is recorded; production pose and native acceptance remain separate.
+The Sorcerer's **Storm Channeler** direction was approved on 2026-11-17.
+Its swept hair, pale streak, asymmetric plum mantle and persistent orb now
+supply all eight ritual frames and the personalised card fallback. The native
+card uses the matching approved illustration at the existing `384x512` size.
+Saved skin, hair, accent and trim roles remain in use; the silver streak and
+mantle are class-owned. See the
+[direction approval](reviews/2026-11-17-sorcerer-storm-study/visual-approval.md)
+and [production review](../reviews/2026-11-17-sorcerer-storm/README.md).
+Production animation and native visual acceptance remain separate.
+The Cleric's **Sunward Chaplain** A direction was selected on 2026-11-17.
+Its open face, beard, silver shoulders, cream tabard, sun mace and prayerbook
+now supply all eight ritual frames and the existing personalised card fallback.
+The native illustration, roster and timing remain unchanged. See the
+[direction approval](reviews/2026-11-17-cleric-study/visual-approval.md) and
+[production review](../reviews/2026-11-17-cleric-sunward/README.md).
+Production animation and native appearance still require visual acceptance.
 No class routes to another's silhouette: a borrowed master makes two different adventurers
 indistinguishable in the world, which is the same defect as a borrowed card.
 `no_two_classes_share_a_world_or_portrait_master` keeps it that way.
@@ -70,6 +94,16 @@ colour fields, pure-black interiors, anti-aliasing, smooth gradients and pillow
 shading.
 
 ## Librarian status — 2026-09-05
+
+Update 2026-11-17: the user selected **B, Keeper of the Stacks**. The world
+master now follows that turned-head, book-carrying direction, with warmer
+orangutan fur, low gold spectacles and a purple robe. The Ledger has a matching
+independently authored `24x32` fallback; the native illustration remains
+unchanged. Static direction approval is recorded in the
+[new study](reviews/2026-11-17-librarian-study/visual-approval.md); the
+[production review](../reviews/2026-11-17-librarian-keeper/README.md) keeps
+fallback and native acceptance separate. The static help role, click bounds,
+small-tier omissions and handbook behavior are unchanged.
 
 The Librarian remains a static help NPC, visible and clickable in canonical
 and compact Halls. The 2026-09-05 refresh retains orange fur, low gold

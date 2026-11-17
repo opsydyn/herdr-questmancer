@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-17",
+  "scope": "Approved A / Sunward Chaplain Cleric production world art and fallback",
+  "full_gate": {
+    "tests": 798,
+    "runs": 64,
+    "log": "/tmp/questmancer-cleric-verify-20261117.log",
+    "shell_tests": 28
+  },
+  "affected_suites": {
+    "tests": 90,
+    "runs": 6,
+    "log": "docs/reviews/2026-11-17-cleric-sunward/affected-final.log"
+  },
+  "focused_tests": 2,
+  "release_build": 0,
+  "candidate_sha256": "a08b70bb57dd3daeb7cd7d34044030656caaa13510cdefaa7b3cc02995dff886",
+  "source_baseline": {
+    "files": 231,
+    "changed": [
+      "src/scene/assets/rituals/support_art.rs",
+      "tests/archetype_assets.rs",
+      "tests/scene_delve.rs"
+    ],
+    "remaining_byte_identical": 228
+  },
+  "other_class_sections_and_route": "byte-identical",
+  "all_native_pngs": "unchanged",
+  "original_study_pngs": "byte-identical",
+  "production_repeat_png_hashes": "identical",
+  "output_sha256": {
+    "04-canonical-delve.png": "da9aaf13cb8fba18463ce2096b31b1b53dcdd655884a47310d3689b86bd854ec",
+    "02-production-rooms.png": "7fe4681a13eb9401e544a5a17bac917cffb39ae22ad3fb0658b6dea258b0f330",
+    "05-native-and-fallback.png": "e9f7a78b5573c8cefbc3a7b6d958c035a878da237b01264017dc974c467e9a07",
+    "01-production-poses.png": "63245851ad2723f2e24a87c182ac073728cb3d5facc59a5758733bc8c3fdf63e",
+    "03-card-fallback.png": "72e98c1fa278615ffbcb243d80e8bac117875fbd748deeea6b6fc1521bf3ffca"
+  },
+  "canonical_delve_blake3": "6baaf0f61bc4ddeb24db765776ff3b2aa30c6b67409101daf0c286169750667d",
+  "live_refresh": {
+    "pane_id": "w8:pY",
+    "previous_pid": 97649,
+    "new_pid": 3116,
+    "candidate_sha256": "a08b70bb57dd3daeb7cd7d34044030656caaa13510cdefaa7b3cc02995dff886",
+    "owned_store_unchanged": true,
+    "owned_sha256": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+    "saved_personas_unchanged": true,
+    "synthetic_party_retained": true,
+    "ui_not_an_adventurer": true,
+    "left_view": "Delve / card closed; no agent selected by the harness",
+    "shared_server_restarted": false,
+    "native_appearance": "Pending human review"
+  },
+  "plugin_logs": {
+    "logs": [],
+    "type": "plugin_log_list"
+  },
+  "visual_status": "A direction approved; production poses, animation and native appearance pending human review",
+  "committed": false,
+  "published": false
+}

@@ -1,0 +1,28 @@
+[
+  {
+    "scope": "Production release binary native-transport pixel round trip with synthetic PTY replies",
+    "dimensions": [
+      800,
+      464
+    ],
+    "image_id": "720702587",
+    "all_rgba_pixels_identical_to_fit_projection": true,
+    "rgba_sha256": "b6bc87e01ca029422f419bb3a949667477bed3f88f3e320bd43cf25b51801b62",
+    "limitation": "Producer verified; terminal display, animation, resize and mouse acceptance remain human checks",
+    "transcript": "native.ansi",
+    "expected": "expected-empty-delve.png"
+  },
+  {
+    "scope": "Fixed Storybook executable native-transport pixel round trip with synthetic PTY replies",
+    "dimensions": [
+      800,
+      464
+    ],
+    "image_id": "825419805",
+    "all_rgba_pixels_identical_to_fit_projection": true,
+    "rgba_sha256": "5513bd15a10fe00489f67f01c8ff361626f86b50ce68c03d6476dd616ee7e0e8",
+    "limitation": "Producer verified; terminal display, animation, resize and mouse acceptance remain human checks",
+    "transcript": "native-storybook.ansi",
+    "expected": "fit-five-120x34.png"
+  }
+]

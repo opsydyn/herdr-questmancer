@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.02s
+     Running unittests src/lib.rs (target/debug/deps/questmancer-9d701e4cf7669200)
+
+running 1 test
+test owned_work::runtime::tests::reconciled_original_revision_is_not_reported_saved_or_discarded ... FAILED
+
+failures:
+
+---- owned_work::runtime::tests::reconciled_original_revision_is_not_reported_saved_or_discarded stdout ----
+
+thread 'owned_work::runtime::tests::reconciled_original_revision_is_not_reported_saved_or_discarded' panicked at src/owned_work/runtime.rs:586:44:
+index out of bounds: the len is 0 but the index is 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    owned_work::runtime::tests::reconciled_original_revision_is_not_reported_saved_or_discarded
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 58 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--lib`

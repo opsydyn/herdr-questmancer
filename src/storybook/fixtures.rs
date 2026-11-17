@@ -29,7 +29,117 @@ impl StoryContext {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StoryFixture {
     SceneApplication(Box<Model>),
+    WorldFit(Box<Model>),
     ArchetypeGallery(ArchetypeGallery),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FitParty {
+    Five,
+    Eleven,
+    Crowded,
+}
+
+/// Fixed dungeon party using the same source facts as the Hall studies.
+pub fn delve_fit_fixture(context: StoryContext, party: FitParty) -> Model {
+    let mut model = hall_fit_fixture(context, party);
+    model.switch_to(View::Delve);
+    model
+}
+
+/// Reproduces the reported crowded-resting screenshot without live agents.
+pub fn delve_resting_fit_fixture(context: StoryContext) -> Model {
+    let mut model = delve_fit_fixture(context, FitParty::Five);
+    for (index, agent) in model.domain_mut().agents.values_mut().enumerate() {
+        agent.presence = if index == 3 {
+            Presence::Unknown
+        } else {
+            Presence::Idle
+        };
+        agent.attention = GuildAttention::Clear;
+    }
+    model
+}
+
+/// No Herdr bindings or commands are executed by these local preview fixtures.
+pub fn hall_fit_fixture(context: StoryContext, party: FitParty) -> Model {
+    let left = WorkspaceId::new("fit-library");
+    let right = WorkspaceId::new("fit-workshop");
+    let count = if party == FitParty::Five { 5 } else { 11 };
+    let classes = [
+        AdventurerClass::Druid,
+        AdventurerClass::Bard,
+        AdventurerClass::Cleric,
+        AdventurerClass::Sorcerer,
+        AdventurerClass::Sorcerer,
+    ];
+    let mut agents = BTreeMap::new();
+    for i in 0..count {
+        let presence = if party == FitParty::Crowded {
+            Presence::Working
+        } else if party == FitParty::Five {
+            [
+                Presence::Working,
+                Presence::Blocked,
+                Presence::Working,
+                Presence::Idle,
+                Presence::Unknown,
+            ][i]
+        } else {
+            match i {
+                4 => Presence::Blocked,
+                5 => Presence::Idle,
+                6 | 7 => Presence::Done,
+                _ => Presence::Working,
+            }
+        };
+        let campaign = if party == FitParty::Crowded || !(2..4).contains(&i) {
+            &left
+        } else {
+            &right
+        };
+        let mut a = fixture_agent(
+            &format!("fit-{i:02}"),
+            campaign,
+            presence,
+            presence == Presence::Blocked,
+        );
+        a.persona.class = classes[i % classes.len()];
+        a.custom_status = None;
+        agents.insert(a.key.clone(), a);
+    }
+    let campaigns = [&left, &right]
+        .into_iter()
+        .map(|id| {
+            (
+                id.clone(),
+                Campaign {
+                    workspace_id: id.clone(),
+                    label: id.as_str().replace('-', " "),
+                    cwd: PathBuf::from("/storybook/fit"),
+                    party: agents
+                        .values()
+                        .filter(|a| &a.workspace_id == id)
+                        .map(|a| a.key.clone())
+                        .collect(),
+                },
+            )
+        })
+        .collect();
+    let mut model = Model::new(View::Guild);
+    model.replace_domain(DomainState {
+        capture: crate::domain::CaptureClock::default(),
+        campaigns,
+        agents,
+        selected_agent: Some(AgentKey::new("fit-00")),
+        chronicle: Chronicle::new(16),
+    });
+    model.set_connection(ConnectionState::Connected);
+    model.set_now(context.now);
+    let mut preferences = *model.preferences();
+    preferences.motion = crate::app::Motion::None;
+    model.set_preferences(preferences);
+    model
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -461,5 +571,143 @@ pub fn war_table_fixture(context: StoryContext, state: WarTableState) -> Model {
         model.select_work(WorkSelection::Quest(QuestId::new(&source, "api")));
     }
     model.open_war_table();
+    model
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OwnedAuthoringState {
+    Actions,
+    EmptyCampaign,
+    Answer,
+    Narrow,
+    ViewPending,
+    Indeterminate,
+    Answered,
+    Small,
+}
+/// Fixed owned facts and production forms; no files, runtime owner or random identities.
+#[allow(clippy::too_many_lines)] // One fixed fixture composes facts and all form/recovery variants.
+pub fn owned_authoring_fixture(context: StoryContext, variant: OwnedAuthoringState) -> Model {
+    use crate::{
+        owned_work::{
+            Action, Answer, Command, CommandId, OwnedState, StoreSelection,
+            authoring::{FormKind, Metadata, Phase, SelectedDetail, Surface},
+            transition,
+        },
+        work::{CampaignId, ObligationId, SourceId},
+    };
+    let source = SourceId::new("owned:storybook");
+    let campaign = CampaignId::new(&source, "authentication");
+    let decision = ObligationId::new(&source, "compatibility");
+    let mut state = OwnedState::new(source.clone()).expect("fixed source");
+    let prompt = "Should the old token endpoint remain for backwards compatibility during the authentication migration?";
+    let actions = vec![
+        Action::CreateCampaign {
+            id: campaign.clone(),
+            name: "Replace authentication layer".into(),
+            objective: Some("Keep existing clients working during migration.".into()),
+        },
+        Action::RequestDecision {
+            id: decision.clone(),
+            campaign: campaign.clone(),
+            quest: None,
+            incarnation: "request-1".into(),
+            prompt: prompt.into(),
+            context: Some(
+                "The web migration needs an explicit policy before it can proceed.".into(),
+            ),
+        },
+    ];
+    for (i, action) in actions.into_iter().enumerate() {
+        state = transition(
+            &state,
+            &Command {
+                id: CommandId::new(&format!("fixed-{i}")),
+                source: source.clone(),
+                expected_revision: state.revision(),
+                actor: "Questmancer".into(),
+                at: context.now,
+                action,
+            },
+        )
+        .expect("fixed transition")
+        .state;
+    }
+    let answer=Answer {text:"Keep the old endpoint for one release and document its removal date.\nThe new endpoint becomes the documented default.".into(),actor:"Questmancer".into(),at:context.now};
+    if variant == OwnedAuthoringState::Answered {
+        state = transition(
+            &state,
+            &Command {
+                id: CommandId::new("fixed-answer"),
+                source: source.clone(),
+                expected_revision: state.revision(),
+                actor: answer.actor.clone(),
+                at: answer.at,
+                action: Action::AnswerDecision {
+                    id: decision.clone(),
+                    incarnation: "request-1".into(),
+                    answer: answer.text.clone(),
+                },
+            },
+        )
+        .expect("fixed answer")
+        .state;
+    }
+    let mut model = fixture_model(context, View::Guild);
+    let projection = crate::sources::local_work::LocalWorkSource::new(&state, model.work())
+        .expect("fixed source")
+        .baseline(&state, context.now)
+        .expect("fixed baseline");
+    model.replace_work(
+        crate::work::reduce(model.work().clone(), projection.message).expect("fixed projection"),
+    );
+    let a = model.authoring_mut();
+    a.available = true;
+    a.phase = Phase::Ready;
+    a.campaign = Some(campaign);
+    a.selection = Some(
+        StoreSelection::new("/synthetic/owned-work.json".into(), source.clone())
+            .expect("fixed pin"),
+    );
+    a.metadata = Some(Metadata {
+        source,
+        revision: state.revision(),
+        inventory: state.inventory().clone(),
+    });
+    a.detail = Some(SelectedDetail {
+        id: decision,
+        incarnation: "request-1".into(),
+        revision: state.revision(),
+        prompt: prompt.into(),
+        context: Some("The web migration needs an explicit policy before it can proceed.".into()),
+        requested_by: "Questmancer".into(),
+        answer: if variant == OwnedAuthoringState::Answered {
+            Some(answer.clone())
+        } else {
+            None
+        },
+    });
+    match variant {
+        OwnedAuthoringState::Actions => a.menu(),
+        OwnedAuthoringState::EmptyCampaign => a.surface = Surface::Campaigns,
+        OwnedAuthoringState::Answer | OwnedAuthoringState::Narrow | OwnedAuthoringState::Small => {
+            a.form(FormKind::Answer);
+            a.fields[0].text = answer.text;
+        }
+        OwnedAuthoringState::ViewPending => {
+            a.phase = Phase::ViewPending;
+            a.surface = Surface::Store;
+            a.feedback="Answer saved. The Board has not updated yet. Retry view update; this does not submit another answer.".into();
+        }
+        OwnedAuthoringState::Indeterminate => {
+            a.phase = Phase::Indeterminate;
+            a.surface = Surface::Store;
+            a.feedback =
+                "The answer may have saved. Check its outcome before submitting another command."
+                    .into();
+        }
+        OwnedAuthoringState::Answered => a.surface = Surface::Detail,
+    }
+    model.open_owned_authoring();
     model
 }

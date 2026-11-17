@@ -60,7 +60,7 @@ impl<'de> Deserialize<'de> for Unique {
         d.deserialize_any(JsonVisitor)
     }
 }
-pub(super) fn parse(bytes: &[u8]) -> serde_json::Result<Value> {
+pub(crate) fn parse(bytes: &[u8]) -> serde_json::Result<Value> {
     let mut d = serde_json::Deserializer::from_slice(bytes);
     let Unique(value) = Unique::deserialize(&mut d)?;
     d.end()?;

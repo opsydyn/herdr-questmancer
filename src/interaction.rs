@@ -22,11 +22,19 @@ pub struct ActionReduction {
 }
 
 #[must_use]
+#[allow(clippy::too_many_lines)] // The central action dispatch preserves existing effect ordering.
 pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
     let before = PersistedStateV1::capture(model);
     let mut commands = Vec::new();
     if !matches!(action, Action::Redraw | Action::None) {
         model.note_interaction();
+    }
+    if action == Action::OpenAuthoring {
+        open_authoring(model);
+        return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
+    }
+    if model.modal() == &Modal::OwnedAuthoring {
+        return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
     }
     if intercept_war_table(model, action, &mut commands)
         || intercept_work_board(model, action, &mut commands)
@@ -116,6 +124,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         Action::ToggleChronicleChapter
         | Action::SelectAt { .. }
         | Action::Redraw
+        | Action::OpenAuthoring
         | Action::None => ControlFlow::Continue(()),
     };
     finish_reduction(model, &before, control, commands)
@@ -722,7 +731,30 @@ fn submit_modal(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         | Modal::LibrarianLedger { .. }
         | Modal::Scrying
         | Modal::Chronicle
+        | Modal::OwnedAuthoring
         | Modal::QuestBoard
         | Modal::WarTable => {}
     }
+}
+
+fn open_authoring(model: &mut Model) {
+    let selected = crate::work::view::selected_quest(model)
+        .and_then(|q| model.authoring().metadata.as_ref()?.inventory.quests.get(q))
+        .map(|q| q.campaign.clone());
+    let selected = selected.or_else(|| match model.work_selection() {
+        Some(crate::work::WorkSelection::Obligation(id)) => model
+            .authoring()
+            .metadata
+            .as_ref()?
+            .inventory
+            .obligations
+            .get(id)
+            .map(|o| o.campaign.clone()),
+        _ => None,
+    });
+    if model.authoring().fields.is_empty() {
+        model.authoring_mut().campaign = selected;
+    }
+    model.authoring_mut().menu();
+    model.open_owned_authoring();
 }

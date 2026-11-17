@@ -1,0 +1,37 @@
+{
+  "scope": "Review-only static Druid study; no production activation",
+  "date": "2026-11-17",
+  "candidate_count": 2,
+  "canvas": [
+    16,
+    24
+  ],
+  "foot_row": 21,
+  "foot_columns": [
+    4,
+    5,
+    6,
+    9,
+    10,
+    11
+  ],
+  "rooms": [
+    "Guild Hall",
+    "Delve"
+  ],
+  "indexed_decode": "passed using production indexed_sprite",
+  "half_block_rgb_roundtrip": "passed",
+  "outside_actor_pixels_identical": true,
+  "deterministic_image_regeneration": true,
+  "baseline_source_files_unchanged": 228,
+  "output_sha256": {
+    "02-druid-room-crops.png": "360b44b6ef66410b2cc447f8bc5ebb1906b41c8deadf4fcfe8293dabf9ae5c9c",
+    "03-druid-full-rooms.png": "a0e1a35730b7b95fb0b9c4ff24ca7f696ea61df3473bb990a4e73f55b2c63df9",
+    "01-druid-directions.png": "ce54e283f6e626157010894ef09aba58d628bf09c1f64609e98ac29c35e045d3"
+  },
+  "native_visual_acceptance": "not performed",
+  "visual_choice": "pending",
+  "full_gate": "Not rerun for review-only files; fresh preceding dogfood gate passed 789 Rust and 28 shell tests",
+  "review_exporter": "Compiled with warnings denied",
+  "runtime": "No Herdr or Questmancer process operated"
+}

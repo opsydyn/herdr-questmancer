@@ -1,0 +1,14 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.57s
+     Running tests/party_density.rs (target/debug/deps/party_density-abf24e7555620dba)
+
+running 6 tests
+test seven_resting_adventurers_keep_full_sprites_fitted_in_both_rooms ... ok
+test exited_adventurers_release_capacity_and_parties_beyond_the_limit_are_explicit ... ok
+test reduced_and_still_motion_have_no_cleanup_wake_or_time_dependent_pixels ... ok
+test full_motion_is_semantic_and_completion_is_quiet_at_three_seconds ... ok
+test presence_changes_do_not_change_density_or_move_the_rest_of_the_party ... ok
+test size_tiers_keep_every_actor_complete_distinct_and_clickable ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+

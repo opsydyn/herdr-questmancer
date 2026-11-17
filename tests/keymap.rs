@@ -18,6 +18,8 @@ use questmancer::{
 fn contexts() -> Vec<Modal> {
     vec![
         Modal::None,
+        Modal::QuestBoard,
+        Modal::WarTable,
         Modal::Scrying,
         Modal::Chronicle,
         Modal::LibrarianLedger {

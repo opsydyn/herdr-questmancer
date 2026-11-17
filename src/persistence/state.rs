@@ -8,7 +8,7 @@ use crate::{
     domain::{AdventurerPersona, DomainState, GuildAttention, GuildSummons, PersonaKey},
 };
 
-pub const STATE_SCHEMA_VERSION: u32 = 1;
+pub const STATE_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct AttentionEpisodeKey {
@@ -16,6 +16,7 @@ pub struct AttentionEpisodeKey {
     pub summons: GuildSummons,
 }
 
+/// Legacy Rust type name retained for callers; captures write schema v2 and parse migrates v1.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PersistedStateV1 {
     pub schema_version: u32,
@@ -24,19 +25,11 @@ pub struct PersistedStateV1 {
     pub selected_persona: Option<PersonaKey>,
     pub personas: BTreeMap<PersonaKey, AdventurerPersona>,
     pub seen_attention: BTreeSet<AttentionEpisodeKey>,
-    /// The guild's lifetime experience, one score for this Questmancer.
-    ///
-    /// `serde(default)` rather than a schema bump: a state file written before
-    /// this field existed loads cleanly at zero, so nobody loses the personas
-    /// they already have. `STATE_SCHEMA_VERSION` stays where it is, because
-    /// nothing about the existing shape changed.
-    ///
-    /// Monotonic, and never recomputed from the Chronicle. The Chronicle is a
-    /// bounded ring, so a score derived from it would *decay* as history
-    /// rolled off — the same trap `$quest_hoard` documents, except here the
-    /// number is supposed to be permanent.
+    /// Lifetime standing remains independent of retained Chronicle history.
     #[serde(default)]
     pub experience: u64,
+    #[serde(default)]
+    pub owned_store: Option<crate::owned_work::StoreSelection>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -45,6 +38,7 @@ pub struct DurableIntent {
     personas: BTreeMap<PersonaKey, AdventurerPersona>,
     seen_attention: BTreeSet<AttentionEpisodeKey>,
     experience: u64,
+    owned_store: Option<crate::owned_work::StoreSelection>,
 }
 
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
@@ -58,6 +52,8 @@ pub enum StateValidationError {
     },
     #[error("selected persona {0} is missing from the persona map")]
     SelectedPersonaMissing(PersonaKey),
+    #[error("invalid owned store selection")]
+    InvalidOwnedSelection,
     #[error("seen attention persona {0} is missing from the persona map")]
     SeenAttentionPersonaMissing(PersonaKey),
 }
@@ -77,15 +73,25 @@ impl PersistedStateV1 {
             personas: intent.personas.clone(),
             seen_attention: intent.seen_attention.clone(),
             experience: intent.experience,
+            owned_store: intent.owned_store.clone(),
         }
     }
 
     pub fn validate(&self) -> Result<(), StateValidationError> {
-        if self.schema_version != STATE_SCHEMA_VERSION {
+        if self.schema_version != STATE_SCHEMA_VERSION && self.schema_version != 1 {
             return Err(StateValidationError::UnsupportedSchemaVersion {
                 expected: STATE_SCHEMA_VERSION,
                 actual: self.schema_version,
             });
+        }
+
+        if (self.schema_version == 1 && self.owned_store.is_some())
+            || self
+                .owned_store
+                .as_ref()
+                .is_some_and(|s| s.validate().is_err())
+        {
+            return Err(StateValidationError::InvalidOwnedSelection);
         }
 
         for (map_key, persona) in &self.personas {
@@ -120,12 +126,20 @@ impl PersistedStateV1 {
 }
 
 impl DurableIntent {
+    pub fn owned_store(&self) -> Option<&crate::owned_work::StoreSelection> {
+        self.owned_store.as_ref()
+    }
+    pub fn set_owned_store(&mut self, selection: Option<crate::owned_work::StoreSelection>) {
+        self.owned_store = selection;
+    }
+
     pub fn seed(&mut self, state: &PersistedStateV1) -> Result<(), StateValidationError> {
         state.validate()?;
         self.selected_persona.clone_from(&state.selected_persona);
         self.personas.clone_from(&state.personas);
         self.seen_attention.clone_from(&state.seen_attention);
         self.experience = state.experience;
+        self.owned_store.clone_from(&state.owned_store);
         Ok(())
     }
 

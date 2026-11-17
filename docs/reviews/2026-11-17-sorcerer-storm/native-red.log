@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.98s
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-6aa0bc9b84c87623)
+
+running 1 test
+test sorcerer_storm_native_route_embeds_the_selected_card ... FAILED
+
+failures:
+
+---- sorcerer_storm_native_route_embeds_the_selected_card stdout ----
+
+thread 'sorcerer_storm_native_route_embeds_the_selected_card' panicked at tests/archetype_assets.rs:36:5:
+assertion `left == right` failed: native card must match the selected Storm Channeler asset
+  left: "37d979a231c39bcad9aa2a96fe0d0743553ecd493eedca1b763acbce5ad296cd"
+ right: "590d08cb7741722d6c8d73ef5b82e8bd003cfefffd6c7068677000445012a101"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sorcerer_storm_native_route_embeds_the_selected_card
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test archetype_assets`

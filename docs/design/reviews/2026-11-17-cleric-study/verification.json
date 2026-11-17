@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-17",
+  "scope": "Review-only Cleric masters; no production activation",
+  "assumption": "The user meant the selected Cleric at bottom left in their screenshot",
+  "source_files_unchanged": 231,
+  "dimensions": [
+    16,
+    24
+  ],
+  "foot_row": 21,
+  "foot_columns": [
+    5,
+    6,
+    7,
+    10,
+    11,
+    12
+  ],
+  "production_indexed_decode": "passed",
+  "half_block_rgb_roundtrip": "passed",
+  "outside_actor_pixels": "identical between directions in both rooms",
+  "repeat_png_hashes": "identical",
+  "output_sha256": {
+    "03-cleric-full-rooms.png": "ced77a95fd5df19dd46e1b3d5ea7ecd1abcdbb4ec63279b5d15c19cb2e04974f",
+    "02-cleric-room-crops.png": "9d897b8a888007c75eda24c8da8251f372395a20ebe2a1fe1b59a7909d589428",
+    "01-cleric-directions.png": "d898d51b8461f91cb296445eb68833a40fb115e1a06c7551f3dbb6658337728e"
+  },
+  "native_portrait": "Existing PNG shown as reference, unchanged",
+  "live_operations": "None; retained party untouched",
+  "remaining_uncertainty": [
+    "User direction choice",
+    "All poses and persona roles",
+    "Animation",
+    "Production lighting integration",
+    "Native visual acceptance"
+  ],
+  "full_gate": "Not rerun for review-only files. Prior Sorcerer slice passed 796 Rust tests / 64 runs and 28 shell tests."
+}

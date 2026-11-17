@@ -593,6 +593,7 @@ pub(crate) fn persisted_state() -> impl Strategy<Value = PersistedStateV1> {
         })
         .prop_map(
             |(last_view, preferences, personas, selected_persona, episodes)| PersistedStateV1 {
+                owned_store: None,
                 experience: 0,
                 schema_version: STATE_SCHEMA_VERSION,
                 last_view,

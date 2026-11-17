@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-17",
+  "scope": "Approved Bramble Sage Druid production art, regression checks and test-owned live refresh",
+  "approval": "B static direction approved; production pose/native visual review pending",
+  "full_gate": {
+    "rust_tests": 791,
+    "rust_runs": 64,
+    "shell_tests": 28,
+    "format": 0,
+    "clippy_denied_warnings": 0,
+    "script_syntax": 0
+  },
+  "affected_suites": {
+    "tests": 121,
+    "runs": 7
+  },
+  "release_build": 0,
+  "candidate_sha256": "8885d7cbabe0103fd2ceb9864c191f0147396e0453a580eed37627eab1b86f9f",
+  "source_baseline": {
+    "files": 228,
+    "changed": [
+      "src/scene/assets/rituals/support_art.rs",
+      "tests/archetype_assets.rs",
+      "tests/scene_delve.rs"
+    ],
+    "remaining_byte_identical": 225,
+    "new_test_fixture": "tests/fixtures/art/druid-bramble-master.json",
+    "other_classes": "Cleric/Paladin prefix and all other class source bytes preserved"
+  },
+  "golden": {
+    "fixture": "tests/scene_delve.rs::mixed_snapshot",
+    "inspected_image": "04-canonical-delve.png",
+    "rgb_hash": "204e1dc77dd98d1df21bb36a5d7c8a609d194b42ac12c484fe289b42343540f8"
+  },
+  "live_refresh": {
+    "pane_id": "w8:pY",
+    "previous_pid": 37045,
+    "new_pid": 60816,
+    "candidate_sha256": "8885d7cbabe0103fd2ceb9864c191f0147396e0453a580eed37627eab1b86f9f",
+    "owned_store_unchanged": true,
+    "owned_revision": 7,
+    "synthetic_party_retained": true,
+    "shared_server_restarted": false,
+    "native_appearance": "Pending human review; only runtime refresh and card text checked",
+    "state_keys": [
+      "schema_version",
+      "last_view",
+      "preferences",
+      "selected_persona",
+      "personas",
+      "seen_attention",
+      "experience",
+      "owned_store"
+    ]
+  },
+  "output_sha256": {
+    "working-loop.gif": "95816d9a677570bc03c0062f7653c5e8d02f2d41f4962ceaa0b8f5a0aa30f86b",
+    "04-canonical-delve.png": "b2e1e7b0cc3dcf9c5bb6512868cc7d8f470957884b3d26cc7c2799d8f43ad2e1",
+    "02-production-rooms.png": "5dcbc3e1529508d475efcad4c6f26467a7a28792b16bb5bf391d0a96ad0c284f",
+    "01-production-poses.png": "33209949cae6d0ff5a59fe92b5528dc265ba5aa91b1c9da4cacbf3935146f2d0",
+    "03-card-fallback.png": "96f972f27cdc7de7f914072b16c32fcf2bafad9319a9a18d9ba543ed63809003"
+  },
+  "committed": false,
+  "published": false
+}

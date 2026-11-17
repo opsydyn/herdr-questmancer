@@ -1,0 +1,152 @@
+[
+  {
+    "mode": "native",
+    "exit": 0,
+    "checks": [
+      "negotiated native dungeon upload",
+      "static upload suppression",
+      "resize upload",
+      "Ledger overlay access",
+      "Ledger page navigation",
+      "fit resumes after Ledger",
+      "Hall fits after Delve",
+      "Delve fits after Hall",
+      "clean shutdown"
+    ],
+    "uploads": [
+      "q=2,i=2429854357,a=T,U=1,f=32,t=d,s=800,v=464,m=1",
+      "q=2,i=3451077539,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=1703809532,a=T,U=1,f=32,t=d,s=192,v=192,m=1",
+      "q=2,i=2429854357,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=3451077539,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=2429854357,a=T,U=1,f=32,t=d,s=640,v=368,m=1"
+    ],
+    "deletions": [
+      "a=d,d=I,i=2429854357,q=2",
+      "a=d,d=I,i=3451077539,q=2",
+      "a=d,d=I,i=2429854357,q=2",
+      "a=d,d=I,i=3451077539,q=2",
+      "a=d,d=I,i=2429854357,q=2"
+    ],
+    "binary_sha256": "3081c199743ab4177d46700ed606de74a6015539c92de2006b831043405c2350",
+    "output_bytes": 7282293,
+    "transcript_sha256": "b1bbf949420ecaa73e6be6e4f00212d166abeced36bb4e350dbe3fc5686062e1",
+    "state_directory": "/private/tmp/questmancer-delve-crowd-repair-20261117/qm-hall-fit-ntulqyno",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "unsupported",
+    "exit": 0,
+    "checks": [
+      "half-block fallback",
+      "fallback Ledger access",
+      "clean shutdown"
+    ],
+    "uploads": [],
+    "deletions": [],
+    "binary_sha256": "3081c199743ab4177d46700ed606de74a6015539c92de2006b831043405c2350",
+    "output_bytes": 36897,
+    "transcript_sha256": "1b778e9614ce2d3627678080d8e21d6221ec5176607f2e2ec5fa9b8ea75e2051",
+    "state_directory": "/private/tmp/questmancer-delve-crowd-repair-20261117/qm-hall-fit-665nr4sq",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "missing-geometry",
+    "exit": 0,
+    "checks": [
+      "half-block fallback",
+      "fallback Ledger access",
+      "clean shutdown"
+    ],
+    "uploads": [],
+    "deletions": [],
+    "binary_sha256": "3081c199743ab4177d46700ed606de74a6015539c92de2006b831043405c2350",
+    "output_bytes": 36897,
+    "transcript_sha256": "1b778e9614ce2d3627678080d8e21d6221ec5176607f2e2ec5fa9b8ea75e2051",
+    "state_directory": "/private/tmp/questmancer-delve-crowd-repair-20261117/qm-hall-fit-s200a9lx",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "native-interrupt",
+    "exit": 0,
+    "checks": [
+      "negotiated native dungeon upload",
+      "static upload suppression",
+      "resize upload",
+      "Ledger overlay access",
+      "Ledger page navigation",
+      "fit resumes after Ledger",
+      "Hall fits after Delve",
+      "Delve fits after Hall",
+      "clean shutdown"
+    ],
+    "uploads": [
+      "q=2,i=3101750729,a=T,U=1,f=32,t=d,s=800,v=464,m=1",
+      "q=2,i=1968362402,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=3618388710,a=T,U=1,f=32,t=d,s=192,v=192,m=1",
+      "q=2,i=3101750729,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=1968362402,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=3101750729,a=T,U=1,f=32,t=d,s=640,v=368,m=1"
+    ],
+    "deletions": [
+      "a=d,d=I,i=3101750729,q=2",
+      "a=d,d=I,i=1968362402,q=2",
+      "a=d,d=I,i=3101750729,q=2",
+      "a=d,d=I,i=1968362402,q=2",
+      "a=d,d=I,i=3101750729,q=2"
+    ],
+    "binary_sha256": "3081c199743ab4177d46700ed606de74a6015539c92de2006b831043405c2350",
+    "output_bytes": 7282306,
+    "transcript_sha256": "0df56510e0c6d457f4b6d62009a08df9f39b7da456e04a094a55ed36b5ebd3dc",
+    "state_directory": "/private/tmp/questmancer-delve-crowd-repair-20261117/qm-hall-fit-ure2ibvu",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "native-storybook",
+    "exit": 0,
+    "checks": [
+      "negotiated native dungeon upload",
+      "static upload suppression",
+      "resize upload",
+      "transformed dungeon actor mouse target",
+      "Ledger overlay access",
+      "Ledger page navigation",
+      "fit resumes after Ledger",
+      "clean shutdown"
+    ],
+    "uploads": [
+      "q=2,i=3743358946,a=T,U=1,f=32,t=d,s=800,v=464,m=1",
+      "q=2,i=1336758183,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=2414366080,a=T,U=1,f=32,t=d,s=192,v=256,m=1",
+      "q=2,i=3743358946,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=2672617558,a=T,U=1,f=32,t=d,s=192,v=192,m=1",
+      "q=2,i=1336758183,a=T,U=1,f=32,t=d,s=640,v=368,m=1"
+    ],
+    "deletions": [
+      "a=d,d=I,i=3743358946,q=2",
+      "a=d,d=I,i=1336758183,q=2",
+      "a=d,d=I,i=3743358946,q=2",
+      "a=d,d=I,i=1336758183,q=2"
+    ],
+    "binary_sha256": "1fddeed91fdb1675e237545f3df1741b3688685fe38e022110184251032b21b0",
+    "output_bytes": 6286665,
+    "transcript_sha256": "7c1b63cde3769137af7c3fcfdec0788e76cffa538dd0ddb9841e54e3e5054326",
+    "state_directory": "/private/tmp/questmancer-delve-crowd-repair-20261117/qm-hall-fit-jk9qgejb",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  }
+]

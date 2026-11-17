@@ -1,0 +1,2937 @@
+[
+  {
+    "actor_bounds": [
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        21,
+        66,
+        16,
+        24
+      ],
+      [
+        61,
+        26,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        101,
+        26,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      26,
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-5-resting-unknown-206x50.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 5,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 5,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        21,
+        66,
+        16,
+        24
+      ],
+      [
+        61,
+        26,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        101,
+        26,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      26,
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-5-resting-unknown-120x34.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 5,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 5,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        21,
+        66,
+        16,
+        24
+      ],
+      [
+        61,
+        26,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        101,
+        26,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      26,
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-5-resting-unknown-96x28.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 5,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 5,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        21,
+        66,
+        16,
+        24
+      ],
+      [
+        61,
+        26,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        101,
+        26,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      26,
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-5-resting-unknown-80x24.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 5,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 5,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        50,
+        76,
+        16,
+        24
+      ],
+      [
+        68,
+        76,
+        16,
+        24
+      ],
+      [
+        86,
+        76,
+        16,
+        24
+      ],
+      [
+        104,
+        76,
+        16,
+        24
+      ],
+      [
+        122,
+        76,
+        16,
+        24
+      ],
+      [
+        140,
+        76,
+        16,
+        24
+      ],
+      [
+        158,
+        76,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      76
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-7-resting-unknown-206x50.png",
+    "fit_failure": "canonical composition shows 5/7; using responsive fallback",
+    "native_fit": false,
+    "party": 7,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 7,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        25,
+        20,
+        16,
+        24
+      ],
+      [
+        43,
+        20,
+        16,
+        24
+      ],
+      [
+        61,
+        20,
+        16,
+        24
+      ],
+      [
+        79,
+        20,
+        16,
+        24
+      ],
+      [
+        97,
+        20,
+        16,
+        24
+      ],
+      [
+        43,
+        44,
+        16,
+        24
+      ],
+      [
+        61,
+        44,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      20,
+      44
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-7-resting-unknown-120x34.png",
+    "fit_failure": "canonical composition shows 5/7; using responsive fallback",
+    "native_fit": false,
+    "party": 7,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        22,
+        8,
+        16,
+        24
+      ],
+      [
+        40,
+        8,
+        16,
+        24
+      ],
+      [
+        58,
+        8,
+        16,
+        24
+      ],
+      [
+        76,
+        8,
+        16,
+        24
+      ],
+      [
+        22,
+        32,
+        16,
+        24
+      ],
+      [
+        40,
+        32,
+        16,
+        24
+      ],
+      [
+        58,
+        32,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      8,
+      32
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-7-resting-unknown-96x28.png",
+    "fit_failure": "canonical composition shows 5/7; using responsive fallback",
+    "native_fit": false,
+    "party": 7,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        23,
+        0,
+        16,
+        24
+      ],
+      [
+        41,
+        0,
+        16,
+        24
+      ],
+      [
+        59,
+        0,
+        16,
+        24
+      ],
+      [
+        5,
+        24,
+        16,
+        24
+      ],
+      [
+        23,
+        24,
+        16,
+        24
+      ],
+      [
+        41,
+        24,
+        16,
+        24
+      ],
+      [
+        59,
+        24,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      0,
+      24
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-7-resting-unknown-80x24.png",
+    "fit_failure": "canonical composition shows 5/7; using responsive fallback",
+    "native_fit": false,
+    "party": 7,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        39,
+        50,
+        16,
+        24
+      ],
+      [
+        58,
+        50,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        100,
+        50,
+        16,
+        24
+      ],
+      [
+        121,
+        40,
+        16,
+        24
+      ],
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        116,
+        66,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "hall-7-mixed-206x50.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 7,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        39,
+        50,
+        16,
+        24
+      ],
+      [
+        58,
+        50,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        100,
+        50,
+        16,
+        24
+      ],
+      [
+        121,
+        40,
+        16,
+        24
+      ],
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        116,
+        66,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "hall-7-mixed-120x34.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        39,
+        50,
+        16,
+        24
+      ],
+      [
+        58,
+        50,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        100,
+        50,
+        16,
+        24
+      ],
+      [
+        121,
+        40,
+        16,
+        24
+      ],
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        116,
+        66,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "hall-7-mixed-96x28.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        39,
+        50,
+        16,
+        24
+      ],
+      [
+        58,
+        50,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        100,
+        50,
+        16,
+        24
+      ],
+      [
+        121,
+        40,
+        16,
+        24
+      ],
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        116,
+        66,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "hall-7-mixed-80x24.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        23,
+        52,
+        16,
+        24
+      ],
+      [
+        41,
+        52,
+        16,
+        24
+      ],
+      [
+        59,
+        52,
+        16,
+        24
+      ],
+      [
+        77,
+        52,
+        16,
+        24
+      ],
+      [
+        95,
+        52,
+        16,
+        24
+      ],
+      [
+        113,
+        52,
+        16,
+        24
+      ],
+      [
+        131,
+        52,
+        16,
+        24
+      ],
+      [
+        149,
+        52,
+        16,
+        24
+      ],
+      [
+        167,
+        52,
+        16,
+        24
+      ],
+      [
+        185,
+        52,
+        16,
+        24
+      ],
+      [
+        95,
+        76,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      52,
+      76
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-11-resting-unknown-206x50.png",
+    "fit_failure": "canonical composition shows 5/11; using responsive fallback",
+    "native_fit": false,
+    "party": 11,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 11,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        25,
+        20,
+        16,
+        24
+      ],
+      [
+        43,
+        20,
+        16,
+        24
+      ],
+      [
+        61,
+        20,
+        16,
+        24
+      ],
+      [
+        79,
+        20,
+        16,
+        24
+      ],
+      [
+        97,
+        20,
+        16,
+        24
+      ],
+      [
+        7,
+        44,
+        16,
+        24
+      ],
+      [
+        25,
+        44,
+        16,
+        24
+      ],
+      [
+        43,
+        44,
+        16,
+        24
+      ],
+      [
+        61,
+        44,
+        16,
+        24
+      ],
+      [
+        79,
+        44,
+        16,
+        24
+      ],
+      [
+        97,
+        44,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      20,
+      44
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-11-resting-unknown-120x34.png",
+    "fit_failure": "canonical composition shows 5/11; using responsive fallback",
+    "native_fit": false,
+    "party": 11,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 11,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        4,
+        8,
+        8,
+        12
+      ],
+      [
+        14,
+        8,
+        8,
+        12
+      ],
+      [
+        24,
+        8,
+        8,
+        12
+      ],
+      [
+        34,
+        8,
+        8,
+        12
+      ],
+      [
+        44,
+        8,
+        8,
+        12
+      ],
+      [
+        54,
+        8,
+        8,
+        12
+      ],
+      [
+        64,
+        8,
+        8,
+        12
+      ],
+      [
+        74,
+        8,
+        8,
+        12
+      ],
+      [
+        84,
+        8,
+        8,
+        12
+      ],
+      [
+        4,
+        28,
+        8,
+        12
+      ],
+      [
+        14,
+        28,
+        8,
+        12
+      ]
+    ],
+    "actor_top_rows": [
+      8,
+      28
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-11-resting-unknown-96x28.png",
+    "fit_failure": "canonical composition shows 5/11; using responsive fallback",
+    "native_fit": false,
+    "party": 11,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 11,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        1,
+        7,
+        8,
+        12
+      ],
+      [
+        11,
+        7,
+        8,
+        12
+      ],
+      [
+        21,
+        7,
+        8,
+        12
+      ],
+      [
+        31,
+        7,
+        8,
+        12
+      ],
+      [
+        41,
+        7,
+        8,
+        12
+      ],
+      [
+        51,
+        7,
+        8,
+        12
+      ],
+      [
+        61,
+        7,
+        8,
+        12
+      ],
+      [
+        71,
+        7,
+        8,
+        12
+      ],
+      [
+        1,
+        27,
+        8,
+        12
+      ],
+      [
+        11,
+        27,
+        8,
+        12
+      ],
+      [
+        21,
+        27,
+        8,
+        12
+      ]
+    ],
+    "actor_top_rows": [
+      7,
+      27
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "hall-11-resting-unknown-80x24.png",
+    "fit_failure": "canonical composition shows 5/11; using responsive fallback",
+    "native_fit": false,
+    "party": 11,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 11,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        39,
+        50,
+        16,
+        24
+      ],
+      [
+        58,
+        50,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        100,
+        50,
+        16,
+        24
+      ],
+      [
+        121,
+        40,
+        16,
+        24
+      ],
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        116,
+        66,
+        16,
+        24
+      ],
+      [
+        139,
+        66,
+        16,
+        24
+      ],
+      [
+        21,
+        66,
+        16,
+        24
+      ],
+      [
+        61,
+        26,
+        16,
+        24
+      ],
+      [
+        101,
+        26,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      26,
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "hall-11-mixed-206x50.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 11,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        39,
+        50,
+        16,
+        24
+      ],
+      [
+        58,
+        50,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        100,
+        50,
+        16,
+        24
+      ],
+      [
+        121,
+        40,
+        16,
+        24
+      ],
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        116,
+        66,
+        16,
+        24
+      ],
+      [
+        139,
+        66,
+        16,
+        24
+      ],
+      [
+        21,
+        66,
+        16,
+        24
+      ],
+      [
+        61,
+        26,
+        16,
+        24
+      ],
+      [
+        101,
+        26,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      26,
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "hall-11-mixed-120x34.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 11,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        39,
+        50,
+        16,
+        24
+      ],
+      [
+        58,
+        50,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        100,
+        50,
+        16,
+        24
+      ],
+      [
+        121,
+        40,
+        16,
+        24
+      ],
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        116,
+        66,
+        16,
+        24
+      ],
+      [
+        139,
+        66,
+        16,
+        24
+      ],
+      [
+        21,
+        66,
+        16,
+        24
+      ],
+      [
+        61,
+        26,
+        16,
+        24
+      ],
+      [
+        101,
+        26,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      26,
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "hall-11-mixed-96x28.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 11,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        39,
+        50,
+        16,
+        24
+      ],
+      [
+        58,
+        50,
+        16,
+        24
+      ],
+      [
+        81,
+        50,
+        16,
+        24
+      ],
+      [
+        100,
+        50,
+        16,
+        24
+      ],
+      [
+        121,
+        40,
+        16,
+        24
+      ],
+      [
+        144,
+        40,
+        16,
+        24
+      ],
+      [
+        116,
+        66,
+        16,
+        24
+      ],
+      [
+        139,
+        66,
+        16,
+        24
+      ],
+      [
+        21,
+        66,
+        16,
+        24
+      ],
+      [
+        61,
+        26,
+        16,
+        24
+      ],
+      [
+        101,
+        26,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      26,
+      40,
+      50,
+      66
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "hall-11-mixed-80x24.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 11,
+    "world": "hall"
+  },
+  {
+    "actor_bounds": [
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-5-resting-unknown-206x50.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 5,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 5,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-5-resting-unknown-120x34.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 5,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 5,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-5-resting-unknown-96x28.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 5,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 5,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 5,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-5-resting-unknown-80x24.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 5,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 5,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        18,
+        33,
+        16,
+        24
+      ],
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ],
+      [
+        126,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-7-resting-unknown-206x50.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 7,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        18,
+        33,
+        16,
+        24
+      ],
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ],
+      [
+        126,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-7-resting-unknown-120x34.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        18,
+        33,
+        16,
+        24
+      ],
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ],
+      [
+        126,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-7-resting-unknown-96x28.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        18,
+        33,
+        16,
+        24
+      ],
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ],
+      [
+        126,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-7-resting-unknown-80x24.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        18,
+        33,
+        16,
+        24
+      ],
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ],
+      [
+        126,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "delve-7-mixed-206x50.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 7,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        18,
+        33,
+        16,
+        24
+      ],
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ],
+      [
+        126,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "delve-7-mixed-120x34.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 7,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        18,
+        33,
+        16,
+        24
+      ],
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ],
+      [
+        126,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "delve-7-mixed-96x28.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 7,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        18,
+        33,
+        16,
+        24
+      ],
+      [
+        36,
+        33,
+        16,
+        24
+      ],
+      [
+        54,
+        33,
+        16,
+        24
+      ],
+      [
+        72,
+        33,
+        16,
+        24
+      ],
+      [
+        90,
+        33,
+        16,
+        24
+      ],
+      [
+        108,
+        33,
+        16,
+        24
+      ],
+      [
+        126,
+        33,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      33
+    ],
+    "canonical_capacity": 7,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "delve-7-mixed-80x24.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 7,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 7,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        9,
+        16,
+        16,
+        24
+      ],
+      [
+        27,
+        16,
+        16,
+        24
+      ],
+      [
+        45,
+        16,
+        16,
+        24
+      ],
+      [
+        63,
+        16,
+        16,
+        24
+      ],
+      [
+        81,
+        16,
+        16,
+        24
+      ],
+      [
+        99,
+        16,
+        16,
+        24
+      ],
+      [
+        117,
+        16,
+        16,
+        24
+      ],
+      [
+        135,
+        16,
+        16,
+        24
+      ],
+      [
+        54,
+        52,
+        16,
+        24
+      ],
+      [
+        72,
+        52,
+        16,
+        24
+      ],
+      [
+        90,
+        52,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      16,
+      52
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-11-resting-unknown-206x50.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 11,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        9,
+        16,
+        16,
+        24
+      ],
+      [
+        27,
+        16,
+        16,
+        24
+      ],
+      [
+        45,
+        16,
+        16,
+        24
+      ],
+      [
+        63,
+        16,
+        16,
+        24
+      ],
+      [
+        81,
+        16,
+        16,
+        24
+      ],
+      [
+        99,
+        16,
+        16,
+        24
+      ],
+      [
+        117,
+        16,
+        16,
+        24
+      ],
+      [
+        135,
+        16,
+        16,
+        24
+      ],
+      [
+        54,
+        52,
+        16,
+        24
+      ],
+      [
+        72,
+        52,
+        16,
+        24
+      ],
+      [
+        90,
+        52,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      16,
+      52
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-11-resting-unknown-120x34.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 11,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        9,
+        16,
+        16,
+        24
+      ],
+      [
+        27,
+        16,
+        16,
+        24
+      ],
+      [
+        45,
+        16,
+        16,
+        24
+      ],
+      [
+        63,
+        16,
+        16,
+        24
+      ],
+      [
+        81,
+        16,
+        16,
+        24
+      ],
+      [
+        99,
+        16,
+        16,
+        24
+      ],
+      [
+        117,
+        16,
+        16,
+        24
+      ],
+      [
+        135,
+        16,
+        16,
+        24
+      ],
+      [
+        54,
+        52,
+        16,
+        24
+      ],
+      [
+        72,
+        52,
+        16,
+        24
+      ],
+      [
+        90,
+        52,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      16,
+      52
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-11-resting-unknown-96x28.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 11,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        9,
+        16,
+        16,
+        24
+      ],
+      [
+        27,
+        16,
+        16,
+        24
+      ],
+      [
+        45,
+        16,
+        16,
+        24
+      ],
+      [
+        63,
+        16,
+        16,
+        24
+      ],
+      [
+        81,
+        16,
+        16,
+        24
+      ],
+      [
+        99,
+        16,
+        16,
+        24
+      ],
+      [
+        117,
+        16,
+        16,
+        24
+      ],
+      [
+        135,
+        16,
+        16,
+        24
+      ],
+      [
+        54,
+        52,
+        16,
+        24
+      ],
+      [
+        72,
+        52,
+        16,
+        24
+      ],
+      [
+        90,
+        52,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      16,
+      52
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "all resting except one unknown",
+    "filename": "delve-11-resting-unknown-80x24.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 11,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        9,
+        16,
+        16,
+        24
+      ],
+      [
+        27,
+        16,
+        16,
+        24
+      ],
+      [
+        45,
+        16,
+        16,
+        24
+      ],
+      [
+        63,
+        16,
+        16,
+        24
+      ],
+      [
+        81,
+        16,
+        16,
+        24
+      ],
+      [
+        99,
+        16,
+        16,
+        24
+      ],
+      [
+        117,
+        16,
+        16,
+        24
+      ],
+      [
+        135,
+        16,
+        16,
+        24
+      ],
+      [
+        54,
+        52,
+        16,
+        24
+      ],
+      [
+        72,
+        52,
+        16,
+        24
+      ],
+      [
+        90,
+        52,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      16,
+      52
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "delve-11-mixed-206x50.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      206,
+      50
+    ],
+    "visible_actors": 11,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        9,
+        16,
+        16,
+        24
+      ],
+      [
+        27,
+        16,
+        16,
+        24
+      ],
+      [
+        45,
+        16,
+        16,
+        24
+      ],
+      [
+        63,
+        16,
+        16,
+        24
+      ],
+      [
+        81,
+        16,
+        16,
+        24
+      ],
+      [
+        99,
+        16,
+        16,
+        24
+      ],
+      [
+        117,
+        16,
+        16,
+        24
+      ],
+      [
+        135,
+        16,
+        16,
+        24
+      ],
+      [
+        54,
+        52,
+        16,
+        24
+      ],
+      [
+        72,
+        52,
+        16,
+        24
+      ],
+      [
+        90,
+        52,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      16,
+      52
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "delve-11-mixed-120x34.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      120,
+      34
+    ],
+    "visible_actors": 11,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        9,
+        16,
+        16,
+        24
+      ],
+      [
+        27,
+        16,
+        16,
+        24
+      ],
+      [
+        45,
+        16,
+        16,
+        24
+      ],
+      [
+        63,
+        16,
+        16,
+        24
+      ],
+      [
+        81,
+        16,
+        16,
+        24
+      ],
+      [
+        99,
+        16,
+        16,
+        24
+      ],
+      [
+        117,
+        16,
+        16,
+        24
+      ],
+      [
+        135,
+        16,
+        16,
+        24
+      ],
+      [
+        54,
+        52,
+        16,
+        24
+      ],
+      [
+        72,
+        52,
+        16,
+        24
+      ],
+      [
+        90,
+        52,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      16,
+      52
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "delve-11-mixed-96x28.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      96,
+      28
+    ],
+    "visible_actors": 11,
+    "world": "delve"
+  },
+  {
+    "actor_bounds": [
+      [
+        9,
+        16,
+        16,
+        24
+      ],
+      [
+        27,
+        16,
+        16,
+        24
+      ],
+      [
+        45,
+        16,
+        16,
+        24
+      ],
+      [
+        63,
+        16,
+        16,
+        24
+      ],
+      [
+        81,
+        16,
+        16,
+        24
+      ],
+      [
+        99,
+        16,
+        16,
+        24
+      ],
+      [
+        117,
+        16,
+        16,
+        24
+      ],
+      [
+        135,
+        16,
+        16,
+        24
+      ],
+      [
+        54,
+        52,
+        16,
+        24
+      ],
+      [
+        72,
+        52,
+        16,
+        24
+      ],
+      [
+        90,
+        52,
+        16,
+        24
+      ]
+    ],
+    "actor_top_rows": [
+      16,
+      52
+    ],
+    "canonical_capacity": 11,
+    "cell_pixels": [
+      8,
+      16
+    ],
+    "distribution": "mixed source fixture",
+    "filename": "delve-11-mixed-80x24.png",
+    "fit_failure": null,
+    "native_fit": true,
+    "party": 11,
+    "viewport_cells": [
+      80,
+      24
+    ],
+    "visible_actors": 11,
+    "world": "delve"
+  }
+]

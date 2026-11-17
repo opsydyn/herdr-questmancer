@@ -1,0 +1,10 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.30s
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-ae436117d8a72e48)
+
+running 2 tests
+test druid_world_and_card_use_the_approved_bramble_silhouette ... ok
+test druid_rituals_preserve_bramble_head_and_feet_with_distinct_semantic_poses ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.01s
+

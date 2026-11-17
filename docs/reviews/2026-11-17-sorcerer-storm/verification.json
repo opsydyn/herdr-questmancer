@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-17",
+  "scope": "Storm Channeler Sorcerer production art only",
+  "approval": "direciton looks good",
+  "full_gate": {
+    "tests": 796,
+    "runs": 64,
+    "log": "/tmp/questmancer-sorcerer-verify-unrestricted-20261117.log",
+    "shell_tests": 28
+  },
+  "affected_suites": {
+    "tests": 88,
+    "runs": 6,
+    "log": "docs/reviews/2026-11-17-sorcerer-storm/affected-final.log"
+  },
+  "release_build": 0,
+  "candidate_sha256": "cd66dcadfb53eeb1dfc811ef0690908ea13fd1020aa18ed88845d96d02504e12",
+  "source_baseline": {
+    "files": 230,
+    "changed": [
+      "src/assets/portraits/sorcerer-card.png",
+      "src/scene/assets/rituals/arcane_art.rs",
+      "tests/archetype_assets.rs",
+      "tests/scene_delve.rs"
+    ],
+    "remaining_byte_identical": 226
+  },
+  "original_study_pngs": "retained unchanged",
+  "production_png_repeat_hashes": "identical",
+  "output_sha256": {
+    "04-canonical-delve.png": "877f68130f0b40f222d3eb1910a846695ba6209523de45d48885c5d2997af507",
+    "02-production-rooms.png": "697ab9997c244b5c8d9b0c962ba13aee967a139be0733c5c34eeb479c8524291",
+    "05-native-and-fallback.png": "14a8237afc3c189096e73c931780d0ff16010a7860fadf72a7c1d3ed77620022",
+    "01-production-poses.png": "717858bcc6b2ef974f1ef9a03f200ee2ea0789daef29e0d108be7a0c9d3f6e4f",
+    "03-card-fallback.png": "f756636d24b31caa6b9f77b676959a2d2f306ad425b99d6027ecc857455efb58"
+  },
+  "native_card": {
+    "sha256": "590d08cb7741722d6c8d73ef5b82e8bd003cfefffd6c7068677000445012a101",
+    "dimensions": [
+      384,
+      512
+    ],
+    "mode": "RGBA",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "significant_alpha_bbox": [
+      28,
+      17,
+      370,
+      504
+    ],
+    "preparation": "Nearest-neighbour 3:4 normalization of selected built-in image_gen output; no crop or creative edits; alpha retained"
+  },
+  "canonical_delve_blake3": "c59fdc01df164dbbb9d02dcc6ccedddf8d45246266f837b6a7680ae58833dbd9",
+  "live_refresh": {
+    "pane_id": "w8:pY",
+    "previous_pid": 78790,
+    "new_pid": 97649,
+    "candidate_sha256": "cd66dcadfb53eeb1dfc811ef0690908ea13fd1020aa18ed88845d96d02504e12",
+    "owned_store_unchanged": true,
+    "comparison_scope": "After clean shutdown through relaunch",
+    "owned_matches_retained_revision_7": true,
+    "saved_personas_unchanged": true,
+    "synthetic_party_retained": true,
+    "ui_not_an_adventurer": true,
+    "selected": "dogfood-rest / Sorcerer / Resting",
+    "shared_server_restarted": false,
+    "native_appearance": "Pending human review"
+  },
+  "unperformed": [
+    "Native visual acceptance",
+    "Production animation approval",
+    "Commit",
+    "Publication"
+  ]
+}

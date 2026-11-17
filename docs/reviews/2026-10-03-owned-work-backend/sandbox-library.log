@@ -1,0 +1,132 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.94s
+     Running unittests src/lib.rs (target/debug/deps/questmancer-9d701e4cf7669200)
+
+running 57 tests
+test portrait::tests::every_class_has_an_embedded_native_portrait ... ok
+test portrait::tests::intermediary_capability_result_preserves_the_authored_sprite_fallback ... ok
+test portrait::transport::tests::an_empty_terminal_grid_cannot_get_invented_pixels ... ok
+test portrait::tests::no_two_classes_share_a_card_portrait ... ok
+test portrait::tests::invalid_png_data_cannot_displace_the_sprite_fallback ... ok
+test portrait::transport::tests::existing_pixels_require_no_socket_request_or_change ... ok
+test portrait::transport::tests::an_unresponsive_host_cannot_hold_up_startup_indefinitely ... FAILED
+test portrait::transport::tests::invalid_or_denied_graphics_responses_preserve_missing_pixels ... FAILED
+test portrait::transport::tests::only_missing_pixel_axes_are_completed ... ok
+test portrait::transport::tests::zero_or_overflowing_host_sizes_are_rejected ... ok
+test portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid ... FAILED
+test runtime_loop::tests::output_refresh_bursts_coalesce_without_blocking_counsel ... FAILED
+test runtime_loop::tests::disconnect_cancels_only_output_and_drops_its_pending_refresh ... FAILED
+test runtime_loop::tests::pane_headers_coalesce_in_order_and_shutdown_clears_the_whole_owned_set ... FAILED
+test runtime_loop::tests::shutdown_cancels_a_supervisor_blocked_on_a_saturated_update_channel ... ok
+test runtime_loop::tests::snapshot_cancellation_does_not_cancel_counsel_or_selected_output ... FAILED
+test runtime_loop::tests::resubscription_discards_the_old_channel_and_obtains_a_post_subscribe_baseline ... FAILED
+test runtime_loop::tests::shutdown_clears_last_published_marginalia ... FAILED
+test runtime_loop::tests::snapshot_scheduling_keeps_one_active_and_only_the_latest_pending_read ... FAILED
+test runtime_loop::tests::work_source_is_independent_of_herdr_updates_and_detaches_on_shutdown ... ok
+test scene::assets::tests::dungeon_floors_read_as_floors_against_their_walls ... ok
+test owned_work::store::tests::indeterminate_reconciliation_rejects_an_unrelated_replacement ... ok
+test owned_work::store::tests::indeterminate_reconciliation_rejects_even_an_identical_replacement_inode ... ok
+test scene::assets::adventurer::tests::persona_role_colours_are_unique_within_every_master_palette ... ok
+test scene::assets::tests::garb_and_cloth_masses_contrast_with_world_materials ... ok
+test scene::render::delve::tests::actual_opaque_foreground_paint_blocking_a_doorway_fails_validation ... ok
+test scene::assets::tests::the_selection_rune_colour_is_reserved_for_selection ... ok
+test scene::render::delve::tests::duplicate_background_owner_writes_are_rejected ... ok
+test scene::render::delve::tests::both_deterministic_rubble_variants_have_valid_final_compositions ... ok
+test owned_work::store::tests::restart_after_replacement_loss_reestablishes_durability_without_reapplying ... ok
+test owned_work::store::tests::before_replacement_failure_changes_no_records_and_retry_commits_once ... ok
+test scene::render::delve::tests::station_population_above_visible_capacity_uses_an_in_region_overflow_marker ... ok
+test owned_work::store::tests::after_replacement_loss_blocks_commands_then_recovers_the_same_receipt ... ok
+test scene::render::tests::authored_masters_share_the_station_foot_line ... ok
+test scene::stage::tests::forced_delve_maps_blocked_agents_to_the_sealed_gate ... ok
+test sources::herdr_projects::producer::tests::cancellation_and_expired_budget_do_not_start_a_filesystem_read ... ok
+test terminal::tests::moving_the_terminal_guard_does_not_duplicate_its_restore_action ... ok
+test terminal::tests::panic_restore_and_guard_drop_share_one_exactly_once_gate ... ok
+test terminal::tests::sequential_terminal_sessions_each_restore_once ... ok
+test terminal::tests::shutdown_observes_a_requested_signal ... ok
+test scene::render::delve::tests::dungeon_material_scatters_evenly_instead_of_drawing_lines ... ok
+test terminal::tests::terminal_guard_runs_its_restore_action_exactly_once_on_drop ... ok
+test ui::scene_overlays::tests::full_labels_pass_through_untouched ... ok
+test ui::scene_overlays::tests::lanes_too_narrow_for_a_name_fall_back_to_the_state_glyph ... ok
+test ui::scene_overlays::tests::truncation_shortens_the_name_and_never_the_state ... ok
+test ui::scene_overlays::tests::urgent_labels_keep_badge_and_elapsed_over_the_name ... ok
+test scene::render::delve::tests::duplicate_opaque_foreground_owner_writes_are_rejected ... ok
+test scene::render::delve::tests::exit_slots_keep_authored_masters_inside_the_world ... ok
+test scene::render::delve::tests::transparent_arch_pixels_do_not_block_the_floor_beneath_them ... ok
+test scene::render::delve::tests::unknown_station_is_ambient_only_while_active_station_has_a_local_pool ... ok
+test scene::render::delve::tests::final_architecture_painter_leaves_every_named_doorway_visually_open ... ok
+test terminal::tests::signal_shutdown_flushes_state_after_an_acknowledged_append ... ok
+test scene::render::delve::tests::maximum_station_parties_have_unique_bounded_sprite_anchors ... ok
+test portrait::tests::every_native_portrait_is_a_decodable_transparent_three_by_four_png ... ok
+test portrait::tests::native_class_portraits_take_priority_over_ancestry_portraits ... ok
+test portrait::tests::ancestry_portraits_are_reserved_and_never_selected_for_regular_adventurers ... ok
+test portrait::tests::native_picker_prepares_every_approved_asset_and_leaves_other_classes_unmapped ... ok
+
+failures:
+
+---- portrait::transport::tests::an_unresponsive_host_cannot_hold_up_startup_indefinitely stdout ----
+
+thread 'portrait::transport::tests::an_unresponsive_host_cannot_hold_up_startup_indefinitely' panicked at src/portrait/transport.rs:287:53:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+---- portrait::transport::tests::invalid_or_denied_graphics_responses_preserve_missing_pixels stdout ----
+
+thread 'portrait::transport::tests::invalid_or_denied_graphics_responses_preserve_missing_pixels' panicked at src/portrait/transport.rs:250:56:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid stdout ----
+
+thread 'portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid' panicked at src/portrait/transport.rs:121:52:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+---- runtime_loop::tests::output_refresh_bursts_coalesce_without_blocking_counsel stdout ----
+
+thread 'runtime_loop::tests::output_refresh_bursts_coalesce_without_blocking_counsel' panicked at src/runtime_loop.rs:1165:57:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+---- runtime_loop::tests::disconnect_cancels_only_output_and_drops_its_pending_refresh stdout ----
+
+thread 'runtime_loop::tests::disconnect_cancels_only_output_and_drops_its_pending_refresh' panicked at src/runtime_loop.rs:1232:57:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+---- runtime_loop::tests::pane_headers_coalesce_in_order_and_shutdown_clears_the_whole_owned_set stdout ----
+
+thread 'runtime_loop::tests::pane_headers_coalesce_in_order_and_shutdown_clears_the_whole_owned_set' panicked at src/runtime_loop.rs:908:52:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+---- runtime_loop::tests::snapshot_cancellation_does_not_cancel_counsel_or_selected_output stdout ----
+
+thread 'runtime_loop::tests::snapshot_cancellation_does_not_cancel_counsel_or_selected_output' panicked at src/runtime_loop.rs:1070:50:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+---- runtime_loop::tests::resubscription_discards_the_old_channel_and_obtains_a_post_subscribe_baseline stdout ----
+
+thread 'runtime_loop::tests::resubscription_discards_the_old_channel_and_obtains_a_post_subscribe_baseline' panicked at src/runtime_loop.rs:1122:50:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+---- runtime_loop::tests::shutdown_clears_last_published_marginalia stdout ----
+
+thread 'runtime_loop::tests::shutdown_clears_last_published_marginalia' panicked at src/runtime_loop.rs:1346:57:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+---- runtime_loop::tests::snapshot_scheduling_keeps_one_active_and_only_the_latest_pending_read stdout ----
+
+thread 'runtime_loop::tests::snapshot_scheduling_keeps_one_active_and_only_the_latest_pending_read' panicked at src/runtime_loop.rs:1036:50:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+
+failures:
+    portrait::transport::tests::an_unresponsive_host_cannot_hold_up_startup_indefinitely
+    portrait::transport::tests::invalid_or_denied_graphics_responses_preserve_missing_pixels
+    portrait::transport::tests::managed_pane_gets_missing_pixels_from_herdr_without_resizing_its_grid
+    runtime_loop::tests::disconnect_cancels_only_output_and_drops_its_pending_refresh
+    runtime_loop::tests::output_refresh_bursts_coalesce_without_blocking_counsel
+    runtime_loop::tests::pane_headers_coalesce_in_order_and_shutdown_clears_the_whole_owned_set
+    runtime_loop::tests::resubscription_discards_the_old_channel_and_obtains_a_post_subscribe_baseline
+    runtime_loop::tests::shutdown_clears_last_published_marginalia
+    runtime_loop::tests::snapshot_cancellation_does_not_cancel_counsel_or_selected_output
+    runtime_loop::tests::snapshot_scheduling_keeps_one_active_and_only_the_latest_pending_read
+
+test result: FAILED. 47 passed; 10 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
+error: test failed, to rerun pass `--lib`

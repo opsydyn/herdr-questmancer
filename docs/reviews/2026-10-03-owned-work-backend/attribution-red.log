@@ -1,0 +1,10 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0599]: no method named `decision_detail` found for reference `&OwnedState` in the current scope
+   --> tests/owned_work.rs:204:30
+    |
+204 |     assert_eq!(store.state().decision_detail(&ObligationId::new(&source, "decision")).unwrap().requested_by, "Alice");
+    |                              ^^^^^^^^^^^^^^^ method not found in `&OwnedState`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `questmancer` (test "owned_work") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

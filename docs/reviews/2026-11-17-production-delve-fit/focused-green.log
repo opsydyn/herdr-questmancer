@@ -1,0 +1,74 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.43s
+     Running tests/scene_delve.rs (target/debug/deps/scene_delve-24345dcdb9922799)
+
+running 15 tests
+test delve_has_its_indexed_environment_families_in_order ... ok
+test a_narrow_delve_recomposes_the_party_instead_of_cropping_it ... ok
+test delvers_at_one_station_never_overlap ... ok
+test saturated_delve_stations_use_a_complete_roster_even_in_a_large_pane ... ok
+test truthful_station_regions_intersect_their_authored_actors_and_exited_is_absent ... ok
+test the_unknown_treatment_drains_identity_without_draining_light ... ok
+test narrow_camera_keeps_the_priority_blocked_actor_and_sealed_gate_visible ... ok
+test no_motion_delve_is_byte_identical_across_fresh_completion_timestamps ... ok
+test reduced_and_still_delve_actors_have_no_invisible_cadence ... ok
+test minimum_viewport_is_a_camera_crop_of_the_same_canonical_dungeon ... ok
+test unknown_delvers_stay_legible_against_the_floor_they_stand_on ... ok
+test reconnecting_preserves_the_authored_dungeon_under_connection_light ... ok
+test unknown_dimming_preserves_transparent_sprite_pixels ... ok
+test every_authored_floor_pixel_doorway_and_named_region_is_connected ... ok
+test canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/scene_runtime.rs (target/debug/deps/scene_runtime-fa7cb60c34bbefba)
+
+running 2 tests
+test production_draw_uses_explicit_world_and_contextual_overlays ... ok
+test normal_binary_uses_the_interactive_scene_first_runtime ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/storybook.rs (target/debug/deps/storybook-8305fdd2f3236856)
+
+running 9 tests
+test owned_authoring_has_fixed_production_recovery_and_narrow_stories ... ok
+test catalogue_contains_every_production_scene_interaction_once ... ok
+test every_production_asset_has_exactly_one_owner_with_variant_stories_allowed ... ok
+test scrying_story_contains_settled_output_without_live_io ... ok
+test below_minimum_form_clears_scene_glyphs_behind_the_resize_message ... ok
+test narrow_answer_keeps_its_action_title_while_the_focused_field_scrolls ... ok
+test core_master_galleries_name_every_reviewed_archetype ... ok
+test every_production_story_renders_at_its_minimum_viewport ... ok
+test scene_inspection_reaches_small_production_layouts_while_asset_galleries_keep_their_minimum ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/storybook_fit.rs (target/debug/deps/storybook_fit-e41466df89e0f50a)
+
+running 6 tests
+test integer_fit_matches_literal_pane_geometry_and_rejects_invalid_axes ... ok
+test fitted_hall_has_explicit_storybook_fixtures_without_replacing_production_worlds ... ok
+test crowded_station_capacity_refuses_to_show_a_partial_party_as_a_complete_fit ... ok
+test delve_fit_stories_cover_native_and_crowded_dungeon_without_changing_source_facts ... ok
+test distributed_party_and_librarian_are_clickable_after_offset_and_resize ... ok
+test every_authored_source_pixel_survives_at_each_review_size ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/world_fit.rs (target/debug/deps/world_fit-74ade85e376992ce)
+
+running 10 tests
+test crowded_delve_refuses_native_fit_and_falls_back_to_the_complete_roster ... ok
+test production_fallback_retains_complete_crowded_parties_and_has_no_world_upload ... ok
+test production_clicks_reuse_existing_selection_and_ledger_actions ... ok
+test capability_geometry_and_tiny_panes_fall_back_without_forcing_a_protocol ... ok
+test scrying_parchment_suspends_the_delve_fit_then_resumes_without_changing_work ... ok
+test production_cache_and_overlay_view_fallback_transitions_release_only_owned_images ... ok
+test production_fit_uses_visible_cells_for_every_actor_and_librarian ... ok
+test delve_fit_preserves_every_source_pixel_and_visible_mouse_target ... ok
+test animated_fit_keeps_semantic_deadlines_and_reuses_identical_frames ... ok
+test every_parchment_and_ansi_preference_suspends_native_placeholders ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+

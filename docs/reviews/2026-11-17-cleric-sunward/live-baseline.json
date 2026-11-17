@@ -1,0 +1,13 @@
+{
+  "pane_id": "w8:pY",
+  "terminal_id": "term_660769b53dfe0f",
+  "old_pid": 97649,
+  "owned_sha256": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "personas_sha256": "040aa6edfc43cfc6dc2b404289443226a2f7cabe143bb3ab4a84f39693d90a4d",
+  "synthetic_states": {
+    "w8:pS": "working",
+    "w8:pT": "blocked",
+    "w8:pV": "idle",
+    "w8:pW": "unknown"
+  }
+}

@@ -119,6 +119,34 @@ async fn streams_coalesced_lifecycle_dotted_and_unknown_events() {
 }
 
 #[tokio::test]
+async fn preserves_lost_event_history_as_a_server_error() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let request = read_request(&mut stream).await;
+        write_lines(
+            &mut stream,
+            &[
+                json!({"id": request["id"], "result": {"type": "subscription_started"}}),
+                json!({"id": request["id"], "error": {"code": "events_lost", "message": "event subscription fell behind retained history; resubscribe and resync with session.snapshot"}}),
+            ],
+        )
+        .await;
+    });
+    let mut subscription =
+        HerdrSubscription::connect(path, SubscriptionRequest::for_snapshot(&snapshot()))
+            .await
+            .unwrap();
+    let result = subscription.next_event().await;
+    assert!(
+        matches!(&result, Err(ClientError::Server { code, message })
+            if code == "events_lost" && message.contains("resubscribe")),
+        "lost history must retain the server's recovery diagnostic: {result:?}"
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn preserves_an_error_ack() {
     let (_directory, path, listener) = listener();
     let server = tokio::spawn(async move {

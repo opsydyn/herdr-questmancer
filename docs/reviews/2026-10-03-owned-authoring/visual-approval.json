@@ -1,0 +1,26 @@
+{
+  "recorded_at_utc": "2026-10-03T22:11:45.602233+00:00",
+  "user_message": "Approved",
+  "scope": "L1b production fixture form presentation",
+  "approved_images_sha256": {
+    "visuals/actions.png": "b9dcae2a9b85a25f5562264feccbdd45658835c4f0957e87368ae32153a85e4d",
+    "visuals/answer-narrow-editing.png": "6158f6d6fdc8c390c25a354f8af304c9d744b2fdb775b8cbb98d5fee1b91f16c",
+    "visuals/answer-narrow.png": "732aedff62eaad0d91fa0de9a1659b55b23ef39a531e2c7104e34f956716522c",
+    "visuals/answer.png": "81c6363fc3e6a7d9a1a86e05095106e19aba188b9688a5f05f568133ee48f3bc",
+    "visuals/answered.png": "c7d2cc08a84704fa87b6bac5d2e3b81d150ace17fb6fd21eae5b02a750252d66",
+    "visuals/below-minimum.png": "42c9f31e484bf7c909a2b529873a510d9493cf20bebc4b6b7b5ab65ae347bde3",
+    "visuals/empty-campaign.png": "e698ea466e11d3781a167da52e76d59ea396aca73dd7536b61a8c5ccb240a6f7",
+    "visuals/indeterminate.png": "d3be84092957f2db491ed7ce1709671f26acd993010a48bcdf631cc731dc541f",
+    "visuals/view-pending.png": "41daf615218e7824038d7d607593683b2e09612217444ec2667380196a2a7b39"
+  },
+  "qualification_receipt_sha256": "4e7379f552c41a1168efce8b8683ce2a952ff2209e9c78ad9f763aef790e2277",
+  "qualified_source_files_confirmed": 222,
+  "qualified_visual_files_confirmed": 18,
+  "qualified_logs_confirmed": 14,
+  "candidate_binary": {
+    "path": "target/release/questmancer",
+    "sha256": "c854f28dfd44c96374c4ea59c876b8668a02673facba512df2662051fe08b404"
+  },
+  "native_acceptance": "unperformed; Computer Use denies Ghostty access",
+  "installation_commit_release": "not authorised by this visual approval"
+}

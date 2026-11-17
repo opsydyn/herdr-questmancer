@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-17",
+  "scope": "Approved Keeper world art and matching independent Ledger fallback",
+  "full_gate": {
+    "rust_tests": 793,
+    "rust_runs": 64,
+    "shell_tests": 28,
+    "format": 0,
+    "clippy_denied_warnings": 0,
+    "script_syntax": 0
+  },
+  "affected_suites": {
+    "tests": 84,
+    "runs": 5
+  },
+  "librarian_asset_tests": 6,
+  "release_build": 0,
+  "candidate_sha256": "341432c415ff0d97e209685984a75c6736c36f5c68973dabc977d88c3f9f0d5a",
+  "static_accessors_byte_identical": true,
+  "source_baseline": {
+    "files": 229,
+    "changed": [
+      "src/scene/assets/librarian.rs",
+      "tests/librarian_assets.rs"
+    ],
+    "remaining_byte_identical": 227,
+    "new_fixture": "tests/fixtures/art/librarian-keeper-master.json"
+  },
+  "native_png_unchanged": true,
+  "original_study_images_preserved": true,
+  "production_image_regeneration_identical": true,
+  "output_sha256": {
+    "01-librarian-proportions.png": "cd5cfd85d2bced7d91e22793016feadd811d929ed8c3fd26178f4ead22fc8fa1",
+    "02-librarian-context.png": "a87cfc97350370cd9bf0967d05c12ad47371117b97236e70a9e3cc41ef1c29db"
+  },
+  "live_refresh": {
+    "pane_id": "w8:pY",
+    "previous_pid": 60816,
+    "new_pid": 78790,
+    "candidate_sha256": "341432c415ff0d97e209685984a75c6736c36f5c68973dabc977d88c3f9f0d5a",
+    "owned_revision": 7,
+    "owned_store_unchanged": true,
+    "saved_personas_unchanged": true,
+    "synthetic_party_retained": true,
+    "ui_not_an_adventurer": true,
+    "shared_server_restarted": false,
+    "native_appearance": "Pending human review; runtime refresh checked only"
+  },
+  "visual_status": "B world direction approved; production fallback/native review pending",
+  "committed": false,
+  "published": false
+}

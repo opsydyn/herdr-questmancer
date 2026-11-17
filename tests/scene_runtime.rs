@@ -13,7 +13,7 @@ fn normal_binary_uses_the_interactive_scene_first_runtime() {
     let terminal = fs::read_to_string(root().join("src/terminal.rs")).unwrap();
     assert!(terminal.contains("draw_scene_application"));
     assert!(!terminal.contains("RenderExperience::Legacy"));
-    assert!(terminal.contains("ui::input::action_for_scene_event_in"));
+    assert!(terminal.contains("world_fit.action_for_event"));
     assert!(terminal.contains("reduce_scene_action"));
     assert!(terminal.contains("dispatch_action_effects"));
 }
@@ -21,6 +21,10 @@ fn normal_binary_uses_the_interactive_scene_first_runtime() {
 #[test]
 fn production_draw_uses_explicit_world_and_contextual_overlays() {
     let terminal = fs::read_to_string(root().join("src/terminal.rs")).unwrap();
+    assert!(terminal.contains("render_application"));
+    assert!(terminal.contains("WorldFit::from_picker"));
+    let adapter = fs::read_to_string(root().join("src/ui/world_fit.rs")).unwrap();
+    assert!(!adapter.contains("crate::storybook"));
     for required in [
         "ScenePresentation::from_model",
         "render_scene_for_world",
@@ -29,7 +33,7 @@ fn production_draw_uses_explicit_world_and_contextual_overlays() {
         "render_scene_overlays",
     ] {
         assert!(
-            terminal.contains(required),
+            adapter.contains(required),
             "production draw lacks {required}"
         );
     }

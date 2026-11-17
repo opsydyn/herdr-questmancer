@@ -1,0 +1,25 @@
+                                                                                                                                                                                              ❖ Apprentice · 70 xp
+                                                                                                                                    ┌──────────────────────────────── ADVENTURER ────────────────────────────────┐
+                                                                                                                                    │                           Alder Copperkettle                               │
+                                                                                                                                    │                           Halfling Sorcerer · Mender of Tests              │
+                                                                                                                                    │                           Crest: = Umber bars                              │
+                                                                                                                                    │                           Agent: dogfood-rest                              │
+                                                                                                                                    │                           Campaign: herdr-web-master                       │
+                                                                                                                                    │                           Resting · 0s                                     │
+                                                                                                                                    │                           No current field report.                         │
+                                                                                                                                    │                                                                            │
+                                                                                                                                    │                                                                            │
+                                                                                                                                    │                                                                            │
+                                                                                                                                    │                                                                            │
+                                                                                                                                    │                                     Keepsake: Tiny Familiar                │
+                                                                                                                                    │                                     Offers advice in very small squeaks.   │
+                                                                                                                                    │                                                                            │
+                                                                                                                                    │                                                                            │
+                                                                                                                                    │                           Esc close · Enter observe · r counsel · o scry   │
+                                                                                                                                    └────────────────────────────────────────────────────────────────────────────┘
+                                                                                                                                         dogfood-review · ! NEEDS COUNSEL 0s
+                                                              dogfood… · ? UNKNOWN
+                                               codex · WORKING
+                                                                                                                                                                     dogfood-rest · RESTING 0s
+                                                                                 dogfood-f… · WORKING
+Chronicle observations withheld for 4 adventurer(s) without unambiguous session identity

@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.65s
+     Running tests/storybook.rs (target/debug/deps/storybook-ea0efe9762ab1444)
+
+running 1 test
+test below_minimum_form_clears_scene_glyphs_behind_the_resize_message ... FAILED
+
+failures:
+
+---- below_minimum_form_clears_scene_glyphs_behind_the_resize_message stdout ----
+
+thread 'below_minimum_form_clears_scene_glyphs_behind_the_resize_message' panicked at tests/storybook.rs:234:5:
+scene glyphs leak into the status-only resize surface
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    below_minimum_form_clears_scene_glyphs_behind_the_resize_message
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test storybook`

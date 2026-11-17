@@ -19,7 +19,22 @@ fn detail_width(width: u16) -> u16 {
     if w >= 72 { w.saturating_sub(32) } else { w }
 }
 pub fn wrapped_details(model: &Model, width: u16) -> Vec<String> {
-    wrap_text(&view::details(model).join("\n"), detail_width(width))
+    let mut details = view::details(model);
+    if let Some(crate::work::WorkSelection::Obligation(id)) = model.work_selection()
+        && let Some(d) = model.authoring().detail.as_ref().filter(|d| {
+            &d.id == id
+                && model
+                    .authoring()
+                    .metadata
+                    .as_ref()
+                    .is_some_and(|m| m.revision == d.revision)
+        })
+        && let Some(answer) = &d.answer
+    {
+        details.push(format!("Answer: {}", answer.text));
+        details.push(format!("Answered by: {} at {:?}", answer.actor, answer.at));
+    }
+    wrap_text(&details.join("\n"), detail_width(width))
 }
 pub(crate) fn wrap_text(text: &str, width: u16) -> Vec<String> {
     let width = usize::from(width.max(1));
@@ -85,6 +100,10 @@ fn inventory_rows(model: &Model, height: u16) -> String {
 }
 
 pub fn render(frame: &mut Frame<'_>, model: &Model) {
+    if model.modal() == &crate::app::Modal::OwnedAuthoring {
+        crate::ui::owned_authoring::render(frame, model);
+        return;
+    }
     let viewport = frame.area();
     if viewport.width < 8 || viewport.height < 6 {
         frame.render_widget(Paragraph::new("Quest Board").style(PARCHMENT), viewport);
@@ -117,12 +136,28 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
         Rect::new(inner.x, inner.y, inner.width, 1),
     );
     let footer_height = if inner.width < 72 { 4 } else { 2 }.min(inner.height.saturating_sub(1));
-    let body = Rect::new(
+    let mut body = Rect::new(
         inner.x,
         inner.y + 1,
         inner.width,
         inner.height.saturating_sub(footer_height + 1),
     );
+    if model.authoring().busy() {
+        let label = format!(
+            "Owned work: {} (a: result)",
+            model.authoring().phase.label()
+        );
+        let lines = wrap_text(&label, body.width);
+        let h = u16::try_from(lines.len())
+            .unwrap_or(u16::MAX)
+            .min(body.height);
+        frame.render_widget(
+            Paragraph::new(lines.join("\n")).style(PARCHMENT_BORDER),
+            Rect::new(body.x, body.y, body.width, h),
+        );
+        body.y = body.y.saturating_add(h);
+        body.height = body.height.saturating_sub(h);
+    }
     let details = if inner.width >= 72 {
         let list = Rect::new(body.x, body.y, 30, body.height);
         let rows = inventory_rows(model, body.height);
@@ -146,9 +181,9 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
         details,
     );
     let footer = if inner.width < 72 {
-        "j/k: work  Up/Down: read\n!: next summons\nSpace: seen  s: defer 15m\nEnter: observe  Esc: close"
+        "j/k: work  Up/Down: read\n!: next summons  a: actions\nSpace: seen  s: defer 15m\nEnter: observe  Esc: close"
     } else {
-        "j/k or Tab: work   Up/Down: read   !: next summons\nSpace: seen   s: defer 15m   Enter: observe verified pane   Esc: close"
+        "j/k or Tab: work   Up/Down: read   !: next summons   a: actions\nSpace: seen   s: defer 15m   Enter: observe verified pane   Esc: close"
     };
     frame.render_widget(
         Paragraph::new(footer)

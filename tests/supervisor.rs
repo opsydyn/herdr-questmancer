@@ -198,6 +198,58 @@ fn capture_with_status(status: &str, revision: u64) -> Value {
     response
 }
 
+#[tokio::test]
+async fn herdr_094_connects_and_lost_events_require_a_new_authoritative_baseline() {
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        accept_request(&listener, "ping", fixture("0.9.4/pong.json")).await;
+        accept_request(
+            &listener,
+            "session.snapshot",
+            fixture("0.9.4/session_snapshot.json"),
+        )
+        .await;
+        let mut subscription =
+            accept_baseline_subscription(&listener, fixture("0.9.4/session_snapshot.json")).await;
+        write_lines(&mut subscription, &[json!({
+            "id": "questmancer-subscription",
+            "error": {"code": "events_lost", "message": "resubscribe and resync with session.snapshot"}
+        })]).await;
+        let mut baseline = fixture("0.9.4/session_snapshot.json");
+        for collection in ["panes", "agents"] {
+            baseline["result"]["snapshot"][collection][0]["agent_status"] = json!("blocked");
+            baseline["result"]["snapshot"][collection][0]["revision"] = json!(2);
+        }
+        accept_request(&listener, "ping", fixture("0.9.4/pong.json")).await;
+        accept_request(&listener, "session.snapshot", baseline.clone()).await;
+        let _subscription = accept_baseline_subscription(&listener, baseline).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    });
+    let (tx, mut rx) = mpsc::channel(8);
+    let (stop, shutdown) = watch::channel(false);
+    let supervisor = tokio::spawn(test_supervisor(path).run(tx, shutdown));
+    assert!(
+        matches!(next_update(&mut rx).await, ConnectionUpdate::Connected(snapshot)
+        if snapshot.version == "0.9.4" && snapshot.protocol == 22)
+    );
+    assert!(
+        matches!(next_update(&mut rx).await, ConnectionUpdate::Disconnected(message)
+        if message.contains("events_lost"))
+    );
+    assert!(matches!(
+        next_update(&mut rx).await,
+        ConnectionUpdate::Reconnecting { .. }
+    ));
+    assert!(
+        matches!(next_update(&mut rx).await, ConnectionUpdate::Connected(snapshot)
+        if snapshot.agents[0].agent_status == questmancer::herdr::protocol::AgentStatus::Blocked
+            && snapshot.agents[0].revision == 2)
+    );
+    stop.send(true).unwrap();
+    supervisor.await.unwrap();
+    server.abort();
+}
+
 async fn discover_and_subscribe(listener: &UnixListener, snapshot: Value) -> UnixStream {
     accept_request(listener, "ping", fixture("0.9.0/pong.json")).await;
     accept_request(listener, "session.snapshot", snapshot).await;

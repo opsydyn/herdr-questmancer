@@ -1,0 +1,495 @@
+{
+  "case": "/tmp/qm094-b3ig2tce",
+  "owned_server_pid": 54130,
+  "candidate_version": "0.1.10",
+  "binary_sha256": "3e8573aff8c715eb9fd6048adf8a49e3b7f53d43c1938b47d7a0dedd46e438e9",
+  "panes": [
+    {
+      "pane_id": "w1:p1",
+      "workspace_id": "w1",
+      "source": "questmancer-rc-0",
+      "agent": "review-0",
+      "state": "working",
+      "projected_tokens": {
+        "quest_sigil": "\u2316",
+        "quest_rank": "3",
+        "quest_role": "Dwarf Pathseeker",
+        "quest_trinket": "\u2756 Tiny Familiar",
+        "quest_omen": "on expedition",
+        "quest_condition": "Concentrating",
+        "quest_epithet": "Cartographer of Call Stacks",
+        "quest_hoard": "\u25c8 empty"
+      },
+      "identity_released": true,
+      "pane_closed": true
+    },
+    {
+      "pane_id": "w2:p1",
+      "workspace_id": "w2",
+      "source": "questmancer-rc-1",
+      "agent": "review-1",
+      "state": "blocked",
+      "projected_tokens": {
+        "quest_vigil": "\u25cf\u25cb\u25cb\u25cb\u25cb\u25cb",
+        "quest_sigil": "\u2316",
+        "quest_rank": "0",
+        "quest_epithet": "Breaker of Builds",
+        "quest_role": "Human Pathseeker",
+        "quest_omen": "seeks counsel",
+        "quest_condition": "Restrained",
+        "quest_trinket": "\u2756 Tiny Familiar",
+        "quest_hoard": "\u25c8 empty"
+      },
+      "identity_released": true,
+      "pane_closed": true
+    },
+    {
+      "pane_id": "w3:p1",
+      "workspace_id": "w3",
+      "source": "questmancer-rc-2",
+      "agent": "review-2",
+      "state": "idle",
+      "projected_tokens": {
+        "quest_hoard": "\u25c8 empty",
+        "quest_epithet": "Delver of Forgotten Modules",
+        "quest_rank": "3",
+        "quest_sigil": "\u2620",
+        "quest_condition": "Resting",
+        "quest_omen": "at the hearth",
+        "quest_role": "Elf Mage",
+        "quest_trinket": "\u2756 Lucky Coin"
+      },
+      "identity_released": true,
+      "pane_closed": true
+    },
+    {
+      "pane_id": "w4:p1",
+      "workspace_id": "w4",
+      "source": "questmancer-rc-3",
+      "agent": "review-3",
+      "state": "unknown",
+      "projected_tokens": {
+        "quest_condition": "Blinded",
+        "quest_rank": "3",
+        "quest_omen": "whereabouts unknown",
+        "quest_role": "Gnome Wizard",
+        "quest_epithet": "Keeper of Schemas",
+        "quest_hoard": "\u25c8 empty",
+        "quest_trinket": "\u2756 Tiny Familiar",
+        "quest_sigil": "\u2727"
+      },
+      "identity_released": true,
+      "pane_closed": true
+    }
+  ],
+  "actions": [
+    {
+      "action": "open",
+      "response": {
+        "id": "cli:plugin",
+        "result": {
+          "action": {
+            "action_id": "open",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "open"
+            ],
+            "contexts": [
+              "pane",
+              "workspace"
+            ],
+            "platforms": [
+              "macos",
+              "linux"
+            ],
+            "plugin_id": "opsydyn.questmancer",
+            "title": "Questmancer: open"
+          },
+          "context": {
+            "correlation_id": "cli:plugin",
+            "focused_pane_agent": "review-0",
+            "focused_pane_cwd": "/private/tmp/qm094-b3ig2tce",
+            "focused_pane_id": "w1:p1",
+            "focused_pane_status": "working",
+            "invocation_source": "cli",
+            "tab_id": "w1:t1",
+            "tab_label": "1",
+            "workspace_cwd": "/private/tmp/qm094-b3ig2tce",
+            "workspace_id": "w1",
+            "workspace_label": "Review campaign 1"
+          },
+          "log": {
+            "action_id": "open",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "open"
+            ],
+            "log_id": "plugin-log-1",
+            "plugin_id": "opsydyn.questmancer",
+            "started_unix_ms": 1792066176586,
+            "status": "running"
+          },
+          "type": "plugin_action_invoked"
+        }
+      }
+    },
+    {
+      "action": "open",
+      "response": {
+        "id": "cli:plugin",
+        "result": {
+          "action": {
+            "action_id": "open",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "open"
+            ],
+            "contexts": [
+              "pane",
+              "workspace"
+            ],
+            "platforms": [
+              "macos",
+              "linux"
+            ],
+            "plugin_id": "opsydyn.questmancer",
+            "title": "Questmancer: open"
+          },
+          "context": {
+            "correlation_id": "cli:plugin",
+            "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "focused_pane_id": "w1:p2",
+            "focused_pane_status": "unknown",
+            "invocation_source": "cli",
+            "tab_id": "w1:t2",
+            "tab_label": "2",
+            "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "workspace_id": "w1",
+            "workspace_label": "Review campaign 1"
+          },
+          "log": {
+            "action_id": "open",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "open"
+            ],
+            "log_id": "plugin-log-2",
+            "plugin_id": "opsydyn.questmancer",
+            "started_unix_ms": 1792066176915,
+            "status": "running"
+          },
+          "type": "plugin_action_invoked"
+        }
+      }
+    },
+    {
+      "action": "guild",
+      "response": {
+        "id": "cli:plugin",
+        "result": {
+          "action": {
+            "action_id": "guild",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "guild"
+            ],
+            "contexts": [
+              "pane",
+              "workspace"
+            ],
+            "platforms": [
+              "macos",
+              "linux"
+            ],
+            "plugin_id": "opsydyn.questmancer",
+            "title": "Questmancer: enter the Guild Hall"
+          },
+          "context": {
+            "correlation_id": "cli:plugin",
+            "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "focused_pane_id": "w1:p2",
+            "focused_pane_status": "unknown",
+            "invocation_source": "cli",
+            "tab_id": "w1:t2",
+            "tab_label": "2",
+            "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "workspace_id": "w1",
+            "workspace_label": "Review campaign 1"
+          },
+          "log": {
+            "action_id": "guild",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "guild"
+            ],
+            "log_id": "plugin-log-3",
+            "plugin_id": "opsydyn.questmancer",
+            "started_unix_ms": 1792066177029,
+            "status": "running"
+          },
+          "type": "plugin_action_invoked"
+        }
+      }
+    },
+    {
+      "action": "delve",
+      "response": {
+        "id": "cli:plugin",
+        "result": {
+          "action": {
+            "action_id": "delve",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "delve"
+            ],
+            "contexts": [
+              "pane",
+              "workspace"
+            ],
+            "platforms": [
+              "macos",
+              "linux"
+            ],
+            "plugin_id": "opsydyn.questmancer",
+            "title": "Questmancer: enter the Delve"
+          },
+          "context": {
+            "correlation_id": "cli:plugin",
+            "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "focused_pane_id": "w1:p2",
+            "focused_pane_status": "unknown",
+            "invocation_source": "cli",
+            "tab_id": "w1:t2",
+            "tab_label": "2",
+            "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "workspace_id": "w1",
+            "workspace_label": "Review campaign 1"
+          },
+          "log": {
+            "action_id": "delve",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "delve"
+            ],
+            "log_id": "plugin-log-4",
+            "plugin_id": "opsydyn.questmancer",
+            "started_unix_ms": 1792066177034,
+            "status": "running"
+          },
+          "type": "plugin_action_invoked"
+        }
+      }
+    },
+    {
+      "action": "guild",
+      "response": {
+        "id": "cli:plugin",
+        "result": {
+          "action": {
+            "action_id": "guild",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "guild"
+            ],
+            "contexts": [
+              "pane",
+              "workspace"
+            ],
+            "platforms": [
+              "macos",
+              "linux"
+            ],
+            "plugin_id": "opsydyn.questmancer",
+            "title": "Questmancer: enter the Guild Hall"
+          },
+          "context": {
+            "correlation_id": "cli:plugin",
+            "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "focused_pane_id": "w1:p2",
+            "focused_pane_status": "unknown",
+            "invocation_source": "cli",
+            "tab_id": "w1:t2",
+            "tab_label": "2",
+            "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "workspace_id": "w1",
+            "workspace_label": "Review campaign 1"
+          },
+          "log": {
+            "action_id": "guild",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "guild"
+            ],
+            "log_id": "plugin-log-5",
+            "plugin_id": "opsydyn.questmancer",
+            "started_unix_ms": 1792066177041,
+            "status": "running"
+          },
+          "type": "plugin_action_invoked"
+        }
+      }
+    },
+    {
+      "action": "close",
+      "response": {
+        "id": "cli:plugin",
+        "result": {
+          "action": {
+            "action_id": "close",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "close"
+            ],
+            "contexts": [
+              "pane",
+              "workspace"
+            ],
+            "platforms": [
+              "macos",
+              "linux"
+            ],
+            "plugin_id": "opsydyn.questmancer",
+            "title": "Questmancer: close"
+          },
+          "context": {
+            "correlation_id": "cli:plugin",
+            "focused_pane_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "focused_pane_id": "w1:p2",
+            "focused_pane_status": "unknown",
+            "invocation_source": "cli",
+            "tab_id": "w1:t2",
+            "tab_label": "2",
+            "workspace_cwd": "/Users/alancurrie/Projects/herdr-web-master",
+            "workspace_id": "w1",
+            "workspace_label": "Review campaign 1"
+          },
+          "log": {
+            "action_id": "close",
+            "command": [
+              "bash",
+              "herdr/control.sh",
+              "close"
+            ],
+            "log_id": "plugin-log-6",
+            "plugin_id": "opsydyn.questmancer",
+            "started_unix_ms": 1792066177266,
+            "status": "running"
+          },
+          "type": "plugin_action_invoked"
+        }
+      }
+    }
+  ],
+  "native_visual_acceptance": "not exercised",
+  "cleanup_errors": [],
+  "herdr_version": "0.9.5",
+  "herdr_protocol": 22,
+  "herdr_sha256": "fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2",
+  "managed_pane": "w1:p2",
+  "runtime_command": "/Users/alancurrie/Projects/herdr-web-master/target/release/questmancer ui",
+  "runtime_checks": "passed",
+  "plugin_logs": {
+    "id": "cli:plugin",
+    "result": {
+      "logs": [
+        {
+          "action_id": "open",
+          "command": [
+            "bash",
+            "herdr/control.sh",
+            "open"
+          ],
+          "exit_code": 0,
+          "finished_unix_ms": 1792066176623,
+          "log_id": "plugin-log-1",
+          "plugin_id": "opsydyn.questmancer",
+          "started_unix_ms": 1792066176586,
+          "status": "succeeded",
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "action_id": "open",
+          "command": [
+            "bash",
+            "herdr/control.sh",
+            "open"
+          ],
+          "exit_code": 0,
+          "finished_unix_ms": 1792066176940,
+          "log_id": "plugin-log-2",
+          "plugin_id": "opsydyn.questmancer",
+          "started_unix_ms": 1792066176915,
+          "status": "succeeded",
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "action_id": "guild",
+          "command": [
+            "bash",
+            "herdr/control.sh",
+            "guild"
+          ],
+          "exit_code": 0,
+          "finished_unix_ms": 1792066177059,
+          "log_id": "plugin-log-3",
+          "plugin_id": "opsydyn.questmancer",
+          "started_unix_ms": 1792066177029,
+          "status": "succeeded",
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "action_id": "delve",
+          "command": [
+            "bash",
+            "herdr/control.sh",
+            "delve"
+          ],
+          "exit_code": 0,
+          "finished_unix_ms": 1792066177122,
+          "log_id": "plugin-log-4",
+          "plugin_id": "opsydyn.questmancer",
+          "started_unix_ms": 1792066177034,
+          "status": "succeeded",
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "action_id": "guild",
+          "command": [
+            "bash",
+            "herdr/control.sh",
+            "guild"
+          ],
+          "exit_code": 0,
+          "finished_unix_ms": 1792066177185,
+          "log_id": "plugin-log-5",
+          "plugin_id": "opsydyn.questmancer",
+          "started_unix_ms": 1792066177041,
+          "status": "succeeded",
+          "stderr": "",
+          "stdout": ""
+        }
+      ],
+      "type": "plugin_log_list"
+    }
+  },
+  "managed_pane_closed": true,
+  "owned_focus_restored": true,
+  "test_link_removed": true,
+  "server_exit_code": 0,
+  "socket_removed": true
+}

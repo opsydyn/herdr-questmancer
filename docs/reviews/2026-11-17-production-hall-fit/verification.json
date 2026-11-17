@@ -1,0 +1,16 @@
+{
+  "scope": "Approved production Guild Hall adapter; local unreleased dirty checkout",
+  "head": "9c52761",
+  "rust_tests": 815,
+  "rust_test_runs": 66,
+  "shell_tests": 28,
+  "format": true,
+  "clippy_deny_warnings": true,
+  "shell_syntax": true,
+  "release_build": true,
+  "git_diff_check": true,
+  "binary_sha256": "4fd035336cf17fd19fee0968ec9c344c5575065e78b072c6d303ccb7ecef0682",
+  "native_visual_acceptance": "unreviewed",
+  "party": "retained open",
+  "commit_push_publish": false
+}

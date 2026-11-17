@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.47s
+     Running tests/storybook_fit.rs (target/debug/deps/storybook_fit-e41466df89e0f50a)
+
+running 1 test
+test delve_fit_stories_cover_native_and_crowded_dungeon_without_changing_source_facts ... FAILED
+
+failures:
+
+---- delve_fit_stories_cover_native_and_crowded_dungeon_without_changing_source_facts stdout ----
+
+thread 'delve_fit_stories_cover_native_and_crowded_dungeon_without_changing_source_facts' panicked at tests/storybook_fit.rs:134:63:
+missing Delve fit story
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    delve_fit_stories_cover_native_and_crowded_dungeon_without_changing_source_facts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test storybook_fit`

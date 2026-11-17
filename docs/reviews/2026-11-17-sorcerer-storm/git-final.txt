@@ -1,0 +1,89 @@
+## main...origin/main [ahead 8]
+ M AGENTS.md
+ M PLAN.md
+ M README.md
+ M docs/design/questmancer-living-control-plane.md
+ M docs/design/questmancer-sprite-art-direction.md
+ M docs/manual-test/herdr-projects-inventory.md
+ M docs/manual-test/questmancer-scene-preview.md
+ M docs/plans/2026-09-27-living-control-plane-roadmap.md
+ M docs/plans/2026-09-30-herdr-projects-acceptance.md
+ M docs/plans/2026-09-30-herdr-projects-adapter.md
+ M docs/plans/2026-09-30-herdr-projects-writer-fixtures.md
+ M docs/troubleshooting/native-portrait-rendering.md
+ M herdr-plugin.toml
+ M justfile
+ M src/app.rs
+ M src/assets/portraits/sorcerer-card.png
+ M src/herdr/client.rs
+ M src/herdr/protocol.rs
+ M src/herdr/subscription.rs
+ M src/interaction.rs
+ M src/ledger.rs
+ M src/lib.rs
+ M src/persistence/atomic_json.rs
+ M src/persistence/mod.rs
+ M src/persistence/startup.rs
+ M src/persistence/state.rs
+ M src/persistence/strict_json.rs
+ M src/persistence/worker.rs
+ M src/portrait.rs
+ D src/portrait/transport.rs
+ M src/scene/assets/librarian.rs
+ M src/scene/assets/rituals/arcane_art.rs
+ M src/scene/assets/rituals/support_art.rs
+ M src/scene/presentation.rs
+ M src/sources/mod.rs
+ M src/storybook/catalogue.rs
+ M src/storybook/fixtures.rs
+ M src/terminal.rs
+ M src/ui/input.rs
+ M src/ui/keymap.rs
+ M src/ui/mod.rs
+ M src/ui/work_board.rs
+ M tests/archetype_assets.rs
+ M tests/atomic_state.rs
+ M tests/client.rs
+ M tests/keymap.rs
+ M tests/librarian_assets.rs
+ M tests/persisted_state.rs
+ M tests/persistence_worker.rs
+ M tests/protocol.rs
+ M tests/scene_delve.rs
+ M tests/scene_snapshot.rs
+ M tests/startup.rs
+ M tests/storybook.rs
+ M tests/subscription.rs
+ M tests/supervisor.rs
+ M tests/support/strategies.rs
+ M tests/workflow_contract.rb
+?? .node-version
+?? docs/design/questmancer-owned-authoring.md
+?? docs/design/questmancer-owned-work.md
+?? docs/design/reviews/2026-11-17-druid-study/
+?? docs/design/reviews/2026-11-17-librarian-study/
+?? docs/design/reviews/2026-11-17-sorcerer-storm-study/
+?? docs/manual-test/owned-work-authoring.md
+?? docs/plans/2026-10-01-owned-work.md
+?? docs/plans/2026-10-03-owned-authoring-native.md
+?? docs/plans/2026-10-03-owned-authoring.md
+?? docs/plans/2026-11-16-tokenmaxx-workshop.md
+?? docs/reviews/2026-10-01-owned-work-plan/
+?? docs/reviews/2026-10-03-owned-authoring-native/
+?? docs/reviews/2026-10-03-owned-authoring-plan/
+?? docs/reviews/2026-10-03-owned-authoring/
+?? docs/reviews/2026-10-03-owned-work-backend/
+?? docs/reviews/2026-10-14-herdr-094/
+?? docs/reviews/2026-10-15-herdr-upgrade/
+?? docs/reviews/2026-11-16-native-capabilities/
+?? docs/reviews/2026-11-17-druid-bramble/
+?? docs/reviews/2026-11-17-librarian-keeper/
+?? docs/reviews/2026-11-17-sorcerer-storm/
+?? docs/reviews/2026-11-17-synthetic-dogfood/
+?? src/owned_work/
+?? src/sources/local_work.rs
+?? src/ui/owned_authoring.rs
+?? tests/fixtures/art/
+?? tests/fixtures/herdr/0.9.4/
+?? tests/owned_authoring.rs
+?? tests/owned_work.rs

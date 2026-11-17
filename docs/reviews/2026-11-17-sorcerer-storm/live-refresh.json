@@ -1,0 +1,15 @@
+{
+  "pane_id": "w8:pY",
+  "previous_pid": 78790,
+  "new_pid": 97649,
+  "candidate_sha256": "cd66dcadfb53eeb1dfc811ef0690908ea13fd1020aa18ed88845d96d02504e12",
+  "owned_store_unchanged": true,
+  "comparison_scope": "After clean shutdown through relaunch",
+  "owned_matches_retained_revision_7": true,
+  "saved_personas_unchanged": true,
+  "synthetic_party_retained": true,
+  "ui_not_an_adventurer": true,
+  "selected": "dogfood-rest / Sorcerer / Resting",
+  "shared_server_restarted": false,
+  "native_appearance": "Pending human review"
+}

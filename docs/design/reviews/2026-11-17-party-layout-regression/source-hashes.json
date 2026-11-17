@@ -1,0 +1,11 @@
+{
+  "src/scene/fit.rs": "c825b22afb0477c92d2d58ee49df2a955d691e3abb88a5e18dc6854b912436f7",
+  "src/scene/render/guild_hall.rs": "e15c0903eb8ab7f0f113aceda3ac6de7c870fff7eb65d4bb44f07172008aef36",
+  "src/scene/render/delve.rs": "420ba19f05848916dda165e62120dab922a0cabd393f154d52a3ab337a2ddf4e",
+  "src/ui/world_fit.rs": "8b4fdfb465f38e9749f64ad176bf8b756ae2796ddf722ec8a6e9cb72275d1200",
+  "tests/world_fit.rs": "f93406d4546443a7bb1892b5a4b45ac0ba7fb81f0b89128be40edaac71e318e4",
+  "tests/scene_guild_hall.rs": "8e1909710e86bc911b6ea1dd6706d7b44b8c3884b8c166868cb49d13cc74eeca",
+  "tests/scene_delve.rs": "a7db07e3a579809dbe6400c528a0b48a6fb3c77055590f6f9180b60788f9a639",
+  "Cargo.toml": "63f90d74da091415e54643d63b521a561e6a202d73f8f8061203a32debd01e02",
+  "Cargo.lock": "ae85d1cd91ae4cd61df9d446cc3b655c928b1db665dda2beee9ac4c0e953f788"
+}

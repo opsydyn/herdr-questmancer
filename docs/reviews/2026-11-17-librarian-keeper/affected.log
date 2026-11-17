@@ -1,0 +1,116 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.21s
+     Running tests/librarian_assets.rs (target/debug/deps/librarian_assets-0ef4a644e9a695f5)
+
+running 6 tests
+test librarian_world_master_is_native_scale_and_non_empty ... ok
+test librarian_ledger_fallback_fills_a_readable_portrait_canvas ... ok
+test librarian_ledger_fallback_retains_the_keepers_fur_books_and_robe ... ok
+test librarian_world_uses_the_user_selected_keeper_pixels ... ok
+test librarian_art_is_grounded_and_the_ledger_uses_its_larger_canvas ... ok
+test embedded_librarian_art_is_a_decodable_png ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/scene_guild_hall.rs (target/debug/deps/scene_guild_hall-1f77b5e0e0b180d0)
+
+running 29 tests
+test a_narrow_pane_keeps_the_whole_party_visible_instead_of_one_adventurer ... ok
+test canonical_room_contains_every_owned_landmark_signature ... ok
+test canonical_hearth_keeps_three_resting_adventurers_inside_the_room ... ok
+test canonical_campaign_pennants_reach_the_rgb_frame_without_covering_actors ... ok
+test canonical_hall_never_stacks_complete_adventurer_footprints ... ok
+test compact_and_vignette_halls_keep_a_seamless_quiet_stage_behind_the_party ... ok
+test actors_occupy_truthful_station_bounds_with_unique_final_anchors ... ok
+test campaign_adventurers_have_unique_anchors_per_physical_table_across_three_campaigns ... ok
+test campaign_tables_show_full_adventurer_identity_instead_of_colour_tokens ... ok
+test a_party_too_large_for_the_roster_still_falls_back_to_the_priority_vignette ... ok
+test a_full_canonical_hall_recomposes_before_hiding_adventurers ... ok
+test compact_guild_hall_degrades_to_the_roster_before_hiding_adventurers ... ok
+test compact_guild_hall_keeps_the_whole_party_visible_and_clickable ... ok
+test focused_campaign_crop_uses_the_same_physical_table_as_its_actor ... ok
+test minimum_guild_hall_shows_one_complete_priority_adventurer ... ok
+test librarian_yields_vignette_and_status_only_halls_to_live_status ... ok
+test minimum_door_crop_keeps_incompatible_versions_visible_over_the_room ... ok
+test a_blocked_adventurer_carries_the_authored_counsel_marker_at_every_scale ... ok
+test roster_actors_never_share_a_silhouette_edge ... ok
+test campaign_table_motion_is_authored_and_reduced_motion_does_not_wake ... ok
+test exited_agents_have_no_actor_pixels ... ok
+test librarian_has_one_complete_non_agent_station_in_canonical_and_compact_halls ... ok
+test fresh_spoils_effect_ends_exactly_once_at_three_seconds ... ok
+test canonical_room_meets_density_colour_and_byte_determinism_floors ... ok
+test the_guild_entrance_is_built_rather_than_left_flat ... ok
+test goblins_never_stand_where_an_adventurer_stands ... ok
+test releasing_goblins_actually_puts_goblins_in_the_room ... ok
+test static_guild_hall_is_event_driven_and_fresh_spoils_is_capped_at_eight_fps ... ok
+test connection_states_change_the_door_without_replacing_the_room ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/scene_interaction.rs (target/debug/deps/scene_interaction-e3915834812fa6d2)
+
+running 4 tests
+test presentation_keeps_ui_state_outside_scene_truth ... ok
+test rendered_adventurer_exposes_a_terminal_hit_region ... ok
+test explicit_world_render_marks_only_the_selected_adventurer ... ok
+test model_view_explicitly_selects_the_rendered_world ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/scene_overlays.rs (target/debug/deps/scene_overlays-43ddc0bbd4ba1003)
+
+running 36 tests
+test a_nameplate_never_paints_through_another_adventurer ... ok
+test an_empty_chronicle_says_so ... ok
+test ascii_roster_labels_use_ascii_separators_truncation_and_state_glyphs ... ok
+test a_failed_send_keeps_the_draft_and_says_so ... ok
+test a_notice_reaches_the_frame_and_not_only_the_model ... ok
+test a_narrow_room_drops_the_badge_rather_than_the_scene ... ok
+test a_crowded_party_keeps_a_nameplate_for_every_adventurer ... ok
+test chapter_requests_are_local_frozen_in_time_and_return_to_the_existing_records ... ok
+test a_reopened_parchment_starts_at_the_top ... ok
+test chronicle_v2_records_label_their_time_as_a_local_observation ... ok
+test counsel_uses_a_centered_parchment_without_replacing_the_world ... ok
+test every_visible_sprite_has_an_agent_state_nameplate ... ok
+test nameplate_truncation_shortens_the_name_and_keeps_the_state_word ... ok
+test neighbouring_nameplates_never_touch ... ok
+test overlays_are_safe_at_zero_and_minimum_viewports ... ok
+test librarian_ledger_is_the_single_responsive_help_surface ... ok
+test scrolling_stops_at_the_end_of_the_text ... ok
+test selected_adventurer_card_exposes_fantasy_and_system_identity ... ok
+test long_live_labels_cannot_displace_card_status_keepsake_or_controls ... ok
+test search_and_scrying_are_contextual_overlays ... ok
+test scrying_can_be_scrolled_to_reach_output_below_the_fold ... ok
+test campaign_crest_is_visible_on_the_adventurers_parchment ... ok
+test the_chronicle_parchment_shows_recorded_events_over_the_world ... ok
+test command_ribbon_expires_after_three_seconds ... ok
+test the_ribbon_greets_someone_who_has_not_pressed_anything ... ok
+test keepsake_art_changes_only_its_reserved_card_section ... ok
+test the_adventurer_card_does_not_cover_the_standing_badge ... ok
+test campaign_crest_keeps_the_same_named_identity_in_ascii_and_both_rooms ... ok
+test selected_adventurer_does_not_force_the_card_open ... ok
+test the_counsel_parchment_reports_a_send_in_flight ... ok
+test the_standing_badge_sits_in_the_top_right_corner ... ok
+test the_ledger_shows_the_whole_keyring ... ok
+test roster_labels_preserve_the_rgb_state_cue_in_final_terminal_cells ... ok
+test an_on_demand_chapter_counts_events_and_exposes_timestamped_sources ... ok
+test only_correlated_confirmed_counsel_receives_a_parchment_seal ... ok
+test keepsake_details_follow_the_saved_assignment_without_crowding_card_facts ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/storybook.rs (target/debug/deps/storybook-ea0efe9762ab1444)
+
+running 9 tests
+test owned_authoring_has_fixed_production_recovery_and_narrow_stories ... ok
+test catalogue_contains_every_production_scene_interaction_once ... ok
+test every_production_asset_has_exactly_one_owner_with_variant_stories_allowed ... ok
+test scrying_story_contains_settled_output_without_live_io ... ok
+test below_minimum_form_clears_scene_glyphs_behind_the_resize_message ... ok
+test narrow_answer_keeps_its_action_title_while_the_focused_field_scrolls ... ok
+test core_master_galleries_name_every_reviewed_archetype ... ok
+test every_production_story_renders_at_its_minimum_viewport ... ok
+test scene_inspection_reaches_small_production_layouts_while_asset_galleries_keep_their_minimum ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+

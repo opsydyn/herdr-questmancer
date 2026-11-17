@@ -4,6 +4,73 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-17
+
+Questmancer can now retain and author local work beyond an agent session, and
+fit larger parties into the complete Guild Hall and Delve.
+
+### Added
+
+- Quest Board (`b`) for source-qualified quests and human obligations, with
+  local seen/deferred intent and explicit freshness. War Table (`w`) shows
+  campaign dependencies and retains readable inventory/details for cyclic,
+  oversized or narrow layouts.
+- Owned-work Actions (`b`, then `a`): explicitly Create/Open a local store,
+  create campaigns and quests, request and answer decisions, and register
+  artifacts. Remembered store selection, serial writes, source/revision checks,
+  restart recovery and distinct save/view acknowledgements protect authority.
+  Answers stay in the owned store; the cache and Chronicle are not authority.
+- Proportional whole-room Kitty rendering in both worlds, sharing the existing
+  RGB renderer. Native profiles preserve the fitted room beneath the parchment
+  and exclude covered actors from mouse targets.
+- Automatic fitted-party density: detailed `16x24` sprites through eleven
+  adventurers, authored `8x12` staggered seats for 12–32, and denser seating for
+  33–64. Identity determines stable seats; presence changes update cues and
+  poses. Profiles keep full-size art. Unsupported geometry/graphics and parties
+  above capacity use the explicit responsive fallback.
+- Supported Pi integration setup and real-agent qualification guide. Herdr's
+  v9 extension with Pi 1.5.2 supplies native session identity and working/resting
+  reports. A real turn and reload/restart checks produced two Chronicle records,
+  no duplicates and zero XP. Questmancer does not install the hook automatically.
+- Optional read-only Herdr Projects inventory adapter with registered identity,
+  partial coverage, acknowledged caching and bounded polling. Disabled by default;
+  installed-source qualification remains parked.
+- Eighty-four fixed Storybook production and comparison states, including
+  owned-authoring recovery, fitted profiles and larger-party density studies.
+
+### Improved and fixed
+
+- Bramble Sage Druid, Storm Channeler Sorcerer, Sunward Chaplain Cleric and
+  Keeper of the Stacks Librarian sprites, corresponding rituals and card
+  fallbacks; refreshed native Sorcerer card art.
+- Keep dungeon scenery under crowded fallback parties and prevent station
+  saturation from forcing fitted rooms into bottom-packed or single-row layouts.
+- Herdr 0.9.4+ / protocol 22 compatibility: remove retired `pane.graphics.*`
+  geometry calls, use standard terminal capability negotiation, and reconnect
+  quietly after subscription-history errors.
+- Capability-probed optional pane headers for paired development builds;
+  unsupported servers remain inert. Global Herdr sidebar configuration is
+  unchanged.
+
+### Upgrade and evidence limits
+
+- Minimum Herdr is 0.9.4; local runtime qualification used 0.9.5. Native fitting
+  requires working Kitty transport and cell geometry. Half-block fallback remains.
+- Install the Pi hook with `herdr integration install pi`; enter `/reload` in
+  existing Pi sessions when ready. The qualified model was `openai-codex/gpt-6.1-sol`.
+  The test account rejected `gpt-5.5`; choose a supported model. Hook v9 has no
+  explicit done report: resting, failed inference, seen/deferred work and
+  artifact registration do not imply successful delivery or award XP.
+- Local intent advances to state v2 with explicit v1 migration; work cache v2
+  retains source checkpoints. Create/Open of owned authority is explicit and
+  missing, busy, replaced, malformed or future-version stores are protected.
+  Preserve local state before downgrading; older binaries cannot use new formats.
+- This milestone does not spawn, assign or delegate agents. Native authoring,
+  exhaustive native resize/mouse/compositing and other-platform execution remain
+  separate from automated PTY/pixel checks and recorded art approvals. The
+  withheld-observations banner may still reflect synthetic/unreloaded sessions;
+  potentially stale banner clearing remains a follow-up.
+
 ## [0.1.10] - 2026-09-09
 
 The Chronicle now records qualified observations without inventing unseen

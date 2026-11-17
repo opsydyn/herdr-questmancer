@@ -1,0 +1,23 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.22s
+     Running tests/archetype_assets.rs (target/debug/deps/archetype_assets-6aa0bc9b84c87623)
+
+running 2 tests
+test sorcerer_storm_world_and_card_retain_the_approved_quiet_orb_silhouettes ... FAILED
+test sorcerer_storm_rituals_keep_head_feet_and_orb_with_distinct_state_gestures ... ok
+
+failures:
+
+---- sorcerer_storm_world_and_card_retain_the_approved_quiet_orb_silhouettes stdout ----
+
+thread 'sorcerer_storm_world_and_card_retain_the_approved_quiet_orb_silhouettes' panicked at tests/archetype_assets.rs:58:13:
+class-owned mint orb core
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sorcerer_storm_world_and_card_retain_the_approved_quiet_orb_silhouettes
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test archetype_assets`

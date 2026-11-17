@@ -1,0 +1,112 @@
+[
+  {
+    "mode": "native",
+    "exit": 0,
+    "checks": [
+      "negotiated native Hall upload",
+      "static upload suppression",
+      "resize upload",
+      "transformed Librarian mouse target",
+      "Ledger page navigation",
+      "fit resumes after Ledger",
+      "Delve keeps half-block output",
+      "Hall resumes after Delve",
+      "clean shutdown"
+    ],
+    "uploads": [
+      "q=2,i=1952274511,a=T,U=1,f=32,t=d,s=800,v=464,m=1",
+      "q=2,i=2986175490,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=2170958357,a=T,U=1,f=32,t=d,s=192,v=192,m=1",
+      "q=2,i=1952274511,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=2986175490,a=T,U=1,f=32,t=d,s=640,v=368,m=1"
+    ],
+    "deletions": [
+      "a=d,d=I,i=1952274511,q=2",
+      "a=d,d=I,i=2986175490,q=2",
+      "a=d,d=I,i=1952274511,q=2",
+      "a=d,d=I,i=2986175490,q=2"
+    ],
+    "binary_sha256": "4fd035336cf17fd19fee0968ec9c344c5575065e78b072c6d303ccb7ecef0682",
+    "output_bytes": 6021049,
+    "transcript_sha256": "e6562bbdb0b48b1202bd8e960dd3f8e7366b0572c8408221fd4f8f756a8a623a",
+    "state_directory": "/private/tmp/questmancer-production-hall-fit-20261117/qm-hall-fit-8vzs2ggl",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "unsupported",
+    "exit": 0,
+    "checks": [
+      "half-block fallback",
+      "fallback Ledger access",
+      "clean shutdown"
+    ],
+    "uploads": [],
+    "deletions": [],
+    "binary_sha256": "4fd035336cf17fd19fee0968ec9c344c5575065e78b072c6d303ccb7ecef0682",
+    "output_bytes": 28345,
+    "transcript_sha256": "581f760eba499994ca7b953b0c4efd5bc540324cd93efddc0ec3187e9f1c265c",
+    "state_directory": "/private/tmp/questmancer-production-hall-fit-20261117/qm-hall-fit-bmrjtjbr",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "missing-geometry",
+    "exit": 0,
+    "checks": [
+      "half-block fallback",
+      "fallback Ledger access",
+      "clean shutdown"
+    ],
+    "uploads": [],
+    "deletions": [],
+    "binary_sha256": "4fd035336cf17fd19fee0968ec9c344c5575065e78b072c6d303ccb7ecef0682",
+    "output_bytes": 28345,
+    "transcript_sha256": "581f760eba499994ca7b953b0c4efd5bc540324cd93efddc0ec3187e9f1c265c",
+    "state_directory": "/private/tmp/questmancer-production-hall-fit-20261117/qm-hall-fit-dcpu2pzf",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "native-interrupt",
+    "exit": 0,
+    "checks": [
+      "negotiated native Hall upload",
+      "static upload suppression",
+      "resize upload",
+      "transformed Librarian mouse target",
+      "Ledger page navigation",
+      "fit resumes after Ledger",
+      "Delve keeps half-block output",
+      "Hall resumes after Delve",
+      "clean shutdown"
+    ],
+    "uploads": [
+      "q=2,i=4278569175,a=T,U=1,f=32,t=d,s=800,v=464,m=1",
+      "q=2,i=2055471109,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=1785746431,a=T,U=1,f=32,t=d,s=192,v=192,m=1",
+      "q=2,i=4278569175,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=2055471109,a=T,U=1,f=32,t=d,s=640,v=368,m=1"
+    ],
+    "deletions": [
+      "a=d,d=I,i=4278569175,q=2",
+      "a=d,d=I,i=2055471109,q=2",
+      "a=d,d=I,i=4278569175,q=2",
+      "a=d,d=I,i=2055471109,q=2"
+    ],
+    "binary_sha256": "4fd035336cf17fd19fee0968ec9c344c5575065e78b072c6d303ccb7ecef0682",
+    "output_bytes": 6021009,
+    "transcript_sha256": "999b30adf7180a4b4c47337ff25709e7f47a791b3f20b69e0d53143345d0a264",
+    "state_directory": "/private/tmp/questmancer-production-hall-fit-20261117/qm-hall-fit-2sy_x56r",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  }
+]

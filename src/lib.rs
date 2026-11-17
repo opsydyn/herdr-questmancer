@@ -43,7 +43,8 @@
 //!
 //! # The two rooms
 //!
-//! One RGB pixel world, rendered into a terminal pane as half-block cells.
+//! One RGB pixel world, with proportional Kitty output for both rooms and a
+//! responsive half-block fallback. The Delve retains its fallback camera.
 //!
 //! - **Guild Hall** — the warm operational home for the whole party. Stations
 //!   for campaign tables, the counsel bell, the hearth and the spoils bench.
@@ -100,6 +101,7 @@ pub mod domain;
 pub mod herdr;
 pub mod interaction;
 pub mod ledger;
+pub mod owned_work;
 pub mod pane_header;
 pub mod persistence;
 pub mod portrait;

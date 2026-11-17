@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.55s
+     Running tests/storybook_fit.rs (target/debug/deps/storybook_fit-e41466df89e0f50a)
+
+running 1 test
+test fitted_hall_has_explicit_storybook_fixtures_without_replacing_production_worlds ... FAILED
+
+failures:
+
+---- fitted_hall_has_explicit_storybook_fixtures_without_replacing_production_worlds stdout ----
+
+thread 'fitted_hall_has_explicit_storybook_fixtures_without_replacing_production_worlds' panicked at tests/storybook_fit.rs:7:9:
+missing world.guild-fit
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    fitted_hall_has_explicit_storybook_fixtures_without_replacing_production_worlds
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test storybook_fit`

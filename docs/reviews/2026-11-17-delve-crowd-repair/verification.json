@@ -1,0 +1,18 @@
+{
+  "scope": "Screenshot-driven crowded dungeon presentation repair; local dirty checkout",
+  "head": "9c52761",
+  "rust_tests": 825,
+  "rust_test_runs": 66,
+  "shell_tests": 28,
+  "format": true,
+  "clippy_deny_warnings": true,
+  "shell_syntax": true,
+  "release_build": true,
+  "rustdoc": true,
+  "git_diff_check": true,
+  "release_binary_sha256": "3081c199743ab4177d46700ed606de74a6015539c92de2006b831043405c2350",
+  "storybook_binary_sha256": "1fddeed91fdb1675e237545f3df1741b3688685fe38e022110184251032b21b0",
+  "native_visual_acceptance": "unreviewed",
+  "owned_ui": "refreshed and retained on Delve",
+  "commit_push_publish": false
+}

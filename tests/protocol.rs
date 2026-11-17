@@ -49,6 +49,22 @@ fn snapshot_tolerates_unknown_fields() {
 }
 
 #[test]
+fn official_herdr_094_captures_decode_without_inventing_agent_identity() {
+    let pong: SuccessResponse<Pong> =
+        serde_json::from_str(include_str!("fixtures/herdr/0.9.4/pong.json")).unwrap();
+    let snapshot: SuccessResponse<SessionSnapshotResult> =
+        serde_json::from_str(include_str!("fixtures/herdr/0.9.4/session_snapshot.json")).unwrap();
+    assert_eq!(pong.result.version, "0.9.4");
+    assert_eq!(pong.result.protocol, 22);
+    assert_eq!(snapshot.result.snapshot.version, "0.9.4");
+    assert_eq!(snapshot.result.snapshot.protocol, 22);
+    let agent = &snapshot.result.snapshot.agents[0];
+    assert_eq!(agent.agent_status, AgentStatus::Working);
+    assert_eq!(agent.agent.as_deref(), Some("capture-adventurer"));
+    assert!(agent.agent_session.is_none());
+}
+
+#[test]
 fn mixed_and_unknown_events_decode_without_loss() {
     let events = include_str!("fixtures/herdr/events.jsonl")
         .lines()

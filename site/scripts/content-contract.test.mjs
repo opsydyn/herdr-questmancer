@@ -38,7 +38,7 @@ test('launch page preserves the approved content contract', async () => {
     'herdr plugin action invoke opsydyn.questmancer.open',
   ]) assert.ok(html.includes(phrase), 'missing approved phrase: ' + phrase);
   assert.match(html, /Prerequisite/);
-  assert.match(html, /Install Herdr 0\.9\.0/);
+  assert.match(html, /Install Herdr 0\.9\.4/);
   assert.match(html, /href="https:\/\/herdr\.dev\/docs\/install\/"[^>]*target="_blank"/);
   assert.doesNotMatch(html, /cargo install questmancer/i);
   // `herdr plugin install` is how a Herdr user installs a plugin: one command,

@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-14",
+  "base_commit": "9c52761f10e0bf81f993e7e7e168b11edf83eb65",
+  "worktree": "preexisting owned-work/authoring changes preserved; compatibility changes uncommitted",
+  "target_herdr": "0.9.4",
+  "protocol": 22,
+  "herdr_source_commit": "7e26bad94044eba205033111a0ce8033ede7e24f",
+  "herdr_macos_arm64_sha256": "ea20bfff9cb8c83a996081c926e6ff9370de8e543baa859bca48d19175d895ff",
+  "questmancer_binary_sha256": "3e8573aff8c715eb9fd6048adf8a49e3b7f53d43c1938b47d7a0dedd46e438e9",
+  "checks": {
+    "failing_regression_reproduced": true,
+    "protocol_tests": 47,
+    "full_verify_exit": 0,
+    "rust_tests": 789,
+    "rust_test_runs": 64,
+    "shell_tests": 28,
+    "release_build_exit": 0,
+    "isolated_linked_runtime": "passed",
+    "isolated_cleanup": "passed",
+    "headless_graphics_enabled_fallback": "passed",
+    "headless_graphics_disabled_fallback": "passed"
+  },
+  "not_qualified": [
+    "native appearance on attached Herdr 0.9.4 terminal",
+    "other platform binary execution",
+    "shared/installed Herdr upgrade",
+    "Questmancer publication",
+    "live overflowing subscription; lost-events recovery uses source-shaped fake socket"
+  ],
+  "installed_herdr": "0.9.0",
+  "shared_server": "not running; not started/stopped by this task"
+}

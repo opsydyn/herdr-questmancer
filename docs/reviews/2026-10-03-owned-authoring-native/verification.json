@@ -1,0 +1,71 @@
+{
+  "recorded_at_utc": "2026-10-03T22:12:58.674354+00:00",
+  "head": "9c52761f10e0bf81f993e7e7e168b11edf83eb65",
+  "scope": "Record production form approval and native availability restriction; prepare manual isolated trial",
+  "form_visuals": "approved by user",
+  "qualification_receipt_sha256": "4e7379f552c41a1168efce8b8683ce2a952ff2209e9c78ad9f763aef790e2277",
+  "current_source_files_matching_qualification": 222,
+  "candidate_binary_matching_qualification": {
+    "path": "target/release/questmancer",
+    "sha256": "c854f28dfd44c96374c4ea59c876b8668a02673facba512df2662051fe08b404"
+  },
+  "qualified_visual_files_preserved": 18,
+  "qualified_engineering_logs_preserved": 14,
+  "baseline_review_files": 332,
+  "unchanged_baseline_review_files": 331,
+  "changed_review_index": [
+    "docs/reviews/2026-10-03-owned-authoring/README.md"
+  ],
+  "native_availability": {
+    "tool": "cua.getApp",
+    "app": "Ghostty",
+    "result": "Computer Use is not allowed to use the app 'com.mitchellh.ghostty' for safety reasons.",
+    "status": "blocked at access check"
+  },
+  "native_execution": "unperformed",
+  "manual_launch_command": "Python syntax checked; not executed",
+  "local_markdown_links": {
+    "checked": 180,
+    "broken": 0
+  },
+  "product_code_changed": false,
+  "full_engineering_gate_rerun": false,
+  "operational_resources_created": 0,
+  "herdr_resources_operated": 0,
+  "installed_committed_released": false,
+  "documents_sha256": {
+    "AGENTS.md": "0559dd18c1989f6e9c480d093f124ed7da957ab21dfc5a79121b16bcd882d0dc",
+    "PLAN.md": "ea336491afdd62f1e716c81cbd2444c94ed58042dba1d81f148e4278e9ce4ae0",
+    "README.md": "7a3409356914b7d50b3951d035c47cb0be70d056d712b3ea83c3121a403e1a82",
+    "docs/design/questmancer-owned-authoring.md": "86d0484d03b9adf0067a2261a108b97e3d548105ac2fb2c6ccebb0e6951947ef",
+    "docs/plans/2026-09-27-living-control-plane-roadmap.md": "bfaebb7b60fca77e68322f8e548681fee2d09d8d0e5f95a00a9064d0bcb5a05d",
+    "docs/plans/2026-10-01-owned-work.md": "1eaf77d272c4ae7dcbd29e56d134078083c27b9499067037f77346172c34da03",
+    "docs/plans/2026-10-03-owned-authoring.md": "f1ee05fbac84ef670128487a240a3e72b03c46d1771d2e110e94ff188836908b",
+    "docs/plans/2026-10-03-owned-authoring-native.md": "41775b37648d17eddeeb72b4235c57c2f6f1a39ca5a233ffbce851cdd0ea6bfd",
+    "docs/reviews/2026-10-03-owned-authoring/README.md": "26a3c189643c44edab04765fd0a4099be99e170cf636a6c3f46ca5c95dcb319a",
+    "docs/reviews/2026-10-03-owned-authoring/visual-approval.md": "0431df2a802cd3afbac96d51af03cf983811d8b99690eeef3b21034a8eab50f7",
+    "docs/reviews/2026-10-03-owned-authoring-native/README.md": "5dfc793b0d5ddfff286aac4f94ea046592f372a1614380af7ced46d3f1d1322f"
+  },
+  "checks": [
+    {
+      "command": "Qualified source, binary, visual and log SHA-256 comparison",
+      "exit_code": 0
+    },
+    {
+      "command": "Manual launch command Python AST parse",
+      "exit_code": 0
+    },
+    {
+      "command": "Local Markdown link validation",
+      "exit_code": 0
+    },
+    {
+      "command": "ruby tests/workflow_contract.rb",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ]
+}

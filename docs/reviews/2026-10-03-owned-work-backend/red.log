@@ -1,0 +1,12 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0432]: unresolved imports `questmancer::owned_work`, `questmancer::sources::local_work`
+ --> tests/owned_work.rs:4:5
+  |
+4 |     owned_work::{Action, Command, CommandId, OwnedStore},
+  |     ^^^^^^^^^^ could not find `owned_work` in `questmancer`
+5 |     persistence::{PersistenceWorker, WorkerPaths, load_work_cache},
+6 |     sources::local_work::LocalWorkSource,
+  |              ^^^^^^^^^^ could not find `local_work` in `sources`
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `questmancer` (test "owned_work") due to 1 previous error

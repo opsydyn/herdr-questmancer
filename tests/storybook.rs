@@ -24,7 +24,7 @@ fn scrying_story_contains_settled_output_without_live_io() {
 
 #[test]
 fn catalogue_contains_every_production_scene_interaction_once() {
-    assert_eq!(catalogue().len(), 58);
+    assert_eq!(catalogue().len(), 84);
     let titles = catalogue()
         .iter()
         .map(|story| story.title)
@@ -80,6 +80,47 @@ fn catalogue_contains_every_production_scene_interaction_once() {
 }
 
 #[test]
+fn owned_authoring_has_fixed_production_recovery_and_narrow_stories() {
+    for id in [
+        "interaction.owned-actions",
+        "interaction.owned-empty-campaign",
+        "interaction.owned-answer",
+        "interaction.owned-answer-narrow",
+        "interaction.owned-view-pending",
+        "interaction.owned-indeterminate",
+        "interaction.owned-answered",
+        "interaction.owned-small",
+    ] {
+        assert!(
+            catalogue().iter().any(|s| s.id.as_str() == id),
+            "missing {id}"
+        );
+    }
+}
+
+#[test]
+fn narrow_answer_keeps_its_action_title_while_the_focused_field_scrolls() {
+    use questmancer::storybook::fixtures::{OwnedAuthoringState, owned_authoring_fixture};
+    let mut model = owned_authoring_fixture(StoryContext::fixed(), OwnedAuthoringState::Narrow);
+    model.authoring_mut().follow_focus = true;
+    let mut terminal = Terminal::new(TestBackend::new(40, 20)).unwrap();
+    terminal
+        .draw(|f| questmancer::ui::owned_authoring::render(f, &model))
+        .unwrap();
+    let text = terminal
+        .backend()
+        .buffer()
+        .content
+        .iter()
+        .map(ratatui::buffer::Cell::symbol)
+        .collect::<String>();
+    assert!(
+        text.contains("Answer decision"),
+        "the form loses its action context when editing"
+    );
+}
+
+#[test]
 fn every_production_asset_has_exactly_one_owner_with_variant_stories_allowed() {
     let report = validate_catalogue().expect("production Storybook coverage is complete");
     assert_eq!(
@@ -115,7 +156,10 @@ fn scene_inspection_reaches_small_production_layouts_while_asset_galleries_keep_
     let stories = catalogue();
     for (index, story) in stories.iter().enumerate() {
         let context = StoryContext::fixed();
-        let is_scene = matches!((story.build)(context), StoryFixture::SceneApplication(_));
+        let is_scene = matches!(
+            (story.build)(context),
+            StoryFixture::SceneApplication(_) | StoryFixture::WorldFit(_)
+        );
         let mut app = StorybookApp::new(stories);
         app.select(index, stories);
         let _ = reduce(&mut app, Action::Inspect, stories);
@@ -179,4 +223,28 @@ fn core_master_galleries_name_every_reviewed_archetype() {
             assert!(screen.contains(class), "{title} omits {class}");
         }
     }
+}
+
+#[test]
+fn below_minimum_form_clears_scene_glyphs_behind_the_resize_message() {
+    use questmancer::storybook::fixtures::{OwnedAuthoringState, owned_authoring_fixture};
+    let model = owned_authoring_fixture(StoryContext::fixed(), OwnedAuthoringState::Small);
+    let mut terminal = Terminal::new(TestBackend::new(27, 11)).unwrap();
+    terminal
+        .draw(|frame| {
+            for cell in &mut frame.buffer_mut().content {
+                cell.set_symbol("▀");
+            }
+            questmancer::ui::owned_authoring::render(frame, &model);
+        })
+        .unwrap();
+    assert!(
+        terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .all(|cell| cell.symbol() != "▀"),
+        "scene glyphs leak into the status-only resize surface"
+    );
 }

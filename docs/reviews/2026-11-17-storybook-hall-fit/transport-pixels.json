@@ -1,0 +1,11 @@
+{
+  "scope": "Executable native-transport pixel round trip with synthetic PTY replies",
+  "dimensions": [
+    800,
+    464
+  ],
+  "image_id": "1362994237",
+  "all_rgba_pixels_identical_to_fit_projection": true,
+  "rgba_sha256": "3494963cb8865845be3501ce795c900b5b4dde63bd51172b705e42183f38eca5",
+  "limitation": "Transport producer verified; actual terminal placement, display and interaction remain human acceptance"
+}

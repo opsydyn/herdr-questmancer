@@ -1,0 +1,28 @@
+[
+  {
+    "scope": "Pinned fixed Storybook executable native-transport pixel round trip with synthetic PTY replies",
+    "dimensions": [
+      800,
+      464
+    ],
+    "image_id": "2114899107",
+    "all_rgba_pixels_identical_to_fit_projection": true,
+    "rgba_sha256": "3494963cb8865845be3501ce795c900b5b4dde63bd51172b705e42183f38eca5",
+    "limitation": "Producer verified; terminal display, animation, resize and mouse acceptance remain human checks",
+    "transcript": "guild-initial-profile-120x34.ansi",
+    "expected": "guild-profile-120x34.png"
+  },
+  {
+    "scope": "Pinned fixed Storybook executable native-transport pixel round trip with synthetic PTY replies",
+    "dimensions": [
+      800,
+      464
+    ],
+    "image_id": "986714693",
+    "all_rgba_pixels_identical_to_fit_projection": true,
+    "rgba_sha256": "5513bd15a10fe00489f67f01c8ff361626f86b50ce68c03d6476dd616ee7e0e8",
+    "limitation": "Producer verified; terminal display, animation, resize and mouse acceptance remain human checks",
+    "transcript": "delve-initial-profile-120x34.ansi",
+    "expected": "delve-profile-120x34.png"
+  }
+]

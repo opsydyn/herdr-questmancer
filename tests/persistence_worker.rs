@@ -608,7 +608,7 @@ async fn diagnostic_queue_remains_bounded_under_repeated_failures() {
     ));
     let capacity = diagnostics.max_capacity();
 
-    for schema_version in 2..u32::try_from(capacity + 10).unwrap() {
+    for schema_version in 3..u32::try_from(capacity + 10).unwrap() {
         let mut state = fixed_persisted_state(View::Guild);
         state.schema_version = schema_version;
         assert!(client.stage_state(state).unwrap());
@@ -633,7 +633,7 @@ async fn saturated_diagnostic_queue_retains_the_latest_failure() {
     ));
     let capacity = diagnostics.max_capacity();
 
-    for schema_version in 2..u32::try_from(capacity + 2).unwrap() {
+    for schema_version in 3..u32::try_from(capacity + 2).unwrap() {
         let mut state = fixed_persisted_state(View::Guild);
         state.schema_version = schema_version;
         assert!(client.stage_state(state).unwrap());

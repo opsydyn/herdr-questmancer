@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-17",
+  "scope": "Review-only Librarian world study",
+  "candidate_count": 2,
+  "canvas": [
+    16,
+    24
+  ],
+  "foot_row": 21,
+  "foot_columns": [
+    3,
+    4,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11
+  ],
+  "current_sprite_nonempty_pixels": 239,
+  "background_world_transparent": true,
+  "production_decode_and_half_block_checks": "passed",
+  "canonical_and_compact_bounds": "unchanged",
+  "outside_npc_pixels": "unchanged",
+  "deterministic_image_regeneration": true,
+  "baseline_files_byte_identical": 229,
+  "librarian_asset_tests": 4,
+  "release_candidate_unchanged": true,
+  "native_illustration_unchanged": true,
+  "production_activation": false,
+  "runtime": "No Herdr or live UI operations",
+  "output_sha256": {
+    "02-librarian-hall-context.png": "79961ecbad635863187e37c25121fbe1a3fc2525644b40d80089fc9dc6eb79d8",
+    "01-librarian-directions.png": "4ce8e8e0eb4ddf1783ccdeb73a56b7ff41f0ad18ff3e25bc283adbf1c41f4dbd"
+  },
+  "visual_choice": "pending"
+}

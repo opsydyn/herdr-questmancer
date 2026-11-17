@@ -1,0 +1,116 @@
+[
+  {
+    "mode": "native",
+    "exit": 0,
+    "checks": [
+      "negotiated native dungeon upload",
+      "static upload suppression",
+      "resize upload",
+      "Ledger overlay access",
+      "Ledger page navigation",
+      "fit resumes after Ledger",
+      "Hall fits after Delve",
+      "Delve fits after Hall",
+      "clean shutdown"
+    ],
+    "uploads": [
+      "q=2,i=2315330265,a=T,U=1,f=32,t=d,s=800,v=464,m=1",
+      "q=2,i=2095348649,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=2428359934,a=T,U=1,f=32,t=d,s=192,v=192,m=1",
+      "q=2,i=2315330265,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=2095348649,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=2315330265,a=T,U=1,f=32,t=d,s=640,v=368,m=1"
+    ],
+    "deletions": [
+      "a=d,d=I,i=2315330265,q=2",
+      "a=d,d=I,i=2095348649,q=2",
+      "a=d,d=I,i=2315330265,q=2",
+      "a=d,d=I,i=2095348649,q=2",
+      "a=d,d=I,i=2315330265,q=2"
+    ],
+    "binary_sha256": "910056041754d2d6e8392dcd7aeceabb91b8b000f0795f2a7af2a00b7f6fed98",
+    "output_bytes": 7282564,
+    "transcript_sha256": "33342502a2de5ebf0150b43020b5307eb6b59c991a1dfcca9daedd36deceab0c",
+    "state_directory": "/private/tmp/questmancer-auto-density-release-20261117/qm-hall-fit-g3os006s",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "unsupported",
+    "exit": 0,
+    "checks": [
+      "half-block fallback",
+      "fallback Ledger access",
+      "clean shutdown"
+    ],
+    "uploads": [],
+    "deletions": [],
+    "binary_sha256": "910056041754d2d6e8392dcd7aeceabb91b8b000f0795f2a7af2a00b7f6fed98",
+    "output_bytes": 36897,
+    "transcript_sha256": "1b778e9614ce2d3627678080d8e21d6221ec5176607f2e2ec5fa9b8ea75e2051",
+    "state_directory": "/private/tmp/questmancer-auto-density-release-20261117/qm-hall-fit-emmk2uo8",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "missing-geometry",
+    "exit": 0,
+    "checks": [
+      "half-block fallback",
+      "fallback Ledger access",
+      "clean shutdown"
+    ],
+    "uploads": [],
+    "deletions": [],
+    "binary_sha256": "910056041754d2d6e8392dcd7aeceabb91b8b000f0795f2a7af2a00b7f6fed98",
+    "output_bytes": 36897,
+    "transcript_sha256": "1b778e9614ce2d3627678080d8e21d6221ec5176607f2e2ec5fa9b8ea75e2051",
+    "state_directory": "/private/tmp/questmancer-auto-density-release-20261117/qm-hall-fit-g2o0cijd",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  },
+  {
+    "mode": "native-interrupt",
+    "exit": 0,
+    "checks": [
+      "negotiated native dungeon upload",
+      "static upload suppression",
+      "resize upload",
+      "Ledger overlay access",
+      "Ledger page navigation",
+      "fit resumes after Ledger",
+      "Hall fits after Delve",
+      "Delve fits after Hall",
+      "clean shutdown"
+    ],
+    "uploads": [
+      "q=2,i=3842487674,a=T,U=1,f=32,t=d,s=800,v=464,m=1",
+      "q=2,i=1804491523,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=514834755,a=T,U=1,f=32,t=d,s=192,v=192,m=1",
+      "q=2,i=3842487674,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=1804491523,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=3842487674,a=T,U=1,f=32,t=d,s=640,v=368,m=1"
+    ],
+    "deletions": [
+      "a=d,d=I,i=3842487674,q=2",
+      "a=d,d=I,i=1804491523,q=2",
+      "a=d,d=I,i=3842487674,q=2",
+      "a=d,d=I,i=1804491523,q=2",
+      "a=d,d=I,i=3842487674,q=2"
+    ],
+    "binary_sha256": "910056041754d2d6e8392dcd7aeceabb91b8b000f0795f2a7af2a00b7f6fed98",
+    "output_bytes": 7282428,
+    "transcript_sha256": "52706fae9ac0fd4bcf41d6b26f6b12fca2f066c118a94d2342f4539d281bd1dd",
+    "state_directory": "/private/tmp/questmancer-auto-density-release-20261117/qm-hall-fit-alyp0qdc",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic isolated PTY producer evidence; not native display acceptance"
+  }
+]

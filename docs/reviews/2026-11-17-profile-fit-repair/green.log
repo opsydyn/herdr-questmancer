@@ -1,0 +1,18 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+warning: unused import: `self`
+  --> src/terminal.rs:40:9
+   |
+40 |         self,
+   |         ^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: `questmancer` (lib) generated 1 warning (run `cargo fix --lib -p questmancer` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.06s
+     Running tests/world_fit.rs (target/debug/deps/world_fit-74ade85e376992ce)
+
+running 1 test
+test profile_preserves_fitted_world_scale_and_image_lease_in_both_rooms ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.16s
+

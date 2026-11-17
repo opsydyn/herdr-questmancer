@@ -26,6 +26,302 @@ const CORE_ARCHETYPES: [AdventurerClass; 8] = [
 ];
 
 #[test]
+fn cleric_sunward_world_and_fallback_use_the_approved_open_face_and_equipment() {
+    let approved: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/art/cleric-sunward-master.json"))
+            .expect("approved Sunward Chaplain study");
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new("sunward-approval"));
+    persona.class = AdventurerClass::Cleric;
+    for skin in SkinTone::ALL {
+        persona.appearance.skin_tone = *skin;
+        let world = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+        let card = adventurer_portrait_frame(&persona).expect("Cleric fallback");
+        for (y, row) in approved["rows"]
+            .as_array()
+            .expect("approved rows")
+            .iter()
+            .enumerate()
+        {
+            for (x, glyph) in row.as_str().expect("pixel row").chars().enumerate() {
+                assert_eq!(
+                    world.pixels()[y * 16 + x].is_some(),
+                    glyph != '.',
+                    "Cleric {skin:?} approved A silhouette at ({x},{y})"
+                );
+                assert_eq!(
+                    card.pixels()[(y + 4) * 24 + x + 4],
+                    world.pixels()[y * 16 + x],
+                    "fallback must retain the same unscaled personalised Cleric"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn cleric_sunward_rituals_keep_equipment_and_anchors_with_distinct_gestures() {
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new("sunward-rituals"));
+    persona.class = AdventurerClass::Cleric;
+    let work_a = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+    let work_b = adventurer_animation_frame(&persona, ScenePose::Working, 1);
+    let mace = work_a.pixels()[5 * 16 + 2].expect("approved sun mace core");
+    assert_ne!(work_a, work_b, "working hands and book must change");
+    assert_eq!(
+        &work_a.pixels()[..11 * 16],
+        &work_b.pixels()[..11 * 16],
+        "head and mace must stay still"
+    );
+    assert_eq!(
+        &work_a.pixels()[19 * 16..],
+        &work_b.pixels()[19 * 16..],
+        "feet must stay planted"
+    );
+    let signal = adventurer_animation_frame(&persona, ScenePose::SeekingCounsel, 0);
+    let wait = adventurer_animation_frame(&persona, ScenePose::SeekingCounsel, 1);
+    assert_ne!(signal, wait, "raised counsel hand must settle");
+    let settled = adventurer_animation_frame(&persona, ScenePose::Settled, 0);
+    for (pose, index) in [
+        (ScenePose::Working, 0),
+        (ScenePose::Working, 1),
+        (ScenePose::SeekingCounsel, 0),
+        (ScenePose::SeekingCounsel, 1),
+        (ScenePose::ReturningWithSpoils, 0),
+        (ScenePose::Resting, 0),
+        (ScenePose::Unknown, 0),
+        (ScenePose::Settled, 0),
+    ] {
+        let frame = adventurer_animation_frame(&persona, pose, index);
+        assert_eq!(frame.size(), PixelSize::new(16, 24));
+        let feet = frame.pixels()[21 * 16..22 * 16]
+            .iter()
+            .enumerate()
+            .filter_map(|(x, p)| p.is_some().then_some(x))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            feet,
+            vec![5, 6, 7, 10, 11, 12],
+            "{pose:?} {index} foot anchors"
+        );
+        assert!(frame.pixels()[22 * 16..].iter().all(Option::is_none));
+        assert_eq!(
+            frame.pixels()[5 * 16 + 2],
+            Some(mace),
+            "sun mace in {pose:?}"
+        );
+        assert!(
+            frame.pixels()[16 * 16 + 13].is_some(),
+            "prayerbook stays visible in {pose:?}"
+        );
+        if pose != ScenePose::Settled {
+            assert_ne!(
+                frame, settled,
+                "{pose:?} must not assert settled completion"
+            );
+        }
+    }
+}
+
+#[test]
+fn sorcerer_storm_native_route_embeds_the_selected_card() {
+    use sha2::{Digest, Sha256};
+    let approved: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/art/sorcerer-storm-masters.json"))
+            .expect("approved Storm Channeler study");
+    let bytes = questmancer::portrait::portrait_asset(AdventurerClass::Sorcerer)
+        .expect("native Sorcerer card");
+    assert_eq!(
+        format!("{:x}", Sha256::digest(bytes)),
+        approved["native_sha256"]
+            .as_str()
+            .expect("selected card digest"),
+        "native card must match the selected Storm Channeler asset"
+    );
+}
+
+#[test]
+fn sorcerer_storm_world_and_card_retain_the_approved_quiet_orb_silhouettes() {
+    let approved: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/art/sorcerer-storm-masters.json"))
+            .expect("approved Storm Channeler study");
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new("storm-approval"));
+    persona.class = AdventurerClass::Sorcerer;
+    for skin in SkinTone::ALL {
+        persona.appearance.skin_tone = *skin;
+        for (index, pose) in [ScenePose::Working, ScenePose::Resting, ScenePose::Unknown]
+            .into_iter()
+            .enumerate()
+        {
+            let frame = adventurer_animation_frame(&persona, pose, 0);
+            for (y, row) in approved["options"][index]["rows"]
+                .as_array()
+                .expect("approved pixel rows")
+                .iter()
+                .enumerate()
+            {
+                for (x, glyph) in row.as_str().expect("pixel row").chars().enumerate() {
+                    assert_eq!(
+                        frame.pixels()[y * 16 + x].is_some(),
+                        glyph != '.',
+                        "Sorcerer {skin:?} {pose:?} approved silhouette at ({x},{y})"
+                    );
+                }
+            }
+            assert!(frame.pixels()[..16].iter().all(Option::is_none), "no halo");
+            let orb = frame.pixels()[13 * 16 + 13].expect("quiet orb retains its core");
+            assert!(orb.g > 200 && orb.b > 200, "class-owned mint orb core");
+        }
+        let world = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+        let card = adventurer_portrait_frame(&persona).expect("Sorcerer fallback");
+        for y in 0..24 {
+            for x in 0..16 {
+                assert_eq!(
+                    card.pixels()[(y + 4) * 24 + x + 4],
+                    world.pixels()[y * 16 + x]
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn sorcerer_storm_rituals_keep_head_feet_and_orb_with_distinct_state_gestures() {
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new("storm-rituals"));
+    persona.class = AdventurerClass::Sorcerer;
+    let work_a = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+    let work_b = adventurer_animation_frame(&persona, ScenePose::Working, 1);
+    assert_ne!(work_a, work_b, "working focus must move");
+    assert_eq!(
+        &work_a.pixels()[..9 * 16],
+        &work_b.pixels()[..9 * 16],
+        "no head bob"
+    );
+    assert_eq!(
+        &work_a.pixels()[19 * 16..],
+        &work_b.pixels()[19 * 16..],
+        "feet stay planted"
+    );
+    let signal = adventurer_animation_frame(&persona, ScenePose::SeekingCounsel, 0);
+    let wait = adventurer_animation_frame(&persona, ScenePose::SeekingCounsel, 1);
+    assert_ne!(signal, wait, "counsel gesture must settle");
+    let settled = adventurer_animation_frame(&persona, ScenePose::Settled, 0);
+    for (pose, index) in [
+        (ScenePose::Working, 0),
+        (ScenePose::Working, 1),
+        (ScenePose::SeekingCounsel, 0),
+        (ScenePose::SeekingCounsel, 1),
+        (ScenePose::ReturningWithSpoils, 0),
+        (ScenePose::Resting, 0),
+        (ScenePose::Unknown, 0),
+        (ScenePose::Settled, 0),
+    ] {
+        let frame = adventurer_animation_frame(&persona, pose, index);
+        assert_eq!(frame.size(), PixelSize::new(16, 24));
+        let feet = frame.pixels()[21 * 16..22 * 16]
+            .iter()
+            .enumerate()
+            .filter_map(|(x, p)| p.is_some().then_some(x))
+            .collect::<Vec<_>>();
+        assert_eq!(feet, vec![4, 5, 6, 9, 10, 11], "{pose:?} {index} anchors");
+        assert!(frame.pixels()[22 * 16..].iter().all(Option::is_none));
+        assert!(
+            frame.pixels()[13 * 16 + 13].is_some(),
+            "orb in {pose:?} {index}"
+        );
+        if pose != ScenePose::Settled {
+            assert_ne!(
+                frame, settled,
+                "{pose:?} must not assert settled completion"
+            );
+        }
+    }
+}
+
+#[test]
+fn druid_world_and_card_use_the_approved_bramble_silhouette() {
+    let approved: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/art/druid-bramble-master.json"))
+            .expect("approved Druid study fixture");
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new("bramble-approval"));
+    persona.class = AdventurerClass::Druid;
+    for skin in [SkinTone::Porcelain, SkinTone::Ebony] {
+        persona.appearance.skin_tone = skin;
+        let world = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+        let card = adventurer_portrait_frame(&persona).expect("Druid authored card fallback");
+        for (y, row) in approved["rows"]
+            .as_array()
+            .expect("approved rows")
+            .iter()
+            .enumerate()
+        {
+            for (x, glyph) in row.as_str().expect("pixel row").chars().enumerate() {
+                let expected = glyph != '.';
+                assert_eq!(
+                    world.pixels()[y * 16 + x].is_some(),
+                    expected,
+                    "Druid {skin:?} must use approved B at ({x},{y})"
+                );
+                assert_eq!(
+                    card.pixels()[(y + 4) * 24 + x + 4],
+                    world.pixels()[y * 16 + x],
+                    "card fallback must use the same unscaled Druid at ({x},{y})"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn druid_rituals_preserve_bramble_head_and_feet_with_distinct_semantic_poses() {
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new("bramble-rituals"));
+    persona.class = AdventurerClass::Druid;
+    let work_a = adventurer_animation_frame(&persona, ScenePose::Working, 0);
+    let work_b = adventurer_animation_frame(&persona, ScenePose::Working, 1);
+    assert_ne!(work_a, work_b, "working hands and foliage must change");
+    assert_eq!(
+        &work_a.pixels()[..12 * 16],
+        &work_b.pixels()[..12 * 16],
+        "working must not bob the head"
+    );
+    assert_eq!(
+        &work_a.pixels()[20 * 16..],
+        &work_b.pixels()[20 * 16..],
+        "working feet stay planted"
+    );
+    let signal = adventurer_animation_frame(&persona, ScenePose::SeekingCounsel, 0);
+    let wait = adventurer_animation_frame(&persona, ScenePose::SeekingCounsel, 1);
+    assert_ne!(signal, wait, "the raised counsel gesture must settle");
+    let settled = adventurer_animation_frame(&persona, ScenePose::Settled, 0);
+    for pose in [
+        ScenePose::Working,
+        ScenePose::SeekingCounsel,
+        ScenePose::ReturningWithSpoils,
+        ScenePose::Resting,
+        ScenePose::Unknown,
+        ScenePose::Settled,
+    ] {
+        let frame = adventurer_animation_frame(&persona, pose, 0);
+        assert_eq!(frame.size(), PixelSize::new(16, 24), "{pose:?}");
+        let feet = frame.pixels()[21 * 16..22 * 16]
+            .iter()
+            .enumerate()
+            .filter_map(|(x, p)| p.is_some().then_some(x))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            feet,
+            vec![4, 5, 6, 9, 10, 11],
+            "{pose:?} must retain the approved foot anchors"
+        );
+        assert!(
+            frame.pixels()[22 * 16..].iter().all(Option::is_none),
+            "{pose:?} must not drift down"
+        );
+        if pose != ScenePose::Settled {
+            assert_ne!(frame, settled, "{pose:?} must not claim settled completion");
+        }
+    }
+}
+
+#[test]
 fn every_core_archetype_uses_a_world_master() {
     for class in CORE_ARCHETYPES {
         let mut persona =

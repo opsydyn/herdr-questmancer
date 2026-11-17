@@ -1,0 +1,39 @@
+{
+  "scope": "Integrate approved automatic party density in the existing owned UI; preserve Herdr resources, personas and work",
+  "missing_synthetic_before": [
+    "w8:pS",
+    "w8:pT",
+    "w8:pV"
+  ],
+  "remaining_synthetic_count": 1,
+  "before_runtime": {
+    "pane_id": "w8:pY",
+    "pid": 98140,
+    "started_at": 1794942648,
+    "initial_view": "delve"
+  },
+  "pane": "w8:pY",
+  "terminal": "term_660769b53dfe0f",
+  "binary_sha256": "910056041754d2d6e8392dcd7aeceabb91b8b000f0795f2a7af2a00b7f6fed98",
+  "owned_work_sha256_before": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "persona_record_count": 13,
+  "personas_sha256_before": "1ab327b39000e8f8c6a5e9a5fcaf4ba4057d384e17cd38c5c638eb6089c71621",
+  "focus_before": "w8:pY",
+  "after_runtime": {
+    "pane_id": "w8:pY",
+    "pid": 35882,
+    "started_at": 1794946816,
+    "initial_view": "delve"
+  },
+  "owned_work_sha256_after": "add369a5baacfbf8ad0c17dc69812960c730f1b75d3c6bc71ce3d69a4c0b1804",
+  "personas_unchanged": true,
+  "personas_sha256_after": "1ab327b39000e8f8c6a5e9a5fcaf4ba4057d384e17cd38c5c638eb6089c71621",
+  "remaining_synthetic_unchanged": true,
+  "focus_after": "w8:pY",
+  "party_retained": true,
+  "native_visual_acceptance": "unverified",
+  "plugin_logs": {
+    "logs": [],
+    "type": "plugin_log_list"
+  }
+}

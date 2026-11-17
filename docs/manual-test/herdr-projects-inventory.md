@@ -1,5 +1,10 @@
 # Herdr Projects inventory: configuration and acceptance boundaries
 
+Further qualification is parked under the 2026-10-01
+[owned-work direction](../design/questmancer-owned-work.md). This guide continues
+to describe the existing optional adapter; it is not a required setup step or an
+instruction to install Projects/upgrade Herdr.
+
 The opt-in reader supports one explicitly registered local project in the inspected
 Herdr Projects 0.2.34 layout. It reads records and report references, not execution,
 planning, human questions or project memory. Installed-source and live usefulness

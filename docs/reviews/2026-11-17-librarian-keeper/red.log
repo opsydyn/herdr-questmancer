@@ -1,0 +1,24 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.97s
+     Running tests/librarian_assets.rs (target/debug/deps/librarian_assets-785181ff972bedb4)
+
+running 1 test
+test librarian_world_uses_the_user_selected_keeper_pixels ... FAILED
+
+failures:
+
+---- librarian_world_uses_the_user_selected_keeper_pixels stdout ----
+
+thread 'librarian_world_uses_the_user_selected_keeper_pixels' panicked at tests/librarian_assets.rs:24:13:
+assertion `left == right` failed: world Librarian must retain approved B at (6,1)
+  left: Some(Rgb { r: 28, g: 18, b: 23 })
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    librarian_world_uses_the_user_selected_keeper_pixels
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test librarian_assets`

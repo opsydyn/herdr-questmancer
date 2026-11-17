@@ -1,5 +1,10 @@
 # Questmancer production pixel world: guarded manual acceptance
 
+The unreleased proportional output adapter now covers both rooms. See the
+[Delve fit checklist](production-delve-fit.md) for negotiated Kitty, complete
+crowded-party fallback and native acceptance limits.
+
+
 This guide tests the production Guild Hall and Delve without damaging an
 existing Herdr session. The historical filename is retained so existing links
 continue to work; there is no separate scene-preview binary.
@@ -65,8 +70,15 @@ Also review Rogue, Pathseeker and Runewright's new pose galleries and room
 sequences separately from their newly aligned card fallbacks; verify exact
 native proportions and four-pixel margins in the existing portrait canvas.
 Review Mage and Sorcerer's new pose galleries and both room sequences
-separately from their newly aligned card fallbacks. Confirm the skull staff
-and halo remain legible and the four-pixel margins retain the card layout.
+separately from their newly aligned card fallbacks. Confirm the Mage's skull
+staff and the Sorcerer's Storm Channeler orb remain legible, including the
+Sorcerer's resting and unknown poses. The Sorcerer has swept hair and a pale
+streak. Confirm the four-pixel margins retain the fallback card layout and
+the native card shows the matching Storm Channeler illustration.
+Review the Cleric's Sunward Chaplain world sprite beside its existing native
+card: the open face, beard, silver shoulders, cream tabard, mace and prayerbook
+should retain the same class identity. Check the book and mace remain visible
+while resting, unknown and settled, with planted feet through both working frames.
 
 Press Enter to inspect at the full terminal size. World, card and interaction
 stories now reach production layouts at every positive size; sprite galleries
@@ -79,8 +91,8 @@ frames. Storybook time is fixed; use the [pilot review playback](../design/revie
 to inspect the production renderer sampled at explicit fixture times. This
 is not live Herdr acceptance.
 
-For a native portrait in a Herdr-managed pane, Herdr 0.9 enables the bridge
-by default. An explicit `terminal.kitty_graphics = false` disables it; the legacy
+For a native portrait in a Herdr-managed pane, Herdr 0.9.4 uses standard Kitty
+terminal graphics. The legacy `pane.graphics.*` socket API is removed. An explicit `terminal.kitty_graphics = false` disables it; the legacy
 experimental key remains accepted. Validate with `herdr config check` and follow
 [the current transport guide](../troubleshooting/native-portrait-rendering.md).
 A compatible outer terminal alone does not establish pane transport support.
@@ -102,7 +114,7 @@ task. Use a synthetic blocked report to confirm `seeks counsel` and an updated
 campaign summons count. Restore the user's original sidebar configuration after
 the test if it was changed solely for this procedure.
 
-Use the supported Herdr `0.9.0` / protocol `22`; `herdr config check` must report
+Use the supported Herdr `0.9.4` / protocol `22`; `herdr config check` must report
 `config: ok` before opening Questmancer, and an invalid row takes the whole
 file down to defaults rather than being skipped.
 
@@ -139,7 +151,7 @@ Questmancer pane after the repeated `open`.
 | Scrying | `o` opens recent output for the selected adventurer. |
 | Counsel | `r` opens parchment; submit only to the disposable synthetic agent. A correlated confirmed text-and-submit result adds a red seal to the existing notice for six seconds. Draft/sending/rejected/uncertain/submit-failed outcomes have no seal and keep their recovery actions. Confirmation must not change blocked presence. |
 | Pilot working and counsel | Wizard, Ranger and Barbarian alternate two working frames every 500 ms. A new blocked episode gestures for 600 ms and then stays still. Repeated reports, a room switch or reconnect must not restart the gesture. Only a later working report resumes the ritual. |
-| Pilot spoils | Fixture coverage: a confirmed done transition carries the class-specific parcel, places it at 1000 ms and ends effects at 3000 ms. Completed, resting and unknown remain distinct. Herdr 0.9.0 synthetic reports cannot establish a live done transition. |
+| Pilot spoils | Fixture coverage: a confirmed done transition carries the class-specific parcel, places it at 1000 ms and ends effects at 3000 ms. Completed, resting and unknown remain distinct. Herdr 0.9.4 synthetic reports cannot establish a live done transition. |
 | Quiet motion | Reduced/still mode shows a static meaningful pose for all pilot states, including fresh done, with no decorative or cleanup wake. |
 | Acknowledge | `Space` marks the current blocked episode seen locally. |
 | Librarian | The revised Librarian sprite is visible and clickable in canonical and compact Halls. Clicking it opens the same fixed handbook as `?` without changing adventurer selection. Roster, vignette and status-only tiers omit the actor; `?` remains available. Review the enlarged face, books and short robe; the wide Ledger must show its independently authored fallback when native graphics are unavailable. |
@@ -163,7 +175,7 @@ Questmancer pane after the repeated `open`.
 | Ribbon | Opening Questmancer without pressing anything shows the command ribbon, including `[?] Keys`. It fades a few seconds after the first keypress and returns on activity. |
 | Goblin outbreak | `/`, then `release the goblins`, then `Enter` puts goblins on screen for about three seconds in both `1` and `2` — Guild Hall doorway and shelves, Delve entrance-left and centre-bottom. No adventurer moves or disappears while they are loose, the room returns to normal on its own without further input, and a close/reopen never brings them back. |
 
-Do not infer unobserved states. In particular, Herdr `0.9.0` cannot synthesize
+Do not infer unobserved states. In particular, Herdr `0.9.4` cannot synthesize
 `done`; fixture tests are not a substitute for live visual acceptance.
 
 ## Optional disposable agent
@@ -228,7 +240,7 @@ herdr plugin log list --plugin opsydyn.questmancer --limit 50
 ## Pane adventurer line repair check
 
 Use paired development binaries with the optional `pane.viewport_header.info`
-and `pane.viewport_header.sync` API. Published Herdr 0.9.0 does not advertise
+and `pane.viewport_header.sync` API. Published Herdr 0.9.4 does not advertise
 these methods. Put `ui.pane_viewport_header = true` and
 `terminal.kitty_graphics = true` only in the test server's temporary config.
 

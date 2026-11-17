@@ -1,0 +1,14 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.92s
+     Running tests/librarian_assets.rs (target/debug/deps/librarian_assets-785181ff972bedb4)
+
+running 6 tests
+test librarian_world_master_is_native_scale_and_non_empty ... ok
+test librarian_ledger_fallback_fills_a_readable_portrait_canvas ... ok
+test librarian_art_is_grounded_and_the_ledger_uses_its_larger_canvas ... ok
+test librarian_ledger_fallback_retains_the_keepers_fur_books_and_robe ... ok
+test librarian_world_uses_the_user_selected_keeper_pixels ... ok
+test embedded_librarian_art_is_a_decodable_png ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+

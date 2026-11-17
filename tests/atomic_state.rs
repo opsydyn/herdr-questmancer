@@ -67,14 +67,14 @@ fn malformed_json_reports_the_path_and_one_based_line() {
 #[test]
 fn unsupported_schema_version_fails_closed() {
     let mut state = valid_state();
-    state.schema_version = 2;
+    state.schema_version = 3;
 
     let error =
         parse_state("state.json".as_ref(), &serde_json::to_vec(&state).unwrap()).unwrap_err();
 
     assert_eq!(error.operation, "validate state");
     assert_eq!(error.line, None);
-    assert!(error.source_message.contains("schema version 2"));
+    assert!(error.source_message.contains("schema version 3"));
 }
 
 #[test]

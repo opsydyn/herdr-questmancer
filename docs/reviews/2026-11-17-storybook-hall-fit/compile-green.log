@@ -1,0 +1,14 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+error[E0599]: no method named `needs_human` found for enum `GuildAttention` in the current scope
+   --> src/storybook/fit_preview.rs:232:41
+    |
+232 |                 .filter(|a| a.attention.needs_human())
+    |                                         ^^^^^^^^^^^ method not found in `GuildAttention`
+    |
+   ::: src/domain/attention.rs:15:1
+    |
+ 15 | pub enum GuildAttention {
+    | ----------------------- method `needs_human` not found for this enum
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `questmancer` (lib) due to 1 previous error

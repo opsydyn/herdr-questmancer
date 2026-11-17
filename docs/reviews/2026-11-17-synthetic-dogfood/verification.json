@@ -1,0 +1,136 @@
+{
+  "date": "2026-11-17",
+  "scope": "Current Herdr session; synthetic CLI integration dogfood, not native human acceptance",
+  "herdr": "0.9.5",
+  "protocol": 22,
+  "candidate_sha256": "0c489be3462d71ea3ea06c34da8aab1cfa370448649ca40955687a56fc9e7a08",
+  "engineering": {
+    "build": 0,
+    "verify": 0,
+    "rust_tests": 789,
+    "rust_runs": 64,
+    "shell_tests": 28
+  },
+  "live_checks": [
+    {
+      "check": "guild_delve_guild_ledger_search_scrying",
+      "scope": "Herdr CLI input and text evidence; native appearance unreviewed"
+    },
+    {
+      "check": "owned_revision",
+      "revision": 0,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 1,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 2,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 3,
+      "authority_and_cache": true
+    },
+    {
+      "check": "seen_deferred_did_not_answer",
+      "authority_unchanged": true,
+      "source_obligation": "Open"
+    },
+    {
+      "check": "owned_revision",
+      "revision": 4,
+      "authority_and_cache": true
+    },
+    {
+      "check": "raw_send_text_newline_limitation",
+      "observed_answer": "Keep it for one release.Document removal.",
+      "scope": "Harness sent raw LF; next multiline case uses logical Enter"
+    },
+    {
+      "check": "owned_revision",
+      "revision": 5,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 6,
+      "authority_and_cache": true
+    },
+    {
+      "check": "owned_revision",
+      "revision": 7,
+      "authority_and_cache": true
+    },
+    {
+      "check": "multiline_answer",
+      "logical_enter": true,
+      "exact_text_persisted": true
+    },
+    {
+      "check": "literal_answer_privacy",
+      "cache_and_chronicle_exclude_answer": true
+    },
+    {
+      "check": "synthetic_transition",
+      "agent": "dogfood-forge",
+      "state": "working",
+      "card_text_observed": "Working"
+    },
+    {
+      "check": "managed_pane_excluded",
+      "excluded": true
+    },
+    {
+      "check": "restart_recovery",
+      "authority_unchanged": true,
+      "multiline_answer_visible": true,
+      "remembered_store_opened": true
+    },
+    {
+      "check": "below_minimum_submission_disabled",
+      "viewport": {
+        "height": 52,
+        "width": 25,
+        "x": 0,
+        "y": 0
+      },
+      "authority_unchanged": true
+    },
+    {
+      "check": "resize_draft_preserved_and_discarded",
+      "authority_unchanged": true,
+      "helpers_closed": true
+    },
+    {
+      "check": "final_resource_audit",
+      "protected_panes_present": true,
+      "synthetic_states_retained": true,
+      "resize_helpers_closed": true,
+      "source_worktree_unchanged": true,
+      "no_server_restart": true,
+      "no_counsel_sent": true
+    }
+  ],
+  "owned_store": {
+    "revision": 7,
+    "campaigns": 1,
+    "quests": 1,
+    "decisions": 2,
+    "artifacts": 1,
+    "restart_authority_unchanged": true,
+    "literal_multiline_answer_recovered": true
+  },
+  "retained": true,
+  "trial_root": "/private/tmp/qmdogfood-74b_9_02",
+  "ui_pane": "w8:pY",
+  "ui_tab": "w8:tE",
+  "native_appearance": "pending human review",
+  "completion_transition": "Not synthesizable; not claimed",
+  "source_changes": "None; preexisting worktree preserved",
+  "cleanup": "Resize helpers and initial test managed pane closed; party, UI and trial state retained"
+}

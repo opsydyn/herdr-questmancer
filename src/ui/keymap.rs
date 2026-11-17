@@ -34,6 +34,11 @@ pub const BINDINGS: &[Binding] = &[
         action: Action::OpenQuestBoard,
     },
     Binding {
+        keys: "a (Board)",
+        description: "Owned work actions and store setup",
+        action: Action::OpenAuthoring,
+    },
+    Binding {
         keys: "j/k (Board)",
         description: "Select work (also Tab/Shift-Tab)",
         action: Action::Next,

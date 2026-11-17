@@ -1,0 +1,11 @@
+{
+  "scope": "Production release binary native-transport pixel round trip with synthetic PTY replies",
+  "dimensions": [
+    800,
+    464
+  ],
+  "image_id": "1952274511",
+  "all_rgba_pixels_identical_to_fit_projection": true,
+  "rgba_sha256": "7adba20d12ba70865f63e8e9335bba56e474e4b8efc8c1016531576035fac7aa",
+  "limitation": "Producer verified; terminal display, animation, resize and mouse acceptance remain human checks"
+}

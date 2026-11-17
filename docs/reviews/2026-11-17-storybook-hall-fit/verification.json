@@ -1,0 +1,83 @@
+{
+  "date": "2026-11-17",
+  "scope": "Approved Storybook-only fit prototype; not production integration",
+  "full_gate": {
+    "rust_tests": 807,
+    "runs": 65,
+    "shell_tests": 28,
+    "format": 0,
+    "clippy_denied_warnings": 0,
+    "log": "/tmp/questmancer-storybook-fit-verify-complete-20261117.log"
+  },
+  "storybook_build": 0,
+  "production_release_build": 0,
+  "production_binary_sha256_unchanged": "a08b70bb57dd3daeb7cd7d34044030656caaa13510cdefaa7b3cc02995dff886",
+  "storybook_binary_sha256": "5547557dd77ed4f4f1b696a9ef0bf6a39e77a92889d73a70cb4ce64bf8218f5a",
+  "source_baseline": {
+    "files": 232,
+    "changed": [
+      "src/storybook/runtime.rs",
+      "src/storybook/ui.rs",
+      "src/storybook/mod.rs",
+      "src/storybook/catalogue.rs",
+      "src/storybook/fixtures.rs",
+      "src/bin/questmancer_storybook.rs",
+      "tests/storybook.rs"
+    ],
+    "remaining_byte_identical": 225
+  },
+  "new_feature_modules": [
+    "src/storybook/fit.rs",
+    "src/storybook/fit_preview.rs"
+  ],
+  "new_test": "tests/storybook_fit.rs",
+  "production_source_and_assets_unchanged": true,
+  "stories": 69,
+  "new_experimental_stories": 3,
+  "pty_modes": [
+    {
+      "mode": "native",
+      "exit": 0,
+      "uploads": 10,
+      "deletions": 8
+    },
+    {
+      "mode": "graphics-off",
+      "exit": 0,
+      "uploads": 0,
+      "deletions": 0
+    }
+  ],
+  "native_pixels": {
+    "scope": "Executable native-transport pixel round trip with synthetic PTY replies",
+    "dimensions": [
+      800,
+      464
+    ],
+    "image_id": "1362994237",
+    "all_rgba_pixels_identical_to_fit_projection": true,
+    "rgba_sha256": "3494963cb8865845be3501ce795c900b5b4dde63bd51172b705e42183f38eca5",
+    "limitation": "Transport producer verified; actual terminal placement, display and interaction remain human acceptance"
+  },
+  "repeat_export_hashes": "identical",
+  "output_sha256": {
+    "fit-eleven-96x28.png": "d950e68e6f201b5cdeeebae8ecd24b6ea27e0cc12732349d5555a5289435f8ca",
+    "fit-five-96x28.png": "43af8f66c69c16a05bbf0ffe7d7ba751871c4feb349537575081b6e1b14619f4",
+    "fit-five-120x34.png": "85f8eb6b738614e3eedfc06643c25338b25f77dd60030bcfa671a559933e190a",
+    "fit-five-80x24.png": "2ea0d1b3e5c47c1caaff9db46a7eea32e7c66f1b3ff3451ff38e920f87af9436",
+    "fit-eleven-120x34.png": "18509b0ff55580d3b0ed585b9cda11f44f19b82d812fd753aec99d8ac2da8957",
+    "fit-eleven-80x24.png": "e755bc986aaee2d7b2d34455d8d05ec164324c0a53d2714966c7b34ff924092e",
+    "01-storybook-fit-review.png": "ca87251807d8c2328446739dedc58a07c6a3da82053df87678ce40feb6544162",
+    "02-pty-world-upload.png": "f083171e19de35f7b9c13fd5443e8b68b282f2ddd316e3f912701475e6aca7b7"
+  },
+  "live_party_operations": "None",
+  "native_visual_acceptance": "Pending human review",
+  "unqualified": [
+    "font zoom / geometry re-query",
+    "visibility/reconnect",
+    "animation throughput",
+    "production world integration"
+  ],
+  "committed": false,
+  "published": false
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "mode": "native",
+    "exit": 0,
+    "queries": [
+      "\u001b[16t",
+      "primary DA after graphics",
+      "final status after graphics and geometry"
+    ],
+    "uploads": [
+      "q=2,i=698386219,a=T,U=1,f=32,t=d,s=800,v=464,m=1",
+      "q=2,i=1510114855,a=T,U=1,f=32,t=d,s=800,v=464,m=1",
+      "q=2,i=698386219,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=4039606133,a=T,U=1,f=32,t=d,s=192,v=192,m=1",
+      "q=2,i=1510114855,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=3635459832,a=T,U=1,f=32,t=d,s=192,v=256,m=1",
+      "q=2,i=698386219,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=1510114855,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=698386219,a=T,U=1,f=32,t=d,s=640,v=368,m=1",
+      "q=2,i=1510114855,a=T,U=1,f=32,t=d,s=640,v=368,m=1"
+    ],
+    "deletions": [
+      "a=d,d=I,i=698386219,q=2",
+      "a=d,d=I,i=1510114855,q=2",
+      "a=d,d=I,i=698386219,q=2",
+      "a=d,d=I,i=1510114855,q=2",
+      "a=d,d=I,i=698386219,q=2",
+      "a=d,d=I,i=1510114855,q=2",
+      "a=d,d=I,i=698386219,q=2",
+      "a=d,d=I,i=1510114855,q=2"
+    ],
+    "output_bytes": 12119856,
+    "transcript_sha256": "e931f6a03f3c12dabcfdadcd11330a46eace5f59ed6b9ee23f1df0b6c1d5e397",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic PTY with explicit geometry/graphics replies; not a real terminal"
+  },
+  {
+    "mode": "graphics-off",
+    "exit": 0,
+    "queries": [],
+    "uploads": [],
+    "deletions": [],
+    "output_bytes": 18134,
+    "transcript_sha256": "2ffe37d14b30ab32b8b4b9096a1f61be0d1c33a50eb398e8baa523f3e6ea5619",
+    "raw_mode_restored": true,
+    "alternate_screen_restored": true,
+    "mouse_capture_restored": true,
+    "evidence": "Synthetic PTY with explicit geometry/graphics replies; not a real terminal"
+  }
+]

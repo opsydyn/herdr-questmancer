@@ -1,0 +1,22 @@
+   Compiling questmancer v0.1.10 (/Users/alancurrie/Projects/herdr-web-master)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.67s
+     Running tests/scene_delve.rs (target/debug/deps/scene_delve-24345dcdb9922799)
+
+running 1 test
+test resting_party_overflow_keeps_the_dungeon_and_full_world_sprites ... FAILED
+
+failures:
+
+---- resting_party_overflow_keeps_the_dungeon_and_full_world_sprites stdout ----
+
+thread 'resting_party_overflow_keeps_the_dungeon_and_full_world_sprites' panicked at tests/scene_delve.rs:818:5:
+an ordinary resting party must keep its full authored masters
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    resting_party_overflow_keeps_the_dungeon_and_full_world_sprites
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test scene_delve`

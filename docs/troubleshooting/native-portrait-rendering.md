@@ -7,13 +7,16 @@ outer terminal and Herdr form one graphics transport.
 
 ## Current scope and historical evidence
 
-Questmancer `0.1.10` requires Herdr `0.9.0` / protocol `22`. All fourteen
+Questmancer `0.1.10` requires Herdr `0.9.4` / protocol `22`. All fourteen
 classes have native PNG cards and authored `24x32` portrait fallbacks;
 `src/portrait.rs` owns the exact routes. The Librarian's Ledger has a separate
 native illustration and an independently authored `24x32` Ledger fallback.
 Goblin and Orc illustrations are reserved event art, not ordinary ancestry
 routes. Native protocols are used for cards and the Ledger illustration;
-both worlds use the RGB half-block renderer.
+both fallback rooms use the RGB half-block adapter. The unreleased
+[proportional world adapter](../adr/0003-proportional-delve.md) shares this startup
+query and requires Kitty plus valid cell geometry. Other modal parchments suspend its world image. Adventurer profiles keep the
+fit through masked row bands while retaining the existing portrait path.
 
 Historical acceptance recorded Barbarian, Rogue, Wizard and Goblin native art
 through Ghostty and Herdr `0.7.4` with Kitty graphics. Preserve that evidence
@@ -43,19 +46,33 @@ not recover them. Fresh, test-owned panes isolated the difference:
 - `ratatui-image` therefore discarded the native capability when it could not
   determine font size. All embedded PNGs still decoded and prepared normally.
 
-Before querying graphics, Questmancer now requests `pane.graphics.info` for its
-own managed pane only when PTY pixel geometry is missing. It fills missing
+The historical 0.9.0 repair requested `pane.graphics.info` for its
+own managed pane only when PTY pixel geometry is missing. It filled missing
 pixel axes from the host-reported cell size, preserving the latest character
-grid and every already-known pixel axis. Zero/overflowing sizes are rejected,
-and the local request is capped at 500 ms. No terminal-name heuristic or
+grid and every already-known pixel axis. Zero/overflowing sizes were rejected,
+and the local request was capped at 500 ms. No terminal-name heuristic or
 forced graphics protocol is introduced: the subsequent Picker query remains
 authoritative. Failure retains the authored fallback.
 
-This is startup transport preparation, not a per-frame request. It does not
+That was startup transport preparation, not a per-frame request. It did not
 change Herdr configuration, focus, agents, persistent state or the scene
 renderer. See the [regression receipt](../reviews/2026-09-08-native-portrait-regression/README.md)
 for reproduction, validation and the separate visual result. Earlier clean
 qualification at `9ea8501` predates this repair.
+
+## Herdr 0.9.4 transport — 2026-10-14
+
+Herdr removed `pane.graphics.info`, `set`, `clear` and `stream` in 0.9.2.
+The current plugin therefore removes the historical PTY geometry workaround.
+`Picker::from_query_stdio()` now gets geometry and graphics capability entirely
+through the terminal; native cards use standard Kitty output. Missing geometry,
+disabled graphics or failed preparation retains the authored sprite. No PTY
+pixel dimensions are invented or changed by Questmancer.
+
+In 0.9.4, disabling Kitty graphics also stops advertising image support. Keep
+`terminal.kitty_graphics` intentional and trust the terminal query. An isolated
+headless runtime is not a native terminal appearance review. See the
+[compatibility receipt](../reviews/2026-10-14-herdr-094/README.md).
 
 ## Historical empty-region failure
 
@@ -109,7 +126,7 @@ its independently authored `24x32` Ledger fallback.
 
 ## Herdr configuration
 
-Herdr 0.9 enables the Kitty bridge by default. The current setting in
+Herdr 0.9.4 enables native Kitty rendering by default. The current setting in
 `~/.config/herdr/config.toml` is:
 
 ```toml
@@ -121,7 +138,7 @@ The legacy `experimental.kitty_graphics` key is accepted, including an explicit
 false; `terminal.kitty_graphics` takes precedence. Preserve intentional settings.
 Run `herdr config check` before applying changes. Herdr's 0.9 configuration
 reference requires a server restart or client reattach after changing graphics.
-For remote sessions, server configuration controls parsing/API availability and
+For remote sessions, server configuration controls graphics parsing and
 local client configuration controls outer-terminal output. A successful config
 reload alone is not proof of graphics transport.
 
@@ -204,8 +221,8 @@ When a native portrait is missing, inspect in this order:
 1. **Empty or fallback?** Empty suggests a false-positive native protocol;
    fallback suggests capability detection or asset preparation declined native
    rendering safely.
-2. **Managed pane geometry:** check the current repair and its receipt above;
-   a Kitty acknowledgement without CSI 16t or PTY pixels reproduces this regression.
+2. **Managed pane geometry:** the standard terminal query must supply cell size;
+   do not call the removed `pane.graphics.info` API or force a protocol.
 3. **Herdr bridge:** confirm `terminal.kitty_graphics = true`.
 4. **Fresh attachment:** reattach the Herdr client after enabling the bridge.
 5. **Binary selection:** confirm the release binary was rebuilt.
@@ -220,8 +237,8 @@ non-blank fallback for every unsupported identity and transport.
 ## Optional pane adventurer lines
 
 The paired development header feature uses `pane.viewport_header.info` and
-`pane.viewport_header.sync`, independently of card portraits and the published
-`pane.graphics.*` methods. It requires Herdr's opt-in
+`pane.viewport_header.sync`, independently of card portraits. Published Herdr 0.9.4 has no header API and
+returns `unknown_method` for the retired `pane.graphics.*` methods. It requires Herdr's opt-in
 `[ui].pane_viewport_header = true`. A missing or disabled capability is a quiet
 fallback; enablement is rechecked when Questmancer reconnects or restarts.
 Never send a header through `pane.graphics.set`: that API anchors to terminal

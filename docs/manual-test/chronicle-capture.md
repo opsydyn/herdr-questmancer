@@ -81,3 +81,9 @@ and XP; owned-resource cleanup passed. See the
 real metadata path for that configuration, not live snapshot-only capture or
 native completion visuals. The earlier synthetic-only C3 procedure remains scoped
 to synthetic testing; real-agent runs require their own approved disposable scope.
+
+For the current Herdr 0.9.5 / Pi 1.5.2 supported extension, follow
+[Pi integration activation](pi-integration.md). The 2026-11-17 v9 qualification
+observed native identity and working/idle capture with zero XP; that hook does
+not publish an explicit done report. Keep this separate from the historical
+working/done acceptance above.
