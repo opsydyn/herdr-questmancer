@@ -7,8 +7,8 @@ Questmancer owns presentation and a small amount of durable local intent.
 
 ## Current release — 0.2.0, 2026-11-17
 
-The user authorized committing and pushing all accumulated work and creating a
-release. Version 0.2.0 includes the Quest Board/War Table, explicit local owned-work
+Version 0.2.0 is published from clean `11ddd02`, with all four archives, checksums,
+the actual macOS ARM64 installer and deployed docs verified. It includes the Quest Board/War Table, explicit local owned-work
 authoring, Herdr 0.9.4+ compatibility, revised class/Librarian art, proportional
 Hall/Delve fitting, profile masking and automatic party density through 64 actors.
 Pi integration v9 is installed and real working/resting capture is qualified with
@@ -17,7 +17,7 @@ Herdr 0.9.5 / Pi 1.5.2; existing sessions need manual reload. Storybook has 84 s
 The release checklist and fresh evidence live in
 [the 0.2.0 receipt](docs/reviews/2026-11-17-release-0.2.0/README.md).
 Historical slice sections below describe their state at the recorded date;
-their “unreleased” labels are superseded by this release scope once published.
+their “unreleased” labels are superseded by this published release scope.
 
 Remaining product work: native owned-authoring acceptance; exhaustive native
 resize/profile/mouse/animation review; blocked Pi and other integration coverage;

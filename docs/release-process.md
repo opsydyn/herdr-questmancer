@@ -8,12 +8,19 @@ Three things cut a release, and each owns one job.
 | Binaries | `release.yml`, explicitly dispatched after tagging | four archives and `SHA256SUMS` on a GitHub release |
 | Registry | `release.yml`, gated | a crates.io publish when `PUBLISH_TO_CRATES=true`; live setting unverified |
 
-## Approved 0.2.0 release — 2026-11-17
+## Published 0.2.0 release — 2026-11-17
+
+[Questmancer v0.2.0](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.2.0)
+is published from clean `11ddd02`. The complete local and GitHub gates passed,
+all four downloaded archives/checksums were verified, and the actual installer
+and downloaded macOS ARM64 runtime passed in temporary storage. Updated feature
+and Pi documentation is deployed. Crates.io was skipped. See the
+[publication receipt](reviews/2026-11-17-release-0.2.0/README.md).
 
 The owner authorized committing/pushing all accumulated work and creating the
 release, including feature/functionality and Pi setup documentation. The latest
-published remote version at preflight is 0.1.11; its version-only history must
-be merged without discarding local work. This feature release advances both
+published remote version at preflight was 0.1.11; its version-only history was
+merged without discarding local work. This feature release advances both
 manifests and the lockfile to 0.2.0. The curated changelog is the release body.
 
 Follow the established manual authenticated-tag path: run `just verify`, the

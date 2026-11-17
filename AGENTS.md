@@ -352,11 +352,12 @@ and malformed-file diagnostics.
 
 ## Current product status and remaining gates
 
-The 2026-11-17 owner request authorizes committing/pushing all accumulated work
-and releasing 0.2.0. See `docs/reviews/2026-11-17-release-0.2.0/README.md` for the
+Questmancer 0.2.0 is published from clean `11ddd02` on 2026-11-17. Four archives,
+checksums, the actual macOS ARM64 installer/runtime and deployed docs are verified.
+See `docs/reviews/2026-11-17-release-0.2.0/README.md` for the
 fresh qualification/publication state and `CHANGELOG.md` for included features.
 Dated “unreleased” sections below are slice history, superseded by that release
-scope when published. The supported Pi integration is separately installed v9
+scope. The supported Pi integration is separately installed v9
 and qualified with Pi 1.5.2 / Herdr 0.9.5; existing Pi sessions need manual
 `/reload`. Working/resting reports do not prove completion or award XP.
 Preserve the retained synthetic party. Native authoring, exhaustive native input

@@ -152,7 +152,150 @@
     "herdr_resources_created": 0,
     "temporary_resources_removed": true
   },
-  "source_package": "pending clean commit",
-  "publication": "pending",
-  "registry_enabled": false
+  "source_package": {
+    "commit": "11ddd0262284b11e1c5f2db9735f63b085b5fa38",
+    "tree": "a9658ec2998897851c5535fe010ebbf6ebbe36ac",
+    "command": "cargo package --locked --offline",
+    "exit": 0,
+    "bytes": 5182077,
+    "files": 306,
+    "sha256": "9e14ff7130d7eae0e030aa5538e027b5fbd615744ffabe18a65970b50700e481",
+    "below_10_mib": true,
+    "packaged_storybook_check_exit": 0
+  },
+  "publication": {
+    "url": "https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.2.0",
+    "tagName": "v0.2.0",
+    "publishedAt": "2026-11-17T21:33:15Z",
+    "isDraft": false,
+    "isPrerelease": false,
+    "curated_release_body_matches": true,
+    "commit": "11ddd0262284b11e1c5f2db9735f63b085b5fa38",
+    "github_runs": [
+      {
+        "conclusion": "success",
+        "databaseId": 44179949669,
+        "headSha": "11ddd0262284b11e1c5f2db9735f63b085b5fa38",
+        "status": "completed",
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/44179949669",
+        "workflowName": "Release"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 44179950349,
+        "headSha": "11ddd0262284b11e1c5f2db9735f63b085b5fa38",
+        "status": "completed",
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/44179950349",
+        "workflowName": "CI"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 44179950416,
+        "headSha": "11ddd0262284b11e1c5f2db9735f63b085b5fa38",
+        "status": "completed",
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/44179950416",
+        "workflowName": "Deploy Questmancer site"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 44179950468,
+        "headSha": "11ddd0262284b11e1c5f2db9735f63b085b5fa38",
+        "status": "completed",
+        "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/44179950468",
+        "workflowName": "Release plz"
+      }
+    ],
+    "registry_job": "skipped"
+  },
+  "registry_enabled": false,
+  "distribution": {
+    "version": "0.2.0",
+    "archives": [
+      {
+        "archive": "questmancer-v0.2.0-x86_64-unknown-linux-gnu.tar.gz",
+        "sha256": "5ce1fc7cd8d1dce4b5dd6af6714a092ae2826a189e445d171812312b57d95838",
+        "bytes": 7500885,
+        "single_root_executable": true,
+        "file_type": "ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=8542535963a4d1fa1595bf2cc565008a418d53a6, stripped"
+      },
+      {
+        "archive": "questmancer-v0.2.0-aarch64-unknown-linux-gnu.tar.gz",
+        "sha256": "56230ff1c46f7bda373b958ad071f781d4d727e28e62207e38a46ea4b90489ab",
+        "bytes": 7221893,
+        "single_root_executable": true,
+        "file_type": "ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=c0494df59e364f82f302990dbb14f5f64b7ceb92, stripped"
+      },
+      {
+        "archive": "questmancer-v0.2.0-x86_64-apple-darwin.tar.gz",
+        "sha256": "821e8914b452ca46c2256f2172cecfa6a75bfd25a4cf7203f00558766ece4eb8",
+        "bytes": 7405180,
+        "single_root_executable": true,
+        "file_type": "Mach-O 64-bit executable x86_64"
+      },
+      {
+        "archive": "questmancer-v0.2.0-aarch64-apple-darwin.tar.gz",
+        "sha256": "b322a926981cbf79f9f6890e68a303089b079ccfc5250b8ba116083540d8b454",
+        "bytes": 7226861,
+        "single_root_executable": true,
+        "file_type": "Mach-O 64-bit executable arm64"
+      }
+    ],
+    "installer": {
+      "actual_script": "herdr/install.sh",
+      "isolated_storage": true,
+      "version_output": "questmancer 0.2.0",
+      "native_platform": "aarch64-apple-darwin"
+    },
+    "other_platform_execution": "not performed"
+  },
+  "installed_artifact_pty": [
+    {
+      "mode": "native",
+      "exit": 0,
+      "binary_sha256": "1b4f5657300b2f6df4b68454ec368ad2af0557d83960ef8812576663e06a2699",
+      "raw_mode_restored": true,
+      "alternate_screen_restored": true,
+      "mouse_capture_restored": true
+    },
+    {
+      "mode": "unsupported",
+      "exit": 0,
+      "binary_sha256": "1b4f5657300b2f6df4b68454ec368ad2af0557d83960ef8812576663e06a2699",
+      "raw_mode_restored": true,
+      "alternate_screen_restored": true,
+      "mouse_capture_restored": true
+    },
+    {
+      "mode": "missing-geometry",
+      "exit": 0,
+      "binary_sha256": "1b4f5657300b2f6df4b68454ec368ad2af0557d83960ef8812576663e06a2699",
+      "raw_mode_restored": true,
+      "alternate_screen_restored": true,
+      "mouse_capture_restored": true
+    },
+    {
+      "mode": "native-interrupt",
+      "exit": 0,
+      "binary_sha256": "1b4f5657300b2f6df4b68454ec368ad2af0557d83960ef8812576663e06a2699",
+      "raw_mode_restored": true,
+      "alternate_screen_restored": true,
+      "mouse_capture_restored": true
+    }
+  ],
+  "site_deployment": {
+    "url": "https://opsydyn.github.io/herdr-questmancer/",
+    "http_status": 200,
+    "new_feature_and_pi_copy_present": true,
+    "sha256": "471319f29997db64713cf197d3d37730841803f75ca85ad5dcff0099d2d4544d",
+    "native_visual_review": false
+  },
+  "live_preservation": {
+    "shared_pane_count": 9,
+    "prior_pane_count": 9,
+    "all_prior_terminal_identities_retained": true,
+    "focus_unchanged_since_pi_trial": false,
+    "shared_server_stopped_or_reloaded": false,
+    "existing_agents_received_input": false,
+    "focus_command_issued": false
+  }
 }
