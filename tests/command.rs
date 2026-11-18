@@ -78,12 +78,16 @@ async fn output_load_returns_a_ui_ready_preview() {
 async fn status_explanation_is_scoped_to_the_same_pane_occupant() {
     use questmancer::{
         app::StatusRequest,
-        domain::{CaptureIdentity, Presence},
+        domain::{CaptureIdentity, Presence, Timestamp},
     };
 
     let (_directory, path, listener) = listener();
     let server = tokio::spawn(async move {
-        for terminal_id in ["terminal-1", "replacement-terminal"] {
+        for (terminal_id, live_status) in [
+            ("terminal-1", "blocked"),
+            ("replacement-terminal", "blocked"),
+            ("terminal-1", "working"),
+        ] {
             let (mut stream, _) = listener.accept().await.unwrap();
             let call = request(&mut stream).await;
             assert_eq!(call["method"], "agent.explain");
@@ -98,7 +102,7 @@ async fn status_explanation_is_scoped_to_the_same_pane_occupant() {
             assert_eq!(call["method"], "pane.get");
             respond(&mut stream, &call, json!({"type": "pane_info", "pane": {
                 "pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1",
-                "terminal_id": terminal_id, "focused": false, "agent_status": "idle", "revision": 7
+                "terminal_id": terminal_id, "focused": false, "agent_status": live_status, "revision": 8
             }})).await;
         }
     });
@@ -107,8 +111,8 @@ async fn status_explanation_is_scoped_to_the_same_pane_occupant() {
         serial: 4,
         pane: PaneId::new("w1:p1"),
         identity: CaptureIdentity::from_parts("terminal-1", None),
-        revision: 7,
-        presence: Presence::Idle,
+        presence: Presence::Blocked,
+        presence_since: Timestamp::from_millis(1_000),
     };
     let result = executor
         .execute(AgentCommand::ExplainStatus(status.clone()))
@@ -117,11 +121,15 @@ async fn status_explanation_is_scoped_to_the_same_pane_occupant() {
         matches!(result, CommandResult::StatusExplained { serial: 4, result: Ok(report) }
         if report.fallback_reason.as_deref() == Some("default_known_agent_idle_fallback"))
     );
-    let result = executor.execute(AgentCommand::ExplainStatus(status)).await;
-    assert!(
-        matches!(result, CommandResult::StatusExplained { serial: 4, result: Err(message) }
-        if message.contains("changed"))
-    );
+    for _ in 0..2 {
+        let result = executor
+            .execute(AgentCommand::ExplainStatus(status.clone()))
+            .await;
+        assert!(
+            matches!(result, CommandResult::StatusExplained { serial: 4, result: Err(message) }
+            if message.contains("changed"))
+        );
+    }
     server.await.unwrap();
 }
 

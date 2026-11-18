@@ -244,8 +244,6 @@ impl CommandExecutor {
                 CaptureIdentity::from_parts(&current.terminal_id, current.agent_session.as_ref());
             if current.pane_id != pane
                 || identity != request.identity
-                || current.revision != request.revision
-                || Presence::from(explanation.state) != request.presence
                 || Presence::from(current.agent_status) != request.presence
             {
                 return Err("Adventurer status changed. Reopen to refresh.".into());

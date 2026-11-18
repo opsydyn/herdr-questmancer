@@ -698,23 +698,39 @@ fn render_status_explanation(frame: &mut Frame<'_>, model: &Model) {
         .selected_agent()
         .filter(|agent| status.request.matches(agent))
     {
+        lines.push(Line::from(agent.name.as_str()));
         lines.push(Line::from(format!(
-            "{} · {}",
-            agent.name,
+            "Live status · {}",
             presence_label(agent.presence)
         )));
         let explanation = match &status.outcome {
             None => "Asking Herdr…",
             Some(Err(error)) => error,
             Some(Ok(report)) if report.screen_detection_skipped => {
-                "Herdr used an integration report."
+                "Herdr skipped screen detection for a reported state."
             }
             Some(Ok(report)) if report.matched_rule.is_some() => {
-                "Herdr matched a screen-detection rule."
+                "Herdr's screen check matched a rule."
             }
-            Some(Ok(report)) if report.fallback_reason.is_some() => "Herdr used a fallback state.",
+            Some(Ok(report)) if report.fallback_reason.is_some() => {
+                "Herdr's screen check used a fallback."
+            }
             Some(Ok(_)) => "Herdr supplied no detection reason.",
         };
+        if let Some(Ok(report)) = &status.outcome {
+            let estimate = Presence::from(report.state);
+            if estimate != agent.presence {
+                let label = if report.screen_detection_skipped {
+                    "Herdr explanation"
+                } else {
+                    "Screen estimate"
+                };
+                lines.push(Line::from(format!(
+                    "{label} · {}",
+                    presence_label(estimate)
+                )));
+            }
+        }
         lines.push(Line::from(explanation));
         let coverage = if agent.capture_identity.is_qualified() {
             "Chronicle: session identity available."

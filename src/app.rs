@@ -288,16 +288,16 @@ pub struct StatusRequest {
     pub serial: u64,
     pub pane: PaneId,
     pub identity: crate::domain::CaptureIdentity,
-    pub revision: u64,
     pub presence: Presence,
+    pub presence_since: Timestamp,
 }
 
 impl StatusRequest {
     pub(crate) fn matches(&self, agent: &Agent) -> bool {
         agent.pane_id == self.pane
             && agent.capture_identity == self.identity
-            && agent.pane_revision == self.revision
             && agent.presence == self.presence
+            && agent.presence_since == self.presence_since
     }
 }
 
@@ -1629,8 +1629,8 @@ impl Model {
             serial: self.next_status_request.checked_add(1)?,
             pane: agent.pane_id.clone(),
             identity: agent.capture_identity.clone(),
-            revision: agent.pane_revision,
             presence: agent.presence,
+            presence_since: agent.presence_since,
         };
         let outcome = if self.connection != ConnectionState::Connected {
             Some(Err(

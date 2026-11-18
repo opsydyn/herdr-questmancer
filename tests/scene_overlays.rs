@@ -138,6 +138,57 @@ fn ledger_menu_shows_the_character_picker_and_escape_returns_to_the_menu() {
 }
 
 #[test]
+fn status_explanation_distinguishes_screen_estimate_from_live_status() {
+    use questmancer::{
+        domain::CaptureIdentity,
+        herdr::protocol::{AgentExplanation, AgentStatus},
+    };
+
+    let mut model = model();
+    let selected = model.selected_agent_key().unwrap().clone();
+    let agent = model.domain_mut().agents.get_mut(&selected).unwrap();
+    agent.capture_identity = CaptureIdentity::from_parts("terminal", None);
+    agent.presence = Presence::Blocked;
+    let opened = reduce_action(&mut model, Action::ExplainStatus);
+    let [AgentCommand::ExplainStatus(request)] = opened.commands.as_slice() else {
+        panic!("expected a scoped status read");
+    };
+    model
+        .domain_mut()
+        .agents
+        .get_mut(&selected)
+        .unwrap()
+        .pane_revision += 1;
+    let _ = apply_command_result(
+        &mut model,
+        CommandResult::StatusExplained {
+            serial: request.serial,
+            result: Ok(AgentExplanation {
+                state: AgentStatus::Idle,
+                screen_detection_skipped: false,
+                matched_rule: None,
+                fallback_reason: Some("default_known_agent_idle_fallback".into()),
+            }),
+        },
+        Timestamp::from_millis(2_000),
+    );
+    let text = render(&model, 90, 24);
+    assert!(text.contains("Live status · Needs counsel"));
+    assert!(text.contains("Screen estimate · Resting"));
+    assert!(text.contains("Chronicle: observations withheld"));
+
+    model
+        .domain_mut()
+        .agents
+        .get_mut(&selected)
+        .unwrap()
+        .presence_since = Timestamp::from_millis(3_000);
+    let text = render(&model, 90, 24);
+    assert!(text.contains("Adventurer status changed"));
+    assert!(!text.contains("Screen estimate"));
+}
+
+#[test]
 fn character_picker_keeps_the_rat_royalty_choice_and_exit_visible_across_sizes() {
     let mut model = model();
     for action in [Action::OpenCharacterPicker, Action::Last, Action::Previous] {
