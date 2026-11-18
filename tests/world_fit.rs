@@ -86,6 +86,29 @@ fn production_cache_and_overlay_view_fallback_transitions_release_only_owned_ima
 }
 
 #[test]
+fn compact_rooms_keep_selected_status_action_and_counsel_count_visible() {
+    for view in [View::Guild, View::Delve] {
+        let mut model = hall_fit_fixture(StoryContext::fixed(), FitParty::Five);
+        model.switch_to(view);
+        model.set_integration_diagnostic("Partial Chronicle coverage".to_owned());
+        let selected = model.selected_agent().unwrap().name.clone();
+        let mut graphics = WorldFit::new(None);
+        let (scene, text, _) = draw(&mut graphics, &model, (50, 18));
+        assert_eq!(scene.actors.len(), 5);
+        for fact in [
+            selected.as_str(),
+            "WORKING",
+            "[Enter]",
+            "[!] 1 need counsel",
+            "Partial Chronicle coverage",
+        ] {
+            assert!(text.contains(fact), "missing {fact} in {view:?}");
+        }
+        assert!(scene.target_at(20, 16).is_none());
+    }
+}
+
+#[test]
 fn production_fallback_retains_complete_parties_when_graphics_are_unavailable() {
     for party in [FitParty::Five, FitParty::Crowded] {
         let model = hall_fit_fixture(StoryContext::fixed(), party);

@@ -1,5 +1,5 @@
 //! Isolated native-fit preview state; production never imports this module.
-use std::fmt;
+use std::{fmt, time::Duration};
 
 use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::{
@@ -9,16 +9,17 @@ use ratatui::{
     widgets::{Clear, Paragraph},
 };
 use ratatui_image::{protocol::kitty::Kitty, sliced::SlicedProtocol};
+use tokio::time::Instant;
 
 use super::fit::{CellPixels, FitScene, FitTarget, FitTransform};
 use crate::{
     app::{Modal, Model},
     portrait::PortraitGallery,
     scene::{
-        SceneFrame, SceneTarget,
+        RoomStudy, SceneFrame, SceneTarget,
         pixel::{PixelSize, Rgb, RgbBuffer},
         presentation::ScenePresentation,
-        render_scene_for_world,
+        render_scene_for_world, render_study_frame,
         snapshot::SceneSnapshot,
     },
     ui::{scene_adapter::flush_rgb, scene_overlays::render_scene_overlays},
@@ -46,6 +47,8 @@ pub struct FitPreview {
     fallback: Option<(Rect, SceneFrame)>,
     uploads: usize,
     profile_mask: Option<Rect>,
+    walk_started: Instant,
+    walk_deadline: Option<Instant>,
 }
 
 impl fmt::Debug for FitPreview {
@@ -91,6 +94,8 @@ impl FitPreview {
             fallback: None,
             uploads: 0,
             profile_mask: None,
+            walk_started: Instant::now(),
+            walk_deadline: None,
         }
     }
 
@@ -122,6 +127,14 @@ impl FitPreview {
         self.model.is_some() && self.story == story
     }
 
+    pub(crate) fn restart_walk(&mut self) {
+        self.walk_started = Instant::now();
+    }
+
+    pub(crate) fn next_walk_frame(&self) -> Option<Instant> {
+        self.walk_deadline
+    }
+
     pub fn render(
         &mut self,
         frame: &mut Frame<'_>,
@@ -133,6 +146,7 @@ impl FitPreview {
         if self.story != story {
             story.clone_into(&mut self.story);
             self.model = Some(base.clone());
+            self.restart_walk();
         }
         let model = self.model.as_ref().expect("preview fixture is installed");
         let picture = Rect::new(
@@ -142,16 +156,13 @@ impl FitPreview {
             area.height.saturating_sub(3),
         );
         let overlay = model.modal() != &Modal::None || model.adventurer_card_visible();
+        let drawn_at = Instant::now();
+        let study = room_study(story, drawn_at - self.walk_started);
         self.profile_mask = crate::ui::world_fit::profile_mask(frame.area(), model);
         let projection = self
             .geometry
             .filter(|_| model.modal() == &Modal::None)
-            .map(|cell| {
-                super::density::scale_for_story(story).map_or_else(
-                    || FitScene::project(model, picture, cell),
-                    |scale| super::density::project(model, picture, cell, scale),
-                )
-            });
+            .map(|cell| project_story(model, picture, cell, story, study));
         let mut status = if overlay {
             "Parchment / responsive backdrop".to_owned()
         } else {
@@ -196,23 +207,23 @@ impl FitPreview {
                     self.profile_mask,
                 );
                 self.painted = true;
-                status = format!(
-                    "Kitty fit {}x / {}/{} adventurers",
-                    scene.transform.scale,
-                    scene.frame.actors.len(),
-                    model.domain().agents.len()
-                );
-                if let Some(scale) = super::density::scale_for_story(story) {
-                    status = format!("EXPERIMENT {scale:?} / {status}");
-                }
+                status = fitted_status(scene, model.domain().agents.len(), story);
                 self.scene = Some(scene.clone());
             }
         } else if let Some(Err(error)) = projection {
             status = format!("Fit fallback: {error}");
         }
         if !self.painted {
-            self.fallback = Some((picture, paint_fallback(frame, picture, model)));
+            self.fallback = Some((picture, paint_fallback(frame, picture, model, study)));
         }
+        self.walk_deadline = walk_deadline(
+            study,
+            self.scene.as_ref(),
+            self.fallback.as_ref(),
+            model.modal(),
+            drawn_at,
+        );
+        let status = preview_status(study, model.preferences().motion, status);
         frame.render_widget(
             Paragraph::new(status).style(Style::new().fg(Color::Yellow)),
             Rect::new(area.x, area.y, area.width, area.height.min(1)),
@@ -230,6 +241,12 @@ impl FitPreview {
 
     /// Local fixture actions only: this path never builds an `AgentCommand`.
     pub fn handle_event(&mut self, event: &Event) -> bool {
+        if self.story == "world.delve-walk"
+            && matches!(event, Event::Key(key) if key.code == KeyCode::Char(' '))
+        {
+            self.restart_walk();
+            return true;
+        }
         if let Event::Mouse(mouse) = event
             && self.profile_mask.is_some_and(|area| {
                 area.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
@@ -272,6 +289,10 @@ impl FitPreview {
                 return true;
             }
             match key.code {
+                KeyCode::Char('m') if self.story == "world.delve-walk" => {
+                    model.cycle_motion();
+                    self.walk_started = Instant::now();
+                }
                 KeyCode::Tab => model.select_next_agent(),
                 KeyCode::BackTab => model.select_previous_agent(),
                 KeyCode::Char('c') | KeyCode::Enter if model.modal() == &Modal::None => {
@@ -309,14 +330,89 @@ impl FitPreview {
     }
 }
 
-fn paint_fallback(frame: &mut Frame<'_>, picture: Rect, model: &Model) -> SceneFrame {
-    let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
-    let scene = render_scene_for_world(
-        &SceneSnapshot::from_model(model),
-        &ScenePresentation::from_model(model),
-        PixelSize::new(picture.width, picture.height.saturating_mul(2)),
-        &mut buffer,
+fn walk_deadline(
+    study: Option<RoomStudy>,
+    scene: Option<&FitScene>,
+    fallback: Option<&(Rect, SceneFrame)>,
+    modal: &Modal,
+    drawn_at: Instant,
+) -> Option<Instant> {
+    if !matches!(study, Some(RoomStudy::DelveWalk(_))) || modal != &Modal::None {
+        return None;
+    }
+    scene
+        .map(|scene| &scene.frame)
+        .or_else(|| {
+            fallback
+                .filter(|(area, _)| area.width == 160 && area.height == 45)
+                .map(|(_, frame)| frame)
+        })
+        .and_then(|scene| scene.next_frame_in)
+        .map(|delay| drawn_at + delay)
+}
+
+fn preview_status(study: Option<RoomStudy>, motion: crate::app::Motion, status: String) -> String {
+    if matches!(study, Some(RoomStudy::DelveWalk(_))) {
+        format!("Space replay · m {} / {status}", motion.label())
+    } else {
+        status
+    }
+}
+
+fn fitted_status(scene: &FitScene, party_size: usize, story: &str) -> String {
+    let status = format!(
+        "Kitty fit {}x / {}/{} adventurers",
+        scene.transform.scale,
+        scene.frame.actors.len(),
+        party_size
     );
+    if let Some(scale) = super::density::scale_for_story(story) {
+        format!("EXPERIMENT {scale:?} / {status}")
+    } else {
+        status
+    }
+}
+
+fn room_study(story: &str, elapsed: Duration) -> Option<RoomStudy> {
+    match story {
+        "world.delve-walk" => Some(RoomStudy::DelveWalk(elapsed)),
+        "world.delve-materials" => Some(RoomStudy::DelveStone),
+        "world.guild-materials" => Some(RoomStudy::HallMaterials),
+        _ => None,
+    }
+}
+
+fn project_story(
+    model: &Model,
+    picture: Rect,
+    cell: CellPixels,
+    story: &str,
+    study: Option<RoomStudy>,
+) -> Result<FitScene, crate::scene::fit::FitFailure> {
+    if let Some(study) = study {
+        FitScene::project_study(model, picture, cell, study)
+    } else if let Some(scale) = super::density::scale_for_story(story) {
+        super::density::project(model, picture, cell, scale)
+    } else {
+        FitScene::project(model, picture, cell)
+    }
+}
+
+fn paint_fallback(
+    frame: &mut Frame<'_>,
+    picture: Rect,
+    model: &Model,
+    study: Option<RoomStudy>,
+) -> SceneFrame {
+    let mut buffer = RgbBuffer::filled(0, 0, Rgb::BLACK);
+    let snapshot = SceneSnapshot::from_model(model);
+    let presentation = ScenePresentation::from_model(model);
+    let viewport = PixelSize::new(picture.width, picture.height.saturating_mul(2));
+    let scene = if let Some(study) = study {
+        render_study_frame(&snapshot, &presentation, study, viewport, &mut buffer)
+    } else {
+        render_scene_for_world(&snapshot, &presentation, viewport, &mut buffer)
+    };
     flush_rgb(
         frame.buffer_mut(),
         picture,
@@ -380,7 +476,14 @@ fn paint_footer(frame: &mut Frame<'_>, area: Rect, model: &Model) {
     if area.height >= 3 {
         let label = model.selected_agent().map_or_else(
             || "No selection".to_owned(),
-            |a| format!("{} / {:?} / {:?}", a.name, a.persona.class, a.presence),
+            |a| {
+                format!(
+                    "{} / {} / {:?}",
+                    a.name,
+                    a.persona.class.label(),
+                    a.presence
+                )
+            },
         );
         let urgent = model
             .domain()
@@ -431,6 +534,78 @@ mod tests {
     }
     fn key(code: KeyCode) -> Event {
         Event::Key(KeyEvent::new(code, KeyModifiers::NONE))
+    }
+
+    fn study_fixture(id: &str) -> Model {
+        let story = crate::storybook::catalogue::catalogue()
+            .iter()
+            .find(|candidate| candidate.id.as_str() == id)
+            .unwrap();
+        match (story.build)(StoryContext::fixed()) {
+            crate::storybook::fixtures::StoryFixture::WorldFit(model) => *model,
+            _ => panic!("{id} must use the fitted room"),
+        }
+    }
+
+    #[test]
+    fn walk_samples_keep_the_mover_clickable_and_the_waiting_adventurer_steady() {
+        use crate::{app::Motion, domain::Presence};
+        let mut model = study_fixture("world.delve-walk");
+        let area = Rect::new(0, 0, 96, 28);
+        let cell = CellPixels::new(8, 16).unwrap();
+        let fit = |model: &Model, time_ms| {
+            FitScene::project_study(
+                model,
+                area,
+                cell,
+                RoomStudy::DelveWalk(Duration::from_millis(time_ms)),
+            )
+            .unwrap()
+        };
+        assert_eq!(model.selected_agent().unwrap().presence, Presence::Working);
+        assert_eq!(model.preferences().motion, Motion::Full);
+        let first = fit(&model, 0);
+        let middle = fit(&model, 625);
+        let last = fit(&model, 1_500);
+        let mover = model.selected_agent_key().unwrap().clone();
+        for scene in [&first, &middle, &last] {
+            assert_eq!(scene.frame.actors[0].agent, mover);
+            assert_eq!(scene.frame.actors[1], first.frame.actors[1]);
+            assert!(
+                (scene.transform.area.y..scene.transform.area.bottom()).any(|y| {
+                    (scene.transform.area.x..scene.transform.area.right()).any(|x| {
+                        scene.target_at(x, y) == Some(FitTarget::Adventurer(mover.clone()))
+                    })
+                })
+            );
+        }
+        assert_ne!(first.frame.actors[0].bounds, middle.frame.actors[0].bounds);
+        assert_ne!(middle.frame.actors[0].bounds, last.frame.actors[0].bounds);
+        assert!(middle.frame.next_frame_in.is_some());
+        assert!(last.frame.next_frame_in.is_none());
+        assert_ne!(first.rgb, middle.rgb);
+
+        model.cycle_motion();
+        let reduced = fit(&model, 0);
+        assert_eq!(reduced.frame.actors, last.frame.actors);
+        assert!(reduced.frame.next_frame_in.is_none());
+    }
+
+    #[test]
+    fn both_material_studies_preserve_baseline_hit_regions_and_change_pixels() {
+        let area = Rect::new(0, 0, 96, 28);
+        let cell = CellPixels::new(8, 16).unwrap();
+        for (id, study) in [
+            ("world.delve-materials", RoomStudy::DelveStone),
+            ("world.guild-materials", RoomStudy::HallMaterials),
+        ] {
+            let model = study_fixture(id);
+            let baseline = FitScene::project(&model, area, cell).unwrap();
+            let preview = FitScene::project_study(&model, area, cell, study).unwrap();
+            assert_eq!(baseline.frame.actors, preview.frame.actors);
+            assert_eq!(baseline.frame.interactables, preview.frame.interactables);
+            assert_ne!(baseline.rgb, preview.rgb);
+        }
     }
 
     #[test]

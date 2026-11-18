@@ -403,6 +403,10 @@ impl<'a> DelvePainter<'a> {
             None,
         )
         .expect("unrecorded material painting cannot conflict");
+        #[cfg(feature = "storybook")]
+        if self.plan.study == Some(crate::scene::RoomStudy::DelveStone) {
+            super::room_study::delve_stone(self.target, self.origin, &self.architecture);
+        }
         paint_background_architecture(self.target, self.origin, self.seed);
         apply_lighting(self.snapshot, self.target, self.origin);
     }
@@ -1436,6 +1440,8 @@ mod tests {
             transition_floor: None,
             party_rest_since: None,
             goblin_outbreak: false,
+            #[cfg(feature = "storybook")]
+            study: None,
         };
         let anchors = actor_anchors(&plan);
         let unique = anchors
@@ -1517,6 +1523,8 @@ mod tests {
             transition_floor: None,
             party_rest_since: None,
             goblin_outbreak: false,
+            #[cfg(feature = "storybook")]
+            study: None,
         };
 
         assert_eq!(actor_anchors(&plan).len(), VISIBLE_ACTORS_PER_STATION);
@@ -1696,6 +1704,8 @@ mod tests {
             transition_floor: None,
             party_rest_since: None,
             goblin_outbreak: false,
+            #[cfg(feature = "storybook")]
+            study: None,
         };
         paint_depth_sorted(
             &snapshot,

@@ -492,12 +492,11 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     let second = render(&snapshot, WorldScene::Delve, VIEWPORT);
     assert_eq!(first.pixels(), second.pixels());
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
-    // Quiet canonical RGB scene, including the approved Sunward Chaplain Cleric.
-    // The 2026-11-17 Cleric production review's 04-canonical-delve.png shows this
-    // exact fixture; changing the hash requires inspecting that rendered scene.
+    // Quiet canonical RGB scene, including the Bard's revised feather and mantle.
+    // The full class art review's canonical-delve.png shows this exact fixture.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "6baaf0f61bc4ddeb24db765776ff3b2aa30c6b67409101daf0c286169750667d"
+        "4638f44a8ffba9caf6dd1e36133e64312eb852be0f727e43efc95d4c877f4b48"
     );
 
     let non_clear = first

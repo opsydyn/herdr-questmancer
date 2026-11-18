@@ -6,6 +6,7 @@ pub mod guild_hall;
 pub mod keepsakes;
 pub mod librarian;
 pub mod palette;
+pub mod rat_royalty;
 pub(crate) mod rituals;
 pub mod roster;
 
@@ -134,11 +135,7 @@ mod tests {
                 collect(format!("{class:?} world master"), &frame);
             }
         }
-        for class in [
-            AdventurerClass::Wizard,
-            AdventurerClass::Ranger,
-            AdventurerClass::Barbarian,
-        ] {
+        for &class in AdventurerClass::ALL {
             for pose in [
                 crate::scene::stage::ScenePose::Working,
                 crate::scene::stage::ScenePose::SeekingCounsel,
@@ -149,11 +146,11 @@ mod tests {
             ] {
                 for index in 0..2 {
                     let (frame, _) =
-                        rituals::world_master(class, pose, index).expect("pilot class");
+                        rituals::world_master(class, pose, index).expect("authored class");
                     collect(format!("ritual {class:?} {pose:?} {index}"), &frame);
                 }
             }
-            let (frame, _) = rituals::roster_master(class).expect("pilot roster");
+            let (frame, _) = rituals::roster_master(class);
             collect(format!("ritual roster {class:?}"), &frame);
         }
         for family in roster::RosterFamily::ALL {

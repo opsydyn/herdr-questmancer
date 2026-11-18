@@ -23,6 +23,7 @@ fn paths(config_dir: Option<&Path>, state_dir: Option<&Path>) -> PersistencePath
 fn state(last_view: View, preferences: DisplayPreferences) -> PersistedStateV1 {
     PersistedStateV1 {
         owned_store: None,
+        party_name: None,
         experience: 0,
         schema_version: 1,
         last_view,
@@ -105,6 +106,39 @@ async fn absent_files_use_defaults_without_diagnostics() {
         Some(state.path().join("chronicle.jsonl"))
     );
     assert!(startup.diagnostics.is_empty());
+}
+
+#[tokio::test]
+async fn second_launch_reads_saved_preferences_without_becoming_a_writer() {
+    let directory = tempfile::tempdir().unwrap();
+    let state_path = directory.path().join("state.json");
+    tokio::fs::write(
+        &state_path,
+        serde_json::to_vec(&state(View::Delve, DisplayPreferences::default())).unwrap(),
+    )
+    .await
+    .unwrap();
+
+    let first = load_startup(paths(None, Some(directory.path())), None).await;
+    let second = load_startup(paths(None, Some(directory.path())), None).await;
+    assert_eq!(first.paths.state.as_deref(), Some(state_path.as_path()));
+    assert_eq!(second.model.view(), View::Delve);
+    assert!(
+        second.paths.state.is_none(),
+        "a second pane can overwrite the profile"
+    );
+    assert!(second.paths.chronicle.is_none());
+    assert!(second.paths.work_path().is_none());
+    assert!(
+        second
+            .diagnostics
+            .iter()
+            .any(|record| record.source_message.contains("another Questmancer"))
+    );
+
+    drop(first);
+    let next = load_startup(paths(None, Some(directory.path())), None).await;
+    assert_eq!(next.paths.state.as_deref(), Some(state_path.as_path()));
 }
 
 #[tokio::test]

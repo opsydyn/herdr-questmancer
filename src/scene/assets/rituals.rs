@@ -7,7 +7,7 @@ mod tool_art;
 mod trail_art;
 use std::{sync::OnceLock, time::Duration};
 
-use super::{IndexedPaletteEntry, indexed_sprite};
+use super::{IndexedPaletteEntry, indexed_sprite, rat_royalty};
 use crate::{
     app::Motion,
     domain::AdventurerClass,
@@ -84,6 +84,7 @@ const fn class_index(class: AdventurerClass) -> usize {
         AdventurerClass::Runewright => 11,
         AdventurerClass::Mage => 12,
         AdventurerClass::Sorcerer => 13,
+        AdventurerClass::RatRoyalty => 14,
     }
 }
 
@@ -130,7 +131,7 @@ pub(crate) fn sample(
 struct ClassArt {
     palette: &'static [IndexedPaletteEntry],
     frames: [&'static [&'static str]; 8],
-    roster: Option<&'static [&'static str]>,
+    roster: &'static [&'static str],
 }
 
 pub(crate) fn world_master(
@@ -154,17 +155,16 @@ pub(crate) fn world_master(
 
 pub(crate) fn roster_master(
     class: AdventurerClass,
-) -> Option<(SpriteFrame, &'static [IndexedPaletteEntry])> {
-    static FRAMES: OnceLock<[Option<SpriteFrame>; ART.len()]> = OnceLock::new();
+) -> (SpriteFrame, &'static [IndexedPaletteEntry]) {
+    static FRAMES: OnceLock<[SpriteFrame; ART.len()]> = OnceLock::new();
     let class = class_index(class);
     let frames = FRAMES.get_or_init(|| {
         std::array::from_fn(|class| {
-            ART[class].roster.map(|rows| {
-                indexed_sprite(rows, ART[class].palette).expect("authored pilot roster is valid")
-            })
+            indexed_sprite(ART[class].roster, ART[class].palette)
+                .expect("authored class roster is valid")
         })
     });
-    Some((frames.get(class)?.as_ref()?.clone(), ART[class].palette))
+    (frames[class].clone(), ART[class].palette)
 }
 
 const WIZARD_PALETTE: &[IndexedPaletteEntry] = &[
@@ -459,7 +459,7 @@ const WIZARD_SETTLED: &[&str] = &[
 ];
 
 const WIZARD_ROSTER: &[&str] = &[
-    ".....oo.", "...oCCo.", "..ollllo", "e.oKKKKo", "M.orRRro", "m..oRRo.", "m.oCCCo.", "m.oClCo.",
+    ".....o..", "....oCo.", "...oCCoo", "e.ollllo", "M..oKKo.", "m..oRRo.", "m.oCCCo.", "m.oClCo.",
     "m.oCCCo.", "m..oddo.", "m.oo.oo.", "........",
 ];
 
@@ -1055,7 +1055,7 @@ const BARBARIAN_ROSTER: &[&str] = &[
     "d.oddo..", "d.od.do.", "..oo.oo.", "........",
 ];
 
-const ART: [ClassArt; 14] = [
+const ART: [ClassArt; 15] = [
     ClassArt {
         palette: WIZARD_PALETTE,
         frames: [
@@ -1068,7 +1068,7 @@ const ART: [ClassArt; 14] = [
             WIZARD_UNKNOWN,
             WIZARD_SETTLED,
         ],
-        roster: Some(WIZARD_ROSTER),
+        roster: WIZARD_ROSTER,
     },
     ClassArt {
         palette: RANGER_PALETTE,
@@ -1082,7 +1082,7 @@ const ART: [ClassArt; 14] = [
             RANGER_UNKNOWN,
             RANGER_SETTLED,
         ],
-        roster: Some(RANGER_ROSTER),
+        roster: RANGER_ROSTER,
     },
     ClassArt {
         palette: BARBARIAN_PALETTE,
@@ -1096,7 +1096,7 @@ const ART: [ClassArt; 14] = [
             BARBARIAN_UNKNOWN,
             BARBARIAN_SETTLED,
         ],
-        roster: Some(BARBARIAN_ROSTER),
+        roster: BARBARIAN_ROSTER,
     },
     tool_art::BARD,
     tool_art::ARTIFICER,
@@ -1109,4 +1109,9 @@ const ART: [ClassArt; 14] = [
     trail_art::RUNEWRIGHT,
     arcane_art::MAGE,
     arcane_art::SORCERER,
+    ClassArt {
+        palette: rat_royalty::PALETTE,
+        frames: rat_royalty::FRAMES,
+        roster: rat_royalty::ROSTER,
+    },
 ];

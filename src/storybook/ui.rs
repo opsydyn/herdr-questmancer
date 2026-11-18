@@ -16,7 +16,7 @@ use crate::{
                 adventurer_animation_frame, adventurer_portrait_frame, adventurer_roster_frame,
             },
             archetypes::{goblin_portrait_frame, goblin_world_frame},
-            librarian,
+            librarian, rat_royalty,
         },
         pixel::{PixelSize, Rgb, RgbBuffer},
         presentation::ScenePresentation,
@@ -238,7 +238,7 @@ fn render_archetype_gallery(frame: &mut Frame<'_>, area: Rect, gallery: Archetyp
     buffer.ensure_size(area.width, area.height.saturating_mul(2), BACKGROUND);
 
     let entries = gallery_entries(gallery);
-    let columns = if entries.len() <= 2 { entries.len() } else { 4 };
+    let columns = entries.len().min(4);
     let rows = entries.len().div_ceil(columns);
     let cell_width = area.width / u16::try_from(columns).expect("gallery columns fit u16");
     let cell_height =
@@ -308,6 +308,14 @@ fn render_archetype_gallery(frame: &mut Frame<'_>, area: Rect, gallery: Archetyp
 }
 
 fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)> {
+    if gallery == ArchetypeGallery::RatRoyalty {
+        return vec![
+            ("World 16x24", rat_royalty::world().clone()),
+            ("Roster 8x12", rat_royalty::roster().clone()),
+            ("Profile 24x32", rat_royalty::profile().clone()),
+        ];
+    }
+
     if gallery == ArchetypeGallery::Librarian {
         return vec![
             ("Librarian · world 16x24", librarian::world().clone()),
@@ -373,11 +381,12 @@ fn gallery_entries(gallery: ArchetypeGallery) -> Vec<(&'static str, SpriteFrame)
                 | ArchetypeGallery::RosterFamilies
                 | ArchetypeGallery::CustomClassMasters
                 | ArchetypeGallery::GoblinEasterEgg
-                | ArchetypeGallery::Librarian => {
+                | ArchetypeGallery::Librarian
+                | ArchetypeGallery::RatRoyalty => {
                     unreachable!()
                 }
             };
-            (class_label(*class), sprite)
+            (class.label(), sprite)
         })
         .collect()
 }
@@ -473,26 +482,6 @@ fn roster_family_entries() -> Vec<(&'static str, SpriteFrame)> {
             (*label, adventurer_roster_frame(&persona))
         })
         .collect()
-}
-
-const fn class_label(class: crate::domain::AdventurerClass) -> &'static str {
-    use crate::domain::AdventurerClass;
-    match class {
-        AdventurerClass::Barbarian => "Barbarian",
-        AdventurerClass::Bard => "Bard",
-        AdventurerClass::Cleric => "Cleric",
-        AdventurerClass::Druid => "Druid",
-        AdventurerClass::Paladin => "Paladin",
-        AdventurerClass::Ranger => "Ranger",
-        AdventurerClass::Rogue => "Rogue",
-        AdventurerClass::Wizard => "Wizard",
-        AdventurerClass::Artificer => "Artificer",
-        AdventurerClass::Runewright => "Runewright",
-        AdventurerClass::Testmender => "Testmender",
-        AdventurerClass::Pathseeker => "Pathseeker",
-        AdventurerClass::Mage => "Mage",
-        AdventurerClass::Sorcerer => "Sorcerer",
-    }
 }
 
 fn centered(area: Rect, width: u16, height: u16) -> Rect {

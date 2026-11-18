@@ -85,6 +85,8 @@ pub struct ScenePlan {
     pub party_rest_since: Option<Timestamp>,
     /// Presentation-only: set from `ScenePresentation`, never from a snapshot.
     pub goblin_outbreak: bool,
+    #[cfg(feature = "storybook")]
+    pub(crate) study: Option<super::RoomStudy>,
 }
 
 impl ScenePlan {
@@ -147,6 +149,8 @@ pub(crate) fn project_for_world(
         transition_floor: None,
         party_rest_since: None,
         goblin_outbreak: false,
+        #[cfg(feature = "storybook")]
+        study: None,
     }
 }
 

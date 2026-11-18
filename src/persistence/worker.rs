@@ -18,16 +18,17 @@ use tokio::{
 use crate::domain::ChronicleEntry;
 
 use super::{
-    PersistedStateV1, PersistenceDiagnostic, PersistenceError, append_chronicle, publish_state,
+    PersistedStateV1, PersistenceDiagnostic, PersistenceError, StateSaveError, append_chronicle,
+    publish_state,
 };
 
 const DEBOUNCE: Duration = Duration::from_millis(250);
 const DIAGNOSTIC_CAPACITY: usize = 16;
 
 enum PersistenceMessage {
-    RememberOwner {
+    SaveState {
         state: PersistedStateV1,
-        acknowledgement: oneshot::Sender<Result<(), PersistenceError>>,
+        acknowledgement: oneshot::Sender<Result<(), StateSaveError>>,
     },
     PublishWorkProposal {
         proposal: Box<crate::sources::herdr_projects::Proposal>,
@@ -77,16 +78,26 @@ impl PersistenceClient {
         &mut self,
         state: PersistedStateV1,
     ) -> Result<(), PersistenceError> {
+        self.save_state(state)
+            .await
+            .map_err(StateSaveError::into_error)
+    }
+
+    pub async fn save_state(&mut self, state: PersistedStateV1) -> Result<(), StateSaveError> {
         let (acknowledgement, response) = oneshot::channel();
         self.sender
-            .send(PersistenceMessage::RememberOwner {
+            .send(PersistenceMessage::SaveState {
                 state: state.clone(),
                 acknowledgement,
             })
-            .map_err(|_| channel_error("remember owner"))?;
-        receive_acknowledgement(response, "remember owner").await?;
-        self.last_staged = Some(state);
-        Ok(())
+            .map_err(|_| channel_error("save preferences"))?;
+        let result = response
+            .await
+            .map_err(|_| channel_error("save preferences"))?;
+        if !matches!(result, Err(StateSaveError::Rejected(_))) {
+            self.last_staged = Some(state);
+        }
+        result
     }
     pub async fn publish_work_proposal(
         &self,
@@ -297,10 +308,13 @@ async fn run(
         tokio::select! {
             biased;
             message = messages.recv() => match message {
-                Some(PersistenceMessage::RememberOwner { state, acknowledgement }) => {
-                    // Ordered publication supersedes older debounced intent.
-                    dirty_state = None; debounce = None;
-                    let result = if let Some(path) = &paths.state { super::atomic_json::publish_selected_state(path, &state).await } else { Err(channel_error("selection storage unavailable")) };
+                Some(PersistenceMessage::SaveState { state, acknowledgement }) => {
+                    let result = save_state(&paths, &state).await;
+                    // A replaced snapshot supersedes older incidental intent.
+                    if !matches!(result, Err(StateSaveError::Rejected(_))) {
+                        dirty_state = None;
+                        debounce = None;
+                    }
                     let _ = acknowledgement.send(result);
                 }
                 Some(PersistenceMessage::PublishWorkProposal { proposal, acknowledgement }) => {
@@ -353,6 +367,16 @@ async fn run(
             }
         }
     }
+}
+
+async fn save_state(paths: &WorkerPaths, state: &PersistedStateV1) -> Result<(), StateSaveError> {
+    let path = paths.state.as_deref().ok_or_else(|| PersistenceError {
+        operation: "save preferences",
+        path: PathBuf::new(),
+        line: None,
+        source_message: "no writable Questmancer profile".into(),
+    })?;
+    super::atomic_json::publish_selected_state(path, state).await
 }
 
 async fn append_entry(

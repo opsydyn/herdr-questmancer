@@ -215,6 +215,8 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `k` / `Up` | Select the previous adventurer |
 | `g` / `G` | Select the first / last adventurer |
 | `Enter` | Observe the selected adventurer's Herdr pane |
+| `i` | Explain the selected adventurer's Herdr status and Chronicle coverage |
+| `e` | Preview and choose the selected adventurer's character |
 | `r` | Open the counsel parchment |
 | `Space` | Acknowledge the selected unread summons locally |
 | `s` | Set the selected summons aside for a while |
@@ -236,6 +238,15 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `?` | Open or close the Librarian's Ledger |
 | `Esc` | Dismiss the active parchment |
 | `q` / `Ctrl-C` | Close Questmancer when no text parchment is open |
+
+In the Hall or Delve, select an adventurer and press `e`. Use the arrow keys
+or `j`/`k` to preview characters, including Rat Royalty. Press `Enter` to
+save the choice or `Esc` to cancel. `End` moves to **Restore automatic**.
+The saved character follows the adventurer's Questmancer persona in both rooms.
+The Librarian's Ledger (`?`) also offers **[e] Character** on its first page.
+Press `p` in the Ledger to name the party in both rooms. `Enter` saves,
+`Esc` cancels, and clearing the draft with `Ctrl-U` then saving restores
+the default. Party names and character choices require a writable profile.
 
 `!` first cycles eligible durable human obligations, including work without a
 live adventurer. It then falls back to adventurers waiting on a human, most urgent first: an
@@ -466,7 +477,8 @@ service; runtime communication stays on Herdr's local socket.
 |---|---|
 | `$HERDR_PLUGIN_CONFIG_DIR/config.toml` | User-owned read-only configuration |
 | `$HERDR_PLUGIN_STATE_DIR/runtime.json` | Ephemeral singleton-pane registration |
-| `$HERDR_PLUGIN_STATE_DIR/state.json` | Atomic v2 local intent, persona assignments and optional owned-store pin |
+| `$HERDR_PLUGIN_STATE_DIR/state.json` | Atomic v2 local intent, party name, persona assignments and optional owned-store pin |
+| `$HERDR_PLUGIN_STATE_DIR/state.lock` | Advisory writer lease shared by launches of this profile |
 | `$HERDR_PLUGIN_STATE_DIR/chronicle.jsonl` | Append-only semantic event history |
 | `$HERDR_PLUGIN_STATE_DIR/work-state.json` | Acknowledged source projection cache, never work authority |
 | Explicitly selected `owned-work.json` | Authoritative owned records, answers and bounded receipts; sibling writer lock |
@@ -483,9 +495,14 @@ agent processes or persistent state:
 just storybook
 ```
 
-It contains sixty-six fixed production stories plus eighteen fit/profile/capacity
-studies (84 total), with each asset owned once and additional state variants
-sharing the Quest Board and War Table assets:
+It contains 91 fixed production and comparison stories, with each asset
+owned once and additional state variants sharing the Quest Board and War Table
+assets.
+
+The world studies `world.delve-walk`, `world.delve-materials` and
+`world.guild-materials` preview changes in the production scene engine.
+In Delve Walk inspection, Space replays the 1.5-second route and `m` cycles
+motion. Native fit shows the complete route in compact panes.
 
 - two worlds: Guild Hall and Delve;
 - twenty-one asset galleries: classic world and portrait masters, Barbarian, Wizard,
@@ -495,8 +512,8 @@ sharing the Quest Board and War Table assets:
   class masters, Goblin sprites and Librarian sprites;
 - fourteen native class cards: Artificer, Barbarian, Bard, Cleric, Druid, Mage,
   Paladin, Pathseeker, Ranger, Rogue, Runewright, Sorcerer, Testmender and Wizard;
-- two reserved event-art cards: Goblin and Orc;
-- twenty-seven interactions: selected adventurer, counsel, search, scrying, Librarian's
+- Rat Royalty at three sprite scales and separate reserved Goblin and Orc cards;
+- twenty-eight interactions: selected adventurer, character picker, counsel, search, scrying, Librarian's
   Ledger, narrow parchment, and seven Quest Board states (populated, empty,
   offline, deferred, resolved, narrow and departed worker), plus six War Table
   states (populated, narrow, empty, offline, cyclic and large), and eight owned
@@ -513,6 +530,11 @@ both native fitted rooms: 16x24 masters through eleven adventurers, authored
 remain; graphics/geometry and bounded-capacity fallbacks are explicit. The
 `world.guild-fit-auto` and `world.delve-fit-auto` stories exercise the production
 32-person fit. See [the native review checklist](docs/manual-test/automatic-density.md).
+
+`world.guild-fit-casters` and `world.delve-fit-casters` show all fourteen classes
+in the same party, with named selections and full-size profiles. All fourteen
+classes have dedicated `8x12` silhouettes. See the
+[full class art review](docs/reviews/2026-11-17-full-class-art/README.md).
 
 Use `j`/`k` or Up/Down within a category, `h`/`l` or Left/Right to change
 category, `Enter` to inspect, `Esc` to return, and `q` to exit. Run its
@@ -535,7 +557,7 @@ Bard, Artificer and Testmender now share that bounded timing with their own
 approved lute, brass-device and needlework rituals. Their saved persona
 colours still apply to every pose. Their card fallbacks now centre those same
 sprites at native size, matching the room without changing the card canvas.
-Their existing roster families and native illustrations remain in use. See the
+See the
 [card comparison](docs/design/reviews/2026-09-08-tool-card-fallbacks/README.md)
 and the [tool ritual production review](docs/design/reviews/2026-09-08-tool-ritual-production/README.md)
 for current room playback and all three Storybook pose galleries.
@@ -544,8 +566,7 @@ Cleric, Paladin and Druid now share those ritual paths with their approved
 book, shield and living-staff frames. Their production visuals were approved.
 Their card fallbacks now reuse those same personalised sprites at native size;
 see the [card comparison](docs/design/reviews/2026-09-08-cleric-paladin-druid-card-fallbacks/README.md)
-for the approved card visual review. Native illustrations and roster families
-remain in use. See
+for the approved card visual review. See
 the [production review](docs/design/reviews/2026-09-08-cleric-paladin-druid-production/README.md)
 for the three new pose galleries and both rooms.
 
@@ -555,8 +576,7 @@ Their [production review](docs/design/reviews/2026-09-08-rogue-pathseeker-runewr
 includes three new pose galleries and both rooms; production visuals were
 approved on 2026-09-08. Their card fallbacks now centre the same personalised
 world sprites at native size. The [card comparison](docs/design/reviews/2026-09-08-rogue-pathseeker-runewright-card-fallbacks/README.md)
-was visually approved on 2026-09-08. Native illustrations and roster families
-remain in use. The final [Mage and Sorcerer storyboard](docs/design/reviews/2026-09-08-mage-sorcerer-storyboard/README.md)
+was visually approved on 2026-09-08. The final [Mage and Sorcerer storyboard](docs/design/reviews/2026-09-08-mage-sorcerer-storyboard/README.md)
 was visually approved. Its green-censer and silver-focus gestures now use the
 shared timing and persona paths, completing rituals for all fourteen classes.
 The Mage/Sorcerer pose galleries originally brought Storybook to 45 stories. Their
@@ -564,7 +584,7 @@ The Mage/Sorcerer pose galleries originally brought Storybook to 45 stories. The
 was visually approved on 2026-09-08. Their card fallbacks now centre the same
 personalised world sprites at native size, completing continuity for all
 fourteen classes. The [final card comparison](docs/design/reviews/2026-09-08-mage-sorcerer-card-fallbacks/README.md)
-was visually approved on 2026-09-08. Native illustrations and roster families remain in use.
+was visually approved on 2026-09-08.
 See the [complete candidate review](docs/reviews/2026-09-08-party-candidate/README.md)
 for the approval index, and the [published 0.1.9 record](docs/reviews/2026-09-08-published-release/README.md)
 for clean qualification, archive checks and the actual installer result.

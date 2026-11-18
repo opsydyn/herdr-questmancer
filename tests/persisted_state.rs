@@ -359,6 +359,7 @@ fn standing_is_captured_and_seeded_back() {
 
     let captured = PersistedStateV1 {
         owned_store: None,
+        party_name: None,
         experience: intent.experience(),
         schema_version: STATE_SCHEMA_VERSION,
         last_view: View::Guild,

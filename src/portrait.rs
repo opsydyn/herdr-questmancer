@@ -171,68 +171,16 @@ pub const fn portrait_asset(class: AdventurerClass) -> Option<&'static [u8]> {
         AdventurerClass::Pathseeker => Some(include_bytes!("assets/portraits/pathseeker-card.png")),
         AdventurerClass::Mage => Some(include_bytes!("assets/portraits/mage-card.png")),
         AdventurerClass::Sorcerer => Some(include_bytes!("assets/portraits/sorcerer-card.png")),
+        AdventurerClass::RatRoyalty => {
+            Some(include_bytes!("assets/portraits/rat-royalty-card.png"))
+        }
     }
 }
 
-fn native_portrait_assets() -> [(PortraitKey, &'static [u8]); 14] {
-    [
-        (
-            PortraitKey::Class(AdventurerClass::Artificer),
-            portrait_asset(AdventurerClass::Artificer).expect("Artificer portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Barbarian),
-            portrait_asset(AdventurerClass::Barbarian).expect("Barbarian portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Bard),
-            portrait_asset(AdventurerClass::Bard).expect("Bard portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Cleric),
-            portrait_asset(AdventurerClass::Cleric).expect("Cleric portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Druid),
-            portrait_asset(AdventurerClass::Druid).expect("Druid portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Paladin),
-            portrait_asset(AdventurerClass::Paladin).expect("Paladin portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Ranger),
-            portrait_asset(AdventurerClass::Ranger).expect("Ranger portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Rogue),
-            portrait_asset(AdventurerClass::Rogue).expect("Rogue portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Testmender),
-            portrait_asset(AdventurerClass::Testmender).expect("Testmender portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Wizard),
-            portrait_asset(AdventurerClass::Wizard).expect("Wizard portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Runewright),
-            portrait_asset(AdventurerClass::Runewright).expect("Runewright portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Pathseeker),
-            portrait_asset(AdventurerClass::Pathseeker).expect("Pathseeker portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Mage),
-            portrait_asset(AdventurerClass::Mage).expect("Mage portrait is embedded"),
-        ),
-        (
-            PortraitKey::Class(AdventurerClass::Sorcerer),
-            portrait_asset(AdventurerClass::Sorcerer).expect("Sorcerer portrait is embedded"),
-        ),
-    ]
+fn native_portrait_assets() -> impl Iterator<Item = (PortraitKey, &'static [u8])> {
+    AdventurerClass::ALL
+        .iter()
+        .filter_map(|&class| portrait_asset(class).map(|asset| (PortraitKey::Class(class), asset)))
 }
 
 fn prepare_portrait(picker: &Picker, bytes: &[u8]) -> Result<Protocol, String> {

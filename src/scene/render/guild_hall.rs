@@ -155,6 +155,10 @@ fn paint_environment(
     paint_architecture(target, origin);
     let deadline = paint_cat(snapshot, plan, target, origin);
     paint_furnishings(snapshot, target, origin);
+    #[cfg(feature = "storybook")]
+    if plan.study == Some(crate::scene::RoomStudy::HallMaterials) {
+        super::room_study::hall_materials(target, origin);
+    }
     for pennant in table_pennants(snapshot) {
         blit(
             &CampaignCrest::for_workspace(&pennant.workspace).frame(),

@@ -9,6 +9,20 @@ use questmancer::storybook::{
 use ratatui::{Terminal, backend::TestBackend};
 
 #[test]
+fn core_ux_room_studies_are_available_for_review() {
+    for id in [
+        "world.delve-walk",
+        "world.delve-materials",
+        "world.guild-materials",
+    ] {
+        assert!(
+            catalogue().iter().any(|story| story.id.as_str() == id),
+            "missing {id}"
+        );
+    }
+}
+
+#[test]
 fn scrying_story_contains_settled_output_without_live_io() {
     let model = questmancer::storybook::fixtures::scrying_interaction_fixture(
         questmancer::storybook::fixtures::StoryContext::fixed(),
@@ -24,13 +38,15 @@ fn scrying_story_contains_settled_output_without_live_io() {
 
 #[test]
 fn catalogue_contains_every_production_scene_interaction_once() {
-    assert_eq!(catalogue().len(), 84);
+    assert_eq!(catalogue().len(), 91);
     let titles = catalogue()
         .iter()
         .map(|story| story.title)
         .collect::<Vec<_>>();
 
     for title in [
+        "Fit / Hall — Caster Party",
+        "Fit / Delve — Caster Party",
         "Assets / Core World Masters",
         "Assets / Barbarian Poses",
         "Assets / Wizard Poses",
@@ -76,6 +92,32 @@ fn catalogue_contains_every_production_scene_interaction_once() {
             1,
             "missing or duplicated Storybook interaction: {title}"
         );
+    }
+}
+
+#[test]
+fn rat_royalty_gallery_shows_all_three_sprite_sizes_at_its_minimum() {
+    let stories = catalogue();
+    let index = stories
+        .iter()
+        .position(|story| story.id.as_str() == "asset.rat-royalty")
+        .expect("Rat Royalty has an asset story");
+    let mut app = StorybookApp::new(stories);
+    app.select(index, stories);
+    let _ = reduce(&mut app, Action::Inspect, stories);
+    let mut terminal = Terminal::new(TestBackend::new(80, 28)).unwrap();
+    terminal
+        .draw(|frame| ui::render(frame, &app, stories, &StoryContext::fixed(), None))
+        .unwrap();
+    let output: String = terminal
+        .backend()
+        .buffer()
+        .content
+        .iter()
+        .map(ratatui::buffer::Cell::symbol)
+        .collect();
+    for label in ["World 16x24", "Roster 8x12", "Profile 24x32"] {
+        assert!(output.contains(label), "missing {label} at 80x28");
     }
 }
 

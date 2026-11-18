@@ -179,16 +179,16 @@ explicit licensing and design decision.
 
 ## Portrait rendering
 
-All fourteen classes have distinct world masters, portrait fallbacks and
+All fifteen characters have distinct world masters, portrait fallbacks and
 native PNG cards: Artificer, Barbarian, Bard, Cleric, Druid, Mage, Paladin,
-Pathseeker, Ranger, Rogue, Runewright, Sorcerer, Testmender and Wizard. Cards
+Pathseeker, Ranger, Rat Royalty, Rogue, Runewright, Sorcerer, Testmender and Wizard. Cards
 are selected by class. Every class fallback reuses its current personalised
 `16x24` world sprite, centred without scaling inside the existing `24x32`
-canvas. All card alignments are visually approved; Mage and Sorcerer completed
-the set on 2026-09-08 under
+canvas. Mage and Sorcerer completed the approved original set on 2026-09-08 under
 `docs/design/reviews/2026-09-08-mage-sorcerer-card-fallbacks/`.
-Goblin and Orc art is reserved for future event/NPC storytelling and must not replace an
-ordinary adventurer's class portrait. The
+The character picker (`e`) saves a choice for the selected adventurer's
+persona, with explicit apply, cancel and restore-automatic controls. Rat Royalty
+is opt-in. Goblin and Orc portraits remain reserved for event/NPC storytelling. The
 Librarian's Ledger has a separate native illustration. All paths must retain a
 non-empty authored RGB sprite fallback.
 
@@ -270,9 +270,10 @@ without Herdr, agent processes or persistent state:
 just storybook
 ```
 
-It owns eighty-four fixed production/comparison stories: twenty world states,
-thirty-seven asset views and twenty-seven interactions, including eight
-owned-authoring states. `j`/`k` and Up/Down select within the current
+It owns ninety-one fixed production/comparison stories: twenty-five world states,
+thirty-eight asset views and twenty-eight interactions, including eight
+owned-authoring states. `world.guild-fit-casters` and `world.delve-fit-casters`
+show one adventurer of every class. `j`/`k` and Up/Down select within the current
 category; `h`/`l` and Left/Right change category. `Enter` enters inspection,
 `Esc` returns and `q` exits. Resize Ghostty while viewing `World / Guild Hall`
 to review canonical, compact, roster, vignette and status-only compositions;
@@ -349,6 +350,9 @@ service beyond Herdr's local socket.
 State publication is debounced, unchanged states are suppressed and shutdown
 flushes acknowledged work. Preserve forward/future-version failure behaviour
 and malformed-file diagnostics.
+The configured profile acquires `state.lock` before loading saved state.
+A second launch reads the profile and runs without profile writes. Explicit
+party-name and character changes use acknowledged worker publication.
 
 ## Current product status and remaining gates
 

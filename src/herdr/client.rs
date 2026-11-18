@@ -52,6 +52,20 @@ impl HerdrClient {
         Ok(result.snapshot)
     }
 
+    pub async fn explain_agent(
+        &self,
+        pane: &str,
+    ) -> Result<super::protocol::AgentExplanation, ClientError> {
+        #[derive(Serialize)]
+        struct Target<'a> {
+            target: &'a str,
+        }
+        let result: super::protocol::AgentExplainResult = self
+            .request("agent.explain", Target { target: pane }, "agent_explain")
+            .await?;
+        Ok(result.explain)
+    }
+
     pub async fn get_pane(&self, pane_id: impl Into<String>) -> Result<PaneInfo, ClientError> {
         let pane_id = pane_id.into();
         let result: PaneInfoResult = self

@@ -67,10 +67,7 @@ impl SidebarProjection {
                         QUEST_SIGIL.to_owned(),
                         sigil(agent.persona.class, character_set).to_owned(),
                     ),
-                    (
-                        QUEST_ROLE.to_owned(),
-                        format!("{:?} {:?}", agent.persona.ancestry, agent.persona.class),
-                    ),
+                    (QUEST_ROLE.to_owned(), agent.persona.role_label()),
                     (
                         QUEST_EPITHET.to_owned(),
                         agent.persona.epithet.as_str().to_owned(),
@@ -169,6 +166,8 @@ const fn sigil(class: AdventurerClass, character_set: CharacterSet) -> &'static 
         (AdventurerClass::Mage, CharacterSet::Ascii) => "Mg",
         (AdventurerClass::Sorcerer, CharacterSet::Unicode) => "☼",
         (AdventurerClass::Sorcerer, CharacterSet::Ascii) => "So",
+        (AdventurerClass::RatRoyalty, CharacterSet::Unicode) => "♛",
+        (AdventurerClass::RatRoyalty, CharacterSet::Ascii) => "Rt",
     }
 }
 

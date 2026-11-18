@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     chronicle_chapter::{ChapterRequest, ChapterWindow},
     config::OutputPreviewLines,
-    domain::{Agent, AgentKey, DomainState, PaneId, Presence, Timestamp},
+    domain::{
+        AdventurerClass, Agent, AgentKey, DomainState, PaneId, PersonaKey, Presence, Timestamp,
+    },
     ledger::LedgerPageId,
     persistence::DurableIntent,
     update::{AppEvent, update},
@@ -268,6 +270,41 @@ pub enum Modal {
     QuestBoard,
     OwnedAuthoring,
     WarTable,
+    CharacterPicker {
+        adventurer: AgentKey,
+        persona: PersonaKey,
+        choice: usize,
+        return_page: Option<LedgerPageId>,
+    },
+    PartyName {
+        draft: String,
+        return_page: LedgerPageId,
+    },
+    StatusExplanation(Box<StatusExplanation>),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StatusRequest {
+    pub serial: u64,
+    pub pane: PaneId,
+    pub identity: crate::domain::CaptureIdentity,
+    pub revision: u64,
+    pub presence: Presence,
+}
+
+impl StatusRequest {
+    pub(crate) fn matches(&self, agent: &Agent) -> bool {
+        agent.pane_id == self.pane
+            && agent.capture_identity == self.identity
+            && agent.pane_revision == self.revision
+            && agent.presence == self.presence
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StatusExplanation {
+    pub request: StatusRequest,
+    pub outcome: Option<Result<crate::herdr::protocol::AgentExplanation, String>>,
 }
 
 /// Where an open counsel parchment is in its send.
@@ -409,6 +446,7 @@ pub struct Model {
     output_preview: Option<OutputPreview>,
     output_context: Option<OutputContext>,
     next_output_request: u64,
+    next_status_request: u64,
     notices: Box<Notices>,
     reviewr_available: bool,
     now: Timestamp,
@@ -461,6 +499,7 @@ impl Model {
             output_preview: None,
             output_context: None,
             next_output_request: 0,
+            next_status_request: 0,
             notices: Box::default(),
             reviewr_available: false,
             now: Timestamp::from_millis(0),
@@ -712,6 +751,9 @@ impl Model {
         self.party_rest_since = None;
         // Even Connected -> Connected starts a fresh snapshot lifetime.
         self.invalidate_output();
+        if let Modal::StatusExplanation(status) = &mut self.modal {
+            status.outcome = Some(Err("Herdr connection changed. Reopen to refresh.".into()));
+        }
         // Retained summons remain truthful history, but cannot replay theatre
         // after a socket boundary. This presentation cutoff is never persisted.
         self.scene_transition_floor = Some(
@@ -1445,11 +1487,14 @@ impl Model {
             Modal::None
             | Modal::LibrarianLedger { .. }
             | Modal::Search { .. }
+            | Modal::PartyName { .. }
             | Modal::Scrying
             | Modal::Chronicle
             | Modal::OwnedAuthoring
             | Modal::QuestBoard
-            | Modal::WarTable => None,
+            | Modal::WarTable
+            | Modal::CharacterPicker { .. }
+            | Modal::StatusExplanation(_) => None,
         }
     }
 
@@ -1465,13 +1510,22 @@ impl Model {
                 }
             }
             Modal::Search { query } => query.push(character),
+            Modal::PartyName { draft, .. } => {
+                if !character.is_control()
+                    && draft.chars().count() < crate::persistence::PARTY_NAME_LIMIT
+                {
+                    draft.push(character);
+                }
+            }
             Modal::None
             | Modal::LibrarianLedger { .. }
             | Modal::Scrying
             | Modal::Chronicle
             | Modal::OwnedAuthoring
             | Modal::QuestBoard
-            | Modal::WarTable => {}
+            | Modal::WarTable
+            | Modal::CharacterPicker { .. }
+            | Modal::StatusExplanation(_) => {}
         }
     }
 
@@ -1503,7 +1557,7 @@ impl Model {
                     draft.pop();
                 }
             }
-            Modal::Search { query } => {
+            Modal::Search { query } | Modal::PartyName { draft: query, .. } => {
                 query.pop();
             }
             Modal::None
@@ -1512,7 +1566,9 @@ impl Model {
             | Modal::Chronicle
             | Modal::OwnedAuthoring
             | Modal::QuestBoard
-            | Modal::WarTable => {}
+            | Modal::WarTable
+            | Modal::CharacterPicker { .. }
+            | Modal::StatusExplanation(_) => {}
         }
     }
 
@@ -1523,20 +1579,180 @@ impl Model {
                     draft.clear();
                 }
             }
-            Modal::Search { query } => query.clear(),
+            Modal::Search { query } | Modal::PartyName { draft: query, .. } => query.clear(),
             Modal::None
             | Modal::LibrarianLedger { .. }
             | Modal::Scrying
             | Modal::Chronicle
             | Modal::OwnedAuthoring
             | Modal::QuestBoard
-            | Modal::WarTable => {}
+            | Modal::WarTable
+            | Modal::CharacterPicker { .. }
+            | Modal::StatusExplanation(_) => {}
         }
     }
 
     pub fn dismiss_modal(&mut self) {
         self.modal = Modal::None;
         self.reading_scroll = 0;
+    }
+
+    pub(crate) fn open_party_name(&mut self) {
+        if let Some(return_page) = self.ledger_page() {
+            self.modal = Modal::PartyName {
+                draft: self
+                    .durable_intent
+                    .party_name()
+                    .unwrap_or_default()
+                    .to_owned(),
+                return_page,
+            };
+        }
+    }
+
+    pub(crate) fn cancel_party_name(&mut self) {
+        if let Modal::PartyName { return_page, .. } = self.modal {
+            self.modal = Modal::LibrarianLedger { page: return_page };
+        }
+    }
+
+    pub(crate) fn open_status_explanation(&mut self) -> Option<StatusRequest> {
+        let Some(agent) = self.selected_agent() else {
+            self.set_action_feedback("Select an adventurer first.".into());
+            return None;
+        };
+        if self.managed_pane_id() == Some(&agent.pane_id) || agent.presence == Presence::Exited {
+            self.set_action_feedback("Status requires an available adventurer.".into());
+            return None;
+        }
+        let request = StatusRequest {
+            serial: self.next_status_request.checked_add(1)?,
+            pane: agent.pane_id.clone(),
+            identity: agent.capture_identity.clone(),
+            revision: agent.pane_revision,
+            presence: agent.presence,
+        };
+        let outcome = if self.connection != ConnectionState::Connected {
+            Some(Err(
+                "Herdr is unavailable. Reopen after reconnecting.".into()
+            ))
+        } else if request.identity == crate::domain::CaptureIdentity::Unqualified {
+            Some(Err("This pane has no unambiguous terminal identity.".into()))
+        } else {
+            None
+        };
+        let pending = outcome.is_none();
+        self.next_status_request = request.serial;
+        self.modal = Modal::StatusExplanation(Box::new(StatusExplanation {
+            request: request.clone(),
+            outcome,
+        }));
+        pending.then_some(request)
+    }
+
+    pub(crate) fn finish_status_explanation(
+        &mut self,
+        serial: u64,
+        result: Result<crate::herdr::protocol::AgentExplanation, String>,
+    ) {
+        if let Modal::StatusExplanation(status) = &mut self.modal
+            && status.request.serial == serial
+            && status.outcome.is_none()
+        {
+            status.outcome = Some(result);
+        }
+    }
+
+    pub fn open_character_picker(&mut self) {
+        let Some(agent) = self.selected_agent() else {
+            self.set_action_feedback("Select an adventurer to choose a character.".to_owned());
+            return;
+        };
+        let adventurer = agent.key.clone();
+        let persona = agent.persona.key.clone();
+        let Some(agent) = self.character_picker_target(&adventurer, &persona) else {
+            self.set_action_feedback(
+                "Character changes need a uniquely identified adventurer.".to_owned(),
+            );
+            return;
+        };
+        let choice = AdventurerClass::ALL
+            .iter()
+            .position(|class| *class == agent.persona.class)
+            .unwrap_or(AdventurerClass::ALL.len());
+        self.modal = Modal::CharacterPicker {
+            adventurer,
+            persona,
+            choice,
+            return_page: self.ledger_page(),
+        };
+    }
+
+    pub(crate) fn cancel_character_picker(&mut self) {
+        if let Modal::CharacterPicker { return_page, .. } = self.modal {
+            self.modal = return_page.map_or(Modal::None, |page| Modal::LibrarianLedger { page });
+        }
+    }
+
+    pub(crate) fn character_picker_target(
+        &self,
+        key: &AgentKey,
+        persona: &PersonaKey,
+    ) -> Option<&Agent> {
+        let agent = self.domain.agents.get(key)?;
+        (agent.presence != Presence::Exited
+            && &agent.persona.key == persona
+            && !self.domain.agents.values().any(|other| {
+                &other.key != key
+                    && &other.persona.key == persona
+                    && other.presence != Presence::Exited
+            }))
+        .then_some(agent)
+    }
+
+    pub(crate) fn character_change(
+        &mut self,
+    ) -> Option<(AgentKey, crate::domain::AdventurerPersona)> {
+        let Modal::CharacterPicker {
+            adventurer,
+            persona,
+            choice,
+            ..
+        } = &self.modal
+        else {
+            return None;
+        };
+        let Some(agent) = self.character_picker_target(adventurer, persona) else {
+            self.set_action_feedback(
+                "Adventurer changed. Select them again to choose a character.".to_owned(),
+            );
+            return None;
+        };
+        let class = AdventurerClass::ALL
+            .get(*choice)
+            .copied()
+            .unwrap_or_else(|| agent.persona.automatic_class());
+        let mut updated = agent.persona.clone();
+        updated.class = class;
+        Some((adventurer.clone(), updated))
+    }
+
+    pub(crate) fn apply_character_change(
+        &mut self,
+        adventurer: &AgentKey,
+        persona: crate::domain::AdventurerPersona,
+    ) {
+        self.durable_intent.remember_persona(&persona);
+        if let Some(agent) = self.domain.agents.get_mut(adventurer) {
+            agent.persona = persona;
+        }
+        self.dismiss_modal();
+    }
+
+    pub(crate) fn move_character_choice(&mut self, update: impl FnOnce(usize) -> usize) {
+        if let Modal::CharacterPicker { choice, .. } = &mut self.modal {
+            *choice = update(*choice).min(AdventurerClass::ALL.len());
+        }
     }
 
     pub fn open_scrying(&mut self) {

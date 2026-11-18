@@ -3,7 +3,7 @@ use std::ops::ControlFlow;
 use crate::{
     app::{Modal, Model},
     command::AgentCommand,
-    domain::{Agent, Presence},
+    domain::{AdventurerClass, AdventurerPersona, Agent, AgentKey, Presence},
     persistence::PersistedStateV1,
     scene::SceneFrame,
     ui::{
@@ -19,6 +19,16 @@ pub struct ActionReduction {
     pub commands: Vec<AgentCommand>,
     pub persistence: Vec<Command>,
     pub work_intent: Option<crate::work::Projection>,
+    pub preference: Option<PreferenceChange>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PreferenceChange {
+    Character {
+        adventurer: AgentKey,
+        persona: AdventurerPersona,
+    },
+    PartyName(Option<String>),
 }
 
 #[must_use]
@@ -28,6 +38,30 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
     let mut commands = Vec::new();
     if !matches!(action, Action::Redraw | Action::None) {
         model.note_interaction();
+    }
+    if action == Action::Submit && matches!(model.modal(), Modal::CharacterPicker { .. }) {
+        let mut reduction = finish_reduction(model, &before, ControlFlow::Continue(()), commands);
+        reduction.preference =
+            model
+                .character_change()
+                .map(|(adventurer, persona)| PreferenceChange::Character {
+                    adventurer,
+                    persona,
+                });
+        return reduction;
+    }
+    if action == Action::Submit
+        && let Modal::PartyName { draft, .. } = model.modal()
+    {
+        let name = draft.trim();
+        let mut reduction = finish_reduction(model, &before, ControlFlow::Continue(()), commands);
+        reduction.preference = Some(PreferenceChange::PartyName(
+            (!name.is_empty()).then(|| name.to_owned()),
+        ));
+        return reduction;
+    }
+    if intercept_character_picker(model, action) {
+        return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
     }
     if action == Action::OpenAuthoring {
         open_authoring(model);
@@ -52,6 +86,18 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         }
         Action::NextCampaign => {
             select_next_campaign(model, &mut commands);
+            ControlFlow::Continue(())
+        }
+        Action::OpenCharacterPicker => {
+            model.open_character_picker();
+            ControlFlow::Continue(())
+        }
+        Action::ExplainStatus => {
+            commands.extend(
+                model
+                    .open_status_explanation()
+                    .map(AgentCommand::ExplainStatus),
+            );
             ControlFlow::Continue(())
         }
         Action::First | Action::Last | Action::Next | Action::Previous => {
@@ -114,7 +160,11 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
             ControlFlow::Continue(())
         }
         Action::Dismiss => {
-            dismiss(model);
+            if matches!(model.modal(), Modal::PartyName { .. }) {
+                model.cancel_party_name();
+            } else {
+                dismiss(model);
+            }
             ControlFlow::Continue(())
         }
         Action::Submit => {
@@ -125,6 +175,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         | Action::SelectAt { .. }
         | Action::Redraw
         | Action::OpenAuthoring
+        | Action::NameParty
         | Action::None => ControlFlow::Continue(()),
     };
     finish_reduction(model, &before, control, commands)
@@ -186,6 +237,21 @@ fn refresh_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     }
 }
 
+fn intercept_character_picker(model: &mut Model, action: Action) -> bool {
+    if !matches!(model.modal(), Modal::CharacterPicker { .. }) {
+        return false;
+    }
+    match action {
+        Action::Dismiss => model.cancel_character_picker(),
+        Action::Next => model.move_character_choice(|choice| choice + 1),
+        Action::Previous => model.move_character_choice(|choice| choice.saturating_sub(1)),
+        Action::First => model.move_character_choice(|_| 0),
+        Action::Last => model.move_character_choice(|_| AdventurerClass::ALL.len()),
+        _ => {}
+    }
+    true
+}
+
 /// Swallows actions aimed at the party while a reading surface is open.
 ///
 /// The input layer already refuses to produce most of these from a key press,
@@ -193,6 +259,12 @@ fn refresh_selected(model: &mut Model, commands: &mut Vec<AgentCommand>) {
 /// `Action` directly, so the guard has to live here too. Scrying is
 /// deliberately absent: `o` refreshes it, which is a documented binding.
 fn intercept_reading_modal(model: &mut Model, action: Action) -> bool {
+    if matches!(model.modal(), Modal::StatusExplanation(_)) {
+        if action == Action::Dismiss {
+            model.dismiss_modal();
+        }
+        return true;
+    }
     if matches!(model.modal(), Modal::Chronicle) {
         match action {
             Action::Dismiss | Action::OpenChronicle => model.dismiss_modal(),
@@ -209,6 +281,8 @@ fn intercept_reading_modal(model: &mut Model, action: Action) -> bool {
     }
     match action {
         Action::ToggleLedger | Action::Dismiss => model.dismiss_modal(),
+        Action::OpenCharacterPicker => model.open_character_picker(),
+        Action::NameParty => model.open_party_name(),
         Action::Next => model.next_ledger_page(),
         Action::Previous => model.previous_ledger_page(),
         Action::First => model.first_ledger_page(),
@@ -233,6 +307,7 @@ fn finish_reduction(
         commands,
         persistence,
         work_intent: model.pending_work().cloned(),
+        preference: None,
     }
 }
 
@@ -450,12 +525,7 @@ fn agent_matches_search(agent: &Agent, query: &str) -> bool {
             .custom_status
             .as_ref()
             .is_some_and(|status| status.to_lowercase().contains(query))
-        || format!("{:?}", agent.persona.class)
-            .to_lowercase()
-            .contains(query)
-        || format!("{:?}", agent.persona.ancestry)
-            .to_lowercase()
-            .contains(query)
+        || agent.persona.role_label().to_lowercase().contains(query)
         || visible_presence_terms(agent)
             .iter()
             .any(|term| term.contains(query))
@@ -733,6 +803,9 @@ fn submit_modal(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         | Modal::Chronicle
         | Modal::OwnedAuthoring
         | Modal::QuestBoard
+        | Modal::CharacterPicker { .. }
+        | Modal::PartyName { .. }
+        | Modal::StatusExplanation(_)
         | Modal::WarTable => {}
     }
 }

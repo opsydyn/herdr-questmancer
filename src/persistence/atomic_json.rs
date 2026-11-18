@@ -26,6 +26,29 @@ pub struct PersistenceError {
     pub source_message: String,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum StateSaveError {
+    #[error(transparent)]
+    Rejected(#[from] PersistenceError),
+    #[error("state replaced; durability could not be confirmed: {0}")]
+    Unconfirmed(PersistenceError),
+}
+
+impl StateSaveError {
+    pub(crate) fn into_error(self) -> PersistenceError {
+        match self {
+            Self::Rejected(error) => error,
+            Self::Unconfirmed(mut error) => {
+                error.source_message = format!(
+                    "change applied; durable save unconfirmed: {}",
+                    error.source_message
+                );
+                error
+            }
+        }
+    }
+}
+
 pub fn parse_state(path: &Path, bytes: &[u8]) -> Result<PersistedStateV1, PersistenceDiagnostic> {
     let mut state = super::strict_json::parse(bytes)
         .and_then(serde_json::from_value::<PersistedStateV1>)
@@ -143,11 +166,11 @@ fn temporary_path(path: &Path) -> PathBuf {
     temporary.into()
 }
 
-/// Strong acknowledgement for a remembered owner pin, separate from work commit.
+/// Acknowledged snapshot publication for an explicit user choice.
 pub(super) async fn publish_selected_state(
     path: &Path,
     state: &PersistedStateV1,
-) -> Result<(), PersistenceError> {
+) -> Result<(), StateSaveError> {
     if let Some(existing) = load_state(path).await.map_err(|e| PersistenceError {
         operation: e.operation,
         path: e.path,
@@ -155,7 +178,7 @@ pub(super) async fn publish_selected_state(
         source_message: e.source_message,
     })? {
         existing.validate().map_err(|e| PersistenceError {
-            operation: "validate selection intent",
+            operation: "validate saved preferences",
             path: path.to_owned(),
             line: None,
             source_message: e.to_string(),
@@ -165,16 +188,20 @@ pub(super) async fn publish_selected_state(
     let parent = path.parent().unwrap_or_else(|| Path::new(".")).to_owned();
     tokio::task::spawn_blocking(move || std::fs::File::open(parent).and_then(|f| f.sync_all()))
         .await
-        .map_err(|e| PersistenceError {
-            operation: "join selection sync",
-            path: path.to_owned(),
-            line: None,
-            source_message: e.to_string(),
+        .map_err(|e| {
+            StateSaveError::Unconfirmed(PersistenceError {
+                operation: "join profile sync",
+                path: path.to_owned(),
+                line: None,
+                source_message: e.to_string(),
+            })
         })?
-        .map_err(|e| PersistenceError {
-            operation: "sync selection directory",
-            path: path.to_owned(),
-            line: None,
-            source_message: e.to_string(),
+        .map_err(|e| {
+            StateSaveError::Unconfirmed(PersistenceError {
+                operation: "sync profile directory",
+                path: path.to_owned(),
+                line: None,
+                source_message: e.to_string(),
+            })
         })
 }

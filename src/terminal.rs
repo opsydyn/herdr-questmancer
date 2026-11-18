@@ -414,7 +414,12 @@ pub async fn run(initial_view: Option<View>) -> Result<()> {
 async fn run_application(initial_view: Option<View>) -> Result<()> {
     let startup = load_startup(PersistencePaths::from_env(), initial_view).await;
     let effective_view = startup.model.view();
-    let _runtime = RuntimeRegistration::from_env(effective_view)?;
+    let profile_writer = startup.profile_writer;
+    let _runtime = if profile_writer.is_some() {
+        RuntimeRegistration::from_env(effective_view)?
+    } else {
+        None
+    };
     let mut shutdown = Shutdown::install()?;
     let environment = HerdrEnvironment::from_env().ok();
     let (mut lifecycle, mut persistence_diagnostics) =

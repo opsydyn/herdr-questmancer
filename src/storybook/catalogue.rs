@@ -169,6 +169,41 @@ macro_rules! story {
     };
 }
 
+fn room_studies() -> [Story; 3] {
+    [
+        Story {
+            id: StoryId::new("world.delve-walk"),
+            title: "Study / Delve Walk",
+            category: Category::Worlds,
+            description: "Rat Royalty crosses the camp passage after the working report. Space replays. m changes motion.",
+            viewport: WORLD_VIEWPORT,
+            build: delve_walk,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::Delve)],
+        },
+        Story {
+            id: StoryId::new("world.delve-materials"),
+            title: "Study / Delve Materials",
+            category: Category::Worlds,
+            description: "Cut flagstones, worn thresholds, moss edges and compact contact shadows.",
+            viewport: WORLD_VIEWPORT,
+            build: delve_fit,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::Delve)],
+        },
+        Story {
+            id: StoryId::new("world.guild-materials"),
+            title: "Study / Hall Materials",
+            category: Category::Worlds,
+            description: "Oak grain, worn rug and hearth soot. Compare with Hall Fit — Five.",
+            viewport: WORLD_VIEWPORT,
+            build: guild_fit,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::GuildHall)],
+        },
+    ]
+}
+
 fn fit_stories() -> Vec<Story> {
     vec![
         Story {
@@ -386,6 +421,46 @@ fn automatic_density_stories() -> [Story; 2] {
     ]
 }
 
+fn caster_party_stories() -> [Story; 2] {
+    use super::density::{PartySize, fixture};
+    use crate::app::View;
+
+    [
+        Story {
+            id: StoryId::new("world.guild-fit-casters"),
+            title: "Fit / Hall — Caster Party",
+            category: Category::Worlds,
+            description: "Every character, starting with Mage, Sorcerer and Wizard. Tab selects; c opens the full-size profile.",
+            viewport: WORLD_VIEWPORT,
+            build: |context| {
+                StoryFixture::WorldFit(Box::new(fixture(
+                    context,
+                    PartySize::AllClasses,
+                    View::Guild,
+                )))
+            },
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::GuildHall)],
+        },
+        Story {
+            id: StoryId::new("world.delve-fit-casters"),
+            title: "Fit / Delve — Caster Party",
+            category: Category::Worlds,
+            description: "Compare all characters and their presence cues in the dungeon. Tab selects; c opens the full-size profile.",
+            viewport: WORLD_VIEWPORT,
+            build: |context| {
+                StoryFixture::WorldFit(Box::new(fixture(
+                    context,
+                    PartySize::AllClasses,
+                    View::Delve,
+                )))
+            },
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::Delve)],
+        },
+    ]
+}
+
 fn build_catalogue() -> Vec<Story> {
     let mut guild = story!(
         "world.guild",
@@ -435,6 +510,16 @@ fn build_catalogue() -> Vec<Story> {
             search,
             SearchParchment
         ),
+        Story {
+            id: StoryId::new("interaction.character-picker"),
+            title: "Interaction / Choose Character",
+            category: Category::Interactions,
+            description: "Preview Rat Royalty beside the currently applied character. Resize to review the compact chooser.",
+            viewport: WORLD_VIEWPORT,
+            build: character_picker,
+            owns: &[],
+            shows: &[AssetId(SceneFirstAsset::RatRoyalty)],
+        },
         story!(
             "interaction.scrying",
             "Interaction / Scrying Parchment",
@@ -464,8 +549,10 @@ fn build_catalogue() -> Vec<Story> {
         ),
     ];
     stories.splice(1..1, fit_stories());
+    stories.splice(1..1, room_studies());
     stories.extend(capacity_stories());
     stories.extend(automatic_density_stories());
+    stories.extend(caster_party_stories());
     stories.extend(board_stories());
     stories.extend(table_stories());
     stories.splice(2..2, asset_stories());
@@ -722,7 +809,7 @@ fn native_adventurer_card_stories() -> [Story; 5] {
     ]
 }
 
-fn reserved_event_art_stories() -> [Story; 2] {
+fn reserved_event_art_stories() -> [Story; 3] {
     [
         story!(
             "asset.native-goblin-portrait",
@@ -741,6 +828,15 @@ fn reserved_event_art_stories() -> [Story; 2] {
             CARD_VIEWPORT,
             native_orc_portrait,
             NativeOrcPortrait
+        ),
+        story!(
+            "asset.rat-royalty",
+            "Assets / Rat Royalty",
+            Category::Assets,
+            "The Gutter Crown at world, crowded roster and profile fallback sizes.",
+            ASSET_VIEWPORT,
+            rat_royalty_assets,
+            RatRoyalty
         ),
     ]
 }
@@ -786,6 +882,28 @@ fn delve_fit(context: StoryContext) -> StoryFixture {
         context,
         fixtures::FitParty::Five,
     )))
+}
+
+fn delve_walk(context: StoryContext) -> StoryFixture {
+    let mut model = fixtures::delve_fit_fixture(context, fixtures::FitParty::Five);
+    let domain = model.domain_mut();
+    domain
+        .agents
+        .retain(|key, _| matches!(key.as_str(), "fit-00" | "fit-01"));
+    for campaign in domain.campaigns.values_mut() {
+        campaign.party.retain(|key| domain.agents.contains_key(key));
+    }
+    let scout = domain
+        .agents
+        .values_mut()
+        .next()
+        .expect("two-adventurer study");
+    scout.persona.class = AdventurerClass::RatRoyalty;
+    scout.presence_since = context.now;
+    let mut preferences = *model.preferences();
+    preferences.motion = crate::app::Motion::Full;
+    model.set_preferences(preferences);
+    StoryFixture::WorldFit(Box::new(model))
 }
 fn delve_fit_crowded(context: StoryContext) -> StoryFixture {
     StoryFixture::WorldFit(Box::new(fixtures::delve_fit_fixture(
@@ -851,6 +969,10 @@ fn goblin_easter_egg(_: StoryContext) -> StoryFixture {
 
 fn librarian_assets(_: StoryContext) -> StoryFixture {
     StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::Librarian)
+}
+
+fn rat_royalty_assets(_: StoryContext) -> StoryFixture {
+    StoryFixture::ArchetypeGallery(fixtures::ArchetypeGallery::RatRoyalty)
 }
 
 fn selected(context: StoryContext) -> StoryFixture {
@@ -927,6 +1049,16 @@ fn counsel(context: StoryContext) -> StoryFixture {
 
 fn search(context: StoryContext) -> StoryFixture {
     scene(fixtures::search_interaction_fixture(context))
+}
+
+fn character_picker(context: StoryContext) -> StoryFixture {
+    use crate::{interaction::reduce_action, ui::input::Action};
+
+    let mut model = fixtures::selected_adventurer_interaction_fixture(context);
+    for action in [Action::OpenCharacterPicker, Action::Last, Action::Previous] {
+        let _ = reduce_action(&mut model, action);
+    }
+    scene(model)
 }
 
 fn scrying(context: StoryContext) -> StoryFixture {

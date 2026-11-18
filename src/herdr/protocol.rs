@@ -108,6 +108,22 @@ pub enum AgentStatus {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct AgentExplanation {
+    pub state: AgentStatus,
+    #[serde(default)]
+    pub screen_detection_skipped: bool,
+    #[serde(default)]
+    pub matched_rule: Option<String>,
+    #[serde(default)]
+    pub fallback_reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AgentExplainResult {
+    pub explain: AgentExplanation,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct WorkspaceInfo {
     pub workspace_id: String,
     pub number: usize,

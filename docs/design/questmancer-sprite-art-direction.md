@@ -1,5 +1,16 @@
 # Questmancer sprite art direction
 
+All fourteen classes now use dedicated `8x12` production sprites. The final six
+take their shapes from the native portraits and the established world poses.
+The [full class art review](../reviews/2026-11-17-full-class-art/README.md)
+shows those changes and compares each class at roster scale in both rooms.
+
+The current Mage pass takes its cues from the native portrait: a shadowed violet
+hood, red eyes, a bone staff and green magic. The Mage, Sorcerer, Wizard, Druid,
+Artificer and Runewright each have dedicated `8x12` silhouettes. The fitted
+Hall and Delve can compare them with the rest of the classes in Storybook.
+See the [caster art review](../reviews/2026-11-17-caster-sprites/README.md).
+
 Status: existing art system integrated; the revised three-class proportion
 direction below was visually approved on 2026-09-05 and is implemented in the
 three-class pilot. Production art uses authored `16x24` world masters and
@@ -10,7 +21,7 @@ The Druid's later **Bramble Sage** direction was selected on 2026-11-17 and
 is implemented through the existing eight-pose ritual route. Its turned face,
 asymmetric leaf cloak and right-hand living staff replace the earlier Druid
 world master; the card fallback follows that personalised master. The native
-card illustration and roster remain unchanged. See the
+card illustration was retained. See the
 [approved study](reviews/2026-11-17-druid-study/visual-approval.md) and
 [production review](../reviews/2026-11-17-druid-bramble/README.md). Direction
 approval is recorded; production pose and native acceptance remain separate.
@@ -243,8 +254,9 @@ using them directly on the trim is safe where a blend was not, and the class's
 body mass stays the class's. All three pilot classes use the standard role
 grammar. Tests prove that role colours stay unique within each master palette,
 that substitution never alters a transparency mask, and that same-class
-personas render distinctly. The pilot also registers its approved authored
-roster bodies; other classes keep their existing family masters. Optional 2x display in a development
+personas render distinctly. Every class uses a dedicated roster master; the
+original families remain reference assets.
+Optional 2x display in a development
 view uses nearest-neighbour expansion in the RGB buffer only.
 
 The standing anchor is horizontally centred on the bottom opaque row. Hats,
@@ -377,8 +389,13 @@ The current Storybook has forty-five stories, including these asset galleries:
   approved. Their subsequent [card alignment](reviews/2026-09-08-mage-sorcerer-card-fallbacks/README.md)
   completes all fourteen classes and was visually approved on 2026-09-08.
 - **Librarian** shows the revised world sprite and independent Ledger fallback.
-- Fourteen native class-card stories cover all classes, including Mage and
-  Sorcerer; Goblin and Orc have separate reserved event-art stories.
+- Fourteen native class-card stories cover the original roster, including Mage
+  and Sorcerer. Goblin and Orc have separate reserved event-art stories.
+- **Rat Royalty** is available in the character picker. The crown, ears,
+  sceptre and coat distinguish its room and roster sprites. The roster keeps
+  its anchored feet, and the profile uses the matching native portrait or
+  the personalised world sprite. The Choose Character story previews it in
+  the production parchment.
 
 The Guild Hall and Delve stories render these same registered production
 assets in context at fixed fixture time. Review GIFs sample production room

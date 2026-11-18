@@ -110,7 +110,12 @@ fn classic_and_questmancer_classes_are_reachable() {
     assert!(classes.contains(&AdventurerClass::Druid));
     assert!(classes.contains(&AdventurerClass::Runewright));
     assert!(classes.contains(&AdventurerClass::Testmender));
-    assert_eq!(classes.len(), AdventurerClass::ALL.len());
+    let automatic_classes = AdventurerClass::ALL
+        .iter()
+        .copied()
+        .filter(|class| *class != AdventurerClass::RatRoyalty)
+        .collect::<BTreeSet<_>>();
+    assert_eq!(classes, automatic_classes);
 }
 
 #[test]

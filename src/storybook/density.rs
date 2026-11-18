@@ -5,7 +5,8 @@ use super::fixtures::{FitParty, StoryContext, hall_fit_fixture};
 use crate::{
     app::{Model, View},
     domain::{
-        AdventurerClass, AgentKey, GuildAttention, GuildSummons, PaneId, Presence, Timestamp,
+        AdventurerClass, AdventurerPersona, AgentKey, GuildAttention, GuildSummons, PaneId,
+        PersonaKey, Presence, Timestamp,
     },
     scene::{
         SceneActorRegion,
@@ -26,6 +27,7 @@ use crate::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PartySize {
     Seven,
+    AllClasses,
     TwentyFour,
     ThirtyTwo,
 }
@@ -50,9 +52,28 @@ pub(crate) fn scale_for_story(story: &str) -> Option<StudyScale> {
 pub fn fixture(context: StoryContext, size: PartySize, view: View) -> Model {
     let count = match size {
         PartySize::Seven => 7,
+        PartySize::AllClasses => AdventurerClass::ALL.len(),
         PartySize::TwentyFour => 24,
         PartySize::ThirtyTwo => 32,
     };
+    // Seat the arcane trio together for comparison, then show the other classes once each.
+    let caster_party = [
+        AdventurerClass::Mage,
+        AdventurerClass::Sorcerer,
+        AdventurerClass::Wizard,
+        AdventurerClass::Druid,
+        AdventurerClass::Artificer,
+        AdventurerClass::Runewright,
+        AdventurerClass::Barbarian,
+        AdventurerClass::Bard,
+        AdventurerClass::Cleric,
+        AdventurerClass::Paladin,
+        AdventurerClass::Ranger,
+        AdventurerClass::Rogue,
+        AdventurerClass::Testmender,
+        AdventurerClass::Pathseeker,
+        AdventurerClass::RatRoyalty,
+    ];
     let mut model = hall_fit_fixture(context, FitParty::Eleven);
     let seeds = model.domain().agents.values().cloned().collect::<Vec<_>>();
     let agents = seeds
@@ -64,8 +85,16 @@ pub fn fixture(context: StoryContext, size: PartySize, view: View) -> Model {
             let mut agent = seed.clone();
             agent.key = AgentKey::new(format!("capacity-{index:02}"));
             agent.pane_id = PaneId::new(format!("storybook:capacity-{index:02}"));
-            agent.name = format!("Adventurer {:02}", index + 1);
-            agent.persona.class = AdventurerClass::ALL[index % AdventurerClass::ALL.len()];
+            if size == PartySize::AllClasses {
+                let class = caster_party[index];
+                agent.name = format!("{class:?}").to_ascii_lowercase();
+                agent.persona =
+                    AdventurerPersona::for_key(PersonaKey::new(format!("caster-party-{index}")));
+                agent.persona.class = class;
+            } else {
+                agent.name = format!("Adventurer {:02}", index + 1);
+                agent.persona.class = AdventurerClass::ALL[index % AdventurerClass::ALL.len()];
+            }
             agent.presence = if size == PartySize::Seven {
                 if index == 5 {
                     Presence::Unknown

@@ -676,16 +676,33 @@ fn roster_silhouette_families_are_pairwise_distinct() {
 }
 
 #[test]
-fn same_family_personas_stay_distinguishable_at_roster_scale() {
+fn all_classes_have_distinct_small_silhouettes_even_without_colour() {
+    let mut persona = AdventurerPersona::for_key(PersonaKey::new("roster-silhouette"));
+    let mut silhouettes = Vec::new();
+    for &class in AdventurerClass::ALL {
+        persona.class = class;
+        let sprite = adventurer_roster_frame(&persona);
+        let mask = sprite
+            .pixels()
+            .iter()
+            .map(Option::is_some)
+            .collect::<Vec<_>>();
+        for (other, other_mask) in &silhouettes {
+            assert_ne!(&mask, other_mask, "{class:?} shares {other:?}'s silhouette");
+        }
+        silhouettes.push((class, mask));
+    }
+}
+
+#[test]
+fn same_class_personas_stay_distinguishable_at_roster_scale() {
     let mut left = AdventurerPersona::for_key(PersonaKey::new("roster-left"));
-    left.class = AdventurerClass::Wizard;
+    left.class = AdventurerClass::Sorcerer;
     left.appearance.skin_tone = SkinTone::Porcelain;
     left.appearance.hair_tone = HairTone::Black;
     left.appearance.accent = AccentTone::Cyan;
     let mut right = left.clone();
-    // Artificer shares the Caster family, so only the persona palette can
-    // separate these two adventurers in a narrow pane.
-    right.class = AdventurerClass::Artificer;
+    // A dedicated silhouette still needs to distinguish two of the same class.
     right.appearance.skin_tone = SkinTone::Ebony;
     right.appearance.hair_tone = HairTone::Gold;
     right.appearance.accent = AccentTone::Red;

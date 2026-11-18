@@ -9,7 +9,7 @@ use ratatui_image::Image;
 
 use crate::{
     app::{CharacterSet, ColorMode, CounselPhase, Modal, Model, Notice},
-    domain::Presence,
+    domain::{AdventurerClass, Presence},
     ledger,
     portrait::PortraitGallery,
     scene::{
@@ -225,6 +225,69 @@ fn presence_glyph(presence: Presence, characters: CharacterSet) -> &'static str 
     }
 }
 
+pub(crate) fn render_party_status(frame: &mut Frame<'_>, model: &Model) {
+    let area = frame.area();
+    if area.height < 2 || area.width < 20 {
+        return;
+    }
+    let waiting = model
+        .domain()
+        .agents
+        .values()
+        .filter(|agent| {
+            agent.attention.summons() == Some(crate::domain::GuildSummons::CounselRequested)
+        })
+        .count();
+    let party = model
+        .domain()
+        .agents
+        .values()
+        .filter(|agent| agent.presence != Presence::Exited)
+        .count();
+    let wide = area.width >= 72;
+    let counts = if wide {
+        format!("{party} adventurers / {waiting} need counsel")
+    } else if waiting > 0 && area.width >= 38 {
+        format!("[!] {waiting} need counsel")
+    } else if waiting > 0 {
+        format!("[!] {waiting}")
+    } else {
+        String::new()
+    };
+    let characters = model.preferences().character_set;
+    let identity = model.selected_agent().map_or_else(
+        || "No adventurer selected".to_owned(),
+        |agent| {
+            let primary = match (agent.presence, wide) {
+                (Presence::Exited, _) => "",
+                (Presence::Blocked, true) => " [r] Counsel",
+                (Presence::Blocked, false) => " [r]",
+                (_, true) => " [Enter] Observe",
+                (_, false) => " [Enter]",
+            };
+            let menu = if wide { " [?] Menu" } else { "" };
+            let reserve =
+                counts.len() + usize::from(!counts.is_empty()) * 3 + primary.len() + menu.len();
+            let label = fit_identity_label(
+                &agent.name,
+                agent.presence,
+                None,
+                usize::from(area.width).saturating_sub(reserve),
+                characters,
+            );
+            format!("{label}{primary}{menu}")
+        },
+    );
+    let text = if counts.is_empty() {
+        identity
+    } else {
+        format!("{identity} / {counts}")
+    };
+    let row = Rect::new(area.x, area.bottom() - 2, area.width, 1);
+    frame.render_widget(Clear, row);
+    frame.render_widget(Paragraph::new(text).style(PARCHMENT_BORDER), row);
+}
+
 pub fn render_scene_overlays(
     frame: &mut Frame<'_>,
     model: &Model,
@@ -232,13 +295,18 @@ pub fn render_scene_overlays(
     portraits: Option<&PortraitGallery>,
 ) {
     match presentation.overlay {
-        SceneOverlay::Counsel | SceneOverlay::Search => render_input_parchment(frame, model),
+        SceneOverlay::Counsel | SceneOverlay::Search | SceneOverlay::PartyName => {
+            render_input_parchment(frame, model);
+        }
         SceneOverlay::LibrarianLedger => render_librarian_ledger(frame, model, portraits),
         SceneOverlay::Scrying => render_scrying_parchment(frame, model),
         SceneOverlay::Chronicle => render_chronicle_parchment(frame, model),
         SceneOverlay::WarTable => crate::ui::war_table::render(frame, model, presentation),
         SceneOverlay::QuestBoard => crate::ui::work_board::render(frame, model),
+        SceneOverlay::CharacterPicker => render_character_picker(frame, model),
+        SceneOverlay::StatusExplanation => render_status_explanation(frame, model),
         SceneOverlay::None => {
+            render_party_name(frame, model);
             render_standing_badge(frame, model);
             render_adventurer_card(frame, model, portraits);
             if model.command_ribbon_visible() {
@@ -249,6 +317,27 @@ pub fn render_scene_overlays(
     // Last, so it wins the bottom row from the ribbon. Every other surface is
     // a place you went; this is the app answering for something you did.
     render_notice(frame, model);
+}
+
+fn render_party_name(frame: &mut Frame<'_>, model: &Model) {
+    let Some(name) = model.durable_intent().party_name() else {
+        return;
+    };
+    let area = frame.area();
+    if area.width < 8 || area.height == 0 {
+        return;
+    }
+    let badge = crate::rank::badge(model.experience(), model.preferences().character_set);
+    let badge_width = u16::try_from(badge.chars().count())
+        .unwrap_or(u16::MAX)
+        .saturating_add(2);
+    let name_area = Rect::new(
+        area.x,
+        area.y,
+        area.width.saturating_sub(badge_width).max(1),
+        1,
+    );
+    frame.render_widget(Paragraph::new(name).style(PARCHMENT_BORDER), name_area);
 }
 
 /// The one line that reports what just happened.
@@ -356,7 +445,7 @@ fn render_adventurer_card(
         });
     let elapsed = format_elapsed(agent.presence_since.elapsed_until(model.now()));
     let status = presence_label(agent.presence);
-    let role = format!("{:?} {:?}", agent.persona.ancestry, agent.persona.class);
+    let role = agent.persona.role_label();
     let message = agent
         .custom_status
         .as_deref()
@@ -371,6 +460,7 @@ fn render_adventurer_card(
         Line::from(message.to_owned()),
     ];
     if detailed {
+        lines.push(Line::from("[e] Character · [i] Why this status?"));
         render_portrait_card(
             frame,
             card,
@@ -393,7 +483,7 @@ fn render_adventurer_card(
         frame.render_widget(
             Paragraph::new(lines).style(PARCHMENT).block(
                 Block::default()
-                    .title(" ADVENTURER ")
+                    .title(" ADVENTURER · [e] CHARACTER · [i] STATUS ")
                     .title_alignment(Alignment::Center)
                     .borders(Borders::ALL)
                     .border_style(PARCHMENT_BORDER),
@@ -452,17 +542,7 @@ fn render_portrait_card(
     if let Some(portrait) = portraits.and_then(|gallery| gallery.portrait_for(persona)) {
         frame.render_widget(Image::new(portrait), portrait_area);
     } else {
-        let mut pixels = RgbBuffer::filled(24, 32, PARCHMENT_RGB);
-        if let Some(portrait) = adventurer_portrait_frame(persona) {
-            blit(&portrait, PixelPoint::new(0, 0), &mut pixels);
-        }
-        flush_rgb(
-            frame.buffer_mut(),
-            portrait_area,
-            &pixels,
-            PARCHMENT_RGB,
-            colour_mode,
-        );
+        render_sprite_portrait(frame, portrait_area, persona, colour_mode);
     }
 
     let text_area = Rect::new(area.x + 28, area.y + 1, area.width.saturating_sub(29), 10);
@@ -495,6 +575,157 @@ fn render_portrait_card(
         Paragraph::new("Esc close · Enter observe · r counsel · o scry").style(PARCHMENT),
         Rect::new(text_area.x, area.y + 16, text_area.width, 1),
     );
+}
+
+fn render_sprite_portrait(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    persona: &crate::domain::AdventurerPersona,
+    colour_mode: ColorMode,
+) {
+    const PAPER: Rgb = Rgb::new(230, 207, 154);
+    let mut pixels = RgbBuffer::filled(24, 32, PAPER);
+    if let Some(portrait) = adventurer_portrait_frame(persona) {
+        blit(&portrait, PixelPoint::new(0, 0), &mut pixels);
+    }
+    flush_rgb(frame.buffer_mut(), area, &pixels, PAPER, colour_mode);
+}
+
+fn render_character_picker(frame: &mut Frame<'_>, model: &Model) {
+    let Modal::CharacterPicker {
+        adventurer,
+        persona,
+        choice,
+        ..
+    } = model.modal()
+    else {
+        return;
+    };
+    let Some(area) =
+        centered(frame.area(), 70, 23).filter(|area| area.width >= 20 && area.height >= 8)
+    else {
+        frame.render_widget(Clear, frame.area());
+        frame.render_widget(
+            Paragraph::new("Widen pane\nEsc cancel").style(PARCHMENT),
+            frame.area(),
+        );
+        return;
+    };
+    let Some(agent) = model.character_picker_target(adventurer, persona) else {
+        render_parchment(
+            frame,
+            area,
+            " CHARACTER ",
+            Text::from("Adventurer unavailable.\nEsc close"),
+        );
+        return;
+    };
+    let classes = AdventurerClass::ALL;
+    let automatic = agent.persona.automatic_class();
+    let chosen = classes.get(*choice).copied().unwrap_or(automatic);
+    let visual = area.width >= 57 && area.height >= 21;
+    let width = if visual {
+        area.width - 28
+    } else {
+        area.width - 2
+    };
+    let left = area.x + 1;
+    let capacity = usize::from(area.height - 7);
+    let start = choice
+        .saturating_sub(capacity / 2)
+        .min((classes.len() + 1).saturating_sub(capacity));
+    let mut options = classes
+        .iter()
+        .map(|class| class.label())
+        .chain(["Restore automatic"])
+        .enumerate()
+        .skip(start)
+        .take(capacity)
+        .map(|(index, label)| {
+            let marker = if index == *choice { ">" } else { " " };
+            Line::from(format!("{marker} {label}"))
+        })
+        .collect::<Vec<_>>();
+    options.resize(capacity, Line::default());
+    let apply_keys = if width < 23 {
+        "Enter set Esc exit"
+    } else {
+        "Enter apply  Esc cancel"
+    };
+    let text = vec![
+        Line::from(format!("{} · {}", agent.name, agent.persona.name)),
+        Line::from(format!("Current · {}", agent.persona.class.label())),
+        Line::from(format!("Preview · {}", chosen.label())),
+    ]
+    .into_iter()
+    .chain(options)
+    .chain([Line::from("j/k or arrows"), Line::from(apply_keys)])
+    .collect::<Vec<_>>();
+    frame.render_widget(Clear, area);
+    frame.render_widget(
+        Block::bordered()
+            .title(" CHOOSE CHARACTER ")
+            .title_alignment(Alignment::Center)
+            .style(PARCHMENT)
+            .border_style(PARCHMENT_BORDER),
+        area,
+    );
+    frame.render_widget(
+        Paragraph::new(text).style(PARCHMENT),
+        Rect::new(left, area.y + 1, width, area.height - 2),
+    );
+    if visual {
+        let mut preview = agent.persona.clone();
+        preview.class = chosen;
+        render_sprite_portrait(
+            frame,
+            Rect::new(area.right() - 26, area.y + 3, 24, 16),
+            &preview,
+            model.preferences().color_mode,
+        );
+    }
+}
+
+fn render_status_explanation(frame: &mut Frame<'_>, model: &Model) {
+    let Modal::StatusExplanation(status) = model.modal() else {
+        return;
+    };
+    let Some(area) = centered(frame.area(), 66, 11) else {
+        return;
+    };
+    let mut lines = vec![Line::from("Esc close")];
+    if let Some(agent) = model
+        .selected_agent()
+        .filter(|agent| status.request.matches(agent))
+    {
+        lines.push(Line::from(format!(
+            "{} · {}",
+            agent.name,
+            presence_label(agent.presence)
+        )));
+        let explanation = match &status.outcome {
+            None => "Asking Herdr…",
+            Some(Err(error)) => error,
+            Some(Ok(report)) if report.screen_detection_skipped => {
+                "Herdr used an integration report."
+            }
+            Some(Ok(report)) if report.matched_rule.is_some() => {
+                "Herdr matched a screen-detection rule."
+            }
+            Some(Ok(report)) if report.fallback_reason.is_some() => "Herdr used a fallback state.",
+            Some(Ok(_)) => "Herdr supplied no detection reason.",
+        };
+        lines.push(Line::from(explanation));
+        let coverage = if agent.capture_identity.is_qualified() {
+            "Chronicle: session identity available."
+        } else {
+            "Chronicle: observations withheld until session identity is unambiguous."
+        };
+        lines.push(Line::from(coverage));
+    } else {
+        lines.push(Line::from("Adventurer status changed. Reopen to refresh."));
+    }
+    render_parchment(frame, area, " WHY THIS STATUS? ", Text::from(lines));
 }
 
 fn presence_label(presence: Presence) -> &'static str {
@@ -536,6 +767,11 @@ fn render_input_parchment(frame: &mut Frame<'_>, model: &Model) {
             " SEARCH THE GUILD ",
             query.as_str(),
             "Enter find  Esc cancel",
+        ),
+        Modal::PartyName { draft, .. } => (
+            " NAME THE PARTY ",
+            draft.as_str(),
+            "Enter save  Esc cancel\nCtrl-U restore default",
         ),
         _ => return,
     };
@@ -580,7 +816,7 @@ fn render_input_parchment(frame: &mut Frame<'_>, model: &Model) {
     {
         lines.push(Line::from(format!("Delivery unconfirmed: {message}")));
     }
-    lines.push(Line::from(keys));
+    lines.extend(keys.lines().map(Line::from));
     render_parchment(frame, area, title, Text::from(lines));
 }
 
@@ -875,6 +1111,7 @@ fn render_command_ribbon(frame: &mut Frame<'_>, model: &Model) {
     let y = area.bottom().saturating_sub(1);
     let ribbon = Rect::new(area.x, y, area.width, 1);
     let counsel = model.selected_agent().map_or("", |_| "  [r] Counsel");
+    let character = model.selected_agent().map_or("", |_| "  [e] Character");
     // The urgency jump earns ribbon space only while somebody is actually
     // waiting, and it carries the count — so the ribbon answers "does anyone
     // need me?" before the key is ever pressed.
@@ -887,7 +1124,7 @@ fn render_command_ribbon(frame: &mut Frame<'_>, model: &Model) {
     // `?` earns its place: it is the one binding that leads to all the others,
     // and the ribbon is most often read by somebody who knows none of them.
     let text = format!(
-        "[1] Guild  [2] Delve  [j/k] Select  [Enter] Observe{counsel}{urgent}  [b] Board  [c] Chronicle  [/] Search  [?] Keys"
+        "[1] Guild  [2] Delve  [?] Keys  [j/k] Select{character}  [Enter] Observe{counsel}{urgent}  [b] Board  [c] Chronicle  [/] Search"
     );
     frame.render_widget(Clear, ribbon);
     frame.render_widget(Paragraph::new(text).style(PARCHMENT_BORDER), ribbon);

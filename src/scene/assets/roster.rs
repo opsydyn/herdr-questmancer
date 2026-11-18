@@ -1,14 +1,8 @@
-//! Authored 8x12 roster masters.
+//! Small roster state markers and the original silhouette-family art.
 //!
-//! The responsive contract recomposes rather than scaling, so a pane too
-//! narrow for a 16x24 party gets its own authored size instead of a squeezed
-//! world master. These are deliberately one master per *silhouette family*
-//! rather than one per class: at eight pixels wide, class gear is the only
-//! thing a silhouette can carry, and persona palette substitution supplies the
-//! per-adventurer identity that the family cannot.
-//!
-//! Pose is not authored at this scale. A roster adventurer's state is carried
-//! by its grounding, shared state marker and nameplate, never by the sprite.
+//! The room renders dedicated 8x12 class masters from `rituals`. The original
+//! family art is still available for reference. State at this scale is carried
+//! by grounding, the shared state marker and nameplates.
 
 use std::sync::OnceLock;
 
@@ -96,8 +90,7 @@ impl RosterFamily {
     ];
 }
 
-/// Routes a class to the silhouette family whose authored gear reads closest
-/// to its world master.
+/// Returns the historical silhouette family used before dedicated class art.
 #[must_use]
 pub const fn family_for(class: AdventurerClass) -> RosterFamily {
     match class {
@@ -111,7 +104,9 @@ pub const fn family_for(class: AdventurerClass) -> RosterFamily {
             RosterFamily::Armoured
         }
         AdventurerClass::Barbarian => RosterFamily::Brute,
-        AdventurerClass::Rogue | AdventurerClass::Bard => RosterFamily::Skirmisher,
+        AdventurerClass::Rogue | AdventurerClass::Bard | AdventurerClass::RatRoyalty => {
+            RosterFamily::Skirmisher
+        }
         AdventurerClass::Ranger | AdventurerClass::Pathseeker => RosterFamily::Ranger,
     }
 }

@@ -25,6 +25,14 @@ stale integration-banner clearing; explicit lifecycle/delegation design. Herdr
 Projects installed-source qualification remains parked. Other platform binaries
 require their own native execution checks. Registry publication remains separate.
 
+## Core UX sequence — 2026-11-18
+
+The [core UX plan](docs/plans/2026-11-18-core-ux.md) records the ordered
+durability, party identity, status, Herdr and world-art work after 0.2.0.
+The [room studies](docs/reviews/2026-11-18-core-ux/README.md) carry the visual
+comparison and review prompts. Keep their Storybook evidence separate from
+native acceptance.
+
 ## Historical baseline — 2026-09-09
 
 Source baseline: Questmancer `0.1.10`, minimum Herdr `0.9.4`, supported protocol

@@ -227,25 +227,10 @@ fn every_ritual_pose_keeps_its_foot_anchor_and_native_dimensions() {
         }
         let roster = adventurer_roster_frame(&persona);
         assert_eq!(roster.size(), PixelSize::new(8, 12));
-        let expected_foot = match class {
-            AdventurerClass::Wizard | AdventurerClass::Ranger | AdventurerClass::Barbarian => 10,
-            _ => {
-                use questmancer::scene::assets::roster::{family_for, master};
-                let (original, _) = master(family_for(class));
-                assert!(
-                    original
-                        .pixels()
-                        .iter()
-                        .zip(roster.pixels())
-                        .all(|(a, b)| a.is_some() == b.is_some()),
-                    "the expanded batches retain their existing roster silhouettes"
-                );
-                original.pixels().iter().rposition(Option::is_some).unwrap() / 8
-            }
-        };
         assert_eq!(
             roster.pixels().iter().rposition(Option::is_some).unwrap() / 8,
-            expected_foot
+            10,
+            "{class:?} roster foot row"
         );
     }
 }

@@ -4,6 +4,27 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+- Protect local profile writes when multiple Questmancer panes share a state
+  directory. Confirm explicit character and party-name saves after publication.
+- Name the party from the Librarian's Ledger and show the saved name in both
+  rooms.
+- Keep selected status, shortcuts and counsel counts visible in compact
+  rooms. Add an on-demand Herdr status explanation on adventurer profiles.
+- Choose a character for each adventurer from the Hall or Delve. Preview,
+  apply, cancel or restore the automatically assigned character.
+- Add Rat Royalty, the Gutter Crown, as an opt-in character with an illustrated
+  portrait, authored poses, and matching crowded roster and profile sprites.
+- Complete the small roster with dedicated Cleric, Paladin, Testmender, Bard,
+  Rogue and Pathseeker silhouettes. Every class now has its own `8x12` master.
+  The full-size and profile fallback art also carries the Paladin's winged
+  helm, Testmender's goggles, Bard's warm feather, Rogue's open hood and
+  Pathseeker's travel pack.
+- Bring the Mage's world sprite and profile fallback closer to its portrait with
+  a shadowed violet hood, red eyes, a skull staff and green magic. Mage, Sorcerer,
+  Wizard, Druid, Artificer and Runewright have distinct small silhouettes.
+- Add fitted Hall and Delve Storybook parties with one adventurer of every class
+  for checking silhouette, presence and density together.
+
 ## [0.2.0] - 2026-11-17
 
 Questmancer can now retain and author local work beyond an agent session, and

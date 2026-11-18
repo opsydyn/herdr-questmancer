@@ -145,6 +145,33 @@ fn contains(bounds: PixelRect, point: PixelPoint) -> bool {
 
 impl FitScene {
     pub fn project(model: &Model, area: Rect, cell: CellPixels) -> Result<Self, FitFailure> {
+        Self::project_with(model, area, cell, render_fitted_scene_for_world)
+    }
+
+    #[cfg(feature = "storybook")]
+    pub(crate) fn project_study(
+        model: &Model,
+        area: Rect,
+        cell: CellPixels,
+        study: super::RoomStudy,
+    ) -> Result<Self, FitFailure> {
+        Self::project_with(model, area, cell, |snapshot, presentation, rgb| {
+            super::render_study_frame(
+                snapshot,
+                presentation,
+                study,
+                super::pixel::PixelSize::new(160, 90),
+                rgb,
+            )
+        })
+    }
+
+    fn project_with(
+        model: &Model,
+        area: Rect,
+        cell: CellPixels,
+        render: impl FnOnce(&SceneSnapshot, &ScenePresentation, &mut RgbBuffer) -> SceneFrame,
+    ) -> Result<Self, FitFailure> {
         let transform = FitTransform::new(area, cell).ok_or(FitFailure::Geometry)?;
         let snapshot = SceneSnapshot::from_model(model);
         let total = snapshot
@@ -154,7 +181,7 @@ impl FitScene {
             .count();
         let presentation = ScenePresentation::from_model(model);
         let mut rgb = RgbBuffer::filled(160, 90, Rgb::BLACK);
-        let frame = render_fitted_scene_for_world(&snapshot, &presentation, &mut rgb);
+        let frame = render(&snapshot, &presentation, &mut rgb);
         if frame.actors.len() != total {
             return Err(FitFailure::Incomplete {
                 visible: frame.actors.len(),

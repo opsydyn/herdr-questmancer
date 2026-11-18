@@ -1,4 +1,8 @@
-use std::{io::ErrorKind, path::PathBuf};
+use std::{
+    fs::{File, TryLockError},
+    io::ErrorKind,
+    path::{Path, PathBuf},
+};
 
 use crate::{
     app::{Model, View},
@@ -14,12 +18,25 @@ pub struct StartupData {
     pub diagnostics: Vec<PersistenceDiagnostic>,
     pub projects: Option<crate::sources::herdr_projects::RuntimeSelection>,
     pub work_cache: super::WorkCache,
+    pub profile_writer: Option<File>,
 }
 
 pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) -> StartupData {
     let config_path = paths.config_path();
     let state_path = paths.state_path();
     let chronicle_path = paths.chronicle_path();
+    let mut diagnostics = Vec::new();
+    let profile_writer = if let Some(path) = state_path.as_deref() {
+        match claim_profile_writer(path).await {
+            Ok(lease) => Some(lease),
+            Err(diagnostic) => {
+                diagnostics.push(diagnostic);
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     let (config_read, state_read, chronicle_read) = tokio::join!(
         read_optional(config_path, "read config"),
@@ -27,19 +44,23 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
         read_optional(chronicle_path.clone(), "read chronicle"),
     );
 
-    let mut diagnostics = Vec::new();
     let config = interpret_config(config_read, &mut diagnostics);
     let state_load = interpret_state(state_read, &mut diagnostics);
-    let worker_state_path = if matches!(state_load, StateLoad::Protected) {
-        None
-    } else {
-        state_path
-    };
+    let worker_state_path =
+        if matches!(state_load, StateLoad::Protected) || profile_writer.is_none() {
+            None
+        } else {
+            state_path.clone()
+        };
     let persisted = match state_load {
         StateLoad::Loaded(state) => Some(state),
         StateLoad::Missing | StateLoad::Protected => None,
     };
-    let worker_paths = WorkerPaths::new(worker_state_path, chronicle_path);
+    let cache_path = WorkerPaths::new(state_path, None).work_path();
+    let worker_paths = WorkerPaths::new(
+        worker_state_path,
+        chronicle_path.filter(|_| profile_writer.is_some()),
+    );
     let replay = interpret_chronicle(
         chronicle_read,
         config.chronicle_max_entries.get(),
@@ -64,44 +85,19 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
         debug_assert!(seeded.is_ok());
     }
     model.domain_mut().chronicle = replay;
-    let mut work_cache = super::WorkCache::default();
-    let mut projects = config.herdr_projects.clone();
-    if let Some(path) = worker_paths.work_path() {
-        match super::load_work_cache(&path).await {
-            Ok(Some(cache)) => {
-                model.replace_work(cache.projection.clone());
-                work_cache = cache;
-            }
-            Ok(None) => {}
-            Err(error) => {
-                model.authoring_mut().blocked = Some(
-                    "Work cache is protected; owned setup/attachment disabled until repaired."
-                        .into(),
-                );
-                if let Some(selected) = projects.take() {
-                    crate::sources::herdr_projects::source_failure(
-                        &mut model,
-                        selected.source(),
-                        "Work cache is protected; source attachment disabled until the owner repairs it",
-                        true,
-                    );
-                }
-                diagnostics.push(PersistenceDiagnostic {
-                    operation: error.operation,
-                    path: error.path,
-                    line: error.line,
-                    source_message: error.source_message,
-                });
-            }
-        }
-    } else if let Some(selected) = projects.take() {
+    let mut projects = config.herdr_projects;
+    if worker_paths.work_path().is_none()
+        && let Some(selected) = projects.take()
+    {
         crate::sources::herdr_projects::source_failure(
             &mut model,
             selected.source(),
-            "No durable work-cache directory configured; source attachment disabled",
+            "No writable work-cache directory; source attachment disabled",
             true,
         );
     }
+    let work_cache =
+        restore_work_cache(cache_path, &mut model, &mut projects, &mut diagnostics).await;
 
     StartupData {
         model,
@@ -109,7 +105,75 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
         diagnostics,
         projects,
         work_cache,
+        profile_writer,
     }
+}
+
+async fn restore_work_cache(
+    path: Option<PathBuf>,
+    model: &mut Model,
+    projects: &mut Option<crate::sources::herdr_projects::RuntimeSelection>,
+    diagnostics: &mut Vec<PersistenceDiagnostic>,
+) -> super::WorkCache {
+    let Some(path) = path else {
+        return super::WorkCache::default();
+    };
+    match super::load_work_cache(&path).await {
+        Ok(Some(cache)) => {
+            model.replace_work(cache.projection.clone());
+            cache
+        }
+        Ok(None) => super::WorkCache::default(),
+        Err(error) => {
+            model.authoring_mut().blocked = Some(
+                "Work cache is protected; owned setup/attachment disabled until repaired.".into(),
+            );
+            if let Some(selected) = projects.take() {
+                crate::sources::herdr_projects::source_failure(
+                    model,
+                    selected.source(),
+                    "Work cache is protected; source attachment disabled until the owner repairs it",
+                    true,
+                );
+            }
+            diagnostics.push(PersistenceDiagnostic {
+                operation: error.operation,
+                path: error.path,
+                line: error.line,
+                source_message: error.source_message,
+            });
+            super::WorkCache::default()
+        }
+    }
+}
+
+async fn claim_profile_writer(state: &Path) -> Result<File, PersistenceDiagnostic> {
+    let lock = state.with_extension("lock");
+    let unavailable = |source_message: String| PersistenceDiagnostic {
+        operation: "open profile for writing",
+        path: lock.clone(),
+        line: None,
+        source_message,
+    };
+    if let Some(parent) = lock.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|error| unavailable(error.to_string()))?;
+    }
+    let file = tokio::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&lock)
+        .await
+        .map_err(|error| unavailable(error.to_string()))?
+        .into_std()
+        .await;
+    file.try_lock().map_err(|error| match error {
+        TryLockError::WouldBlock => unavailable("another Questmancer is saving this profile; reopen this pane after it exits to enable saves".into()),
+        TryLockError::Error(error) => unavailable(error.to_string()),
+    })?;
+    Ok(file)
 }
 
 pub const fn effective_view(

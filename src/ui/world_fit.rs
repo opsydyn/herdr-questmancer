@@ -1,11 +1,7 @@
 //! Shared native output adapter for the existing RGB worlds (ADR-0002/0003/0005).
 use std::fmt;
 
-use ratatui::{
-    Frame,
-    layout::Rect,
-    widgets::{Clear, Paragraph},
-};
+use ratatui::{Frame, layout::Rect, widgets::Clear};
 use ratatui_image::{
     picker::{Picker, ProtocolType},
     protocol::kitty::Kitty,
@@ -190,7 +186,7 @@ impl WorldFit {
             scene.transform.area,
             self.profile_mask,
         );
-        paint_identity(frame, model);
+        scene_overlays::render_party_status(frame, model);
         self.painted = true;
         let mut rendered = scene.terminal_frame();
         if !visible {
@@ -226,7 +222,11 @@ pub fn render_application(
     let mut scene = if let Some(scene) = graphics.paint(frame, model) {
         scene
     } else {
-        let area = frame.area();
+        let mut area = frame.area();
+        let status = model.modal() == &Modal::None && area.height >= 16 && area.width >= 24;
+        if status {
+            area.height -= 2;
+        }
         let scene = render_scene_for_world(
             &SceneSnapshot::from_model(model),
             &presentation,
@@ -241,6 +241,9 @@ pub fn render_application(
             model.preferences().color_mode,
         );
         scene_overlays::render_scene_identity_labels(frame, model, &scene);
+        if status {
+            scene_overlays::render_party_status(frame, model);
+        }
         scene
     };
     scene_overlays::render_scene_overlays(frame, model, &presentation, portraits);
@@ -313,30 +316,4 @@ pub(crate) fn mask_scene_regions(scene: &mut SceneFrame, mask: Option<Rect>) {
     };
     scene.actors.retain(|actor| !intersects(actor.bounds));
     scene.interactables.retain(|item| !intersects(item.bounds));
-}
-
-fn paint_identity(frame: &mut Frame<'_>, model: &Model) {
-    let area = frame.area();
-    let identity = model.selected_agent().map_or_else(
-        || "No adventurer selected".to_owned(),
-        |a| format!("{} / {:?} / {:?}", a.name, a.persona.class, a.presence),
-    );
-    let waiting = model
-        .domain()
-        .agents
-        .values()
-        .filter(|a| a.attention.summons() == Some(crate::domain::GuildSummons::CounselRequested))
-        .count();
-    let party = model
-        .domain()
-        .agents
-        .values()
-        .filter(|a| a.presence != crate::domain::Presence::Exited)
-        .count();
-    frame.render_widget(
-        Paragraph::new(format!(
-            "{party} adventurers / {waiting} need counsel / {identity}"
-        )),
-        Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1),
-    );
 }

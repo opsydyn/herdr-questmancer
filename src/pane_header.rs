@@ -81,7 +81,7 @@ impl PaneHeaderProjection {
                     pane_id: agent.pane_id.clone(),
                     terminal_id: terminal.clone(),
                     agent_session: session.clone(),
-                    label: format!("{name} · {:?} · {condition}", agent.persona.class),
+                    label: format!("{name} · {} · {condition}", agent.persona.class.label()),
                     rgba,
                 })
             })

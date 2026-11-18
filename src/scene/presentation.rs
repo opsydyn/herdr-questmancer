@@ -14,6 +14,9 @@ pub enum SceneOverlay {
     Chronicle,
     QuestBoard,
     WarTable,
+    CharacterPicker,
+    PartyName,
+    StatusExplanation,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -58,6 +61,9 @@ impl ScenePresentation {
                 Modal::Chronicle => SceneOverlay::Chronicle,
                 Modal::QuestBoard | Modal::OwnedAuthoring => SceneOverlay::QuestBoard,
                 Modal::WarTable => SceneOverlay::WarTable,
+                Modal::CharacterPicker { .. } => SceneOverlay::CharacterPicker,
+                Modal::PartyName { .. } => SceneOverlay::PartyName,
+                Modal::StatusExplanation(_) => SceneOverlay::StatusExplanation,
             },
         }
     }

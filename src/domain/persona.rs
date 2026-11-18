@@ -100,6 +100,20 @@ impl AdventurerPersona {
             accent: pick(AccentTone::ALL, digest[10]),
         }
     }
+
+    #[must_use]
+    pub fn automatic_class(&self) -> AdventurerClass {
+        class_for_key(&self.key, self.generation)
+    }
+
+    #[must_use]
+    pub fn role_label(&self) -> String {
+        if self.class == AdventurerClass::RatRoyalty {
+            self.class.label().to_owned()
+        } else {
+            format!("{:?} {}", self.ancestry, self.class.label())
+        }
+    }
 }
 
 fn class_for_key(key: &PersonaKey, generation: PersonaGeneration) -> AdventurerClass {
@@ -241,7 +255,7 @@ exhaustive_enum! {
     #[serde(rename_all = "snake_case")]
     pub enum AdventurerClass {
         Barbarian, Bard, Cleric, Druid, Paladin, Ranger, Rogue, Wizard, Artificer, Runewright,
-        Testmender, Pathseeker, Mage, Sorcerer
+        Testmender, Pathseeker, Mage, Sorcerer, RatRoyalty
     }
 }
 
@@ -264,6 +278,27 @@ impl Default for PersonaGeneration {
 
 impl AdventurerClass {
     #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Artificer => "Artificer",
+            Self::Barbarian => "Barbarian",
+            Self::Bard => "Bard",
+            Self::Cleric => "Cleric",
+            Self::Druid => "Druid",
+            Self::Mage => "Mage",
+            Self::Paladin => "Paladin",
+            Self::Pathseeker => "Pathseeker",
+            Self::Ranger => "Ranger",
+            Self::RatRoyalty => "Rat Royalty",
+            Self::Rogue => "Rogue",
+            Self::Runewright => "Runewright",
+            Self::Sorcerer => "Sorcerer",
+            Self::Testmender => "Testmender",
+            Self::Wizard => "Wizard",
+        }
+    }
+
+    #[must_use]
     pub const fn gear(self) -> AdventuringGear {
         match self {
             Self::Barbarian => AdventuringGear::Axe,
@@ -280,6 +315,7 @@ impl AdventurerClass {
             Self::Pathseeker => AdventuringGear::MapAndCompass,
             Self::Mage => AdventuringGear::SkullStaff,
             Self::Sorcerer => AdventuringGear::Orb,
+            Self::RatRoyalty => AdventuringGear::Sceptre,
         }
     }
 }
@@ -392,6 +428,7 @@ trait_enum!(AdventuringGear {
     MapAndCompass,
     Orb,
     RuneChisel,
+    Sceptre,
     Shield,
     SkullStaff,
     SpellbookAndStaff,

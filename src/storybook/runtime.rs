@@ -101,6 +101,11 @@ where
     Events: Stream<Item = std::io::Result<Event>> + Unpin,
     Interrupts: Stream<Item = ()>,
 {
+    let walk_frame = if app.mode() == Mode::Inspect && !app.help_visible() {
+        preview.next_walk_frame()
+    } else {
+        None
+    };
     tokio::select! {
         event = events.next() => {
             if let Some(Ok(event)) = &event
@@ -108,9 +113,19 @@ where
                 && preview.is_for_story(app.selected_story(stories).id.as_str())
                 && preview.handle_event(event)
             { return Ok(RuntimeControl::Continue); }
-            control_for_event(app, event, stories)
+            let was_inspecting = app.mode() == Mode::Inspect;
+            let next = control_for_event(app, event, stories);
+            if !was_inspecting && app.mode() == Mode::Inspect {
+                preview.restart_walk();
+            }
+            next
         },
         _ = interrupts.next() => Ok(RuntimeControl::Quit),
+        () = async {
+            if let Some(deadline) = walk_frame {
+                tokio::time::sleep_until(deadline).await;
+            }
+        }, if walk_frame.is_some() => Ok(RuntimeControl::Continue),
     }
 }
 

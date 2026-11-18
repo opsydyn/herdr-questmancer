@@ -77,6 +77,152 @@ fn delve_twin(model: &Model) -> Model {
     twin
 }
 
+#[tokio::test]
+async fn character_choice_can_be_previewed_cancelled_saved_and_reset_in_both_rooms() {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    use questmancer::{
+        persistence::{PersistedStateV1, PersistenceWorker, WorkerPaths, load_state},
+        runtime_loop::dispatch_action_effects,
+        ui::input::action_for_event_in,
+    };
+
+    let press = |model: &mut Model, code| {
+        let event = Event::Key(KeyEvent::new(code, KeyModifiers::NONE));
+        let action = action_for_event_in(&event, model.modal());
+        reduce_action(model, action)
+    };
+    for view in [View::Guild, View::Delve] {
+        let directory = tempfile::tempdir().unwrap();
+        let state_path = directory.path().join("state.json");
+        let (mut client, _diagnostics, worker) =
+            PersistenceWorker::start(WorkerPaths::new(Some(state_path.clone()), None));
+        let mut model = live_model_with_two_distinct_personas();
+        model.switch_to(view);
+        let original = model.selected_agent().unwrap().clone();
+        let before = PersistedStateV1::capture(&model);
+        let other = model.domain().agents.values().last().unwrap().clone();
+
+        press(&mut model, KeyCode::Char('e'));
+        assert_ne!(model.modal(), &Modal::None, "open the character picker");
+        press(&mut model, KeyCode::End);
+        press(&mut model, KeyCode::Up);
+        assert_eq!(PersistedStateV1::capture(&model), before);
+        assert!(press(&mut model, KeyCode::Esc).persistence.is_empty());
+        assert_eq!(model.modal(), &Modal::None);
+
+        press(&mut model, KeyCode::Char('e'));
+        press(&mut model, KeyCode::End);
+        press(&mut model, KeyCode::Up);
+        let applied = press(&mut model, KeyCode::Enter);
+        assert!(applied.commands.is_empty());
+        assert_eq!(model.selected_agent().unwrap().persona, original.persona);
+        let applied = dispatch_action_effects(&mut client, &mut model, applied).await;
+        assert!(applied.persistence_errors.is_empty());
+        let mut selected = model.selected_agent().unwrap().clone();
+        assert_eq!(
+            serde_json::to_value(selected.persona.class).unwrap(),
+            "rat_royalty"
+        );
+        selected.persona.class = original.persona.class;
+        assert_eq!(selected, original);
+        assert_eq!(model.domain().agents.get(&other.key), Some(&other));
+
+        let saved = load_state(&state_path).await.unwrap().unwrap();
+        let mut restarted = live_model_with_two_distinct_personas();
+        restarted.durable_intent_mut().seed(&saved).unwrap();
+        restarted.replace_domain(restarted.domain().clone());
+        assert_eq!(
+            restarted.selected_agent().unwrap().persona,
+            model.selected_agent().unwrap().persona
+        );
+
+        press(&mut restarted, KeyCode::Char('e'));
+        press(&mut restarted, KeyCode::End);
+        let applied = press(&mut restarted, KeyCode::Enter);
+        let reset = dispatch_action_effects(&mut client, &mut restarted, applied).await;
+        assert!(reset.persistence_errors.is_empty());
+        assert_eq!(
+            restarted.selected_agent().unwrap().persona,
+            original.persona
+        );
+        client.shutdown().await.unwrap();
+        worker.await.unwrap();
+    }
+}
+
+#[test]
+fn character_choice_stays_scoped_when_the_adventurer_identity_becomes_ambiguous() {
+    let mut model = live_model_with_two_distinct_personas();
+    let original = model.selected_agent().unwrap().clone();
+    let _ = reduce_action(&mut model, Action::OpenCharacterPicker);
+    let _ = reduce_action(&mut model, Action::Last);
+    let _ = reduce_action(&mut model, Action::Previous);
+
+    let mut domain = model.domain().clone();
+    domain.agents.values_mut().last().unwrap().persona = original.persona.clone();
+    model.replace_domain(domain);
+
+    let attempted = reduce_action(&mut model, Action::Submit);
+    assert!(attempted.commands.is_empty());
+    assert!(attempted.persistence.is_empty());
+    assert_eq!(model.domain().agents.get(&original.key), Some(&original));
+    assert!(matches!(model.modal(), Modal::CharacterPicker { .. }));
+    let _ = reduce_action(&mut model, Action::Dismiss);
+    assert_eq!(model.modal(), &Modal::None);
+    let _ = reduce_action(&mut model, Action::OpenCharacterPicker);
+    assert_eq!(model.modal(), &Modal::None);
+}
+
+#[tokio::test]
+async fn character_choice_keeps_the_previous_persona_when_publication_fails() {
+    use questmancer::{
+        persistence::{PersistedStateV1, PersistenceWorker, WorkerPaths, publish_state},
+        runtime_loop::dispatch_action_effects,
+    };
+
+    let profile = tempfile::tempdir().unwrap();
+    let path = profile.path().join("state.json");
+    let mut model = live_model_with_two_distinct_personas();
+    let previous = model.selected_agent().unwrap().persona.clone();
+    publish_state(&path, &PersistedStateV1::capture(&model))
+        .await
+        .unwrap();
+    let before = tokio::fs::read(&path).await.unwrap();
+    tokio::fs::create_dir(profile.path().join("state.json.tmp"))
+        .await
+        .unwrap();
+    let (mut client, _diagnostics, worker) =
+        PersistenceWorker::start(WorkerPaths::new(Some(path.clone()), None));
+
+    for action in [Action::OpenCharacterPicker, Action::Last, Action::Previous] {
+        let _ = reduce_action(&mut model, action);
+    }
+    let submitted = reduce_action(&mut model, Action::Submit);
+    let effects = dispatch_action_effects(&mut client, &mut model, submitted).await;
+    assert_eq!(model.selected_agent().unwrap().persona, previous);
+    assert!(matches!(model.modal(), Modal::CharacterPicker { .. }));
+    assert_eq!(effects.persistence_errors.len(), 1);
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+    assert_eq!(tokio::fs::read(path).await.unwrap(), before);
+}
+
+#[test]
+fn explaining_status_is_an_explicit_read_for_the_selected_adventurer() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use questmancer::ui::input::action_for;
+
+    let mut model = live_model_with_two_distinct_personas();
+    let action = action_for(KeyEvent::new(KeyCode::Char('i'), KeyModifiers::NONE));
+    let open = reduce_action(&mut model, action);
+    assert_eq!(open.commands.len(), 1);
+    assert!(open.persistence.is_empty());
+    assert_ne!(model.modal(), &Modal::None);
+    let close = reduce_action(&mut model, Action::Dismiss);
+    assert!(close.commands.is_empty());
+    assert_eq!(model.modal(), &Modal::None);
+}
+
 #[test]
 fn quit_is_an_explicit_typed_loop_outcome() {
     let mut model = Model::new(View::Guild);

@@ -1047,6 +1047,7 @@ async fn live_identity_is_omitted_and_startup_has_no_synthetic_source() {
     assert!(!text.contains("fixture-terminal"));
     assert!(!text.contains("bindings"));
     assert!(!text.contains("freshness"));
+    drop(startup);
     let startup = load_startup(
         PersistencePaths::from_lookup(|name| match name {
             "HERDR_PLUGIN_CONFIG_DIR" => Some(config_dir.display().to_string()),

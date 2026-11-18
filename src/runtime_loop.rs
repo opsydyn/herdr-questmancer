@@ -59,6 +59,11 @@ pub async fn dispatch_action_effects(
 ) -> ActionRuntimeEffects {
     let mut persistence_errors =
         dispatch_persistence_effects(client, model, reduction.persistence).await;
+    if let Some(change) = reduction.preference
+        && let Err(error) = save_preference(client, model, change).await
+    {
+        persistence_errors.push(error);
+    }
     if let Some(work) = reduction.work_intent {
         match client.publish_work(work.clone()).await {
             Ok(()) => model.settle_work_intent(Some(work)),
@@ -73,6 +78,49 @@ pub async fn dispatch_action_effects(
         persistence_errors,
         exit: reduction.control.is_break().then_some(RuntimeExit::Quit),
     }
+}
+
+async fn save_preference(
+    client: &mut PersistenceClient,
+    model: &mut Model,
+    change: crate::interaction::PreferenceChange,
+) -> Result<(), PersistenceError> {
+    use crate::{interaction::PreferenceChange, persistence::StateSaveError};
+
+    let mut state = PersistedStateV1::capture(model);
+    match &change {
+        PreferenceChange::Character { persona, .. } => {
+            state.personas.insert(persona.key.clone(), persona.clone());
+        }
+        PreferenceChange::PartyName(name) => state.party_name.clone_from(name),
+    }
+    let result = client.save_state(state).await;
+    if !matches!(result, Err(StateSaveError::Rejected(_))) {
+        let feedback = match change {
+            PreferenceChange::Character {
+                adventurer,
+                persona,
+            } => {
+                let class = persona.class.label();
+                model.apply_character_change(&adventurer, persona);
+                format!("Character saved · {class}")
+            }
+            PreferenceChange::PartyName(name) => {
+                let feedback = if name.is_some() {
+                    "Party name saved."
+                } else {
+                    "Default party name restored."
+                };
+                model.durable_intent_mut().set_party_name(name);
+                model.dismiss_modal();
+                feedback.to_owned()
+            }
+        };
+        if result.is_ok() {
+            model.set_action_feedback(feedback);
+        }
+    }
+    result.map_err(StateSaveError::into_error)
 }
 
 pub async fn dispatch_persistence_effects(
@@ -584,6 +632,9 @@ pub fn apply_command_result(
             message,
         } => {
             model.fail_output_request(request, &pane_id, &message);
+        }
+        CommandResult::StatusExplained { serial, result } => {
+            model.finish_status_explanation(serial, result);
         }
         CommandResult::ReviewrAvailable(available) => {
             model.set_reviewr_available(available);

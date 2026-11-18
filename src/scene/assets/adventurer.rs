@@ -5,7 +5,7 @@ use crate::domain::AdventurerPersona;
 use super::{
     IndexedPaletteEntry, archetypes, indexed_sprite,
     palette::{AdventurerPalette, adventurer_palette},
-    rituals, roster,
+    rituals,
 };
 use crate::{
     domain::AdventurerClass,
@@ -207,6 +207,17 @@ const fn standard_role(key: char) -> Option<PersonaRole> {
     }
 }
 
+fn role_for(class: AdventurerClass) -> fn(char) -> Option<PersonaRole> {
+    match class {
+        AdventurerClass::RatRoyalty => |key| match key {
+            'B' => Some(PersonaRole::Accent),
+            'r' => Some(PersonaRole::Garb),
+            _ => None,
+        },
+        _ => standard_role,
+    }
+}
+
 fn role_colour(role: PersonaRole, colours: &AdventurerPalette) -> Rgb {
     match role {
         PersonaRole::SkinShadow => mix(colours.skin, Rgb::BLACK, 35),
@@ -396,7 +407,7 @@ pub fn adventurer_animation_frame(
         persona.appearance.accent,
     );
     if let Some((frame, palette)) = rituals::world_master(persona.class, pose, animation_frame) {
-        personalise(&frame, palette, standard_role, &colours)
+        personalise(&frame, palette, role_for(persona.class), &colours)
     } else if persona.class == AdventurerClass::Druid {
         let frame = personalise(&druid_world_frame(), DRUID_PALETTE, standard_role, &colours);
         apply_pose(&frame, pose, DRUID_PALETTE, &colours)
@@ -408,8 +419,8 @@ pub fn adventurer_animation_frame(
     }
 }
 
-/// Returns the authored 8x12 roster master for the adventurer's silhouette
-/// family, personalised from the same palette as its world master. Roster
+/// Returns the class's authored 8x12 roster master, personalised from the
+/// same palette as its world master. Roster
 /// masters carry no pose: state is told by grounding, markers and nameplates.
 #[must_use]
 pub fn adventurer_roster_frame(persona: &AdventurerPersona) -> SpriteFrame {
@@ -420,9 +431,26 @@ pub fn adventurer_roster_frame(persona: &AdventurerPersona) -> SpriteFrame {
         persona.class,
         persona.appearance.accent,
     );
-    let (frame, palette) = rituals::roster_master(persona.class)
-        .unwrap_or_else(|| roster::master(roster::family_for(persona.class)));
-    personalise(&frame, palette, standard_role, &colours)
+    let (frame, palette) = rituals::roster_master(persona.class);
+    personalise(&frame, palette, role_for(persona.class), &colours)
+}
+
+#[cfg(feature = "storybook")]
+pub(crate) fn rat_walk_frame(persona: &AdventurerPersona, step: usize) -> SpriteFrame {
+    use super::rat_royalty::{PALETTE, WALK};
+    static FRAMES: OnceLock<[SpriteFrame; 2]> = OnceLock::new();
+    let frames = FRAMES.get_or_init(|| {
+        WALK.map(|rows| indexed_sprite(rows, PALETTE).expect("authored walk frame"))
+    });
+    let appearance = persona.appearance;
+    let colours = adventurer_palette(
+        appearance.skin_tone,
+        appearance.hair_tone,
+        appearance.garb,
+        persona.class,
+        appearance.accent,
+    );
+    personalise(&frames[step], PALETTE, role_for(persona.class), &colours)
 }
 
 pub(crate) struct AdventurerFrame {
@@ -453,6 +481,7 @@ pub(crate) fn adventurer_at(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::scene::assets::roster;
 
     type MasterPaletteFixture = (
         String,
@@ -469,7 +498,7 @@ mod tests {
             vec![("Druid".to_owned(), DRUID_PALETTE, standard_role)];
         for class in AdventurerClass::ALL {
             if let Some((_, palette)) = rituals::world_master(*class, ScenePose::Working, 0) {
-                palettes.push((format!("ritual {class:?}"), palette, standard_role));
+                palettes.push((format!("ritual {class:?}"), palette, role_for(*class)));
             }
             if let Some((_, palette)) = archetypes::world_master(*class) {
                 palettes.push((format!("{class:?}"), palette, standard_role));

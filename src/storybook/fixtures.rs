@@ -152,6 +152,7 @@ pub enum ArchetypeGallery {
     PortraitMasters,
     GoblinEasterEgg,
     Librarian,
+    RatRoyalty,
 }
 
 pub const fn ritual_pose_fixture(class: AdventurerClass) -> StoryFixture {

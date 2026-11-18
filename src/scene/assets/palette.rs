@@ -106,6 +106,7 @@ const fn metal_colour(value: AdventurerClass) -> Rgb {
             Rgb::new(111, 139, 179)
         }
         AdventurerClass::Sorcerer => Rgb::new(198, 190, 210),
+        AdventurerClass::RatRoyalty => Rgb::new(246, 193, 83),
         AdventurerClass::Druid => MOSS,
         AdventurerClass::Rogue | AdventurerClass::Ranger | AdventurerClass::Pathseeker => {
             Rgb::new(117, 108, 87)

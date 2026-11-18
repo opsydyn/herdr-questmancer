@@ -9,6 +9,7 @@ use crate::{
 };
 
 pub const STATE_SCHEMA_VERSION: u32 = 2;
+pub const PARTY_NAME_LIMIT: usize = 32;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct AttentionEpisodeKey {
@@ -30,6 +31,8 @@ pub struct PersistedStateV1 {
     pub experience: u64,
     #[serde(default)]
     pub owned_store: Option<crate::owned_work::StoreSelection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub party_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -39,6 +42,7 @@ pub struct DurableIntent {
     seen_attention: BTreeSet<AttentionEpisodeKey>,
     experience: u64,
     owned_store: Option<crate::owned_work::StoreSelection>,
+    party_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
@@ -54,6 +58,8 @@ pub enum StateValidationError {
     SelectedPersonaMissing(PersonaKey),
     #[error("invalid owned store selection")]
     InvalidOwnedSelection,
+    #[error("invalid party name")]
+    InvalidPartyName,
     #[error("seen attention persona {0} is missing from the persona map")]
     SeenAttentionPersonaMissing(PersonaKey),
 }
@@ -74,6 +80,7 @@ impl PersistedStateV1 {
             seen_attention: intent.seen_attention.clone(),
             experience: intent.experience,
             owned_store: intent.owned_store.clone(),
+            party_name: intent.party_name.clone(),
         }
     }
 
@@ -83,6 +90,15 @@ impl PersistedStateV1 {
                 expected: STATE_SCHEMA_VERSION,
                 actual: self.schema_version,
             });
+        }
+
+        if self.party_name.as_ref().is_some_and(|name| {
+            name.is_empty()
+                || name.trim() != name
+                || name.chars().count() > PARTY_NAME_LIMIT
+                || name.chars().any(char::is_control)
+        }) {
+            return Err(StateValidationError::InvalidPartyName);
         }
 
         if (self.schema_version == 1 && self.owned_store.is_some())
@@ -126,6 +142,14 @@ impl PersistedStateV1 {
 }
 
 impl DurableIntent {
+    pub fn party_name(&self) -> Option<&str> {
+        self.party_name.as_deref()
+    }
+
+    pub(crate) fn set_party_name(&mut self, name: Option<String>) {
+        self.party_name = name;
+    }
+
     pub fn owned_store(&self) -> Option<&crate::owned_work::StoreSelection> {
         self.owned_store.as_ref()
     }
@@ -140,6 +164,7 @@ impl DurableIntent {
         self.seen_attention.clone_from(&state.seen_attention);
         self.experience = state.experience;
         self.owned_store.clone_from(&state.owned_store);
+        self.party_name.clone_from(&state.party_name);
         Ok(())
     }
 
@@ -223,6 +248,10 @@ impl DurableIntent {
 
     pub(crate) fn remember_selected(&mut self, selected: Option<PersonaKey>) {
         self.selected_persona = selected;
+    }
+
+    pub(crate) fn remember_persona(&mut self, persona: &AdventurerPersona) {
+        self.personas.insert(persona.key.clone(), persona.clone());
     }
 }
 

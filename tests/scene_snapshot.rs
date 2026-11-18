@@ -97,6 +97,7 @@ fn snapshot_ignores_legacy_ui_persistence_and_goblin_state() {
         .durable_intent_mut()
         .seed(&PersistedStateV1 {
             owned_store: None,
+            party_name: None,
             experience: 0,
             schema_version: STATE_SCHEMA_VERSION,
             last_view: View::Delve,

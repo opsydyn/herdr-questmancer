@@ -50,6 +50,18 @@ pub(crate) fn paint(
         let Some(agent) = snapshot.agents.iter().find(|a| a.key == placement.agent) else {
             continue;
         };
+        #[cfg(feature = "storybook")]
+        let (origin, footstep) = match plan.study {
+            Some(crate::scene::RoomStudy::DelveWalk(elapsed))
+                if plan.world == WorldScene::Delve
+                    && tier == PartyDensity::Full
+                    && agent.presence == Presence::Working
+                    && agent.persona.class == crate::domain::AdventurerClass::RatRoyalty =>
+            {
+                super::room_study::delve_walk(elapsed, snapshot.motion)
+            }
+            _ => (origin, None),
+        };
         let sprite = if tier == PartyDensity::Full {
             let animation = actor_frame(snapshot, plan, agent, placement.pose);
             deadline = deadline
@@ -64,21 +76,17 @@ pub(crate) fn paint(
         } else {
             adventurer_roster_frame(&agent.persona)
         };
+        #[cfg(feature = "storybook")]
+        let sprite = footstep.map_or(sprite, |step| {
+            crate::scene::assets::adventurer::rat_walk_frame(&agent.persona, step)
+        });
         let bounds = PixelRect::new(
             origin.x,
             origin.y,
             sprite.size().width,
             sprite.size().height,
         );
-        target.fill_rect(
-            PixelRect::new(
-                bounds.x,
-                (bounds.y + i32::from(bounds.height)).min(89),
-                bounds.width,
-                1,
-            ),
-            Rgb::new(24, 24, 30),
-        );
+        paint_grounding(target, bounds, plan);
         if plan.world == WorldScene::Delve && agent.presence == Presence::Unknown {
             delve::blit_uncertain(&sprite, origin, target);
         } else {
@@ -101,7 +109,30 @@ pub(crate) fn paint(
         .chain(paint_departures(snapshot, plan, target))
         .min();
     frame.next_frame_in = deadline;
+    #[cfg(feature = "storybook")]
+    if let Some(crate::scene::RoomStudy::DelveWalk(elapsed)) = plan.study {
+        frame.next_frame_in = super::room_study::next_walk_frame(elapsed, snapshot.motion);
+    }
     Some(frame)
+}
+
+fn paint_grounding(target: &mut RgbBuffer, bounds: PixelRect, plan: &ScenePlan) {
+    #[cfg(feature = "storybook")]
+    if plan.study == Some(crate::scene::RoomStudy::DelveStone) {
+        super::room_study::contact_shadow(target, bounds);
+        return;
+    }
+    #[cfg(not(feature = "storybook"))]
+    let _ = plan;
+    target.fill_rect(
+        PixelRect::new(
+            bounds.x,
+            (bounds.y + i32::from(bounds.height)).min(89),
+            bounds.width,
+            1,
+        ),
+        Rgb::new(24, 24, 30),
+    );
 }
 
 fn paint_cues(

@@ -29,6 +29,9 @@ pub enum Action {
     OpenQuestBoard,
     OpenAuthoring,
     OpenWarTable,
+    OpenCharacterPicker,
+    NameParty,
+    ExplainStatus,
     ToggleChronicleChapter,
     NextResult,
     PreviousResult,
@@ -69,6 +72,13 @@ pub fn action_for_event(event: &Event) -> Action {
 }
 
 pub fn action_for_event_in(event: &Event, modal: &Modal) -> Action {
+    if let (Event::Mouse(mouse), Modal::CharacterPicker { .. }) = (event, modal) {
+        return match mouse.kind {
+            MouseEventKind::ScrollDown => Action::Next,
+            MouseEventKind::ScrollUp => Action::Previous,
+            _ => Action::None,
+        };
+    }
     // The wheel is the gesture people reach for on a wall of text, and it was
     // the one mouse event Questmancer ignored entirely.
     if let Event::Mouse(mouse) = event
@@ -97,6 +107,16 @@ pub fn action_for(key: KeyEvent) -> Action {
 }
 
 fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
+    if matches!(modal, Modal::StatusExplanation(_)) {
+        return if key.code == KeyCode::Esc {
+            Action::Dismiss
+        } else {
+            Action::None
+        };
+    }
+    if matches!(modal, Modal::CharacterPicker { .. }) {
+        return character_action(key);
+    }
     if matches!(modal, Modal::WarTable) {
         return match key.code {
             KeyCode::Esc | KeyCode::Char('w') => Action::Dismiss,
@@ -149,19 +169,18 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         };
     }
     if matches!(modal, Modal::LibrarianLedger { .. }) {
-        return match key.code {
-            KeyCode::Esc => Action::Dismiss,
-            KeyCode::Char('?') => Action::ToggleLedger,
-            KeyCode::Char('j') | KeyCode::Right | KeyCode::Down => Action::Next,
-            KeyCode::Char('k') | KeyCode::Left | KeyCode::Up => Action::Previous,
-            KeyCode::Char('g') => Action::First,
-            KeyCode::Char('G') => Action::Last,
-            _ => Action::None,
-        };
+        return ledger_action(key);
     }
-    if matches!(modal, Modal::Counsel { .. } | Modal::Search { .. }) {
+    if matches!(
+        modal,
+        Modal::Counsel { .. } | Modal::Search { .. } | Modal::PartyName { .. }
+    ) {
         return modal_action(key);
     }
+    room_action(key)
+}
+
+fn room_action(key: KeyEvent) -> Action {
     if matches!(key.code, KeyCode::Char('c')) && key.modifiers.contains(KeyModifiers::CONTROL) {
         return Action::Quit;
     }
@@ -187,6 +206,8 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         KeyCode::Char('c') => Action::OpenChronicle,
         KeyCode::Char('b') => Action::OpenQuestBoard,
         KeyCode::Char('w') => Action::OpenWarTable,
+        KeyCode::Char('e') if key.kind == KeyEventKind::Press => Action::OpenCharacterPicker,
+        KeyCode::Char('i') if key.kind == KeyEventKind::Press => Action::ExplainStatus,
         KeyCode::Char('n') => Action::NextResult,
         KeyCode::Char('N') => Action::PreviousResult,
         KeyCode::Char('s') => Action::DeferSummons,
@@ -194,6 +215,32 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         KeyCode::Char('u') => Action::CycleCharacterSet,
         KeyCode::Char('p') => Action::CycleColorMode,
         KeyCode::Char('/') => Action::Search,
+        _ => Action::None,
+    }
+}
+
+fn ledger_action(key: KeyEvent) -> Action {
+    match key.code {
+        KeyCode::Esc => Action::Dismiss,
+        KeyCode::Char('?') => Action::ToggleLedger,
+        KeyCode::Char('e') if key.kind == KeyEventKind::Press => Action::OpenCharacterPicker,
+        KeyCode::Char('p') if key.kind == KeyEventKind::Press => Action::NameParty,
+        KeyCode::Char('j') | KeyCode::Right | KeyCode::Down => Action::Next,
+        KeyCode::Char('k') | KeyCode::Left | KeyCode::Up => Action::Previous,
+        KeyCode::Char('g') => Action::First,
+        KeyCode::Char('G') => Action::Last,
+        _ => Action::None,
+    }
+}
+
+fn character_action(key: KeyEvent) -> Action {
+    match key.code {
+        KeyCode::Esc => Action::Dismiss,
+        KeyCode::Char('j') | KeyCode::Down => Action::Next,
+        KeyCode::Char('k') | KeyCode::Up => Action::Previous,
+        KeyCode::Home => Action::First,
+        KeyCode::End => Action::Last,
+        KeyCode::Enter if key.kind == KeyEventKind::Press => Action::Submit,
         _ => Action::None,
     }
 }

@@ -2020,7 +2020,7 @@ fn world_route(class: AdventurerClass) -> Option<WorldRoute> {
         AdventurerClass::Sorcerer => {
             Some((&SORCERER_WORLD_FRAME, SORCERER_WORLD, SORCERER_PALETTE))
         }
-        AdventurerClass::Druid => None,
+        AdventurerClass::Druid | AdventurerClass::RatRoyalty => None,
     }
 }
 
@@ -2082,7 +2082,7 @@ pub fn portrait_frame(class: AdventurerClass) -> Option<SpriteFrame> {
             SORCERER_PORTRAIT,
             SORCERER_PALETTE,
         )),
-        AdventurerClass::Druid => None,
+        AdventurerClass::Druid | AdventurerClass::RatRoyalty => None,
     }
 }
 

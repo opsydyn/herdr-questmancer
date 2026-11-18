@@ -383,11 +383,17 @@ async fn mixed_history_appends_keep_legacy_bytes_and_restart_does_not_reaward_sp
     assert_eq!(h.model.experience(), 10);
     assert_eq!(h.model.domain().chronicle.entries().len(), 2);
     h.connection.shutdown().await.unwrap();
+    h.persistence.shutdown().await.unwrap();
+    (&mut h.worker).await.unwrap();
+    drop(startup.profile_writer);
     let paths = PersistencePaths::from_lookup(|name| {
         (name == "HERDR_PLUGIN_STATE_DIR").then(|| h.directory.path().display().to_string())
     });
     let startup = load_startup(paths, None).await;
     assert!(startup.diagnostics.is_empty());
+    let (persistence, _, worker) = PersistenceWorker::start(startup.paths);
+    h.persistence = persistence;
+    h.worker = worker;
     let environment =
         HerdrEnvironment::new(h.directory.path().join("herdr.sock"), "/usr/bin/herdr");
     h.model = bootstrap_model(startup.model, Some(&environment));

@@ -75,6 +75,57 @@ async fn output_load_returns_a_ui_ready_preview() {
 }
 
 #[tokio::test]
+async fn status_explanation_is_scoped_to_the_same_pane_occupant() {
+    use questmancer::{
+        app::StatusRequest,
+        domain::{CaptureIdentity, Presence},
+    };
+
+    let (_directory, path, listener) = listener();
+    let server = tokio::spawn(async move {
+        for terminal_id in ["terminal-1", "replacement-terminal"] {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let call = request(&mut stream).await;
+            assert_eq!(call["method"], "agent.explain");
+            assert_eq!(call["params"]["target"], "w1:p1");
+            respond(&mut stream, &call, json!({
+                "type": "agent_explain",
+                "explain": {"state": "idle", "fallback_reason": "default_known_agent_idle_fallback"}
+            })).await;
+
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let call = request(&mut stream).await;
+            assert_eq!(call["method"], "pane.get");
+            respond(&mut stream, &call, json!({"type": "pane_info", "pane": {
+                "pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1",
+                "terminal_id": terminal_id, "focused": false, "agent_status": "idle", "revision": 7
+            }})).await;
+        }
+    });
+    let executor = CommandExecutor::new(HerdrClient::new(path), None);
+    let status = StatusRequest {
+        serial: 4,
+        pane: PaneId::new("w1:p1"),
+        identity: CaptureIdentity::from_parts("terminal-1", None),
+        revision: 7,
+        presence: Presence::Idle,
+    };
+    let result = executor
+        .execute(AgentCommand::ExplainStatus(status.clone()))
+        .await;
+    assert!(
+        matches!(result, CommandResult::StatusExplained { serial: 4, result: Ok(report) }
+        if report.fallback_reason.as_deref() == Some("default_known_agent_idle_fallback"))
+    );
+    let result = executor.execute(AgentCommand::ExplainStatus(status)).await;
+    assert!(
+        matches!(result, CommandResult::StatusExplained { serial: 4, result: Err(message) }
+        if message.contains("changed"))
+    );
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn output_failure_preserves_request_identity() {
     let directory = tempfile::tempdir().unwrap();
     let executor = CommandExecutor::new(

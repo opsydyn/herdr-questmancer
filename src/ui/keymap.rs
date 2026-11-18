@@ -24,6 +24,21 @@ pub struct Binding {
 
 pub const BINDINGS: &[Binding] = &[
     Binding {
+        keys: "i",
+        description: "Explain the selected adventurer's status",
+        action: Action::ExplainStatus,
+    },
+    Binding {
+        keys: "p (Ledger)",
+        description: "Name the party",
+        action: Action::NameParty,
+    },
+    Binding {
+        keys: "e",
+        description: "Choose the selected adventurer's character",
+        action: Action::OpenCharacterPicker,
+    },
+    Binding {
         keys: "w",
         description: "Open the War Table",
         action: Action::OpenWarTable,

@@ -109,6 +109,108 @@ fn render(model: &Model, width: u16, height: u16) -> String {
         .join("\n")
 }
 
+#[test]
+fn ledger_menu_shows_the_character_picker_and_escape_returns_to_the_menu() {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    use questmancer::{app::Modal, ledger::LedgerPageId, ui::input::action_for_event_in};
+
+    for view in [View::Guild, View::Delve] {
+        let mut model = model();
+        model.switch_to(view);
+        let press = |model: &mut Model, code| {
+            let event = Event::Key(KeyEvent::new(code, KeyModifiers::NONE));
+            reduce_action(model, action_for_event_in(&event, model.modal()))
+        };
+        let _ = press(&mut model, KeyCode::Char('?'));
+        for (width, height) in [(100, 30), (48, 16), (26, 10)] {
+            let text = render(&model, width, height);
+            assert!(text.contains("[e] Character"), "{width}x{height}\n{text}");
+        }
+        let opened = press(&mut model, KeyCode::Char('e'));
+        assert!(matches!(model.modal(), Modal::CharacterPicker { .. }));
+        assert!(opened.commands.is_empty());
+        assert!(opened.persistence.is_empty());
+        let _ = press(&mut model, KeyCode::Down);
+        let cancelled = press(&mut model, KeyCode::Esc);
+        assert_eq!(model.ledger_page(), Some(LedgerPageId::Welcome));
+        assert!(cancelled.persistence.is_empty());
+    }
+}
+
+#[test]
+fn character_picker_keeps_the_rat_royalty_choice_and_exit_visible_across_sizes() {
+    let mut model = model();
+    for action in [Action::OpenCharacterPicker, Action::Last, Action::Previous] {
+        let _ = reduce_action(&mut model, action);
+    }
+    for (width, height) in [(100, 30), (48, 16), (24, 10)] {
+        let text = render(&model, width, height);
+        assert!(text.contains("Current"), "{width}x{height}\n{text}");
+        assert!(text.contains("> Rat Royalty"), "{width}x{height}\n{text}");
+        assert!(text.contains("Enter"), "{width}x{height}\n{text}");
+        assert!(text.contains("Esc"), "{width}x{height}\n{text}");
+    }
+}
+
+#[tokio::test]
+async fn a_party_name_is_cancelable_and_saved_for_both_rooms() {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    use questmancer::{
+        config::PersistencePaths,
+        persistence::{PersistenceWorker, WorkerPaths, load_startup},
+        runtime_loop::dispatch_action_effects,
+        ui::input::action_for_event_in,
+    };
+
+    let mut model = model();
+    let press = |model: &mut Model, code, modifiers| {
+        let event = Event::Key(KeyEvent::new(code, modifiers));
+        reduce_action(model, action_for_event_in(&event, model.modal()))
+    };
+    let key = |model: &mut Model, code| press(model, code, KeyModifiers::NONE);
+    let _ = key(&mut model, KeyCode::Char('?'));
+    assert!(render(&model, 36, 12).contains("[p] Name party"));
+    let _ = key(&mut model, KeyCode::Char('p'));
+    let _ = key(&mut model, KeyCode::Char('x'));
+    let cancelled = key(&mut model, KeyCode::Esc);
+    assert!(cancelled.persistence.is_empty());
+    assert!(render(&model, 36, 12).contains("[p] Name party"));
+
+    let directory = tempfile::tempdir().unwrap();
+    let paths = WorkerPaths::new(Some(directory.path().join("state.json")), None);
+    let (mut client, _diagnostics, worker) = PersistenceWorker::start(paths);
+    let _ = key(&mut model, KeyCode::Char('p'));
+    for letter in "Night Cartographers".chars() {
+        let _ = key(&mut model, KeyCode::Char(letter));
+    }
+    let requested = key(&mut model, KeyCode::Enter);
+    let saved = dispatch_action_effects(&mut client, &mut model, requested).await;
+    assert!(saved.persistence_errors.is_empty());
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+
+    let paths = PersistencePaths::from_lookup(|name| {
+        (name == "HERDR_PLUGIN_STATE_DIR").then(|| directory.path().display().to_string())
+    });
+    let startup = load_startup(paths, None).await;
+    let mut reopened = startup.model;
+    for view in [View::Guild, View::Delve] {
+        reopened.switch_to(view);
+        assert!(render(&reopened, 80, 24).contains("Night Cartographers"));
+    }
+
+    let (mut client, _diagnostics, worker) = PersistenceWorker::start(startup.paths);
+    let _ = key(&mut reopened, KeyCode::Char('?'));
+    let _ = key(&mut reopened, KeyCode::Char('p'));
+    let _ = press(&mut reopened, KeyCode::Char('u'), KeyModifiers::CONTROL);
+    let requested = key(&mut reopened, KeyCode::Enter);
+    let reset = dispatch_action_effects(&mut client, &mut reopened, requested).await;
+    assert!(reset.persistence_errors.is_empty());
+    assert!(!render(&reopened, 80, 24).contains("Night Cartographers"));
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+}
+
 /// Feedback has to reach the frame, not just the model.
 ///
 /// `set_action_feedback` was called from thirty-two places and rendered from

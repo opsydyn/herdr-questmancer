@@ -5,8 +5,8 @@ use std::sync::{
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
-    app::{CounselRequest, OutputRequest},
-    domain::PaneId,
+    app::{CounselRequest, OutputRequest, StatusRequest},
+    domain::{CaptureIdentity, PaneId, Presence},
     herdr::{
         client::{ClientError, HerdrClient},
         protocol::SessionSnapshot,
@@ -35,6 +35,7 @@ pub enum AgentCommand {
         lines: u32,
         request: OutputRequest,
     },
+    ExplainStatus(StatusRequest),
     RefreshSnapshot(SnapshotRequest),
     DiscoverReviewr {
         qualified_id: String,
@@ -84,6 +85,10 @@ pub enum CommandResult {
         pane_id: PaneId,
         request: OutputRequest,
         message: String,
+    },
+    StatusExplained {
+        serial: u64,
+        result: Result<crate::herdr::protocol::AgentExplanation, String>,
     },
     ReviewrAvailable(bool),
     SpoilsOpened,
@@ -216,6 +221,41 @@ impl CommandExecutor {
         }
     }
 
+    async fn explain_status(
+        &self,
+        request: &StatusRequest,
+    ) -> Result<crate::herdr::protocol::AgentExplanation, String> {
+        let pane = request.pane.as_str();
+        if self.is_managed_pane(&request.pane) {
+            return Err("Status is unavailable for the Questmancer pane.".into());
+        }
+        tokio::time::timeout(std::time::Duration::from_secs(2), async {
+            let explanation = self
+                .client
+                .explain_agent(pane)
+                .await
+                .map_err(|error| error.to_string())?;
+            let current = self
+                .client
+                .get_pane(pane)
+                .await
+                .map_err(|error| error.to_string())?;
+            let identity =
+                CaptureIdentity::from_parts(&current.terminal_id, current.agent_session.as_ref());
+            if current.pane_id != pane
+                || identity != request.identity
+                || current.revision != request.revision
+                || Presence::from(explanation.state) != request.presence
+                || Presence::from(current.agent_status) != request.presence
+            {
+                return Err("Adventurer status changed. Reopen to refresh.".into());
+            }
+            Ok(explanation)
+        })
+        .await
+        .unwrap_or_else(|_| Err("Herdr status explanation timed out.".into()))
+    }
+
     pub async fn execute(&self, command: AgentCommand) -> CommandResult {
         match command {
             AgentCommand::FocusPane(pane_id) => {
@@ -266,6 +306,10 @@ impl CommandExecutor {
                     },
                 }
             }
+            AgentCommand::ExplainStatus(request) => CommandResult::StatusExplained {
+                serial: request.serial,
+                result: self.explain_status(&request).await,
+            },
             AgentCommand::DiscoverReviewr { qualified_id } => {
                 if split_qualified_action(&qualified_id).is_none() {
                     return CommandResult::ReviewrAvailable(false);

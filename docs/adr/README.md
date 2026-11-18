@@ -14,3 +14,5 @@
   — accepted experiment; compares full and small authored sprites up to thirty-two adventurers without production promotion.
 - [0007 — Integrate automatic fitted-room density](0007-automatic-party-density.md)
   — accepted production promotion; full masters through eleven, smaller authored sprites through sixty-four, stable seats and unchanged full-size profiles.
+- [0008 — One writer per Questmancer profile](0008-profile-writer.md)
+  — serializes profile writes and supports read-only secondary panes.

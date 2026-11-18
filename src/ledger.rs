@@ -57,6 +57,8 @@ pub const fn page(id: LedgerPageId) -> LedgerPage {
             id,
             title: "Welcome to the Guild",
             body: &[
+                "[e] Character",
+                "[p] Name party",
                 "You are the Questmancer. Herdr workspaces become campaigns and coding agents become adventurers.",
                 "The Guild Hall keeps the whole party visible. The Delve shows active work in the dungeon.",
                 "Questmancer projects Herdr facts into this scene; it does not manually control an adventurer's state.",

@@ -47,6 +47,7 @@ pub enum SceneFirstAsset {
     NativeOrcPortrait,
     GoblinEasterEgg,
     LibrarianAssets,
+    RatRoyalty,
 }
 
 impl SceneFirstAsset {
@@ -98,6 +99,7 @@ impl SceneFirstAsset {
         Self::NativeOrcPortrait,
         Self::GoblinEasterEgg,
         Self::LibrarianAssets,
+        Self::RatRoyalty,
     ];
 
     pub const fn label(self) -> &'static str {
@@ -149,6 +151,7 @@ impl SceneFirstAsset {
             Self::NativeOrcPortrait => "asset: reserved Orc event portrait",
             Self::GoblinEasterEgg => "asset: Goblin Easter egg",
             Self::LibrarianAssets => "asset: Librarian world and ledger sprites",
+            Self::RatRoyalty => "asset: Rat Royalty sprites",
         }
     }
 }

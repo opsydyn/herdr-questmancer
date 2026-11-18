@@ -147,6 +147,33 @@ pub(crate) fn render_fitted_scene_for_world(
         .unwrap_or_else(|| render::paint(snapshot, &plan, viewport, target))
 }
 
+/// Storybook options use the same scene plan and painters as the live rooms.
+#[cfg(feature = "storybook")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RoomStudy {
+    DelveWalk(std::time::Duration),
+    DelveStone,
+    HallMaterials,
+}
+
+#[cfg(feature = "storybook")]
+pub(crate) fn render_study_frame(
+    snapshot: &SceneSnapshot,
+    presentation: &ScenePresentation,
+    study: RoomStudy,
+    viewport: PixelSize,
+    target: &mut RgbBuffer,
+) -> SceneFrame {
+    let mut plan = presented_plan(snapshot, presentation, viewport);
+    plan.study = Some(study);
+    if viewport == PixelSize::new(160, 90)
+        && let Some(frame) = render::party::paint(snapshot, &plan, target)
+    {
+        return frame;
+    }
+    render::paint(snapshot, &plan, viewport, target)
+}
+
 #[cfg(feature = "storybook")]
 pub fn render_scene_for_story(
     snapshot: &SceneSnapshot,
