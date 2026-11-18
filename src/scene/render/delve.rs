@@ -357,7 +357,7 @@ pub(crate) fn paint_fitted_backdrop(
     snapshot: &SceneSnapshot,
     plan: &ScenePlan,
     target: &mut RgbBuffer,
-) -> SceneFrame {
+) -> (SceneFrame, DelveArchitectureMask) {
     let mut painter = DelvePainter::new(snapshot, plan, PixelSize::new(160, 90), target);
     painter.paint_background();
     for placed in FOREGROUND_ASSETS {
@@ -369,7 +369,8 @@ pub(crate) fn paint_fitted_backdrop(
             placed.anchor.y,
         );
     }
-    painter.finish(Vec::new(), None)
+    let frame = painter.finish(Vec::new(), None);
+    (frame, painter.architecture)
 }
 
 impl<'a> DelvePainter<'a> {
@@ -403,8 +404,7 @@ impl<'a> DelvePainter<'a> {
             None,
         )
         .expect("unrecorded material painting cannot conflict");
-        #[cfg(feature = "storybook")]
-        if self.plan.study == Some(crate::scene::RoomStudy::DelveStone) {
+        if self.plan.uses_room_materials() {
             super::room_study::delve_stone(self.target, self.origin, &self.architecture);
         }
         paint_background_architecture(self.target, self.origin, self.seed);
@@ -454,7 +454,7 @@ impl<'a> DelvePainter<'a> {
         )
     }
 
-    fn finish(self, actors: Vec<SceneActorRegion>, deadline: Option<Duration>) -> SceneFrame {
+    fn finish(&mut self, actors: Vec<SceneActorRegion>, deadline: Option<Duration>) -> SceneFrame {
         let goblin_deadline = if self.plan.goblin_outbreak {
             interaction::paint_goblins(self.target, self.origin, &GOBLIN_DENS);
             Some(interaction::GOBLIN_FRAME_INTERVAL)
@@ -1134,7 +1134,7 @@ fn paint_overflow_marker(
 /// Deliberately lighter than every dungeon material: the Unknown station is
 /// the one station with no light pool, so a treatment that darkens has nothing
 /// left to darken against and the delver becomes a hole in the floor.
-const UNCERTAIN_MIST: Rgb = Rgb::new(78, 96, 107);
+const UNCERTAIN_MIST: Rgb = Rgb::new(92, 110, 121);
 
 /// How far toward the mist an unknown delver travels, out of 100.
 const UNCERTAIN_BLEND: u16 = 52;

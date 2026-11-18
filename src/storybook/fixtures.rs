@@ -31,6 +31,7 @@ pub enum StoryFixture {
     SceneApplication(Box<Model>),
     WorldFit(Box<Model>),
     ArchetypeGallery(ArchetypeGallery),
+    QuestInbox,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

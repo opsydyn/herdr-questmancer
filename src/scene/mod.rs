@@ -152,8 +152,7 @@ pub(crate) fn render_fitted_scene_for_world(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum RoomStudy {
     DelveWalk(std::time::Duration),
-    DelveStone,
-    HallMaterials,
+    OriginalMaterials,
 }
 
 #[cfg(feature = "storybook")]

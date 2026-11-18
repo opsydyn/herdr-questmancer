@@ -1,9 +1,21 @@
 # Core UX room studies
 
 The [core UX plan](../../plans/2026-11-18-core-ux.md) tracks the agreed order.
-These are deterministic fixture-room captures, enlarged from the 160×90
-source pixels. Terminal appearance, mouse handling and visual approval in
-Ghostty still need user review.
+The user approved all three studies for production integration. These are
+deterministic fixture-room captures, enlarged from the 160×90 source pixels.
+The integrated renderer still needs a Ghostty check for appearance and mouse
+handling.
+
+## Integrated rooms
+
+![The integrated Hall, Delve, crowded counsel cue, and three Rat Royalty walk frames](production-rooms.png)
+
+The top row shows the new Hall, the new Delve, and an eleven-adventurer Hall
+where a neighbouring sprite occupies the usual counsel marker position.
+The bottom row samples Rat Royalty at 0, 625 and 1,500 ms after a fresh Working
+observation. The selected silhouette, marker and floor highlight move together.
+All six panels come from `FitScene::project` with fixed fixtures and are
+enlarged three times from the authored room pixels.
 
 ## Delve walk
 
@@ -17,6 +29,10 @@ Open `world.delve-walk` in Storybook. Space replays the route and `m` changes
 motion. At compact sizes, use negotiated native fit for the complete walk.
 Check whether the moving adventurer remains easy to click and the stationary
 counsel signal still stands out.
+
+In the fitted production Delve, look for the short approach to an adventurer's
+usual station when Herdr reports fresh work. A station needs a clear aisle for
+this movement. Reduced and Still motion show the adventurer at the station.
 
 ## Room materials
 

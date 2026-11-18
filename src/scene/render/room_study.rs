@@ -10,6 +10,7 @@ use crate::{
 
 pub(crate) const WALK_STEP: Duration = Duration::from_millis(125);
 pub(crate) const WALK_DURATION: Duration = Duration::from_millis(1_500);
+#[cfg(any(feature = "storybook", test))]
 const FEET: [(i32, i32); 13] = [
     (38, 73),
     (42, 73),
@@ -26,6 +27,7 @@ const FEET: [(i32, i32); 13] = [
     (81, 62),
 ];
 
+#[cfg(any(feature = "storybook", test))]
 pub(in crate::scene) fn delve_walk(
     elapsed: Duration,
     motion: Motion,
@@ -53,13 +55,56 @@ pub(in crate::scene) fn next_walk_frame(elapsed: Duration, motion: Motion) -> Op
     Some(WALK_STEP * tick - elapsed)
 }
 
+pub(super) fn work_approach(
+    seat: PixelPoint,
+    seats: &[PixelPoint],
+    mask: &DelveArchitectureMask,
+    elapsed: Duration,
+) -> Option<(PixelPoint, usize, Duration)> {
+    const TRAVEL: u16 = 11;
+    let deadline = next_walk_frame(elapsed, Motion::Full)?;
+    let (width, height) = (16, 24);
+    let step_count = i32::try_from(WALK_DURATION.as_millis() / WALK_STEP.as_millis()).ok()?;
+    let step = i32::try_from(elapsed.as_millis() / WALK_STEP.as_millis()).ok()?;
+    let travel = i32::from(TRAVEL);
+    for offset in [travel, -travel] {
+        let start = seat.x + offset;
+        let left = start.min(seat.x);
+        let right = start.max(seat.x);
+        if left < 0 || right + i32::from(width) > super::delve::WIDTH {
+            continue;
+        }
+        let shared_lane = PixelRect::new(left, seat.y, width + TRAVEL, height);
+        let clear = seats.iter().filter(|other| **other != seat).all(|other| {
+            // Reserve both of each neighbour's possible approaches, including
+            // their cue space, so simultaneous moves cannot move the lane.
+            let occupied = PixelRect::new(
+                other.x - travel,
+                other.y - 6,
+                width + 2 * TRAVEL,
+                height + 8,
+            );
+            !super::party::intersects(shared_lane, occupied)
+        });
+        if clear && (left..=right).all(|x| mask.is_walkable(x + 8, seat.y + 21)) {
+            let remaining = (travel * (step_count - step) + step_count - 1) / step_count;
+            let origin = PixelPoint::new(seat.x + remaining * offset.signum(), seat.y);
+            return Some((origin, usize::from(step % 2 != 0), deadline));
+        }
+    }
+    None
+}
+
 pub(super) fn delve_stone(
     target: &mut RgbBuffer,
     origin: PixelPoint,
     mask: &DelveArchitectureMask,
 ) {
-    for y in 0..i32::from(target.size().height) {
-        for x in 0..i32::from(target.size().width) {
+    for y in origin.y.max(0)..(origin.y + super::delve::HEIGHT).min(i32::from(target.size().height))
+    {
+        for x in
+            origin.x.max(0)..(origin.x + super::delve::WIDTH).min(i32::from(target.size().width))
+        {
             let wx = x - origin.x;
             let wy = y - origin.y;
             if !mask.is_walkable(wx, wy) {
@@ -105,8 +150,12 @@ pub(super) fn contact_shadow(target: &mut RgbBuffer, bounds: PixelRect) {
 
 pub(super) fn hall_materials(target: &mut RgbBuffer, origin: PixelPoint) {
     use crate::scene::assets::palette::{OAK, OAK_LIGHT, RUG, STONE, STONE_LIGHT};
-    for y in 0..i32::from(target.size().height) {
-        for x in 0..i32::from(target.size().width) {
+    for y in
+        origin.y.max(0)..(origin.y + super::guild_hall::HEIGHT).min(i32::from(target.size().height))
+    {
+        for x in origin.x.max(0)
+            ..(origin.x + super::guild_hall::WIDTH).min(i32::from(target.size().width))
+        {
             let (wx, wy) = (x - origin.x, y - origin.y);
             let Some(base) = target.get(x, y) else {
                 continue;

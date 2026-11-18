@@ -48,6 +48,10 @@ L1a and L1b now implement the five-action workflow and restart. Production form
 images are approved; native use remains the next acceptance gate for the user milestone.
 Later stages do not follow automatically from agreeing to own the backend.
 
+The [Quest Inbox study](../reviews/2026-11-18-quest-inbox/README.md) explores
+an inbox-first home and a revision-bound review action in Storybook. Its
+fixture evidence supports interaction review before the next live-work slice.
+
 ## M1 product proof
 
 Fixture campaign: Replace Authentication Layer. Investigation is completed; API

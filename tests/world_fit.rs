@@ -60,6 +60,37 @@ fn production_fit_uses_visible_cells_for_every_actor_and_librarian() {
 }
 
 #[test]
+fn fitted_hall_keeps_counsel_visible_when_a_neighbour_occupies_the_usual_cue() {
+    use questmancer::domain::Presence;
+    let mut model = hall_fit_fixture(StoryContext::fixed(), FitParty::Eleven);
+    for (index, agent) in model.domain_mut().agents.values_mut().enumerate() {
+        agent.presence = if index == 8 {
+            Presence::Blocked
+        } else {
+            Presence::Idle
+        };
+    }
+    let area = Rect::new(0, 0, 96, 25);
+    let cell = CellPixels::new(8, 16).unwrap();
+    let blocked = FitScene::project(&model, area, cell).unwrap();
+    model
+        .domain_mut()
+        .agents
+        .values_mut()
+        .nth(8)
+        .unwrap()
+        .presence = Presence::Idle;
+    let resting = FitScene::project(&model, area, cell).unwrap();
+    assert_eq!(blocked.frame.actors, resting.frame.actors);
+    let target = blocked.frame.actors[8].bounds;
+    let flame = questmancer::scene::assets::palette::FLAME;
+    assert!((target.y - 6..target.y + 7).any(|y| {
+        (target.x - 5..target.x + i32::from(target.width) + 5)
+            .any(|x| blocked.rgb.get(x, y) == Some(flame) && resting.rgb.get(x, y) != Some(flame))
+    }));
+}
+
+#[test]
 fn production_cache_and_overlay_view_fallback_transitions_release_only_owned_images() {
     let mut model = hall_fit_fixture(StoryContext::fixed(), FitParty::Five);
     let mut graphics = WorldFit::new(CellPixels::new(8, 16));
@@ -225,6 +256,75 @@ fn animated_fit_keeps_semantic_deadlines_and_reuses_identical_frames() {
             "working animation must reach the native adapter"
         );
     }
+}
+
+#[test]
+fn fresh_delve_work_walks_to_the_steady_seat_and_keeps_its_identity() {
+    use questmancer::{
+        app::{ConnectionState, Motion},
+        domain::{AdventurerClass, Presence, Timestamp},
+    };
+
+    let mut model = hall_fit_fixture(StoryContext::fixed(), FitParty::Five);
+    model.switch_to(View::Delve);
+    while model.preferences().motion != Motion::Full {
+        model.cycle_motion();
+    }
+    let mover = model.selected_agent_key().unwrap().clone();
+    let floor = Timestamp::from_millis(130_000);
+    let started = Timestamp::from_millis(130_100);
+    model.set_connection_at(ConnectionState::Connected, floor);
+    for agent in model.domain_mut().agents.values_mut() {
+        agent.presence = Presence::Idle;
+    }
+    let agent = model.domain_mut().agents.get_mut(&mover).unwrap();
+    agent.persona.class = AdventurerClass::RatRoyalty;
+    agent.presence = Presence::Working;
+    agent.presence_since = started;
+
+    let cells = CellPixels::new(8, 16).unwrap();
+    let area = Rect::new(0, 0, 96, 25);
+    let sample = |model: &mut questmancer::app::Model, millis| {
+        model.set_now(Timestamp::from_millis(millis));
+        FitScene::project(model, area, cells).unwrap()
+    };
+    let first = sample(&mut model, 130_100);
+    let middle = sample(&mut model, 130_725);
+    let settled = sample(&mut model, 131_600);
+    assert_ne!(first.frame.actors[0].bounds, middle.frame.actors[0].bounds);
+    assert_ne!(
+        middle.frame.actors[0].bounds,
+        settled.frame.actors[0].bounds
+    );
+    for scene in [&first, &middle, &settled] {
+        assert_eq!(scene.frame.actors[0].agent, mover);
+        assert_eq!(scene.frame.actors[1..], settled.frame.actors[1..]);
+        assert!((0..area.height).any(|y| {
+            (0..area.width)
+                .any(|x| scene.target_at(x, y) == Some(FitTarget::Adventurer(mover.clone())))
+        }));
+    }
+    assert_eq!(
+        middle.frame.next_frame_in,
+        Some(std::time::Duration::from_millis(125))
+    );
+    assert_eq!(
+        settled.frame.actors,
+        sample(&mut model, 132_100).frame.actors
+    );
+    model.cycle_motion();
+    assert_eq!(
+        sample(&mut model, 130_725).frame.actors,
+        settled.frame.actors
+    );
+    while model.preferences().motion != Motion::Full {
+        model.cycle_motion();
+    }
+    model.set_connection_at(ConnectionState::Connected, started);
+    assert_eq!(
+        sample(&mut model, 130_725).frame.actors,
+        settled.frame.actors
+    );
 }
 
 #[test]

@@ -32,6 +32,7 @@ use super::{
     app::{Mode, StorybookApp},
     catalogue::{Category, Story},
     fixtures::{ArchetypeGallery, CORE_ARCHETYPES, StoryContext, StoryFixture},
+    inbox::{self, Inbox},
 };
 
 static BUFFER: OnceLock<Mutex<RgbBuffer>> = OnceLock::new();
@@ -58,7 +59,15 @@ pub fn render_with_fit(
     let story = app.selected_story(stories);
     let fixture = (story.build)(*context);
     if app.mode() == Mode::Inspect {
-        render_fixture(frame, frame.area(), story, &fixture, portraits, fit);
+        render_fixture(
+            frame,
+            frame.area(),
+            story,
+            &fixture,
+            portraits,
+            fit,
+            app.inbox(),
+        );
     } else {
         render_catalogue(frame, app, stories, story, &fixture, portraits, fit);
     }
@@ -114,14 +123,25 @@ fn render_catalogue(
             ])
             .split(rows[1]);
         render_story_list(frame, columns[0], app, stories);
-        render_fixture(frame, columns[1], story, fixture, portraits, fit);
+        render_fixture(
+            frame,
+            columns[1],
+            story,
+            fixture,
+            portraits,
+            fit,
+            app.inbox(),
+        );
+        let asset = story.owns.first().or_else(|| story.shows.first());
         frame.render_widget(
             Paragraph::new(
                 [
                     vec![
                         Line::from(story.description),
                         Line::from(""),
-                        Line::from(format!("owns: {}", story.owns[0].label())),
+                        Line::from(
+                            asset.map_or_else(String::new, |asset| asset.label().to_string()),
+                        ),
                         Line::from(format!(
                             "portrait: {}",
                             portraits
@@ -139,7 +159,7 @@ fn render_catalogue(
             columns[2],
         );
     } else {
-        render_fixture(frame, rows[1], story, fixture, portraits, fit);
+        render_fixture(frame, rows[1], story, fixture, portraits, fit, app.inbox());
     }
     frame.render_widget(
         Paragraph::new("[j/k] story  [h/l] category  [enter] inspect  [?] help  [q] quit"),
@@ -174,6 +194,7 @@ fn render_fixture(
     fixture: &StoryFixture,
     portraits: Option<&crate::portrait::PortraitGallery>,
     fit: Option<&mut super::fit_preview::FitPreview>,
+    inbox: &Inbox,
 ) {
     if area.width < story.viewport.minimum_width || area.height < story.viewport.minimum_height {
         frame.render_widget(
@@ -201,6 +222,10 @@ fn render_fixture(
     }
     if let StoryFixture::ArchetypeGallery(gallery) = fixture {
         render_archetype_gallery(frame, area, *gallery);
+        return;
+    }
+    if matches!(fixture, StoryFixture::QuestInbox) {
+        inbox::render(frame, area, inbox);
         return;
     }
     let StoryFixture::SceneApplication(model) = fixture else {

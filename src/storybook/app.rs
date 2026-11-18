@@ -1,4 +1,10 @@
-use super::catalogue::{Category, Story};
+use crossterm::event::{Event, KeyEventKind};
+
+use super::{
+    catalogue::{Category, Story},
+    inbox::{Inbox, STORY_ID},
+    input,
+};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Mode {
@@ -31,6 +37,7 @@ pub struct StorybookApp {
     selected: usize,
     mode: Mode,
     help_visible: bool,
+    inbox: Inbox,
 }
 
 impl StorybookApp {
@@ -40,6 +47,7 @@ impl StorybookApp {
             selected: 0,
             mode: Mode::Catalogue,
             help_visible: false,
+            inbox: Inbox::default(),
         }
     }
 
@@ -70,6 +78,22 @@ impl StorybookApp {
     pub fn select(&mut self, index: usize, stories: &[Story]) {
         assert!(!stories.is_empty(), "Storybook catalogue must not be empty");
         self.selected = index.min(stories.len() - 1);
+    }
+
+    pub(super) const fn inbox(&self) -> &Inbox {
+        &self.inbox
+    }
+
+    pub fn handle_event(&mut self, event: &Event, stories: &[Story]) -> Exit {
+        if matches!(event, Event::Key(key) if key.kind == KeyEventKind::Release)
+            || (self.mode == Mode::Inspect
+                && !self.help_visible
+                && self.selected_story(stories).id.as_str() == STORY_ID
+                && self.inbox.handle(event))
+        {
+            return Exit::Continue;
+        }
+        reduce(self, input::action_for_event(event), stories)
     }
 }
 

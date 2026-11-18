@@ -248,6 +248,65 @@ mod tests {
         assert!(gallery.librarian().is_none());
     }
 
+    #[cfg(feature = "storybook")]
+    #[test]
+    fn character_picker_renders_the_selected_native_portrait_and_keeps_a_sprite_fallback() {
+        use crate::{
+            interaction::reduce_action,
+            scene::presentation::ScenePresentation,
+            storybook::fixtures::{FitParty, StoryContext, hall_fit_fixture},
+            ui::{input::Action, scene_overlays::render_scene_overlays},
+        };
+        use ratatui::{Terminal, backend::TestBackend};
+
+        fn image(frame: &str) -> Option<&str> {
+            frame
+                .split_once("a=T,U=1")?
+                .0
+                .rsplit_once("\x1b_G")
+                .map(|(_, image_id)| image_id)
+        }
+
+        let mut picker = Picker::halfblocks();
+        picker.set_protocol_type(ProtocolType::Kitty);
+        let gallery = PortraitGallery::from_picker(&picker);
+        let mut model = hall_fit_fixture(StoryContext::fixed(), FitParty::Five);
+        for action in [Action::OpenCharacterPicker, Action::Last, Action::Previous] {
+            let _ = reduce_action(&mut model, action);
+        }
+        let render = |model: &crate::app::Model, gallery| {
+            let mut terminal = Terminal::new(TestBackend::new(96, 26)).unwrap();
+            terminal
+                .draw(|frame| {
+                    render_scene_overlays(
+                        frame,
+                        model,
+                        &ScenePresentation::from_model(model),
+                        gallery,
+                    );
+                })
+                .unwrap();
+            terminal
+                .backend()
+                .buffer()
+                .content
+                .iter()
+                .map(ratatui::buffer::Cell::symbol)
+                .collect::<String>()
+        };
+        let rat = render(&model, Some(&gallery));
+        assert!(rat.contains("Preview · Rat Royalty"));
+        assert!(
+            image(&rat).is_some(),
+            "illustrated portrait should use Kitty"
+        );
+        let _ = reduce_action(&mut model, Action::Previous);
+        let sorcerer = render(&model, Some(&gallery));
+        assert_ne!(image(&rat).unwrap(), image(&sorcerer).unwrap());
+        let fallback = render(&model, None);
+        assert!(image(&fallback).is_none() && fallback.contains('▀'));
+    }
+
     #[test]
     fn native_picker_prepares_every_approved_asset_and_leaves_other_classes_unmapped() {
         let mut picker = Picker::halfblocks();

@@ -95,15 +95,30 @@ async fn save_preference(
         PreferenceChange::PartyName(name) => state.party_name.clone_from(name),
     }
     let result = client.save_state(state).await;
-    if !matches!(result, Err(StateSaveError::Rejected(_))) {
+    if let Err(StateSaveError::Rejected(error)) = &result {
+        let subject = match &change {
+            PreferenceChange::Character { .. } => "Character",
+            PreferenceChange::PartyName(_) => "Party name",
+        };
+        model.set_action_feedback(format!("{subject} save failed · {}", error.source_message));
+    } else {
         let feedback = match change {
             PreferenceChange::Character {
                 adventurer,
                 persona,
             } => {
                 let class = persona.class.label();
+                let same_class = model
+                    .domain()
+                    .agents
+                    .get(&adventurer)
+                    .is_some_and(|agent| agent.persona.class == persona.class);
                 model.apply_character_change(&adventurer, persona);
-                format!("Character saved · {class}")
+                if same_class {
+                    format!("{class} is already selected. Use j/k to choose another.")
+                } else {
+                    format!("Character saved · {class}")
+                }
             }
             PreferenceChange::PartyName(name) => {
                 let feedback = if name.is_some() {

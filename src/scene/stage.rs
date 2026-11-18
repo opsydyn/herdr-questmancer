@@ -90,6 +90,14 @@ pub struct ScenePlan {
 }
 
 impl ScenePlan {
+    pub(crate) fn uses_room_materials(&self) -> bool {
+        #[cfg(feature = "storybook")]
+        if self.study == Some(super::RoomStudy::OriginalMaterials) {
+            return false;
+        }
+        true
+    }
+
     #[must_use]
     pub fn project(snapshot: &SceneSnapshot, viewport: PixelSize) -> Self {
         project_for_world(snapshot, viewport, automatic_world(snapshot))

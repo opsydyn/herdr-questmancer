@@ -376,8 +376,7 @@ fn fitted_status(scene: &FitScene, party_size: usize, story: &str) -> String {
 fn room_study(story: &str, elapsed: Duration) -> Option<RoomStudy> {
     match story {
         "world.delve-walk" => Some(RoomStudy::DelveWalk(elapsed)),
-        "world.delve-materials" => Some(RoomStudy::DelveStone),
-        "world.guild-materials" => Some(RoomStudy::HallMaterials),
+        "world.delve-fit" | "world.guild-fit" => Some(RoomStudy::OriginalMaterials),
         _ => None,
     }
 }
@@ -595,13 +594,11 @@ mod tests {
     fn both_material_studies_preserve_baseline_hit_regions_and_change_pixels() {
         let area = Rect::new(0, 0, 96, 28);
         let cell = CellPixels::new(8, 16).unwrap();
-        for (id, study) in [
-            ("world.delve-materials", RoomStudy::DelveStone),
-            ("world.guild-materials", RoomStudy::HallMaterials),
-        ] {
+        for id in ["world.delve-materials", "world.guild-materials"] {
             let model = study_fixture(id);
-            let baseline = FitScene::project(&model, area, cell).unwrap();
-            let preview = FitScene::project_study(&model, area, cell, study).unwrap();
+            let baseline =
+                FitScene::project_study(&model, area, cell, RoomStudy::OriginalMaterials).unwrap();
+            let preview = FitScene::project(&model, area, cell).unwrap();
             assert_eq!(baseline.frame.actors, preview.frame.actors);
             assert_eq!(baseline.frame.interactables, preview.frame.interactables);
             assert_ne!(baseline.rgb, preview.rgb);

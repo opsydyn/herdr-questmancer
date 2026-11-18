@@ -554,9 +554,23 @@ fn build_catalogue() -> Vec<Story> {
     stories.extend(automatic_density_stories());
     stories.extend(caster_party_stories());
     stories.extend(board_stories());
+    stories.push(quest_inbox_story());
     stories.extend(table_stories());
     stories.splice(2..2, asset_stories());
     stories
+}
+
+fn quest_inbox_story() -> Story {
+    Story {
+        id: StoryId::new(super::inbox::STORY_ID),
+        title: "Study / Quest Inbox",
+        category: Category::Interactions,
+        description: "Triage three sample quests and review changes, test revisions and adventurer reports.",
+        viewport: NARROW_VIEWPORT,
+        build: |_| StoryFixture::QuestInbox,
+        owns: &[],
+        shows: &[AssetId(SceneFirstAsset::QuestBoardParchment)],
+    }
 }
 
 fn asset_stories() -> Vec<Story> {

@@ -303,7 +303,7 @@ pub fn render_scene_overlays(
         SceneOverlay::Chronicle => render_chronicle_parchment(frame, model),
         SceneOverlay::WarTable => crate::ui::war_table::render(frame, model, presentation),
         SceneOverlay::QuestBoard => crate::ui::work_board::render(frame, model),
-        SceneOverlay::CharacterPicker => render_character_picker(frame, model),
+        SceneOverlay::CharacterPicker => render_character_picker(frame, model, portraits),
         SceneOverlay::StatusExplanation => render_status_explanation(frame, model),
         SceneOverlay::None => {
             render_party_name(frame, model);
@@ -460,7 +460,6 @@ fn render_adventurer_card(
         Line::from(message.to_owned()),
     ];
     if detailed {
-        lines.push(Line::from("[e] Character · [i] Why this status?"));
         render_portrait_card(
             frame,
             card,
@@ -476,14 +475,14 @@ fn render_adventurer_card(
             keepsakes::name(keepsake)
         )));
         lines.push(Line::from(keepsakes::description(keepsake)));
-        lines.push(Line::from("Esc close · Enter observe · r counsel · o scry"));
-        // Ten fixed rows fit even the minimum card. Truncate long live reports
+        lines.extend(adventurer_card_controls());
+        // Eleven fixed rows fit even the minimum card. Truncate long live reports
         // horizontally so they cannot displace keepsake identity or controls.
         frame.render_widget(Clear, card);
         frame.render_widget(
             Paragraph::new(lines).style(PARCHMENT).block(
                 Block::default()
-                    .title(" ADVENTURER · [e] CHARACTER · [i] STATUS ")
+                    .title(" ADVENTURER ")
                     .title_alignment(Alignment::Center)
                     .borders(Borders::ALL)
                     .border_style(PARCHMENT_BORDER),
@@ -491,6 +490,13 @@ fn render_adventurer_card(
             card,
         );
     }
+}
+
+fn adventurer_card_controls() -> [Line<'static>; 2] {
+    [
+        Line::from("Esc close · Enter observe · r counsel · o scry"),
+        Line::from("[e] Character · [i] Status"),
+    ]
 }
 
 fn campaign_crest_line(workspace: &crate::domain::WorkspaceId, model: &Model) -> Line<'static> {
@@ -538,12 +544,7 @@ fn render_portrait_card(
     );
 
     let portrait_area = Rect::new(area.x + 2, area.y + 1, 24, 16);
-    frame.render_widget(Block::default().style(PARCHMENT), portrait_area);
-    if let Some(portrait) = portraits.and_then(|gallery| gallery.portrait_for(persona)) {
-        frame.render_widget(Image::new(portrait), portrait_area);
-    } else {
-        render_sprite_portrait(frame, portrait_area, persona, colour_mode);
-    }
+    render_adventurer_portrait(frame, portrait_area, persona, colour_mode, portraits);
 
     let text_area = Rect::new(area.x + 28, area.y + 1, area.width.saturating_sub(29), 10);
     // Keep each live fact on its own row: long labels must not displace status.
@@ -569,12 +570,27 @@ fn render_portrait_card(
         ])
         .style(PARCHMENT)
         .wrap(Wrap { trim: false }),
-        Rect::new(text_area.x + 10, area.y + 12, text_area.width - 10, 4),
+        Rect::new(text_area.x + 10, area.y + 12, text_area.width - 10, 3),
     );
     frame.render_widget(
-        Paragraph::new("Esc close · Enter observe · r counsel · o scry").style(PARCHMENT),
-        Rect::new(text_area.x, area.y + 16, text_area.width, 1),
+        Paragraph::new(adventurer_card_controls().to_vec()).style(PARCHMENT),
+        Rect::new(text_area.x, area.y + 15, text_area.width, 2),
     );
+}
+
+fn render_adventurer_portrait(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    persona: &crate::domain::AdventurerPersona,
+    colour_mode: ColorMode,
+    portraits: Option<&PortraitGallery>,
+) {
+    frame.render_widget(Block::default().style(PARCHMENT), area);
+    if let Some(portrait) = portraits.and_then(|gallery| gallery.portrait_for(persona)) {
+        frame.render_widget(Image::new(portrait), area);
+    } else {
+        render_sprite_portrait(frame, area, persona, colour_mode);
+    }
 }
 
 fn render_sprite_portrait(
@@ -591,7 +607,11 @@ fn render_sprite_portrait(
     flush_rgb(frame.buffer_mut(), area, &pixels, PAPER, colour_mode);
 }
 
-fn render_character_picker(frame: &mut Frame<'_>, model: &Model) {
+fn render_character_picker(
+    frame: &mut Frame<'_>,
+    model: &Model,
+    portraits: Option<&PortraitGallery>,
+) {
     let Modal::CharacterPicker {
         adventurer,
         persona,
@@ -677,11 +697,12 @@ fn render_character_picker(frame: &mut Frame<'_>, model: &Model) {
     if visual {
         let mut preview = agent.persona.clone();
         preview.class = chosen;
-        render_sprite_portrait(
+        render_adventurer_portrait(
             frame,
             Rect::new(area.right() - 26, area.y + 3, 24, 16),
             &preview,
             model.preferences().color_mode,
+            portraits,
         );
     }
 }

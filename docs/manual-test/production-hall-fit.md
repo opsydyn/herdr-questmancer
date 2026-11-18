@@ -44,3 +44,15 @@ claim the synthetic fixtures prove real-agent completion or successful delivery.
 The Delve extension is covered by [its focused checklist](production-delve-fit.md).
 
 Profile-specific checks: [preserve fitting beneath the card](profile-fit.md).
+
+## Herdr launch comparison
+
+In the 2026-11-18 comparison on Herdr 0.9.5, the earlier dogfood pane showed
+Kitty placements and a newly launched managed pane drew half-block cells.
+The managed pane's executable was the current build at the time. Launching
+that build from a plain Herdr shell reproduced the dogfood rendering path.
+The plain review pane with an isolated profile retained Kitty output across
+212×52, 106×52 and 106×26 Hall grids and at 106×26 in the Delve. Its roster
+continued to report six adventurers, and removing the disposable splits
+restored the starting grid. The comparison confirms the output modes and
+leaves the cause of the managed startup negotiation failure open.

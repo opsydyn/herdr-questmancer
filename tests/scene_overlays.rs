@@ -1236,6 +1236,7 @@ fn keepsake_details_follow_the_saved_assignment_without_crowding_card_facts() {
                         "Esc close",
                         "r counsel",
                         "o scry",
+                        "[e] Character",
                     ] {
                         assert!(
                             screen.contains(expected),

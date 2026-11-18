@@ -155,8 +155,7 @@ fn paint_environment(
     paint_architecture(target, origin);
     let deadline = paint_cat(snapshot, plan, target, origin);
     paint_furnishings(snapshot, target, origin);
-    #[cfg(feature = "storybook")]
-    if plan.study == Some(crate::scene::RoomStudy::HallMaterials) {
+    if plan.uses_room_materials() {
         super::room_study::hall_materials(target, origin);
     }
     for pennant in table_pennants(snapshot) {

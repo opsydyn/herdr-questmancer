@@ -492,11 +492,10 @@ fn canonical_delve_is_dense_colourful_deterministic_and_cooler_than_the_hall() {
     let second = render(&snapshot, WorldScene::Delve, VIEWPORT);
     assert_eq!(first.pixels(), second.pixels());
     assert_eq!(rgb_hash(&first), rgb_hash(&second));
-    // Quiet canonical RGB scene, including the Bard's revised feather and mantle.
-    // The full class art review's canonical-delve.png shows this exact fixture.
+    // Quiet canonical RGB scene with the approved flagstones and lifted mist.
     assert_eq!(
         rgb_hash(&first).to_hex().as_str(),
-        "4638f44a8ffba9caf6dd1e36133e64312eb852be0f727e43efc95d4c877f4b48"
+        "dcd9146af12d3b1e0d276ea5735c79d0859d62eb7998eeed82c164424b204cec"
     );
 
     let non_clear = first

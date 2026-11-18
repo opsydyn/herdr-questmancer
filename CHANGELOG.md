@@ -4,6 +4,11 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+- Add flagstones and worn thresholds to the Delve and more wood, rug, and hearth
+  detail to the Hall. In fitted Delve rooms with full motion, adventurers can
+  walk to their stations when Herdr reports fresh work and the aisle is clear.
+- Keep counsel cues visible where neighbouring adventurers crowd the space above
+  them, and keep fresh spoils glints in open side gutters.
 - Protect local profile writes when multiple Questmancer panes share a state
   directory. Confirm explicit character and party-name saves after publication.
 - Name the party from the Librarian's Ledger and show the saved name in both
@@ -11,7 +16,12 @@ All notable changes to this project will be documented here.
 - Keep selected status, shortcuts and counsel counts visible in compact
   rooms. Add an on-demand Herdr status explanation on adventurer profiles.
 - Choose a character for each adventurer from the Hall or Delve. Preview,
-  apply, cancel or restore the automatically assigned character.
+  apply, cancel or restore the automatically assigned character. Adventurer
+  cards show the character shortcut, and the picker uses illustrated portraits
+  on compatible terminals. The picker explains when a save fails or when the
+  chosen character is already selected.
+- Preview the Quest Inbox in Storybook. Review sample changes, tests, PR status
+  and adventurer reports together, with settlement tied to the tested revision.
 - Add Rat Royalty, the Gutter Crown, as an opt-in character with an illustrated
   portrait, authored poses, and matching crowded roster and profile sprites.
 - Complete the small roster with dedicated Cleric, Paladin, Testmender, Bard,

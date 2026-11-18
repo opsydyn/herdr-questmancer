@@ -1,14 +1,18 @@
 //! Fitted-room party size tiers; source facts remain in the semantic scene plan.
 use std::time::Duration;
 
-use super::{actor_frame, actor_next_frame_delay, delve, guild_hall, roster};
+use super::{actor_frame, actor_next_frame_delay, delve, guild_hall, room_study, roster};
 use crate::{
-    domain::Presence,
+    app::Motion,
+    domain::{AdventurerClass, Presence},
     scene::{
         SceneActorRegion, SceneFrame,
-        assets::{adventurer::adventurer_roster_frame, roster as roster_assets},
+        assets::{
+            adventurer::{adventurer_roster_frame, rat_walk_frame},
+            roster as roster_assets,
+        },
         pixel::{PixelPoint, PixelRect, PixelSize, Rgb, RgbBuffer},
-        snapshot::SceneSnapshot,
+        snapshot::{SceneAgent, SceneConnection, SceneSnapshot},
         sprite::blit,
         stage::{COMPLETION_THEATRE_MS, SceneEffect, ScenePlan, WorldScene},
     },
@@ -38,48 +42,49 @@ pub(crate) fn paint(
     target: &mut RgbBuffer,
 ) -> Option<SceneFrame> {
     let tier = PartyDensity::for_count(plan.actors.len())?;
-    let mut frame = match plan.world {
-        WorldScene::GuildHall => guild_hall::paint_fitted_backdrop(snapshot, plan, target),
-        WorldScene::Delve => delve::paint_fitted_backdrop(snapshot, plan, target),
+    let (mut frame, architecture) = match plan.world {
+        WorldScene::GuildHall => (
+            guild_hall::paint_fitted_backdrop(snapshot, plan, target),
+            None,
+        ),
+        WorldScene::Delve => {
+            let (frame, architecture) = delve::paint_fitted_backdrop(snapshot, plan, target);
+            (frame, Some(architecture))
+        }
     };
     // Presence/attention ordering must not move every seat as a state changes.
     let mut placements = plan.actors.iter().collect::<Vec<_>>();
     placements.sort_by(|a, b| a.agent.cmp(&b.agent));
+    let mut seats = seats(plan.world, tier);
+    seats.truncate(placements.len());
     let mut deadline = frame.next_frame_in;
-    for (placement, origin) in placements.iter().zip(seats(plan.world, tier)) {
+    for (placement, &seat) in placements.iter().zip(&seats) {
         let Some(agent) = snapshot.agents.iter().find(|a| a.key == placement.agent) else {
             continue;
         };
-        #[cfg(feature = "storybook")]
-        let (origin, footstep) = match plan.study {
-            Some(crate::scene::RoomStudy::DelveWalk(elapsed))
-                if plan.world == WorldScene::Delve
-                    && tier == PartyDensity::Full
-                    && agent.presence == Presence::Working
-                    && agent.persona.class == crate::domain::AdventurerClass::RatRoyalty =>
-            {
-                super::room_study::delve_walk(elapsed, snapshot.motion)
-            }
-            _ => (origin, None),
-        };
+        let (origin, footstep, walk_deadline) = actor_position(
+            snapshot,
+            plan,
+            agent,
+            seat,
+            &seats,
+            architecture.as_ref().filter(|_| tier == PartyDensity::Full),
+        );
         let sprite = if tier == PartyDensity::Full {
             let animation = actor_frame(snapshot, plan, agent, placement.pose);
-            deadline = deadline
-                .into_iter()
-                .chain(actor_next_frame_delay(
-                    &animation,
-                    origin,
-                    PixelSize::new(160, 90),
-                ))
-                .min();
-            animation.sprite
+            let motion_deadline = walk_deadline
+                .or_else(|| actor_next_frame_delay(&animation, origin, PixelSize::new(160, 90)));
+            deadline = deadline.into_iter().chain(motion_deadline).min();
+            if let Some(step) =
+                footstep.filter(|_| agent.persona.class == AdventurerClass::RatRoyalty)
+            {
+                rat_walk_frame(&agent.persona, step)
+            } else {
+                animation.sprite
+            }
         } else {
             adventurer_roster_frame(&agent.persona)
         };
-        #[cfg(feature = "storybook")]
-        let sprite = footstep.map_or(sprite, |step| {
-            crate::scene::assets::adventurer::rat_walk_frame(&agent.persona, step)
-        });
         let bounds = PixelRect::new(
             origin.x,
             origin.y,
@@ -116,14 +121,48 @@ pub(crate) fn paint(
     Some(frame)
 }
 
-fn paint_grounding(target: &mut RgbBuffer, bounds: PixelRect, plan: &ScenePlan) {
+fn actor_position(
+    snapshot: &SceneSnapshot,
+    plan: &ScenePlan,
+    agent: &SceneAgent,
+    seat: PixelPoint,
+    seats: &[PixelPoint],
+    architecture: Option<&delve::DelveArchitectureMask>,
+) -> (PixelPoint, Option<usize>, Option<Duration>) {
+    if architecture.is_none() || agent.presence != Presence::Working {
+        return (seat, None, None);
+    }
     #[cfg(feature = "storybook")]
-    if plan.study == Some(crate::scene::RoomStudy::DelveStone) {
-        super::room_study::contact_shadow(target, bounds);
+    if let Some(crate::scene::RoomStudy::DelveWalk(elapsed)) = plan.study {
+        if agent.persona.class != AdventurerClass::RatRoyalty {
+            return (seat, None, None);
+        }
+        let (origin, footstep) = room_study::delve_walk(elapsed, snapshot.motion);
+        return (
+            origin,
+            footstep,
+            room_study::next_walk_frame(elapsed, snapshot.motion),
+        );
+    }
+    let since = agent.presence_since;
+    if snapshot.motion == Motion::Full
+        && snapshot.connection == SceneConnection::Connected
+        && plan.transition_floor.is_some_and(|floor| since > floor)
+        && since <= snapshot.now
+        && let Some((origin, step, deadline)) = architecture.and_then(|mask| {
+            room_study::work_approach(seat, seats, mask, since.elapsed_until(snapshot.now))
+        })
+    {
+        return (origin, Some(step), Some(deadline));
+    }
+    (seat, None, None)
+}
+
+fn paint_grounding(target: &mut RgbBuffer, bounds: PixelRect, plan: &ScenePlan) {
+    if plan.world == WorldScene::Delve && plan.uses_room_materials() {
+        room_study::contact_shadow(target, bounds);
         return;
     }
-    #[cfg(not(feature = "storybook"))]
-    let _ = plan;
     target.fill_rect(
         PixelRect::new(
             bounds.x,
@@ -145,21 +184,23 @@ fn paint_cues(
             continue;
         };
         let bounds = actor.bounds;
-        let marker = PixelRect::new(
+        let above = PixelRect::new(
             bounds.x + i32::from(bounds.width / 2) - 2,
             bounds.y - 6,
             5,
             5,
         );
-        if frame
-            .actors
-            .iter()
-            .all(|other| !intersects(marker, other.bounds))
-            && frame
-                .interactables
-                .iter()
-                .all(|other| !intersects(marker, other.bounds))
-        {
+        let marker = if cue_fits(frame, target.size(), above) {
+            Some(above)
+        } else if placement.pose == crate::scene::stage::ScenePose::SeekingCounsel {
+            [bounds.x - 5, bounds.x + i32::from(bounds.width)]
+                .map(|x| PixelRect::new(x, bounds.y + 1, 5, 5))
+                .into_iter()
+                .find(|&beside| cue_fits(frame, target.size(), beside))
+        } else {
+            None
+        };
+        if let Some(marker) = marker {
             blit(
                 roster_assets::state_marker(placement.pose),
                 PixelPoint::new(marker.x, marker.y),
@@ -178,6 +219,21 @@ fn paint_cues(
             );
         }
     }
+}
+
+fn cue_fits(frame: &SceneFrame, viewport: PixelSize, marker: PixelRect) -> bool {
+    marker.x >= 0
+        && marker.y >= 0
+        && marker.x + i32::from(marker.width) <= i32::from(viewport.width)
+        && marker.y + i32::from(marker.height) <= i32::from(viewport.height)
+        && frame
+            .actors
+            .iter()
+            .all(|other| !intersects(marker, other.bounds))
+        && frame
+            .interactables
+            .iter()
+            .all(|other| !intersects(marker, other.bounds))
 }
 
 fn paint_departures(

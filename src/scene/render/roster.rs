@@ -183,17 +183,89 @@ pub(crate) fn paint_effects(
             continue;
         };
         let phase = i32::try_from((elapsed.as_millis() / 125) % 4).unwrap_or(0);
+        let mut visible = false;
         for (x, offset) in [
             (region.bounds.x - 1, phase),
             (region.bounds.x + i32::from(region.bounds.width), 3 - phase),
         ] {
+            let gutter = PixelRect::new(x, region.bounds.y + 1, 1, 9);
+            if x < 0
+                || x >= i32::from(target.size().width)
+                || gutter.y < 0
+                || gutter.y + i32::from(gutter.height) > i32::from(target.size().height)
+                || actors
+                    .iter()
+                    .any(|other| super::party::intersects(gutter, other.bounds))
+            {
+                continue;
+            }
             target.put(x, region.bounds.y + 1 + offset, AMBER_LIGHT);
             target.put(x, region.bounds.y + 6 + offset, PARCHMENT_LIGHT);
+            visible = true;
         }
-        next_frame_in = Some(earliest_deadline(
-            next_frame_in,
-            next_frame_delay(elapsed, 8).min(remaining),
-        ));
+        if visible {
+            next_frame_in = Some(earliest_deadline(
+                next_frame_in,
+                next_frame_delay(elapsed, 8).min(remaining),
+            ));
+        }
     }
     next_frame_in
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::{AgentKey, Timestamp};
+
+    #[test]
+    fn spoils_schedule_frames_only_when_a_side_gutter_is_visible() {
+        let mut snapshot = SceneSnapshot {
+            connection: SceneConnection::Connected,
+            campaigns: Vec::new(),
+            agents: Vec::new(),
+            motion: Motion::Full,
+            now: Timestamp::from_millis(125),
+        };
+        let mut target = RgbBuffer::filled(20, 20, Rgb::BLACK);
+        let mut plan = ScenePlan::project(&snapshot, target.size());
+        let recipient = SceneActorRegion {
+            agent: AgentKey::new("recipient"),
+            bounds: PixelRect::new(0, 4, 8, 12),
+        };
+        let neighbour = SceneActorRegion {
+            agent: AgentKey::new("neighbour"),
+            bounds: PixelRect::new(8, 4, 8, 12),
+        };
+        plan.effects.push(SceneEffect::FreshSpoils {
+            agent: recipient.agent.clone(),
+            since: Timestamp::from_millis(0),
+        });
+
+        assert_eq!(
+            paint_effects(
+                &snapshot,
+                &plan,
+                &mut target,
+                &[recipient.clone(), neighbour]
+            ),
+            None
+        );
+        assert!(target.pixels().iter().all(|pixel| *pixel == Rgb::BLACK));
+        assert_eq!(
+            paint_effects(
+                &snapshot,
+                &plan,
+                &mut target,
+                std::slice::from_ref(&recipient)
+            ),
+            Some(Duration::from_millis(125))
+        );
+        assert_eq!(target.get(8, 7), Some(AMBER_LIGHT));
+        snapshot.now = Timestamp::from_millis(3_000);
+        assert_eq!(
+            paint_effects(&snapshot, &plan, &mut target, &[recipient]),
+            None
+        );
+    }
 }

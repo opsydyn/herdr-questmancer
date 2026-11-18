@@ -1,12 +1,86 @@
 #![cfg(feature = "storybook")]
 
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use questmancer::storybook::{
     app::{Action, StorybookApp, reduce},
-    catalogue::{catalogue, validate_catalogue},
+    catalogue::{Story, catalogue, validate_catalogue},
     fixtures::{StoryContext, StoryFixture},
     ui,
 };
 use ratatui::{Terminal, backend::TestBackend};
+
+#[test]
+fn quest_inbox_is_available_for_keyboard_review_at_both_pane_sizes() {
+    let (app, stories) = inbox_app();
+    for (width, height) in [(100, 26), (40, 16)] {
+        let text = inbox_frame(&app, stories, width, height);
+        assert!(text.contains("QUEST INBOX"));
+        assert!(text.contains("2 need you"));
+        assert!(text.contains("1 waiting"));
+        assert!(text.contains("[Enter] Review"));
+    }
+}
+
+fn inbox_app() -> (StorybookApp, &'static [Story]) {
+    let stories = catalogue();
+    let index = stories
+        .iter()
+        .position(|story| story.id.as_str() == "interaction.quest-inbox")
+        .expect("there is a Quest Inbox story");
+    let mut app = StorybookApp::new(stories);
+    app.select(index, stories);
+    let _ = reduce(&mut app, Action::Inspect, stories);
+    (app, stories)
+}
+
+fn inbox_frame(app: &StorybookApp, stories: &[Story], width: u16, height: u16) -> String {
+    let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+    terminal
+        .draw(|frame| ui::render(frame, app, stories, &StoryContext::fixed(), None))
+        .unwrap();
+    terminal
+        .backend()
+        .buffer()
+        .content
+        .iter()
+        .map(ratatui::buffer::Cell::symbol)
+        .collect()
+}
+
+#[test]
+fn quest_inbox_settles_only_current_evidence_and_keeps_snoozed_work_visible() {
+    let (mut app, stories) = inbox_app();
+    let key = |app: &mut StorybookApp, code| {
+        app.handle_event(
+            &Event::Key(KeyEvent::new(code, KeyModifiers::NONE)),
+            stories,
+        )
+    };
+    let draw = |app: &StorybookApp| inbox_frame(app, stories, 100, 26);
+    let _ = key(&mut app, KeyCode::Char(' '));
+    assert!(draw(&app).contains("2 need you"));
+    let _ = key(&mut app, KeyCode::Char('j'));
+    let _ = key(&mut app, KeyCode::Enter);
+    let before = draw(&app);
+    assert!(before.contains("QUEST REVIEW") && before.contains("Changes · 781b96e"));
+    assert!(before.contains("19 renderer tests passed on 55d18a7"));
+    let _ = key(&mut app, KeyCode::Char('a'));
+    assert!(draw(&app).contains("Run tests for 781b96e before settling."));
+    let _ = key(&mut app, KeyCode::Esc);
+    assert!(draw(&app).contains("2 need you"));
+    let _ = key(&mut app, KeyCode::Char('s'));
+    assert!(draw(&app).contains("1 need you · 1 waiting · 1 snoozed"));
+    let _ = key(&mut app, KeyCode::Up);
+    let _ = key(&mut app, KeyCode::Enter);
+    assert!(draw(&app).contains("20 renderer tests passed · c7409e1"));
+    let _ = key(&mut app, KeyCode::Char('a'));
+    assert!(draw(&app).contains("Review settled for c7409e1."));
+    let _ = key(&mut app, KeyCode::Esc);
+    assert!(draw(&app).contains("0 need you · 1 waiting · 1 snoozed"));
+    let _ = key(&mut app, KeyCode::Down);
+    let _ = key(&mut app, KeyCode::Char('s'));
+    assert!(draw(&app).contains("1 need you · 1 waiting · 0 snoozed"));
+}
 
 #[test]
 fn core_ux_room_studies_are_available_for_review() {
@@ -38,7 +112,7 @@ fn scrying_story_contains_settled_output_without_live_io() {
 
 #[test]
 fn catalogue_contains_every_production_scene_interaction_once() {
-    assert_eq!(catalogue().len(), 91);
+    assert_eq!(catalogue().len(), 92);
     let titles = catalogue()
         .iter()
         .map(|story| story.title)
@@ -200,7 +274,9 @@ fn scene_inspection_reaches_small_production_layouts_while_asset_galleries_keep_
         let context = StoryContext::fixed();
         let is_scene = matches!(
             (story.build)(context),
-            StoryFixture::SceneApplication(_) | StoryFixture::WorldFit(_)
+            StoryFixture::SceneApplication(_)
+                | StoryFixture::WorldFit(_)
+                | StoryFixture::QuestInbox
         );
         let mut app = StorybookApp::new(stories);
         app.select(index, stories);

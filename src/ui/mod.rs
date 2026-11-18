@@ -3,7 +3,7 @@ pub mod input;
 pub mod keymap;
 pub mod scene_adapter;
 pub mod scene_overlays;
-mod theme;
+pub(crate) mod theme;
 pub mod world_fit;
 
 pub mod war_table;

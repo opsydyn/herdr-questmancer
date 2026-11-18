@@ -15,7 +15,7 @@ use super::{
     fit::CellPixels,
     fit_preview::{FitPreview, delete_image},
     fixtures::StoryContext,
-    input, ui,
+    ui,
 };
 use crate::terminal::TerminalGuard;
 
@@ -82,12 +82,13 @@ fn control_for_event(
     let Some(event) = event else {
         return Ok(RuntimeControl::Quit);
     };
-    let action = input::action_for_event(&event.context("read Storybook input")?);
-    Ok(if reduce(app, action, stories) == Exit::Quit {
-        RuntimeControl::Quit
-    } else {
-        RuntimeControl::Continue
-    })
+    Ok(
+        if app.handle_event(&event.context("read Storybook input")?, stories) == Exit::Quit {
+            RuntimeControl::Quit
+        } else {
+            RuntimeControl::Continue
+        },
+    )
 }
 
 async fn next_control<Events, Interrupts>(

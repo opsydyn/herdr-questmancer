@@ -270,8 +270,8 @@ without Herdr, agent processes or persistent state:
 just storybook
 ```
 
-It owns ninety-one fixed production/comparison stories: twenty-five world states,
-thirty-eight asset views and twenty-eight interactions, including eight
+It owns ninety-two production/comparison stories with fixed fixtures: twenty-five
+world states, thirty-eight asset views and twenty-nine interactions, including eight
 owned-authoring states. `world.guild-fit-casters` and `world.delve-fit-casters`
 show one adventurer of every class. `j`/`k` and Up/Down select within the current
 category; `h`/`l` and Left/Right change category. `Enter` enters inspection,

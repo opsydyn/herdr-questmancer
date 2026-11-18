@@ -242,8 +242,11 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 In the Hall or Delve, select an adventurer and press `e`. Use the arrow keys
 or `j`/`k` to preview characters, including Rat Royalty. Press `Enter` to
 save the choice or `Esc` to cancel. `End` moves to **Restore automatic**.
+When the terminal supports native images, the picker shows the selected
+character's illustration. Other terminals show its authored sprite.
 The saved character follows the adventurer's Questmancer persona in both rooms.
-The Librarian's Ledger (`?`) also offers **[e] Character** on its first page.
+The adventurer card and the first Librarian's Ledger (`?`) page also show
+**[e] Character** in their controls.
 Press `p` in the Ledger to name the party in both rooms. `Enter` saves,
 `Esc` cancels, and clearing the draft with `Ctrl-U` then saving restores
 the default. Party names and character choices require a writable profile.
@@ -495,9 +498,13 @@ agent processes or persistent state:
 just storybook
 ```
 
-It contains 91 fixed production and comparison stories, with each asset
-owned once and additional state variants sharing the Quest Board and War Table
-assets.
+It contains 92 fixed production and comparison stories, with each asset owned
+once and additional variants sharing the Quest Board and War Table assets.
+
+The `interaction.quest-inbox` study compares current, stale and pending review
+evidence. Open it directly with `cargo run --features storybook --bin
+questmancer-storybook -- --story interaction.quest-inbox --inspect --no-graphics`.
+See the [Quest Inbox walkthrough](docs/reviews/2026-11-18-quest-inbox/README.md).
 
 The world studies `world.delve-walk`, `world.delve-materials` and
 `world.guild-materials` preview changes in the production scene engine.

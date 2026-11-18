@@ -160,7 +160,6 @@ pub(super) const FRAMES: [&[&str]; 8] = [
     &WORLD,
 ];
 
-#[cfg(feature = "storybook")]
 pub(super) const WALK: [&[&str]; 2] = [
     &with_rows([
         (19, ".kkocgdodgco...."),

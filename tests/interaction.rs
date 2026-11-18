@@ -202,9 +202,43 @@ async fn character_choice_keeps_the_previous_persona_when_publication_fails() {
     assert_eq!(model.selected_agent().unwrap().persona, previous);
     assert!(matches!(model.modal(), Modal::CharacterPicker { .. }));
     assert_eq!(effects.persistence_errors.len(), 1);
+    assert!(
+        model
+            .action_feedback()
+            .unwrap_or_default()
+            .starts_with("Character save failed")
+    );
     client.shutdown().await.unwrap();
     worker.await.unwrap();
     assert_eq!(tokio::fs::read(path).await.unwrap(), before);
+}
+
+#[tokio::test]
+async fn pressing_enter_on_the_current_character_explains_the_unchanged_choice() {
+    use questmancer::{
+        persistence::{PersistenceWorker, WorkerPaths},
+        runtime_loop::dispatch_action_effects,
+    };
+
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("state.json");
+    let (mut client, _diagnostics, worker) =
+        PersistenceWorker::start(WorkerPaths::new(Some(path), None));
+    let mut model = live_model_with_two_distinct_personas();
+    let class = model.selected_agent().unwrap().persona.class;
+    let _ = reduce_action(&mut model, Action::OpenCharacterPicker);
+    let choice = reduce_action(&mut model, Action::Submit);
+    let result = dispatch_action_effects(&mut client, &mut model, choice).await;
+    assert!(result.persistence_errors.is_empty());
+    assert_eq!(model.selected_agent().unwrap().persona.class, class);
+    assert!(
+        model
+            .action_feedback()
+            .unwrap_or_default()
+            .contains("is already selected")
+    );
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
 }
 
 #[test]

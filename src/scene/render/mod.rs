@@ -3,7 +3,6 @@ pub mod guild_hall;
 pub(crate) mod interaction;
 pub mod lighting;
 pub(crate) mod party;
-#[cfg(feature = "storybook")]
 pub(crate) mod room_study;
 pub(crate) mod roster;
 pub mod war_table;

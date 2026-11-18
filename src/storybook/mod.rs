@@ -5,6 +5,7 @@ pub mod density;
 pub mod fit;
 pub mod fit_preview;
 pub mod fixtures;
+mod inbox;
 pub mod input;
 mod runtime;
 pub mod ui;

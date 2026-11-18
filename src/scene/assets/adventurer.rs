@@ -435,7 +435,6 @@ pub fn adventurer_roster_frame(persona: &AdventurerPersona) -> SpriteFrame {
     personalise(&frame, palette, role_for(persona.class), &colours)
 }
 
-#[cfg(feature = "storybook")]
 pub(crate) fn rat_walk_frame(persona: &AdventurerPersona, step: usize) -> SpriteFrame {
     use super::rat_royalty::{PALETTE, WALK};
     static FRAMES: OnceLock<[SpriteFrame; 2]> = OnceLock::new();
