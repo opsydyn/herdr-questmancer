@@ -243,6 +243,7 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `v` in Quest Board | Request a revision review for the selected owned quest |
 | `t` in Quest Board | Change the selected owned quest's state |
 | `p` in Quest Board | Add or remove a prerequisite of the selected owned quest |
+| `y` in Quest Board | Set or clear the selected owned quest's assignee |
 | `w` | Open or close the War Table |
 | `a` in Quest Board | Open owned-work Actions and store setup |
 | `Tab` in Chronicle | Last-hour guild chapter / records |
@@ -849,8 +850,13 @@ successful quest-state change raises older owned stores to format v3.
 
 Press `p` on the dependent quest to add or remove a prerequisite in the same
 campaign. The writer checks for cycles and the War Table shows each saved
-link from prerequisite to dependent. The first saved edit raises the store to
-v4. Keep a pre-v4 copy if you may need to downgrade.
+link from prerequisite to dependent. The first saved edit raises earlier
+stores to v4.
+
+Press `y` to record or replace an assignee by name, or clear the assignment.
+The Board and War Table recover recorded responsibility after restart. Observe
+still requires a verified live binding. The first assignment edit raises the
+store to v5. Keep a copy before upgrading if you may need to downgrade.
 
 Tab moves focus, Enter activates a focused button or inserts a multiline newline,
 Up/Down or wheel reads context, and bracketed paste is literal and bounded. Esc keeps

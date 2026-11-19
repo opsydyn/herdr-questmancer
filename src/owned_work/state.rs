@@ -5,9 +5,9 @@ use super::{
 use crate::{
     domain::Timestamp,
     work::{
-        Artifact, ArtifactId, ArtifactKind, CampaignId, CampaignState, Inventory, Message,
-        Obligation, ObligationId, ObligationKind, ObligationState, Projection, Quest, QuestId,
-        QuestKind, QuestState, Responsible, SourceId, WorkCampaign,
+        Artifact, ArtifactId, ArtifactKind, Assignment, CampaignId, CampaignState, Inventory,
+        Message, Obligation, ObligationId, ObligationKind, ObligationState, Projection, Quest,
+        QuestId, QuestKind, QuestState, Responsible, SourceId, WorkCampaign,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -15,6 +15,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 const RECEIPTS: usize = 128;
 const TEXT_BYTES: usize = 8192;
+const ASSIGNMENT_ID_PREFIX: &str = "owned-assignee:";
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(transparent)]
@@ -93,6 +94,12 @@ pub enum Action {
         id: QuestId,
         prerequisite_id: QuestId,
         change: PrerequisiteChange,
+    },
+    /// Record a named assignee or clear responsibility for one owned quest.
+    ChangeQuestAssignment {
+        id: QuestId,
+        previous: Option<Assignment>,
+        assignee: Option<String>,
     },
     RequestDecision {
         id: ObligationId,
@@ -193,6 +200,8 @@ pub enum CommandError {
     PrerequisitePresence,
     #[error("this prerequisite would create a cycle")]
     PrerequisiteCycle,
+    #[error("quest assignment is already set to that value")]
+    AssignmentUnchanged,
     #[error("check receipt does not match the pinned repository, revision, recipe or runner")]
     ReviewMismatch,
     #[error(
@@ -207,6 +216,7 @@ pub enum CommandError {
 struct PriorQuest<'a> {
     state: QuestState,
     dependencies: BTreeSet<&'a QuestId>,
+    assignment: Option<Assignment>,
     created: bool,
 }
 
@@ -272,6 +282,17 @@ impl OwnedState {
             .any(|quest| !quest.dependencies.is_empty())
     }
 
+    pub(crate) fn has_assignment_edits(&self) -> bool {
+        self.receipts
+            .iter()
+            .any(|receipt| matches!(receipt.command.action, Action::ChangeQuestAssignment { .. }))
+            || self
+                .inventory
+                .quests
+                .values()
+                .any(|quest| quest.assignment.is_some())
+    }
+
     /// Protected on load as well as before publication. No live/session facts exist here.
     pub fn validate(&self) -> Result<(), CommandError> {
         if !owned_source(&self.source)
@@ -304,7 +325,7 @@ impl OwnedState {
                 && optional(c.objective.as_deref())
         }) && self.inventory.quests.values().all(|q| {
             QuestLifecycleChange::for_state(q.state).is_some()
-                && q.assignment.is_none()
+                && q.assignment.as_ref().is_none_or(valid_assignment)
                 && q.kind != QuestKind::Unspecified
                 && q.revision <= self.revision
                 && text(&q.title)
@@ -436,7 +457,8 @@ impl OwnedState {
             }),
             Action::CreateQuest { id, .. }
             | Action::ChangeQuestLifecycle { id, .. }
-            | Action::ChangeQuestPrerequisite { id, .. } => {
+            | Action::ChangeQuestPrerequisite { id, .. }
+            | Action::ChangeQuestAssignment { id, .. } => {
                 self.has_quest_effect(id, r, quest_receipts, quest_creations)
             }
             Action::RequestDecision {
@@ -511,6 +533,7 @@ impl OwnedState {
         let prior = quest_receipts.entry(id).or_insert_with(|| PriorQuest {
             state: quest.state,
             dependencies: quest.dependencies.iter().collect(),
+            assignment: quest.assignment.clone(),
             created: false,
         });
         if prior.created {
@@ -531,6 +554,7 @@ impl OwnedState {
                     && &quest.kind == kind
                     && prior.state == QuestState::Planned
                     && prior.dependencies.is_empty()
+                    && prior.assignment.is_none()
             }
             Action::ChangeQuestLifecycle { change, .. } => {
                 let (from, to) = change.states();
@@ -558,6 +582,18 @@ impl OwnedState {
                         PrerequisiteChange::Add => prior.dependencies.remove(prerequisite),
                         PrerequisiteChange::Remove => prior.dependencies.insert(prerequisite),
                     }
+            }
+            Action::ChangeQuestAssignment {
+                previous, assignee, ..
+            } => {
+                if assignment_name(previous.as_ref()) == assignee.as_deref()
+                    || prior.assignment
+                        != stated_assignment(&receipt.command.id, assignee.as_deref())
+                {
+                    return false;
+                }
+                prior.assignment.clone_from(previous);
+                true
             }
             _ => unreachable!("typed quest receipt dispatcher"),
         }
@@ -670,6 +706,26 @@ pub fn transition(state: &OwnedState, command: &Command) -> Result<Transition, C
         } => {
             own(id.belongs_to(&next.source) && prerequisite.belongs_to(&next.source))?;
             change.apply(&mut next.inventory, id, prerequisite, revision)?;
+        }
+        Action::ChangeQuestAssignment {
+            id,
+            previous,
+            assignee,
+        } => {
+            own(id.belongs_to(&next.source))?;
+            let quest = next
+                .inventory
+                .quests
+                .get_mut(id)
+                .ok_or(CommandError::Reference)?;
+            if &quest.assignment != previous {
+                return Err(CommandError::Stale);
+            }
+            if assignment_name(previous.as_ref()) == assignee.as_deref() {
+                return Err(CommandError::AssignmentUnchanged);
+            }
+            quest.assignment = stated_assignment(&command.id, assignee.as_deref());
+            quest.revision = revision;
         }
         Action::RequestDecision { .. } => request_decision(&mut next, command, revision)?,
         Action::AnswerDecision { .. } => answer_decision(&mut next, command, revision)?,
@@ -1077,6 +1133,25 @@ fn text(s: &str) -> bool {
 fn optional(s: Option<&str>) -> bool {
     s.is_none_or(text)
 }
+fn assignment_name(assignment: Option<&Assignment>) -> Option<&str> {
+    assignment.map(|assignment| assignment.name.as_str())
+}
+fn valid_assignee(name: &str) -> bool {
+    text(name) && name.trim() == name && !name.chars().any(char::is_control)
+}
+fn valid_assignment(assignment: &Assignment) -> bool {
+    valid_assignee(&assignment.name)
+        && assignment
+            .worker
+            .strip_prefix(ASSIGNMENT_ID_PREFIX)
+            .is_some_and(token)
+}
+fn stated_assignment(id: &CommandId, assignee: Option<&str>) -> Option<Assignment> {
+    assignee.map(|name| Assignment {
+        worker: format!("{ASSIGNMENT_ID_PREFIX}{}", id.as_str()),
+        name: name.into(),
+    })
+}
 fn command_valid(c: &Command) -> bool {
     token(c.id.as_str())
         && text(&c.actor)
@@ -1091,6 +1166,12 @@ fn command_valid(c: &Command) -> bool {
                 ..
             } => text(title) && optional(description.as_deref()) && *kind != QuestKind::Unspecified,
             Action::ChangeQuestLifecycle { .. } | Action::ChangeQuestPrerequisite { .. } => true,
+            Action::ChangeQuestAssignment {
+                previous, assignee, ..
+            } => {
+                previous.as_ref().is_none_or(valid_assignment)
+                    && assignee.as_deref().is_none_or(valid_assignee)
+            }
             Action::RequestDecision {
                 incarnation,
                 prompt,

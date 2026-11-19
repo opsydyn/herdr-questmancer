@@ -22,3 +22,5 @@
   — accepted first L2 slice for the Quest Board and serial owned store.
 - [0011 — Edit prerequisites between owned quests](0011-owned-quest-prerequisites.md)
   — accepted for same-campaign links and owned-store v4.
+- [0012 — Record explicit assignment on owned quests](0012-owned-quest-assignment.md)
+  — accepted for named responsibility and owned-store v5.

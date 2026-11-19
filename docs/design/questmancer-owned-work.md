@@ -22,6 +22,11 @@ campaign. The writer enforces an acyclic graph and keeps the owned-store
 format at v4 after its first prerequisite edit. See the [prerequisite decision](../adr/0011-owned-quest-prerequisites.md)
 and [verification ledger](../reviews/2026-11-19-owned-quest-prerequisites/README.md).
 
+L2c adds explicit name-based assignment to an owned quest. The owned worker
+checks the prior value and stores the change with its receipt in v5. Live
+Herdr association remains separately verified. See the [assignment decision](../adr/0012-owned-quest-assignment.md)
+and [verification ledger](../reviews/2026-11-19-owned-quest-assignment/README.md).
+
 This extends the [living control-plane contract](questmancer-living-control-plane.md)
 for a work source we own. External sources retain authority over their own facts.
 It supersedes the requirement to qualify Herdr Projects as the next product step.

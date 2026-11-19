@@ -15,6 +15,8 @@ All notable changes to this project will be documented here.
 - Press `p` on an owned quest in the Quest Board to add or remove a
   same-campaign prerequisite. Saved links appear on the War Table.
   The first change writes owned-work format v4, which is kept after link removal.
+- Press `y` on an owned quest in the Quest Board to set, replace, or clear
+  its named assignee. The first assignment edit writes owned-work format v5.
 
 ## [0.2.4] - 2026-11-19
 

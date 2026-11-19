@@ -3,8 +3,8 @@ use super::{Answer, QuestLifecycleChange, Review, StoreSelection};
 use crate::{
     app::{Modal, Model},
     work::{
-        ArtifactKind, CampaignId, Inventory, ObligationId, ObligationKind, ObligationState,
-        QuestId, QuestKind, SourceId,
+        ArtifactKind, Assignment, CampaignId, Inventory, ObligationId, ObligationKind,
+        ObligationState, QuestId, QuestKind, SourceId,
     },
 };
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
@@ -58,6 +58,12 @@ pub(crate) enum FormTarget {
         current: Vec<QuestId>,
         revision: u64,
     },
+    QuestAssignment {
+        id: QuestId,
+        title: String,
+        current: Option<Assignment>,
+        revision: u64,
+    },
 }
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Phase {
@@ -78,6 +84,7 @@ pub enum FormKind {
     Quest,
     QuestLifecycle,
     QuestPrerequisites,
+    QuestAssignment,
     Request,
     Answer,
     Artifact,
@@ -367,6 +374,7 @@ impl Authoring {
                 ],
             )],
             FormKind::QuestPrerequisites => vec![self.prerequisite_field(target)?],
+            FormKind::QuestAssignment => assignment_fields(target)?,
             FormKind::Answer => {
                 let Some(detail) = &self.detail else {
                     self.feedback = "Load the selected decision before answering.".into();
@@ -481,6 +489,12 @@ impl Authoring {
             self.feedback = "Choose a prerequisite to add or remove before saving.".into();
             return;
         }
+        if kind == FormKind::QuestAssignment
+            && let Err(feedback) = assignment_choice(&values)
+        {
+            self.feedback = feedback.into();
+            return;
+        }
         if kind == FormKind::RequestReview
             && values
                 .get(..6)
@@ -509,7 +523,8 @@ impl Authoring {
         let revision = match self.form_target {
             Some(
                 FormTarget::QuestLifecycle { revision, .. }
-                | FormTarget::QuestPrerequisites { revision, .. },
+                | FormTarget::QuestPrerequisites { revision, .. }
+                | FormTarget::QuestAssignment { revision, .. },
             ) => revision,
             _ => self.metadata.as_ref().map_or(0, |m| m.revision),
         };
@@ -592,6 +607,31 @@ pub fn quest_kind(value: &str) -> Option<QuestKind> {
         _ => None,
     }
 }
+fn assignment_fields(target: Option<&FormTarget>) -> Option<Vec<Field>> {
+    let Some(FormTarget::QuestAssignment { current, .. }) = target else {
+        return None;
+    };
+    let mut choices = vec![
+        (String::new(), "Keep current assignment".into()),
+        ("set".into(), "Set assignee".into()),
+    ];
+    if current.is_some() {
+        choices.push(("clear".into(), "Clear assignment".into()));
+    }
+    Some(vec![
+        Field::choices("Assignment change", choices),
+        Field::text("Assignee name (Set only)", false),
+    ])
+}
+
+pub(super) fn assignment_choice(values: &[String]) -> Result<Option<&str>, &'static str> {
+    match values {
+        [operation, name] if operation == "set" && !name.trim().is_empty() => Ok(Some(name.trim())),
+        [operation, _] if operation == "clear" => Ok(None),
+        _ => Err("Choose Set assignee with a name, or Clear assignment."),
+    }
+}
+
 pub fn menu_entries() -> &'static [&'static str] {
     &[
         "Create campaign",

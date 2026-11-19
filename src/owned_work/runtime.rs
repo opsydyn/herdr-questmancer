@@ -336,6 +336,15 @@ impl OwnedRuntime {
         }
         if matches!(
             error,
+            StoreError::Command(CommandError::AssignmentUnchanged)
+        ) {
+            self.submitted = None;
+            model.authoring_mut().phase = Phase::Ready;
+            model.authoring_mut().feedback = "The assignment already has that value.".into();
+            return;
+        }
+        if matches!(
+            error,
             StoreError::ReviewEvidence(_)
                 | StoreError::Command(
                     CommandError::ReviewMismatch
@@ -627,6 +636,7 @@ fn make_command(draft: &Draft, model: &Model) -> Result<Command, String> {
             _ => return Err("Confirm the change for the selected owned quest".into()),
         },
         FormKind::QuestPrerequisites => prerequisite_action(draft, quest(0)?)?,
+        FormKind::QuestAssignment => assignment_action(draft)?,
         FormKind::Request => Action::RequestDecision {
             id: ObligationId::new(source, &token),
             campaign: campaign()?,
@@ -683,6 +693,17 @@ fn prerequisite_action(draft: &Draft, prerequisite_id: Option<QuestId>) -> Resul
         id: id.clone(),
         prerequisite_id,
         change,
+    })
+}
+
+fn assignment_action(draft: &Draft) -> Result<Action, String> {
+    let Some(FormTarget::QuestAssignment { id, current, .. }) = &draft.form_target else {
+        return Err("Select an owned quest to edit its assignment".into());
+    };
+    Ok(Action::ChangeQuestAssignment {
+        id: id.clone(),
+        previous: current.clone(),
+        assignee: super::authoring::assignment_choice(&draft.values)?.map(str::to_owned),
     })
 }
 

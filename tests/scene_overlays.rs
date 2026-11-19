@@ -925,7 +925,18 @@ fn the_ledger_shows_the_whole_keyring() {
         rendered.contains("Keyring"),
         "the keyring page must be reachable in the Ledger:\n{rendered}"
     );
-    for keys in ["Tab", "!", "n / N", "c", "s", "wheel", "Esc", "q"] {
+    for keys in [
+        "Tab",
+        "!",
+        "n / N",
+        "c",
+        "p (Board)",
+        "y (Board)",
+        "s",
+        "wheel",
+        "Esc",
+        "q",
+    ] {
         assert!(
             rendered.contains(keys),
             "the keyring must show {keys:?}:\n{rendered}"

@@ -180,6 +180,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         | Action::RequestReview
         | Action::ChangeQuestLifecycle
         | Action::EditQuestPrerequisites
+        | Action::EditQuestAssignment
         | Action::ImportCheck
         | Action::SettleReview
         | Action::LinkReviewAdventurer
@@ -789,6 +790,7 @@ fn intercept_work_board(
         }
         Action::ChangeQuestLifecycle => open_lifecycle_form(model),
         Action::EditQuestPrerequisites => open_prerequisite_form(model),
+        Action::EditQuestAssignment => open_assignment_form(model),
         Action::OpenWarTable => model.open_war_table(),
         Action::Next => model.cycle_work(true),
         Action::Previous => model.cycle_work(false),
@@ -913,24 +915,26 @@ fn open_review_form(model: &mut Model, kind: crate::owned_work::authoring::FormK
     open_contextual_owned_form(model, kind, target);
 }
 
-fn open_lifecycle_form(model: &mut Model) {
-    use crate::{
-        owned_work::{
-            QuestLifecycleChange,
-            authoring::{FormKind, FormTarget},
-        },
-        work::WorkSelection,
+fn selected_owned_quest(model: &Model) -> Option<(&crate::work::Quest, u64)> {
+    let metadata = model.authoring().metadata.as_ref()?;
+    let crate::work::WorkSelection::Quest(id) = model.work_selection()? else {
+        return None;
     };
-    let target = model.authoring().metadata.as_ref().and_then(|metadata| {
-        let WorkSelection::Quest(id) = model.work_selection()? else {
-            return None;
-        };
-        let quest = metadata.inventory.quests.get(id)?;
+    let quest = metadata.inventory.quests.get(id)?;
+    Some((quest, metadata.revision))
+}
+
+fn open_lifecycle_form(model: &mut Model) {
+    use crate::owned_work::{
+        QuestLifecycleChange,
+        authoring::{FormKind, FormTarget},
+    };
+    let target = selected_owned_quest(model).and_then(|(quest, revision)| {
         Some(FormTarget::QuestLifecycle {
-            id: id.clone(),
+            id: quest.id.clone(),
             title: quest.title.clone(),
             change: QuestLifecycleChange::for_state(quest.state)?,
-            revision: metadata.revision,
+            revision,
         })
     });
     if let Some(target) = target {
@@ -943,27 +947,36 @@ fn open_lifecycle_form(model: &mut Model) {
 }
 
 fn open_prerequisite_form(model: &mut Model) {
-    use crate::{
-        owned_work::authoring::{FormKind, FormTarget},
-        work::WorkSelection,
-    };
-    let target = model.authoring().metadata.as_ref().and_then(|metadata| {
-        let WorkSelection::Quest(id) = model.work_selection()? else {
-            return None;
-        };
-        let quest = metadata.inventory.quests.get(id)?;
-        Some(FormTarget::QuestPrerequisites {
-            id: id.clone(),
+    use crate::owned_work::authoring::{FormKind, FormTarget};
+    let target =
+        selected_owned_quest(model).map(|(quest, revision)| FormTarget::QuestPrerequisites {
+            id: quest.id.clone(),
             title: quest.title.clone(),
             current: quest.dependencies.clone(),
-            revision: metadata.revision,
-        })
-    });
+            revision,
+        });
     if let Some(target) = target {
         open_contextual_owned_form(model, FormKind::QuestPrerequisites, target);
     } else {
         model.set_action_feedback(
             "Select a quest in your opened local store to edit prerequisites.".into(),
+        );
+    }
+}
+
+fn open_assignment_form(model: &mut Model) {
+    use crate::owned_work::authoring::{FormKind, FormTarget};
+    let target = selected_owned_quest(model).map(|(quest, revision)| FormTarget::QuestAssignment {
+        id: quest.id.clone(),
+        title: quest.title.clone(),
+        current: quest.assignment.clone(),
+        revision,
+    });
+    if let Some(target) = target {
+        open_contextual_owned_form(model, FormKind::QuestAssignment, target);
+    } else {
+        model.set_action_feedback(
+            "Select a quest in your opened local store to edit its assignment.".into(),
         );
     }
 }

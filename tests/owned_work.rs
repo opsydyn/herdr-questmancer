@@ -8,8 +8,8 @@ use questmancer::{
     persistence::{PersistenceWorker, WorkerPaths, load_work_cache},
     sources::local_work::LocalWorkSource,
     work::{
-        ArtifactId, ArtifactKind, CampaignId, ObligationId, QuestId, QuestKind, QuestState,
-        SourceId,
+        ArtifactId, ArtifactKind, Assignment, CampaignId, ObligationId, QuestId, QuestKind,
+        QuestState, SourceId,
     },
 };
 
@@ -559,7 +559,7 @@ fn prerequisite_commands_reject_wrong_endpoints_and_transitive_cycles_without_wr
     let mut forged: serde_json::Value = serde_json::from_slice(&saved).unwrap();
     forged["state"]["inventory"]["quests"][tests.as_str()]["dependencies"] =
         serde_json::json!([picker]);
-    assert_protected_prerequisites(&path, &source, &forged);
+    assert_protected_snapshot(&path, &source, &forged);
 }
 
 #[test]
@@ -633,10 +633,10 @@ fn prerequisite_format_survives_link_removal_and_receipt_eviction() {
     drop(store);
     let mut corrupt: serde_json::Value = serde_json::from_slice(&saved).unwrap();
     corrupt["version"] = 3.into();
-    assert_protected_prerequisites(&path, &source, &corrupt);
+    assert_protected_snapshot(&path, &source, &corrupt);
     corrupt["version"] = 4.into();
     corrupt["state"]["receipts"][8]["command"]["action"]["change"] = "Add".into();
-    assert_protected_prerequisites(&path, &source, &corrupt);
+    assert_protected_snapshot(&path, &source, &corrupt);
     std::fs::write(&path, &saved).unwrap();
     let mut store = OwnedStore::open(&path, &source).unwrap();
     for revision in 9..137 {
@@ -655,7 +655,7 @@ fn prerequisite_format_survives_link_removal_and_receipt_eviction() {
     assert_eq!(final_snapshot["version"], 4);
 }
 
-fn assert_protected_prerequisites(
+fn assert_protected_snapshot(
     path: &std::path::Path,
     source: &SourceId,
     document: &serde_json::Value,
@@ -667,6 +667,151 @@ fn assert_protected_prerequisites(
         Err(StoreError::Protected(_))
     ));
     assert_eq!(std::fs::read(path).unwrap(), bytes);
+}
+
+fn assignment_command(
+    source: &SourceId,
+    revision: u64,
+    id: &QuestId,
+    previous: Option<Assignment>,
+    name: Option<&str>,
+) -> Command {
+    command(
+        source,
+        revision,
+        Action::ChangeQuestAssignment {
+            id: id.clone(),
+            previous,
+            assignee: name.map(str::to_owned),
+        },
+    )
+}
+
+#[test]
+fn assignment_refuses_invalid_stale_and_unchanged_commands_without_writing() {
+    let dir = tempdir();
+    let path = dir.path().join("owned-work.json");
+    let source = SourceId::new("owned:promo");
+    let id = QuestId::new(&source, "picker");
+    std::fs::write(&path, PRE_LIFECYCLE_V2).unwrap();
+    let mut store = OwnedStore::open(&path, &source).unwrap();
+    let foreign = QuestId::new(&SourceId::new("other"), "picker");
+    let missing = QuestId::new(&source, "missing");
+    for (target, name, error) in [
+        (&foreign, Some("Mira"), CommandError::ForeignSource),
+        (&missing, Some("Mira"), CommandError::Reference),
+        (&id, Some("   "), CommandError::Invalid),
+        (&id, Some("Mira\nOther"), CommandError::Invalid),
+        (&id, None, CommandError::AssignmentUnchanged),
+    ] {
+        let edit = assignment_command(&source, 5, target, None, name);
+        assert!(matches!(store.execute(&edit), Err(StoreError::Command(found)) if found == error));
+        assert_eq!(std::fs::read(&path).unwrap(), PRE_LIFECYCLE_V2);
+    }
+    let assignment = assignment_command(&source, 5, &id, None, Some("Mira"));
+    let receipt = store.execute(&assignment).unwrap();
+    let assigned = &store.state().inventory().quests[&id];
+    let previous = assigned.assignment.clone();
+    assert_eq!(assigned.revision, receipt.revision);
+    let saved = std::fs::read(&path).unwrap();
+    let mut stale = assignment_command(&source, 5, &id, previous.clone(), None);
+    stale.id = CommandId::new("stale-assignment");
+    for (edit, error) in [
+        (stale, CommandError::Stale),
+        (
+            assignment_command(&source, 6, &id, None, None),
+            CommandError::Stale,
+        ),
+        (
+            assignment_command(&source, 6, &id, previous, Some("Mira")),
+            CommandError::AssignmentUnchanged,
+        ),
+    ] {
+        assert!(matches!(store.execute(&edit), Err(StoreError::Command(found)) if found == error));
+        assert_eq!(std::fs::read(&path).unwrap(), saved);
+    }
+    assert_eq!(store.execute(&assignment).unwrap(), receipt);
+    assert_eq!(std::fs::read(&path).unwrap(), saved);
+    drop(store);
+    let mut corrupt: serde_json::Value = serde_json::from_slice(&saved).unwrap();
+    corrupt["state"]["inventory"]["quests"][id.as_str()]["assignment"]["worker"] = "pane-1".into();
+    assert_protected_snapshot(&path, &source, &corrupt);
+}
+
+#[test]
+fn assignment_format_and_history_survive_clear_and_receipt_eviction() {
+    let dir = tempdir();
+    let path = dir.path().join("owned-work.json");
+    let source = SourceId::new("owned:promo");
+    let id = QuestId::new(&source, "picker");
+    let web = QuestId::new(&source, "web");
+    let campaign = CampaignId::new(&source, "release");
+    std::fs::write(&path, PRE_LIFECYCLE_V2).unwrap();
+    let mut store = OwnedStore::open(&path, &source).unwrap();
+    store
+        .execute(&command(
+            &source,
+            5,
+            Action::ChangeQuestPrerequisite {
+                id: id.clone(),
+                prerequisite_id: web.clone(),
+                change: PrerequisiteChange::Add,
+            },
+        ))
+        .unwrap();
+    let untouched = store.state().inventory().quests[&web].clone();
+    let obligations = store.state().inventory().obligations.clone();
+    let mut receipts = Vec::new();
+    for (revision, name) in [(6, Some("Mira")), (7, Some("Jun")), (8, None)] {
+        let before = store.state().inventory().quests[&id].assignment.clone();
+        let edit = assignment_command(&source, revision, &id, before, name);
+        let receipt = store.execute(&edit).unwrap();
+        receipts.push(receipt.command.id);
+    }
+    let saved = std::fs::read(&path).unwrap();
+    drop(store);
+    let mut corrupt: serde_json::Value = serde_json::from_slice(&saved).unwrap();
+    corrupt["version"] = 4.into();
+    assert_protected_snapshot(&path, &source, &corrupt);
+    corrupt["version"] = 5.into();
+    corrupt["state"]["receipts"][8]["command"]["action"]["previous"]["name"] = "Mira".into();
+    assert_protected_snapshot(&path, &source, &corrupt);
+    std::fs::write(&path, saved).unwrap();
+    let mut store = OwnedStore::open(&path, &source).unwrap();
+    let fill = |revision| {
+        command(
+            &source,
+            revision,
+            Action::RegisterArtifact {
+                id: ArtifactId::new(&source, &format!("artifact-{revision}")),
+                campaign: campaign.clone(),
+                quest: Some(id.clone()),
+                kind: ArtifactKind::Report,
+                title: "Verification".into(),
+                uri: None,
+            },
+        )
+    };
+    for revision in 9..137 {
+        store.execute(&fill(revision)).unwrap();
+    }
+    drop(store);
+    let mut reopened = OwnedStore::open(&path, &source).unwrap();
+    assert!(
+        receipts
+            .iter()
+            .all(|id| reopened.state().receipt(id).is_none())
+    );
+    let quest = &reopened.state().inventory().quests[&id];
+    assert_eq!((quest.revision, quest.state), (9, QuestState::Planned));
+    assert!(quest.assignment.is_none());
+    assert_eq!(quest.dependencies, std::slice::from_ref(&web));
+    assert_eq!(reopened.state().inventory().quests[&web], untouched);
+    assert_eq!(reopened.state().inventory().obligations, obligations);
+    reopened.execute(&fill(137)).unwrap();
+    let document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(document["version"], 5);
 }
 
 #[test]

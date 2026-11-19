@@ -1,0 +1,34 @@
+{
+  "baseline_commit": "230067c",
+  "candidate_sha256": "dc558388899d675a660a24461198f81463b4fa27d2a22139849fd584cc62dd23",
+  "previous_prerequisite_sha256": "aad3d8131c4cd9e2a95895980ddf2594e1eac855cb0cdff8c5364fd01d1d3e73",
+  "previous_matches_prerequisite_receipt": true,
+  "previous_seeded_v4_opened_without_rewrite": true,
+  "acknowledged": [
+    {
+      "operation": "Assign",
+      "revision": 7,
+      "columns": 120,
+      "rows": 34
+    },
+    {
+      "operation": "Replace",
+      "revision": 8,
+      "columns": 60,
+      "rows": 20
+    },
+    {
+      "operation": "Clear",
+      "revision": 9,
+      "columns": 60,
+      "rows": 20
+    }
+  ],
+  "keep_current_preserved_bytes": true,
+  "assignee_visible_after_process_restart": true,
+  "observe_unavailable_without_verified_binding": true,
+  "earlier_reader_refused_v5_after_clear": true,
+  "prerequisites_lifecycle_obligations_reviews_and_artifacts_preserved": true,
+  "terminal_teardown_and_test_profile_cleanup": true,
+  "herdr_resources_created": 0
+}

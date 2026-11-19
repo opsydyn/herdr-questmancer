@@ -15,6 +15,7 @@ use std::{
 
 const MAX_BYTES: usize = 16 * 1024 * 1024;
 const PREREQUISITE_VERSION: u32 = 4;
+const ASSIGNMENT_VERSION: u32 = 5;
 const READ: OFlags = OFlags::RDONLY
     .union(OFlags::CLOEXEC)
     .union(OFlags::NOFOLLOW)
@@ -234,7 +235,9 @@ fn encode(snapshot: &Snapshot) -> Result<Vec<u8>, StoreError> {
     Ok(bytes)
 }
 fn snapshot_version(state: &OwnedState) -> u32 {
-    if state.has_prerequisite_edits() {
+    if state.has_assignment_edits() {
+        ASSIGNMENT_VERSION
+    } else if state.has_prerequisite_edits() {
         PREREQUISITE_VERSION
     } else if state.has_quest_lifecycle() {
         3
@@ -248,7 +251,7 @@ fn decode(bytes: &[u8]) -> Result<Snapshot, StoreError> {
     let value = strict_json::parse(bytes).map_err(|e| StoreError::Protected(e.to_string()))?;
     if !matches!(
         value.get("version").and_then(serde_json::Value::as_u64),
-        Some(1..=4)
+        Some(1..=5)
     ) {
         return Err(StoreError::Protected("unsupported version".into()));
     }
@@ -259,9 +262,10 @@ fn decode(bytes: &[u8]) -> Result<Snapshot, StoreError> {
     }
     let snapshot: Snapshot =
         serde_json::from_value(value).map_err(|e| StoreError::Protected(e.to_string()))?;
-    // A v4 store stays v4 after its last link and edit receipt are gone.
-    if snapshot.version < PREREQUISITE_VERSION
-        && snapshot.version != snapshot_version(&snapshot.state)
+    let required = snapshot_version(&snapshot.state);
+    // v4 and v5 remain fenced after the last edit receipts are gone.
+    if snapshot.version < required
+        || (snapshot.version < PREREQUISITE_VERSION && snapshot.version != required)
     {
         return Err(StoreError::Protected(
             "owned snapshot contents do not match its version".into(),
@@ -653,6 +657,68 @@ mod tests {
             reopened.state().inventory().quests[&id].dependencies,
             [prerequisite]
         );
+    }
+
+    #[test]
+    fn first_assignment_save_reconciles_before_exposing_the_assignee() {
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let path = dir.path().join("owned-work.json");
+        let legacy = include_bytes!("../../tests/fixtures/owned-work/pre-lifecycle-v2.json");
+        std::fs::write(&path, legacy).unwrap();
+        let source = SourceId::new("owned:promo");
+        let id = QuestId::new(&source, "picker");
+        let command = Command {
+            id: CommandId::new("first-assignment"),
+            source: source.clone(),
+            expected_revision: 5,
+            actor: "Questmancer".into(),
+            at: Timestamp::from_millis(1000),
+            action: Action::ChangeQuestAssignment {
+                id: id.clone(),
+                previous: None,
+                assignee: Some("Release reviewer".into()),
+            },
+        };
+        let mut store = OwnedStore::open(&path, &source).unwrap();
+        assert!(matches!(
+            store.execute_with(&command, |step| {
+                if step == PublishStep::FileSynced {
+                    Err(io("injected failure before replacement"))
+                } else {
+                    Ok(())
+                }
+            }),
+            Err(StoreError::Io(_))
+        ));
+        assert_eq!(std::fs::read(&path).unwrap(), legacy);
+        assert!(matches!(
+            store.execute_with(&command, |step| {
+                if step == PublishStep::Replaced {
+                    Err(io("injected acknowledgement loss"))
+                } else {
+                    Ok(())
+                }
+            }),
+            Err(StoreError::Indeterminate(_))
+        ));
+        assert!(store.state().inventory().quests[&id].assignment.is_none());
+        assert!(matches!(
+            store.checked_state(),
+            Err(StoreError::Indeterminate(_))
+        ));
+        let receipt = store.reconcile().unwrap().unwrap();
+        assert_eq!(store.snapshot.version, ASSIGNMENT_VERSION);
+        assert_eq!(store.execute(&command).unwrap(), receipt);
+        drop(store);
+        let reopened = OwnedStore::open(&path, &source).unwrap();
+        assert_eq!(reopened.snapshot.version, ASSIGNMENT_VERSION);
+        let assignee = reopened.state().inventory().quests[&id]
+            .assignment
+            .as_ref()
+            .unwrap();
+        assert_eq!(assignee.name, "Release reviewer");
+        assert_eq!(assignee.worker, "owned-assignee:first-assignment");
     }
 
     #[test]

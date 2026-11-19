@@ -1,7 +1,8 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use questmancer::{
-    app::{Modal, Model, View},
-    domain::Timestamp,
+    app::{ConnectionState, Modal, Model, View},
+    domain::{DomainState, Timestamp},
+    herdr::protocol::{SessionSnapshotResult, SuccessResponse},
     interaction::{ActionReduction, reduce_action},
     owned_work::{
         Action, CheckReceipt, CheckResult, Command, CommandId, OwnedRuntime, OwnedStore,
@@ -273,6 +274,94 @@ async fn board_edits_and_reopens_owned_prerequisites() {
         .unwrap()
         .unwrap();
     assert_eq!(cache.projection.quest(&dependent), Some(quest));
+}
+
+#[tokio::test]
+async fn board_records_replaces_and_clears_a_local_assignment() {
+    let directory =
+        tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+    let source = SourceId::new("owned:assignment");
+    let selection =
+        StoreSelection::new(directory.path().join("owned-work.json"), source.clone()).unwrap();
+    let quest = seed(&selection);
+    let paths = WorkerPaths::new(Some(directory.path().join("state.json")), None);
+    let (mut client, _, worker) = PersistenceWorker::start(paths.clone());
+    let mut model = Model::new(View::Guild);
+    let response: SuccessResponse<SessionSnapshotResult> =
+        serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
+    let mut domain =
+        DomainState::from_snapshot(&response.result.snapshot, Timestamp::from_millis(1));
+    let adventurer = domain.agents.values_mut().next().unwrap();
+    "Release reviewer".clone_into(&mut adventurer.name);
+    "Release reviewer".clone_into(&mut adventurer.persona.name);
+    model.replace_domain(domain);
+    model.set_connection(ConnectionState::Connected);
+    let mut runtime = OwnedRuntime::start(&paths, &mut model).unwrap();
+    model
+        .authoring_mut()
+        .request_setup(selection.clone(), false);
+    apply(&mut runtime, &mut client, &mut model).await;
+
+    let mut previous = "Unassigned";
+    for name in [Some("Release reviewer"), Some("Mira"), None] {
+        model.select_work(WorkSelection::Quest(quest.clone()));
+        assert!(render(&model, 90, 28).contains("y: assign"));
+        let original = std::fs::read(&selection.path).unwrap();
+        let _ = key(&mut model, KeyCode::Char('y'));
+        assert_eq!(model.modal(), &Modal::OwnedAuthoring);
+        let form = render(&model, 60, 20);
+        assert!(
+            form.contains(&format!("Current assignee: {previous}")),
+            "{form}"
+        );
+        for code in [KeyCode::Tab, KeyCode::Tab, KeyCode::Enter] {
+            let _ = key(&mut model, code);
+        }
+        assert!(model.authoring().ready());
+        assert_eq!(std::fs::read(&selection.path).unwrap(), original);
+        for code in [KeyCode::BackTab, KeyCode::BackTab, KeyCode::Down] {
+            let _ = key(&mut model, code);
+        }
+        if name.is_none() {
+            let _ = key(&mut model, KeyCode::Down);
+        }
+        let _ = key(&mut model, KeyCode::Tab);
+        if let Some(name) = name {
+            paste(&mut model, name);
+        }
+        let _ = key(&mut model, KeyCode::Tab);
+        let _ = key(&mut model, KeyCode::Enter);
+        apply(&mut runtime, &mut client, &mut model).await;
+        assert!(model.authoring().ready(), "{}", model.authoring().feedback);
+        assert_eq!(version(&selection.path), 5);
+        let _ = key(&mut model, KeyCode::Esc);
+        assert_eq!(model.modal(), &Modal::QuestBoard);
+        let board = render(&model, 90, 28);
+        previous = name.unwrap_or("Unassigned");
+        assert!(
+            board.contains(&format!("Recorded assignee: {previous}")),
+            "{board}"
+        );
+        assert!(board.contains("Observe unavailable"), "{board}");
+        assert!(questmancer::work::bound_agent(&model, &quest).is_none());
+        assert!(key(&mut model, KeyCode::Enter).unwrap().commands.is_empty());
+        let _ = key(&mut model, KeyCode::Char('w'));
+        let graph = questmancer::work::graph::CampaignGraph::from_model(&model).unwrap();
+        assert_eq!(graph.nodes[&quest].assignment.as_deref(), name);
+        assert_eq!(graph.nodes[&quest].state, QuestState::Planned);
+    }
+    runtime.shutdown(&mut client, &mut model).await.unwrap();
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+    let reopened = OwnedStore::open(&selection.path, &source).unwrap();
+    let persisted = &reopened.state().inventory().quests[&quest];
+    assert!(persisted.assignment.is_none());
+    assert_eq!(persisted.revision, 5);
+    let cache = load_work_cache(&paths.work_path().unwrap())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(cache.projection.quest(&quest), Some(persisted));
 }
 
 #[tokio::test]

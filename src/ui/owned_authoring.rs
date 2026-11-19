@@ -21,6 +21,7 @@ pub fn heading(kind: FormKind) -> &'static str {
         FormKind::Quest => "Create quest",
         FormKind::QuestLifecycle => "Change quest state",
         FormKind::QuestPrerequisites => "Edit prerequisites",
+        FormKind::QuestAssignment => "Edit quest assignment",
         FormKind::Request => "Request decision",
         FormKind::Answer => "Answer decision",
         FormKind::Artifact => "Register artifact",
@@ -215,49 +216,44 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
     );
 }
 
+fn form_context(a: &Authoring, kind: FormKind, body: &mut Vec<String>) {
+    match (kind, &a.form_target) {
+        (FormKind::RequestReview, Some(FormTarget::Quest { title, .. })) => {
+            body.push(format!("Quest: {title}"));
+            body.push("A new request replaces any open review for this quest.".into());
+        }
+        (FormKind::RecordCheck | FormKind::SettleReview, Some(FormTarget::Review { title, head, .. })) => {
+            body.push(format!("Quest: {title}"));
+            body.push(format!("Candidate: {head}"));
+            if kind == FormKind::RecordCheck {
+                body.push("Import only the receipt from the runner you chose for this review.".into());
+            }
+        }
+        (FormKind::QuestLifecycle, Some(FormTarget::QuestLifecycle { title, change, .. })) => {
+            let (from, to) = change.states();
+            body.push(format!("Quest: {title}"));
+            body.push(format!("{} · {from:?} → {to:?}", change.label()));
+        }
+        (FormKind::QuestPrerequisites, Some(FormTarget::QuestPrerequisites { title, .. })) => {
+            body.push(format!("Dependent quest: {title}"));
+        }
+        (FormKind::QuestAssignment, Some(FormTarget::QuestAssignment { title, current, .. })) => {
+            body.push(format!("Quest: {title}"));
+            let name = current.as_ref().map_or("Unassigned", |current| current.name.as_str());
+            body.push(format!("Current assignee: {name}"));
+        }
+        (FormKind::Answer, _) => body.extend(detail_rows(a, false)),
+        (FormKind::CreateStore | FormKind::OpenStore, _) => body.push(
+            "Parent must already exist physically. Existing/missing selections are never replaced automatically.".into(),
+        ),
+        _ => {}
+    }
+}
+
 fn form_rows(a: &Authoring, kind: FormKind, width: u16, body: &mut Vec<String>) -> usize {
     let mut anchor = 0;
     body.push(heading(kind).into());
-    if matches!(
-        kind,
-        FormKind::RequestReview | FormKind::RecordCheck | FormKind::SettleReview
-    ) {
-        match &a.form_target {
-            Some(FormTarget::Quest { title, .. }) => {
-                body.push(format!("Quest: {title}"));
-                body.push("A new request replaces any open review for this quest.".into());
-            }
-            Some(FormTarget::Review { title, head, .. }) => {
-                body.push(format!("Quest: {title}"));
-                body.push(format!("Candidate: {head}"));
-                if kind == FormKind::RecordCheck {
-                    body.push(
-                        "Import only the receipt from the runner you chose for this review.".into(),
-                    );
-                }
-            }
-            Some(FormTarget::QuestLifecycle { .. } | FormTarget::QuestPrerequisites { .. })
-            | None => {}
-        }
-    }
-    if kind == FormKind::QuestLifecycle
-        && let Some(FormTarget::QuestLifecycle { title, change, .. }) = &a.form_target
-    {
-        let (from, to) = change.states();
-        body.push(format!("Quest: {title}"));
-        body.push(format!("{} · {from:?} → {to:?}", change.label()));
-    }
-    if kind == FormKind::QuestPrerequisites
-        && let Some(FormTarget::QuestPrerequisites { title, .. }) = &a.form_target
-    {
-        body.push(format!("Dependent quest: {title}"));
-    }
-    if kind == FormKind::Answer {
-        body.extend(detail_rows(a, false));
-    }
-    if matches!(kind, FormKind::CreateStore | FormKind::OpenStore) {
-        body.push("Parent must already exist physically. Existing/missing selections are never replaced automatically.".into());
-    }
+    form_context(a, kind, body);
     for (i, f) in a.fields.iter().enumerate() {
         let marker = if a.focus == i { ">" } else { " " };
         body.push(format!("{marker} {}:", f.label));
@@ -284,6 +280,7 @@ fn form_rows(a: &Authoring, kind: FormKind, width: u16, body: &mut Vec<String>) 
         match kind {
             FormKind::Answer => "Save answer",
             FormKind::QuestPrerequisites => "Save prerequisite change",
+            FormKind::QuestAssignment => "Save assignment change",
             _ => heading(kind),
         }
     ));

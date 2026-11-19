@@ -68,7 +68,14 @@ The Quest Board adds and removes a prerequisite within an owned campaign.
 The owned writer enforces an acyclic graph and the War Table displays
 acknowledged links. See [ADR 0011](../adr/0011-owned-quest-prerequisites.md)
 and the [qualification ledger](../reviews/2026-11-19-owned-quest-prerequisites/README.md).
-Explicit assignment and verified Herdr association are later slices.
+
+## L2c · Explicit quest assignment
+
+The Quest Board records, replaces and clears a named assignee for an owned
+quest. The owned writer checks the previous assignment and uses v5 to record
+the change. The Board and War Table read the acknowledged projection. See
+[ADR 0012](../adr/0012-owned-quest-assignment.md) and the [qualification ledger](../reviews/2026-11-19-owned-quest-assignment/README.md).
+Verified Herdr association remains a separate slice.
 
 ## M1 product proof
 

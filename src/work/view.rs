@@ -169,7 +169,7 @@ fn append_quest(lines: &mut Vec<String>, model: &Model) {
             lines.push(description.clone());
         }
         lines.push(format!(
-            "Assigned adventurer (source history): {}",
+            "Recorded assignee: {}",
             q.assignment
                 .as_ref()
                 .map_or("Unassigned", |a| a.name.as_str())

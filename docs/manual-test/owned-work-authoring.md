@@ -65,6 +65,20 @@ The first saved prerequisite edit upgrades the store to v4. Keep a pre-v4
 copy if you may need to downgrade. Removing all links keeps the store at v4.
 See the [verification ledger](../reviews/2026-11-19-owned-quest-prerequisites/README.md).
 
+## Record quest assignment
+
+Select an owned quest in the Board and press `y`. Use Up/Down to choose
+**Set assignee**, Tab to the name field, and enter a single-line name. Tab
+to **Save assignment change** and press Enter. The form shows the prior
+assignee. Select **Clear assignment** in the same form to remove a saved
+name. The default **Keep current assignment** choice leaves the store as is.
+
+Check the recorded assignee on the Board and War Table after restart.
+Test replacing and clearing it at a narrower width. The **Observe** action
+requires its own live binding even when an adventurer has a matching name.
+The first assignment edit upgrades the owned store to v5 and clearing the
+last assignment retains v5. See the [verification ledger](../reviews/2026-11-19-owned-quest-assignment/README.md).
+
 ## Input and recovery
 
 - Tab/Shift-Tab moves between fields and buttons. Enter inserts a newline in
