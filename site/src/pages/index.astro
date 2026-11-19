@@ -4,17 +4,19 @@ import EvidenceGallery from '../components/EvidenceGallery.astro';
 import HeroProof from '../components/HeroProof.astro';
 import InstallWorkbench from '../components/InstallWorkbench.astro';
 import MappingCards from '../components/MappingCards.astro';
+import QuestInbox from '../components/QuestInbox.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 ---
 
 <BaseLayout
   title="Questmancer — What is best in code?"
-  description="A pixel-art adventurers' guild for coordinating coding agents with Herdr."
+  description="A pixel-art Herdr guild for coordinating coding agents, tracking quests and reviewing changes against the exact Git revision."
 >
   <SiteHeader />
   <HeroProof />
   <InstallWorkbench />
+  <QuestInbox />
   <EvidenceGallery />
   <MappingCards />
   <SiteFooter />

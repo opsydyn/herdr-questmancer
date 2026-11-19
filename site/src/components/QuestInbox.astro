@@ -1,0 +1,69 @@
+---
+import { Image } from 'astro:assets';
+import inbox from '../assets/screenshots/quest-inbox.png';
+---
+
+<section class="section" id="quest-inbox" aria-labelledby="inbox-title">
+  <div class="section-heading section-heading--split">
+    <div><h2 id="inbox-title">Quest Inbox</h2></div>
+    <p>See which quest needs a decision and what evidence is ready to review. Your local work survives agent exit and restart.</p>
+  </div>
+
+  <div class="inbox-feature">
+    <figure class="evidence-card">
+      <Image
+        src={inbox}
+        alt="Quest Inbox parchment with a character picker review and a web migration decision"
+        format="png"
+        loading="lazy"
+      />
+      <figcaption>Production render with sample quests.</figcaption>
+    </figure>
+
+    <div class="inbox-workflow">
+      <p>
+        <strong>Triage by quest.</strong> Press <kbd>b</kbd>, then <kbd>i</kbd>.
+        Mark a summons seen or defer it for 15 minutes. Its deadline survives a restart.
+      </p>
+      <p>
+        <strong>Review the exact revision.</strong> Press <kbd>v</kbd> on an owned quest.
+        Read the pinned Git changes and any Pi or Codex report. Import the operator’s
+        passing check receipt for that commit, then explicitly settle the review.
+      </p>
+      <p>
+        Open the Inbox at startup with <code>inbox_on_start = true</code>.
+        Use <kbd>a</kbd> to create or open a local store. From the Board, press <kbd>w</kbd> for the War Table.
+      </p>
+      <a class="button button-secondary" href="https://github.com/opsydyn/herdr-questmancer/blob/main/docs/manual-test/quest-inbox.md">
+        Read the Inbox walkthrough <span aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  #quest-inbox { scroll-margin-top: 6rem; }
+
+  #inbox-title { font-size: clamp(1.65rem, 3.5vw, 2.8rem); line-height: 1.2; }
+
+  .inbox-feature {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(1rem, 3vw, 2.5rem);
+  }
+
+  .inbox-feature .evidence-card { grid-column: auto; }
+
+  .inbox-feature img { width: 100%; height: auto; }
+
+  .inbox-workflow p { color: var(--muted); }
+
+  .inbox-workflow strong, kbd { color: var(--paper); }
+
+  .inbox-workflow code { overflow-wrap: anywhere; }
+
+  @media (max-width: 860px) {
+    .inbox-feature { grid-template-columns: 1fr; }
+  }
+</style>

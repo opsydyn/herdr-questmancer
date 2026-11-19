@@ -7,6 +7,8 @@ import compactPartyWarm from '../assets/screenshots/compact-party-warm.png';
 
 import chronicleRecords from '../assets/screenshots/chronicle-records.png';
 import chronicleChapter from '../assets/screenshots/chronicle-chapter.png';
+import spriteSheet from '../../../docs/design/reviews/2026-11-18-native-portrait-alignment/sprite-sheet.png';
+import portraits from '../../../docs/design/reviews/2026-11-18-native-portrait-alignment/lineup.png';
 
 const evidence = [
   {
@@ -79,4 +81,50 @@ const evidence = [
       </figure>
     ))}
   </div>
+
+  <div class="section-heading section-heading--split party-heading">
+    <div><h2 id="characters">Choose your party.</h2></div>
+    <p>
+      Press <kbd>e</kbd> on a selected adventurer to preview 15 characters,
+      including Rat Royalty. The Hall and Delve keep their fit behind the picker
+      in compatible panes, with stable seating for up to 64 adventurers.
+    </p>
+  </div>
+  <div class="party-gallery">
+    <figure class="evidence-card">
+      <a href={spriteSheet.src} aria-label="Open the character sprite sheet at full size">
+        <Image src={spriteSheet} alt="Character sprite sheet with all 15 adventurers at world and roster scale, plus the Librarian" format="png" loading="lazy" />
+      </a>
+      <figcaption><span>Character sprite sheet</span> World and crowded-roster sprites.</figcaption>
+    </figure>
+    <figure class="evidence-card">
+      <a href={portraits.src} aria-label="Open the native portrait lineup at full size">
+        <Image src={portraits} alt="All 15 illustrated Adventurer portraits and the Librarian in compact 16-bit pixel art" format="png" loading="lazy" />
+      </a>
+      <figcaption><span>16-bit portraits</span> Larger illustrations for cards and previews on compatible terminals.</figcaption>
+    </figure>
+  </div>
 </section>
+
+<style>
+  .party-heading { margin-top: clamp(3rem, 6vw, 5rem); }
+
+  #characters { font-size: clamp(1.65rem, 3.5vw, 2.8rem); line-height: 1.2; scroll-margin-top: 7rem; }
+
+  .party-gallery {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    align-items: start;
+    gap: 0.9rem;
+  }
+
+  .party-gallery .evidence-card { grid-column: auto; }
+
+  .party-gallery a { display: block; }
+
+  .party-gallery img { width: 100%; height: auto; }
+
+  @media (max-width: 640px) {
+    .party-gallery { grid-template-columns: 1fr; }
+  }
+</style>

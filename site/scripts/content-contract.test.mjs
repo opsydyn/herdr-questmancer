@@ -46,5 +46,12 @@ test('launch page preserves the approved content contract', async () => {
   // the contributor path presented as the install — and claimed there was no
   // release at all, which stopped being true when v0.1.3 shipped binaries.
   assert.match(html, /herdr plugin install opsydyn\/herdr-questmancer/);
+  assert.ok(html.includes('herdr plugin update opsydyn.questmancer'));
+  assert.match(html, /href="#quest-inbox"/);
+  assert.match(html, /<h2\b[^>]*\bid="inbox-title"[^>]*>Quest Inbox<\/h2>/);
+  assert.ok(html.includes('inbox_on_start = true'));
+  assert.ok(html.includes('passing check receipt for that commit'));
+  assert.match(html, /alt="Character sprite sheet with all 15 adventurers/);
+  assert.match(html, /alt="All 15 illustrated Adventurer portraits/);
   assert.doesNotMatch(html, /no Cargo release yet/i);
 });
