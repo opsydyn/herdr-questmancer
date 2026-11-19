@@ -10,7 +10,7 @@ use questmancer::{
     persistence::{PersistenceClient, PersistenceWorker, WorkerPaths, load_work_cache},
     runtime_loop::dispatch_action_effects,
     ui::input::action_for_event_in,
-    work::{CampaignId, ObligationState, QuestId, QuestKind, QuestState, SourceId},
+    work::{CampaignId, ObligationState, QuestId, QuestKind, QuestState, SourceId, WorkSelection},
 };
 use std::{path::Path, process::Command as Process, time::Duration};
 
@@ -134,6 +134,73 @@ fn open_review(model: &mut Model) {
     assert_eq!(model.modal(), &Modal::QuestInbox { detail: false });
     let _ = key(model, KeyCode::Enter);
     assert_eq!(model.modal(), &Modal::QuestInbox { detail: true });
+}
+
+#[tokio::test]
+async fn board_quest_lifecycle_requires_confirmation_and_survives_restart() {
+    let directory =
+        tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+    let selection = StoreSelection::new(
+        directory.path().join("owned-work.json"),
+        SourceId::new("owned:lifecycle"),
+    )
+    .unwrap();
+    let quest = seed(&selection);
+    let paths = WorkerPaths::new(Some(directory.path().join("state.json")), None);
+    let (mut client, _, worker) = PersistenceWorker::start(paths.clone());
+    let mut model = Model::new(View::Guild);
+    let mut runtime = OwnedRuntime::start(&paths, &mut model).unwrap();
+    model
+        .authoring_mut()
+        .request_setup(selection.clone(), false);
+    apply(&mut runtime, &mut client, &mut model).await;
+    for (from, to) in [
+        (QuestState::Planned, QuestState::Active),
+        (QuestState::Active, QuestState::Completed),
+        (QuestState::Completed, QuestState::Active),
+    ] {
+        model.select_work(WorkSelection::Quest(quest.clone()));
+        let original = std::fs::read(&selection.path).unwrap();
+        let _ = key(&mut model, KeyCode::Char('t'));
+        assert_eq!(model.modal(), &Modal::OwnedAuthoring);
+        let preview = render(&model, 60, 24);
+        assert!(preview.contains(&format!("{from:?} → {to:?}")), "{preview}");
+        let _ = key(&mut model, KeyCode::Tab);
+        let _ = key(&mut model, KeyCode::Enter);
+        assert_eq!(std::fs::read(&selection.path).unwrap(), original);
+        assert!(model.authoring().ready());
+        let _ = key(&mut model, KeyCode::BackTab);
+        let _ = key(&mut model, KeyCode::Down);
+        let _ = key(&mut model, KeyCode::Tab);
+        let _ = key(&mut model, KeyCode::Enter);
+        apply(&mut runtime, &mut client, &mut model).await;
+        assert!(model.authoring().ready(), "{}", model.authoring().feedback);
+        assert_eq!(version(&selection.path), 3);
+        assert_eq!(model.work().quest(&quest).unwrap().state, to);
+        let _ = key(&mut model, KeyCode::Esc);
+        assert_eq!(model.modal(), &Modal::QuestBoard);
+        assert!(render(&model, 60, 24).contains("t: state"));
+        assert!(render(&model, 90, 28).contains(&format!("{to:?}")));
+        let _ = key(&mut model, KeyCode::Char('w'));
+        let graph = questmancer::work::graph::CampaignGraph::from_model(&model).unwrap();
+        assert_eq!(graph.nodes[&quest].state, to);
+    }
+    runtime.shutdown(&mut client, &mut model).await.unwrap();
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+    let reopened = OwnedStore::open(&selection.path, &selection.source).unwrap();
+    assert_eq!(
+        reopened.state().inventory().quests[&quest].state,
+        QuestState::Active
+    );
+    let cache = load_work_cache(&paths.work_path().unwrap())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        cache.projection.quest(&quest).unwrap().state,
+        QuestState::Active
+    );
 }
 
 #[tokio::test]

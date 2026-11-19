@@ -1,6 +1,6 @@
 //! One serial filesystem owner. Bounded requests/results; no detached writer on shutdown.
 use super::authoring::{
-    Draft, FormKind, Intent, Metadata, Phase, ReviewDetail, ReviewFormTarget, SelectedDetail,
+    Draft, FormKind, FormTarget, Intent, Metadata, Phase, ReviewDetail, SelectedDetail,
     artifact_kinds, quest_kind,
 };
 use super::{
@@ -445,7 +445,7 @@ impl OwnedRuntime {
         {
             model.authoring_mut().fields.clear();
             model.authoring_mut().draft_kind = None;
-            model.authoring_mut().review_target = None;
+            model.authoring_mut().form_target = None;
             model.authoring_mut().menu();
         }
         if let Some((id, incarnation)) = answer_id {
@@ -608,6 +608,17 @@ fn make_command(draft: &Draft, model: &Model) -> Result<Command, String> {
             description: optional(2),
             kind: quest_kind(&v[1]).ok_or("Choose quest kind")?,
         },
+        FormKind::QuestLifecycle => match (&draft.form_target, v.as_slice()) {
+            (Some(FormTarget::QuestLifecycle { id, change, .. }), [confirmation])
+                if confirmation == "confirm" =>
+            {
+                Action::ChangeQuestLifecycle {
+                    id: id.clone(),
+                    change: *change,
+                }
+            }
+            _ => return Err("Confirm the change for the selected owned quest".into()),
+        },
         FormKind::Request => Action::RequestDecision {
             id: ObligationId::new(source, &token),
             campaign: campaign()?,
@@ -655,10 +666,10 @@ fn review_action(
     source: &crate::work::SourceId,
     token: &str,
 ) -> Result<Action, String> {
-    match (draft.kind, &draft.review_target, draft.values.as_slice()) {
+    match (draft.kind, &draft.form_target, draft.values.as_slice()) {
         (
             FormKind::RequestReview,
-            Some(ReviewFormTarget::Quest { id, .. }),
+            Some(FormTarget::Quest { id, .. }),
             [
                 criterion,
                 repository,
@@ -707,7 +718,7 @@ fn review_action(
         }
         (
             FormKind::RecordCheck,
-            Some(ReviewFormTarget::Review {
+            Some(FormTarget::Review {
                 id, incarnation, ..
             }),
             [input],
@@ -726,7 +737,7 @@ fn review_action(
         }
         (
             FormKind::SettleReview,
-            Some(ReviewFormTarget::Review {
+            Some(FormTarget::Review {
                 id, incarnation, ..
             }),
             [confirmation],

@@ -178,6 +178,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         | Action::OpenAuthoring
         | Action::OpenInbox
         | Action::RequestReview
+        | Action::ChangeQuestLifecycle
         | Action::ImportCheck
         | Action::SettleReview
         | Action::LinkReviewAdventurer
@@ -785,6 +786,7 @@ fn intercept_work_board(
         Action::RequestReview => {
             open_review_form(model, crate::owned_work::authoring::FormKind::RequestReview);
         }
+        Action::ChangeQuestLifecycle => open_lifecycle_form(model),
         Action::OpenWarTable => model.open_war_table(),
         Action::Next => model.cycle_work(true),
         Action::Previous => model.cycle_work(false),
@@ -862,7 +864,7 @@ fn intercept_inbox(model: &mut Model, action: Action, commands: &mut Vec<AgentCo
 
 fn open_review_form(model: &mut Model, kind: crate::owned_work::authoring::FormKind) {
     use crate::{
-        owned_work::authoring::{FormKind, ReviewFormTarget, Surface},
+        owned_work::authoring::{FormKind, FormTarget},
         work::{ObligationState, inbox, view},
     };
     let target = if kind == FormKind::RequestReview {
@@ -876,7 +878,7 @@ fn open_review_form(model: &mut Model, kind: crate::owned_work::authoring::FormK
                     .quests
                     .get(id)
             })
-            .map(|q| ReviewFormTarget::Quest {
+            .map(|q| FormTarget::Quest {
                 id: q.id.clone(),
                 title: q.title.clone(),
             })
@@ -890,7 +892,7 @@ fn open_review_form(model: &mut Model, kind: crate::owned_work::authoring::FormK
                 return None;
             }
             let title = model.work().quest(o.quest.as_ref()?)?.title.clone();
-            Some(ReviewFormTarget::Review {
+            Some(FormTarget::Review {
                 id: o.id.clone(),
                 incarnation: o.incarnation.clone(),
                 title,
@@ -906,6 +908,45 @@ fn open_review_form(model: &mut Model, kind: crate::owned_work::authoring::FormK
         }.into());
         return;
     };
+    open_contextual_owned_form(model, kind, target);
+}
+
+fn open_lifecycle_form(model: &mut Model) {
+    use crate::{
+        owned_work::{
+            QuestLifecycleChange,
+            authoring::{FormKind, FormTarget},
+        },
+        work::WorkSelection,
+    };
+    let target = model.authoring().metadata.as_ref().and_then(|metadata| {
+        let WorkSelection::Quest(id) = model.work_selection()? else {
+            return None;
+        };
+        let quest = metadata.inventory.quests.get(id)?;
+        Some(FormTarget::QuestLifecycle {
+            id: id.clone(),
+            title: quest.title.clone(),
+            change: QuestLifecycleChange::for_state(quest.state)?,
+            revision: metadata.revision,
+        })
+    });
+    if let Some(target) = target {
+        open_contextual_owned_form(model, FormKind::QuestLifecycle, target);
+    } else {
+        model.set_action_feedback(
+            "Select a quest in your opened local store to change its state.".into(),
+        );
+    }
+}
+
+fn open_contextual_owned_form(
+    model: &mut Model,
+    kind: crate::owned_work::authoring::FormKind,
+    target: crate::owned_work::authoring::FormTarget,
+) {
+    use crate::owned_work::authoring::Surface;
+
     let from_inbox = match *model.modal() {
         Modal::QuestInbox { detail } => Some(detail),
         _ => None,
@@ -913,7 +954,7 @@ fn open_review_form(model: &mut Model, kind: crate::owned_work::authoring::FormK
     let authoring = model.authoring_mut();
     authoring.form(kind);
     if authoring.surface == Surface::Form(kind) && authoring.feedback.is_empty() {
-        authoring.review_target = Some(target);
+        authoring.form_target = Some(target);
         authoring.return_to_inbox = from_inbox;
     } else {
         let feedback = authoring.feedback.clone();

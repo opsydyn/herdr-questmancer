@@ -4,6 +4,17 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+- Press `t` on an owned quest in the Quest Board to mark it active, mark it
+  complete, or reopen it. The confirmed state survives restart and appears
+  on the War Table as well as the Board.
+- The first quest lifecycle change writes owned-work format v3. Existing v1
+  and v2 stores open directly. Keep a copy of the owned store before changing
+  quest state if a downgrade may be needed.
+- Release the owned store's writer lock on shutdown, even if a concurrent
+  process briefly retains a copied file descriptor.
+
+## [0.2.4] - 2026-11-19
+
 - Keep the Guild Hall and Delve fitted while the character picker is open.
 - Show `[e] Change character` on Adventurer cards, including the smallest card.
 

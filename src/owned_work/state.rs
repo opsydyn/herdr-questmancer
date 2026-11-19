@@ -34,6 +34,38 @@ pub struct Command {
     pub at: Timestamp,
     pub action: Action,
 }
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum QuestLifecycleChange {
+    MarkActive,
+    MarkComplete,
+    Reopen,
+}
+impl QuestLifecycleChange {
+    pub(crate) const fn for_state(state: QuestState) -> Option<Self> {
+        match state {
+            QuestState::Planned => Some(Self::MarkActive),
+            QuestState::Active => Some(Self::MarkComplete),
+            QuestState::Completed => Some(Self::Reopen),
+            _ => None,
+        }
+    }
+
+    pub(crate) const fn states(self) -> (QuestState, QuestState) {
+        match self {
+            Self::MarkActive => (QuestState::Planned, QuestState::Active),
+            Self::MarkComplete => (QuestState::Active, QuestState::Completed),
+            Self::Reopen => (QuestState::Completed, QuestState::Active),
+        }
+    }
+
+    pub(crate) const fn label(self) -> &'static str {
+        match self {
+            Self::MarkActive => "Mark active",
+            Self::MarkComplete => "Mark complete",
+            Self::Reopen => "Reopen quest",
+        }
+    }
+}
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(tag = "operation", deny_unknown_fields)]
 pub enum Action {
@@ -48,6 +80,10 @@ pub enum Action {
         title: String,
         description: Option<String>,
         kind: QuestKind,
+    },
+    ChangeQuestLifecycle {
+        id: QuestId,
+        change: QuestLifecycleChange,
     },
     RequestDecision {
         id: ObligationId,
@@ -138,6 +174,8 @@ pub enum CommandError {
     Conflict,
     #[error("campaign, quest or decision reference does not match")]
     Reference,
+    #[error("requested change does not match the quest's current state")]
+    QuestLifecycle,
     #[error("check receipt does not match the pinned repository, revision, recipe or runner")]
     ReviewMismatch,
     #[error(
@@ -190,6 +228,14 @@ impl OwnedState {
         !self.reviews.is_empty()
     }
 
+    pub(crate) fn has_quest_lifecycle(&self) -> bool {
+        // Lifecycle changes never return a quest to Planned, so v3 outlives its receipts.
+        self.inventory
+            .quests
+            .values()
+            .any(|quest| quest.state != QuestState::Planned)
+    }
+
     /// Protected on load as well as before publication. No live/session facts exist here.
     pub fn validate(&self) -> Result<(), CommandError> {
         if !owned_source(&self.source)
@@ -220,7 +266,7 @@ impl OwnedState {
                 && text(&c.name)
                 && optional(c.objective.as_deref())
         }) && self.inventory.quests.values().all(|q| {
-            q.state == QuestState::Planned
+            QuestLifecycleChange::for_state(q.state).is_some()
                 && q.assignment.is_none()
                 && q.dependencies.is_empty()
                 && q.kind != QuestKind::Unspecified
@@ -264,6 +310,7 @@ impl OwnedState {
                 .is_some_and(|o| o.kind == ObligationKind::Review)
         });
         let mut ids = BTreeSet::new();
+        let mut quest_receipts = BTreeMap::new();
         let first = self.revision - self.receipts.len() as u64;
         for (offset, r) in self.receipts.iter().enumerate() {
             valid &= r.revision == first + offset as u64 + 1
@@ -271,8 +318,16 @@ impl OwnedState {
                 && r.command.source == self.source
                 && command_valid(&r.command)
                 && ids.insert(&r.command.id)
-                && self.has_effect(r);
+                && self.has_effect(r, &mut quest_receipts);
         }
+        valid &= self
+            .inventory
+            .quests
+            .values()
+            .all(|quest| match quest_receipts.get(&quest.id) {
+                Some(&(revision, state)) => quest.revision == revision && quest.state == state,
+                None => quest.revision <= first,
+            });
         if valid {
             Ok(())
         } else {
@@ -324,7 +379,11 @@ impl OwnedState {
                 }
         })
     }
-    fn has_effect(&self, r: &Receipt) -> bool {
+    fn has_effect<'a>(
+        &self,
+        r: &'a Receipt,
+        quest_receipts: &mut BTreeMap<&'a QuestId, (u64, QuestState)>,
+    ) -> bool {
         match &r.command.action {
             Action::CreateCampaign {
                 id,
@@ -340,12 +399,26 @@ impl OwnedState {
                 description,
                 kind,
             } => self.inventory.quests.get(id).is_some_and(|q| {
-                q.revision == r.revision
-                    && &q.campaign == campaign
+                &q.campaign == campaign
                     && &q.title == title
                     && &q.description == description
                     && &q.kind == kind
+                    && quest_receipts
+                        .insert(id, (r.revision, QuestState::Planned))
+                        .is_none()
             }),
+            Action::ChangeQuestLifecycle { id, change } => {
+                let (from, to) = change.states();
+                if !self.inventory.quests.contains_key(id)
+                    || quest_receipts
+                        .get(id)
+                        .is_some_and(|&(_, prior)| prior != from)
+                {
+                    return false;
+                }
+                quest_receipts.insert(id, (r.revision, to));
+                true
+            }
             Action::RequestDecision {
                 id,
                 campaign,
@@ -487,6 +560,20 @@ pub fn transition(state: &OwnedState, command: &Command) -> Result<Transition, C
     match &command.action {
         Action::CreateCampaign { .. } => create_campaign(&mut next, command, revision)?,
         Action::CreateQuest { .. } => create_quest(&mut next, command, revision)?,
+        Action::ChangeQuestLifecycle { id, change } => {
+            own(id.belongs_to(&next.source))?;
+            let quest = next
+                .inventory
+                .quests
+                .get_mut(id)
+                .ok_or(CommandError::Reference)?;
+            let (from, to) = change.states();
+            if quest.state != from {
+                return Err(CommandError::QuestLifecycle);
+            }
+            quest.state = to;
+            quest.revision = revision;
+        }
         Action::RequestDecision { .. } => request_decision(&mut next, command, revision)?,
         Action::AnswerDecision { .. } => answer_decision(&mut next, command, revision)?,
         Action::RegisterArtifact { .. } => register_artifact(&mut next, command, revision)?,
@@ -906,6 +993,7 @@ fn command_valid(c: &Command) -> bool {
                 kind,
                 ..
             } => text(title) && optional(description.as_deref()) && *kind != QuestKind::Unspecified,
+            Action::ChangeQuestLifecycle { .. } => true,
             Action::RequestDecision {
                 incarnation,
                 prompt,

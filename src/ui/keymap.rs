@@ -59,6 +59,11 @@ pub const BINDINGS: &[Binding] = &[
         action: Action::RequestReview,
     },
     Binding {
+        keys: "t (Board)",
+        description: "Change the selected owned quest's state",
+        action: Action::ChangeQuestLifecycle,
+    },
+    Binding {
         keys: "c (Review)",
         description: "Import a local check receipt",
         action: Action::ImportCheck,

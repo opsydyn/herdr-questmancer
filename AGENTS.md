@@ -341,7 +341,7 @@ service beyond Herdr's local socket.
 - `config.toml`: user-owned, read-only configuration.
 - `runtime.json`: ephemeral singleton registration.
 - `state.json`: atomic v2 local intent, persona assignments and optional owned path/source pin; v1 migrates explicitly.
-- `owned-work.json`: explicitly selected authoritative work snapshot, answer records and bounded receipts; sibling lifetime writer lock. The first saved revision review advances the owned store from v1 to v2.
+- `owned-work.json`: explicitly selected authoritative work snapshot, answer records and bounded receipts; sibling lifetime writer lock. The first saved revision review advances v1 to v2. A successful quest lifecycle change advances either version to v3, which persists beyond receipt eviction.
 - `chronicle.jsonl`: append-only semantic history.
 - `work-state.json`: versioned source work facts, revision tombstones and local
   seen/deferred intent. Atomic acknowledged publication; no Herdr topology,

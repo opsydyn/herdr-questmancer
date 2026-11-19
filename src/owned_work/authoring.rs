@@ -1,5 +1,5 @@
 //! Ephemeral forms and typed intent. No filesystem, clock, identity allocation or agent effects.
-use super::{Answer, Review, StoreSelection};
+use super::{Answer, QuestLifecycleChange, Review, StoreSelection};
 use crate::{
     app::{Modal, Model},
     work::{
@@ -35,7 +35,7 @@ pub struct ReviewDetail {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum ReviewFormTarget {
+pub(crate) enum FormTarget {
     Quest {
         id: QuestId,
         title: String,
@@ -45,6 +45,12 @@ pub(crate) enum ReviewFormTarget {
         incarnation: String,
         title: String,
         head: String,
+    },
+    QuestLifecycle {
+        id: QuestId,
+        title: String,
+        change: QuestLifecycleChange,
+        revision: u64,
     },
 }
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -64,6 +70,7 @@ pub enum FormKind {
     OpenStore,
     Campaign,
     Quest,
+    QuestLifecycle,
     Request,
     Answer,
     Artifact,
@@ -150,7 +157,7 @@ pub struct Draft {
     pub campaign: Option<CampaignId>,
     pub decision: Option<(ObligationId, String)>,
     pub revision: u64,
-    pub(crate) review_target: Option<ReviewFormTarget>,
+    pub(crate) form_target: Option<FormTarget>,
 }
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Authoring {
@@ -173,7 +180,7 @@ pub struct Authoring {
     pub(crate) pending: Option<Intent>,
     pub(crate) return_after_read: bool,
     pub(crate) draft_kind: Option<FormKind>,
-    pub(crate) review_target: Option<ReviewFormTarget>,
+    pub(crate) form_target: Option<FormTarget>,
     pub(crate) return_to_inbox: Option<bool>,
 }
 impl Phase {
@@ -341,6 +348,13 @@ impl Authoring {
                     ("settle".into(), "Settle this exact revision".into()),
                 ],
             )],
+            FormKind::QuestLifecycle => vec![Field::choices(
+                "Confirmation",
+                vec![
+                    (String::new(), "Keep current state".into()),
+                    ("confirm".into(), "Confirm this change".into()),
+                ],
+            )],
             FormKind::Answer => {
                 let Some(detail) = &self.detail else {
                     self.feedback = "Load the selected decision before answering.".into();
@@ -418,6 +432,10 @@ impl Authoring {
             self.feedback = "Choose Settle this exact revision to confirm.".into();
             return;
         }
+        if kind == FormKind::QuestLifecycle && values.first().is_none_or(|s| s != "confirm") {
+            self.feedback = "Choose Confirm this change to save the new quest state.".into();
+            return;
+        }
         if kind == FormKind::RequestReview
             && values
                 .get(..6)
@@ -443,6 +461,10 @@ impl Authoring {
             }
             return;
         }
+        let revision = match self.form_target {
+            Some(FormTarget::QuestLifecycle { revision, .. }) => revision,
+            _ => self.metadata.as_ref().map_or(0, |m| m.revision),
+        };
         // Random source for CreateStore is supplied only at the runtime effect boundary.
         self.pending = Some(Intent::Submit(Draft {
             kind,
@@ -452,8 +474,8 @@ impl Authoring {
                 .detail
                 .as_ref()
                 .map(|d| (d.id.clone(), d.incarnation.clone())),
-            revision: self.metadata.as_ref().map_or(0, |m| m.revision),
-            review_target: self.review_target.clone(),
+            revision,
+            form_target: self.form_target.clone(),
         }));
         self.phase = Phase::Saving;
         self.feedback = "Saving; submitted text is frozen.".into();
@@ -464,7 +486,7 @@ impl Authoring {
         }
         self.fields.clear();
         self.draft_kind = None;
-        self.review_target = None;
+        self.form_target = None;
         self.menu();
         self.feedback = "Draft discarded.".into();
     }

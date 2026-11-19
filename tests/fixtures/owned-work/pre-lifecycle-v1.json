@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "state": {
+    "source": "owned:promo",
+    "revision": 4,
+    "inventory": {
+      "campaigns": {
+        "owned:promo/release": {
+          "id": "owned:promo/release",
+          "revision": 1,
+          "name": "Guild release",
+          "objective": null,
+          "state": "Planned"
+        }
+      },
+      "quests": {
+        "owned:promo/picker": {
+          "id": "owned:promo/picker",
+          "campaign": "owned:promo/release",
+          "revision": 3,
+          "title": "Character picker",
+          "description": null,
+          "kind": "Ship",
+          "state": "Planned",
+          "assignment": null,
+          "dependencies": []
+        },
+        "owned:promo/web": {
+          "id": "owned:promo/web",
+          "campaign": "owned:promo/release",
+          "revision": 2,
+          "title": "Web migration",
+          "description": null,
+          "kind": "Ship",
+          "state": "Planned",
+          "assignment": null,
+          "dependencies": []
+        }
+      },
+      "obligations": {
+        "owned:promo/compatibility": {
+          "id": "owned:promo/compatibility",
+          "campaign": "owned:promo/release",
+          "quest": "owned:promo/web",
+          "revision": 4,
+          "incarnation": "compatibility-1",
+          "kind": "Decision",
+          "responsible": "Human",
+          "state": "Open",
+          "prompt": "Keep the old endpoint for one release?",
+          "context": null,
+          "action": "Answer decision",
+          "resolution": "Explicit human answer committed to the owned store",
+          "requested_at": 100000
+        }
+      },
+      "artifacts": {}
+    },
+    "decisions": {
+      "owned:promo/compatibility": {
+        "requested_by": "Questmancer",
+        "answer": null
+      }
+    },
+    "receipts": [
+      {
+        "command": {
+          "id": "promo-0",
+          "source": "owned:promo",
+          "expected_revision": 0,
+          "actor": "Questmancer",
+          "at": 100000,
+          "action": {
+            "operation": "CreateCampaign",
+            "id": "owned:promo/release",
+            "name": "Guild release",
+            "objective": null
+          }
+        },
+        "revision": 1
+      },
+      {
+        "command": {
+          "id": "promo-1",
+          "source": "owned:promo",
+          "expected_revision": 1,
+          "actor": "Questmancer",
+          "at": 100000,
+          "action": {
+            "operation": "CreateQuest",
+            "id": "owned:promo/web",
+            "campaign": "owned:promo/release",
+            "title": "Web migration",
+            "description": null,
+            "kind": "Ship"
+          }
+        },
+        "revision": 2
+      },
+      {
+        "command": {
+          "id": "promo-2",
+          "source": "owned:promo",
+          "expected_revision": 2,
+          "actor": "Questmancer",
+          "at": 100000,
+          "action": {
+            "operation": "CreateQuest",
+            "id": "owned:promo/picker",
+            "campaign": "owned:promo/release",
+            "title": "Character picker",
+            "description": null,
+            "kind": "Ship"
+          }
+        },
+        "revision": 3
+      },
+      {
+        "command": {
+          "id": "promo-3",
+          "source": "owned:promo",
+          "expected_revision": 3,
+          "actor": "Questmancer",
+          "at": 100000,
+          "action": {
+            "operation": "RequestDecision",
+            "id": "owned:promo/compatibility",
+            "campaign": "owned:promo/release",
+            "quest": "owned:promo/web",
+            "incarnation": "compatibility-1",
+            "prompt": "Keep the old endpoint for one release?",
+            "context": null
+          }
+        },
+        "revision": 4
+      }
+    ]
+  }
+}

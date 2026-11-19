@@ -54,6 +54,15 @@ struct Lease {
     lock: File,
     lock_name: OsString,
 }
+
+impl Drop for Lease {
+    fn drop(&mut self) {
+        // A concurrent fork may briefly retain the descriptor until exec.
+        // Release the lock when the owning lease ends.
+        let _ = self.lock.unlock();
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Stamp {
     identity: Identity,
@@ -210,7 +219,7 @@ impl OwnedStore {
 fn encode(state: &OwnedState) -> Result<Vec<u8>, StoreError> {
     state.validate()?;
     let mut bytes = serde_json::to_vec(&Snapshot {
-        version: if state.has_reviews() { 2 } else { 1 },
+        version: snapshot_version(state),
         state: state.clone(),
     })
     .map_err(io)?;
@@ -220,11 +229,20 @@ fn encode(state: &OwnedState) -> Result<Vec<u8>, StoreError> {
     }
     Ok(bytes)
 }
+fn snapshot_version(state: &OwnedState) -> u32 {
+    if state.has_quest_lifecycle() {
+        3
+    } else if state.has_reviews() {
+        2
+    } else {
+        1
+    }
+}
 fn decode(bytes: &[u8]) -> Result<OwnedState, StoreError> {
     let value = strict_json::parse(bytes).map_err(|e| StoreError::Protected(e.to_string()))?;
     if !matches!(
         value.get("version").and_then(serde_json::Value::as_u64),
-        Some(1 | 2)
+        Some(1..=3)
     ) {
         return Err(StoreError::Protected("unsupported version".into()));
     }
@@ -235,9 +253,9 @@ fn decode(bytes: &[u8]) -> Result<OwnedState, StoreError> {
     }
     let snapshot: Snapshot =
         serde_json::from_value(value).map_err(|e| StoreError::Protected(e.to_string()))?;
-    if (snapshot.version == 2) != snapshot.state.has_reviews() {
+    if snapshot.version != snapshot_version(&snapshot.state) {
         return Err(StoreError::Protected(
-            "owned review format does not match its version".into(),
+            "owned snapshot contents do not match its version".into(),
         ));
     }
     snapshot
@@ -439,8 +457,8 @@ mod tests {
     use super::*;
     use crate::{
         domain::Timestamp,
-        owned_work::{Action, CommandId},
-        work::CampaignId,
+        owned_work::{Action, CommandId, QuestLifecycleChange},
+        work::{CampaignId, QuestId, QuestKind, QuestState},
     };
     fn setup() -> (tempfile::TempDir, OwnedStore, Command) {
         let dir =
@@ -483,6 +501,89 @@ mod tests {
         assert_eq!(store.execute(&command).unwrap().revision, 1);
         assert_eq!(store.execute(&command).unwrap().revision, 1);
         assert_eq!(store.state().inventory().campaigns.len(), 1);
+    }
+    #[test]
+    fn owner_shutdown_releases_lock_with_an_inherited_descriptor() {
+        let (dir, store, command) = setup();
+        let path = dir.path().join("owned-work.json");
+        let inherited = store.lease.lock.try_clone().unwrap();
+        assert!(matches!(
+            OwnedStore::open(&path, &command.source),
+            Err(StoreError::Busy)
+        ));
+        drop(store);
+        let reopened = OwnedStore::open(&path, &command.source).unwrap();
+        drop(inherited);
+        assert!(matches!(
+            OwnedStore::open(&path, &command.source),
+            Err(StoreError::Busy)
+        ));
+        drop(reopened);
+    }
+
+    #[test]
+    fn first_lifecycle_save_recovers_v3_after_an_indeterminate_commit() {
+        let (dir, mut store, create_campaign) = setup();
+        let source = create_campaign.source.clone();
+        let quest = QuestId::new(&source, "quest");
+        store.execute(&create_campaign).unwrap();
+        let mut change = Command {
+            id: CommandId::new("quest"),
+            expected_revision: 1,
+            action: Action::CreateQuest {
+                id: quest.clone(),
+                campaign: CampaignId::new(&source, "campaign"),
+                title: "Recover a lifecycle change".into(),
+                description: None,
+                kind: QuestKind::Ship,
+            },
+            ..create_campaign
+        };
+        store.execute(&change).unwrap();
+        change.id = CommandId::new("start");
+        change.expected_revision = 2;
+        change.action = Action::ChangeQuestLifecycle {
+            id: quest.clone(),
+            change: QuestLifecycleChange::MarkActive,
+        };
+
+        let path = dir.path().join("owned-work.json");
+        let original = std::fs::read(&path).unwrap();
+        assert!(matches!(
+            store.execute_with(&change, |step| {
+                if step == PublishStep::FileSynced {
+                    Err(io("injected pre-rename failure"))
+                } else {
+                    Ok(())
+                }
+            }),
+            Err(StoreError::Io(_))
+        ));
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        assert!(matches!(
+            store.execute_with(&change, |step| {
+                if step == PublishStep::Replaced {
+                    Err(io("injected directory sync failure"))
+                } else {
+                    Ok(())
+                }
+            }),
+            Err(StoreError::Indeterminate(_))
+        ));
+        assert_eq!(
+            store.state().inventory().quests[&quest].state,
+            QuestState::Planned
+        );
+        let receipt = store.reconcile().unwrap().unwrap();
+        assert_eq!(snapshot_version(store.checked_state().unwrap()), 3);
+        assert_eq!(receipt.revision, 3);
+        drop(store);
+        let mut reopened = OwnedStore::open(&path, &source).unwrap();
+        assert_eq!(
+            reopened.state().inventory().quests[&quest].state,
+            QuestState::Active
+        );
+        assert_eq!(reopened.execute(&change).unwrap(), receipt);
     }
     #[test]
     fn after_replacement_loss_blocks_commands_then_recovers_the_same_receipt() {

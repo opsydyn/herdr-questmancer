@@ -1,0 +1,31 @@
+{
+  "candidate_sha256": "5d291df00e5bbf8bf3a5847377a354c200280d19817cd766974654e68d410c1c",
+  "published_0_2_4_sha256": "e265e082d5925ca7ad6455bd3fb187a6af525f3643026b09b492f8c31e5f295a",
+  "acknowledged": [
+    {
+      "revision": 6,
+      "state": "Active",
+      "columns": 120,
+      "rows": 34
+    },
+    {
+      "revision": 7,
+      "state": "Completed",
+      "columns": 60,
+      "rows": 20
+    },
+    {
+      "revision": 8,
+      "state": "Active",
+      "columns": 120,
+      "rows": 34
+    }
+  ],
+  "legacy_open_kept_bytes": true,
+  "confirmed_after_restart": true,
+  "open_summons_and_review_unchanged": true,
+  "published_binary_refused_v3_and_preserved_bytes": true,
+  "normal_quit_and_terminal_teardown_sequences": true,
+  "test_directory_removed": true,
+  "herdr_resources_created": 0
+}

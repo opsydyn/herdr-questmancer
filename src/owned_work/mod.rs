@@ -7,8 +7,8 @@ pub use review::{
     CheckReceipt, CheckResult, ReportAuthor, Review, ReviewReport, ReviewSettlement, ReviewTarget,
 };
 pub use state::{
-    Action, Answer, Command, CommandError, CommandId, DecisionDetail, OwnedState, Receipt,
-    Transition, transition,
+    Action, Answer, Command, CommandError, CommandId, DecisionDetail, OwnedState,
+    QuestLifecycleChange, Receipt, Transition, transition,
 };
 pub use store::{OwnedStore, StoreError};
 

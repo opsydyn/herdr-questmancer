@@ -54,6 +54,15 @@ fixture evidence supports interaction review before the next live-work slice.
 The [production Inbox plan](2026-11-18-production-quest-inbox.md) records the
 Pi and Codex dogfood, the Board-first delivery and the opt-in Inbox home.
 
+## L2a · Explicit quest lifecycle
+
+The Quest Board can mark an owned quest active, mark it complete and reopen
+it. The owned store records the transition with its receipt. See
+[ADR 0010](../adr/0010-owned-quest-lifecycle.md) and the
+[qualification ledger](../reviews/2026-11-19-owned-quest-lifecycle/README.md).
+Dependency editing and assignment remain later slices. The shipped authoring
+and Inbox still have their prepared human Ghostty review.
+
 ## M1 product proof
 
 Fixture campaign: Replace Authentication Layer. Investigation is completed; API

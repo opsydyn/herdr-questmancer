@@ -1,7 +1,7 @@
 //! Contextual parchment using the existing production scene overlay path.
 use crate::{
     app::Model,
-    owned_work::authoring::{Authoring, FormKind, ReviewFormTarget, Surface, menu_entries},
+    owned_work::authoring::{Authoring, FormKind, FormTarget, Surface, menu_entries},
     ui::{
         theme::{PARCHMENT, PARCHMENT_BORDER},
         work_board::wrap_text,
@@ -19,6 +19,7 @@ pub fn heading(kind: FormKind) -> &'static str {
         FormKind::OpenStore => "Open existing store",
         FormKind::Campaign => "Create campaign",
         FormKind::Quest => "Create quest",
+        FormKind::QuestLifecycle => "Change quest state",
         FormKind::Request => "Request decision",
         FormKind::Answer => "Answer decision",
         FormKind::Artifact => "Register artifact",
@@ -220,12 +221,12 @@ fn form_rows(a: &Authoring, kind: FormKind, width: u16, body: &mut Vec<String>) 
         kind,
         FormKind::RequestReview | FormKind::RecordCheck | FormKind::SettleReview
     ) {
-        match &a.review_target {
-            Some(ReviewFormTarget::Quest { title, .. }) => {
+        match &a.form_target {
+            Some(FormTarget::Quest { title, .. }) => {
                 body.push(format!("Quest: {title}"));
                 body.push("A new request replaces any open review for this quest.".into());
             }
-            Some(ReviewFormTarget::Review { title, head, .. }) => {
+            Some(FormTarget::Review { title, head, .. }) => {
                 body.push(format!("Quest: {title}"));
                 body.push(format!("Candidate: {head}"));
                 if kind == FormKind::RecordCheck {
@@ -234,8 +235,15 @@ fn form_rows(a: &Authoring, kind: FormKind, width: u16, body: &mut Vec<String>) 
                     );
                 }
             }
-            None => {}
+            Some(FormTarget::QuestLifecycle { .. }) | None => {}
         }
+    }
+    if kind == FormKind::QuestLifecycle
+        && let Some(FormTarget::QuestLifecycle { title, change, .. }) = &a.form_target
+    {
+        let (from, to) = change.states();
+        body.push(format!("Quest: {title}"));
+        body.push(format!("{} · {from:?} → {to:?}", change.label()));
     }
     if kind == FormKind::Answer {
         body.extend(detail_rows(a, false));

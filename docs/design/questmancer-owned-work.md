@@ -11,6 +11,12 @@ explicit setup, remembered selection and typed command/detail interaction. See i
 [receipt](../reviews/2026-10-03-owned-authoring/README.md) for engineering evidence
 and outstanding visual/native gates.
 
+L2a adds explicit quest lifecycle commands through the Board. The first
+confirmed transition writes owned-store v3 with the updated quest and its
+receipt. Decision answers, revision reviews and Herdr execution retain
+separate authority. See the [lifecycle decision](../adr/0010-owned-quest-lifecycle.md)
+and its [qualification ledger](../reviews/2026-11-19-owned-quest-lifecycle/README.md).
+
 This extends the [living control-plane contract](questmancer-living-control-plane.md)
 for a work source we own. External sources retain authority over their own facts.
 It supersedes the requirement to qualify Herdr Projects as the next product step.

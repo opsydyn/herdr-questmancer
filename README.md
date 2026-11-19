@@ -241,6 +241,7 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `b` | Open the Quest Board |
 | `i` in Quest Board | Open the Quest Inbox |
 | `v` in Quest Board | Request a revision review for the selected owned quest |
+| `t` in Quest Board | Change the selected owned quest's state |
 | `w` | Open or close the War Table |
 | `a` in Quest Board | Open owned-work Actions and store setup |
 | `Tab` in Chronicle | Last-hour guild chapter / records |
@@ -792,8 +793,8 @@ registered PR link. Press `c` to import the chosen runner's receipt. Press
 `x` to confirm settlement once the pinned change summary is available and the
 required check has passed for that candidate. The review and its outcome
 survive a restart. See the [local review walkthrough](docs/manual-test/quest-inbox.md).
-The first saved revision review updates the owned store to v2. Keep a copy
-of the store before starting a revision review if you may need to downgrade.
+The first saved revision review upgrades a v1 owned store to v2. Keep a copy
+of the store before upgrading its format if you may need to downgrade.
 
 ## War Table
 
@@ -838,6 +839,12 @@ Open the Board with `b`, then Actions with `a`. Explicitly Create/Open a store,
 choose an owned campaign (including empty campaigns), and create a campaign/quest,
 request/answer a decision or register an artifact. Decisions keeps open and
 answered records. Answers are read from the checked owner; seen/defer is not Answer.
+
+Select an owned quest on the Board and press `t` to mark it active, mark it
+complete, or reopen it. The form shows the proposed transition and requires
+explicit confirmation. The Board and War Table recover the saved state after
+restart. Open decisions and review summons keep their own status. The first
+successful quest-state change writes owned-store format v3.
 
 Tab moves focus, Enter activates a focused button or inserts a multiline newline,
 Up/Down or wheel reads context, and bracketed paste is literal and bounded. Esc keeps

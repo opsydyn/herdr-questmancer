@@ -28,7 +28,25 @@ the URI or certify the artifact. Store details also lists campaign-level spoils.
 
 An external Board selection clears authoring context. Choose an owned campaign
 explicitly; external records cannot be answered or mutated through these forms.
-Quest creation remains Planned. No agent is started, assigned or messaged.
+Quest creation starts at Planned.
+
+## Change quest state
+
+Select the quest row in the Board and press `t`. Read the quest name, current
+state and next state. Use Up/Down to choose **Confirm this change**, Tab to
+**Change quest state**, and press Enter. The available transitions are Planned
+to Active, Active to Completed, and Completed back to Active. When the Board
+reports the save, confirm the state on the Board and the War Table (`w`). Open
+decisions and review summons remain actionable at each state.
+
+Try the default **Keep current state** choice and confirm that the state stays
+the same. Repeat in a narrow pane and check that the transition and confirmation
+are reachable by keyboard. Quit and reopen the same profile and verify the saved
+state. Use Store details to verify that the existing source identity is retained.
+
+Opening a v1 or v2 store preserves its bytes. The first successful lifecycle
+change upgrades it to v3. Keep a copy of the owned store before that change if
+you may need to downgrade. See the [verification ledger](../reviews/2026-11-19-owned-quest-lifecycle/README.md).
 
 ## Input and recovery
 

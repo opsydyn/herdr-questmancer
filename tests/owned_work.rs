@@ -2,11 +2,15 @@ use questmancer::{
     app::{Model, View},
     domain::Timestamp,
     owned_work::{
-        Action, Command, CommandError, CommandId, OwnedState, OwnedStore, StoreError, transition,
+        Action, Command, CommandError, CommandId, OwnedState, OwnedStore, QuestLifecycleChange,
+        StoreError, transition,
     },
     persistence::{PersistenceWorker, WorkerPaths, load_work_cache},
     sources::local_work::LocalWorkSource,
-    work::{ArtifactId, ArtifactKind, CampaignId, ObligationId, QuestId, QuestKind, SourceId},
+    work::{
+        ArtifactId, ArtifactKind, CampaignId, ObligationId, QuestId, QuestKind, QuestState,
+        SourceId,
+    },
 };
 
 fn command(source: &SourceId, revision: u64, action: Action) -> Command {
@@ -328,6 +332,137 @@ fn evicted_receipt_cannot_reexecute_an_old_command() {
     assert!(state.receipt(&first.id).is_none());
     assert_eq!(transition(&state, &first), Err(CommandError::Stale));
     assert_eq!(state.inventory().campaigns.len(), 129);
+}
+
+const PRE_LIFECYCLE_V1: &[u8] = include_bytes!("fixtures/owned-work/pre-lifecycle-v1.json");
+const PRE_LIFECYCLE_V2: &[u8] = include_bytes!("fixtures/owned-work/pre-lifecycle-v2.json");
+
+#[test]
+fn legacy_stores_upgrade_on_a_lifecycle_write_and_keep_v3_after_receipt_eviction() {
+    for legacy in [PRE_LIFECYCLE_V1, PRE_LIFECYCLE_V2] {
+        let dir = tempdir();
+        let path = dir.path().join("owned-work.json");
+        let source = SourceId::new("owned:promo");
+        let quest = QuestId::new(&source, "picker");
+        std::fs::write(&path, legacy).unwrap();
+        let mut store = OwnedStore::open(&path, &source).unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), legacy);
+        let obligations = store.state().inventory().obligations.clone();
+        let review_id = ObligationId::new(&source, "picker-review");
+        let review = store.state().review(&review_id).cloned();
+        let start = command(
+            &source,
+            store.state().revision(),
+            Action::ChangeQuestLifecycle {
+                id: quest.clone(),
+                change: QuestLifecycleChange::MarkActive,
+            },
+        );
+        let receipt = store.execute(&start).unwrap();
+        assert_eq!(receipt.command.actor, "Questmancer");
+        assert_eq!(
+            store.state().inventory().quests[&quest].revision,
+            receipt.revision
+        );
+        for revision in receipt.revision..receipt.revision + 128 {
+            store
+                .execute(&command(
+                    &source,
+                    revision,
+                    Action::RegisterArtifact {
+                        id: ArtifactId::new(&source, &format!("artifact-{revision}")),
+                        campaign: CampaignId::new(&source, "release"),
+                        quest: Some(quest.clone()),
+                        kind: ArtifactKind::Report,
+                        title: "Trial evidence".into(),
+                        uri: None,
+                    },
+                ))
+                .unwrap();
+        }
+        drop(store);
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()["version"],
+            3
+        );
+        let mut store = OwnedStore::open(&path, &source).unwrap();
+        assert!(store.state().receipt(&start.id).is_none());
+        assert_eq!(
+            store.state().inventory().quests[&quest].state,
+            QuestState::Active
+        );
+        assert_eq!(store.state().inventory().obligations, obligations);
+        assert_eq!(store.state().review(&review_id), review.as_ref());
+        assert!(matches!(
+            store.execute(&start),
+            Err(StoreError::Command(CommandError::Stale))
+        ));
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+    }
+}
+
+#[test]
+fn lifecycle_rejects_wrong_source_state_and_revision_and_checks_retained_receipts() {
+    let dir = tempdir();
+    let path = dir.path().join("owned-work.json");
+    let source = SourceId::new("owned:promo");
+    let quest = QuestId::new(&source, "picker");
+    std::fs::write(&path, PRE_LIFECYCLE_V2).unwrap();
+    let mut store = OwnedStore::open(&path, &source).unwrap();
+    let change = |revision, change| {
+        command(
+            &source,
+            revision,
+            Action::ChangeQuestLifecycle {
+                id: quest.clone(),
+                change,
+            },
+        )
+    };
+    let start = change(5, QuestLifecycleChange::MarkActive);
+    let mut foreign = start.clone();
+    foreign.action = Action::ChangeQuestLifecycle {
+        id: QuestId::new(&SourceId::new("external"), "picker"),
+        change: QuestLifecycleChange::MarkActive,
+    };
+    for (invalid, rejection) in [
+        (foreign, CommandError::ForeignSource),
+        (
+            change(4, QuestLifecycleChange::MarkActive),
+            CommandError::Stale,
+        ),
+        (
+            change(5, QuestLifecycleChange::MarkComplete),
+            CommandError::QuestLifecycle,
+        ),
+    ] {
+        assert!(
+            matches!(store.execute(&invalid), Err(StoreError::Command(found)) if found == rejection)
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), PRE_LIFECYCLE_V2);
+    }
+    let receipt = store.execute(&start).unwrap();
+    store
+        .execute(&change(6, QuestLifecycleChange::MarkComplete))
+        .unwrap();
+    store
+        .execute(&change(7, QuestLifecycleChange::Reopen))
+        .unwrap();
+    let original = std::fs::read(&path).unwrap();
+    assert_eq!(store.execute(&start).unwrap(), receipt);
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    drop(store);
+
+    let mut forged: serde_json::Value = serde_json::from_slice(&original).unwrap();
+    forged["state"]["receipts"][5]["command"]["action"]["change"] = "Reopen".into();
+    let forged = serde_json::to_vec(&forged).unwrap();
+    std::fs::write(&path, &forged).unwrap();
+    assert!(matches!(
+        OwnedStore::open(&path, &source),
+        Err(StoreError::Protected(_))
+    ));
+    assert_eq!(std::fs::read(&path).unwrap(), forged);
 }
 
 #[test]
