@@ -1,6 +1,11 @@
 //! Explicit human commands own this source. Work projections and Chronicle do not.
+mod review;
+mod review_git;
 mod state;
 mod store;
+pub use review::{
+    CheckReceipt, CheckResult, ReportAuthor, Review, ReviewReport, ReviewSettlement, ReviewTarget,
+};
 pub use state::{
     Action, Answer, Command, CommandError, CommandId, DecisionDetail, OwnedState, Receipt,
     Transition, transition,

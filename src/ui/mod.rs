@@ -10,3 +10,4 @@ pub mod war_table;
 pub mod work_board;
 
 pub mod owned_authoring;
+pub(crate) mod quest_inbox;

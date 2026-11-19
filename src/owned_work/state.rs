@@ -1,3 +1,4 @@
+use super::{CheckReceipt, Review, ReviewReport, ReviewSettlement, ReviewTarget};
 use crate::{
     domain::Timestamp,
     work::{
@@ -69,6 +70,23 @@ pub enum Action {
         title: String,
         uri: Option<String>,
     },
+    RequestReview {
+        id: ObligationId,
+        quest: QuestId,
+        incarnation: String,
+        criterion: String,
+        target: ReviewTarget,
+        report: Option<ReviewReport>,
+    },
+    RecordCheck {
+        id: ObligationId,
+        incarnation: String,
+        receipt: CheckReceipt,
+    },
+    SettleReview {
+        id: ObligationId,
+        incarnation: String,
+    },
 }
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -96,6 +114,8 @@ pub struct OwnedState {
     revision: u64,
     inventory: Inventory,
     decisions: BTreeMap<ObligationId, DecisionDetail>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    reviews: BTreeMap<ObligationId, Review>,
     receipts: VecDeque<Receipt>,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -118,6 +138,14 @@ pub enum CommandError {
     Conflict,
     #[error("campaign, quest or decision reference does not match")]
     Reference,
+    #[error("check receipt does not match the pinned repository, revision, recipe or runner")]
+    ReviewMismatch,
+    #[error(
+        "check receipt is newer than the current time or no newer than the last recorded check"
+    )]
+    StaleCheck,
+    #[error("review needs a passing check for the pinned revision")]
+    ReviewNotReady,
     #[error("owned revision exhausted")]
     Exhausted,
 }
@@ -131,6 +159,7 @@ impl OwnedState {
             revision: 0,
             inventory: Inventory::default(),
             decisions: BTreeMap::new(),
+            reviews: BTreeMap::new(),
             receipts: VecDeque::new(),
         })
     }
@@ -151,6 +180,14 @@ impl OwnedState {
     }
     pub fn receipt(&self, id: &CommandId) -> Option<&Receipt> {
         self.receipts.iter().find(|r| &r.command.id == id)
+    }
+
+    pub fn review(&self, id: &ObligationId) -> Option<&Review> {
+        self.reviews.get(id)
+    }
+
+    pub(crate) fn has_reviews(&self) -> bool {
+        !self.reviews.is_empty()
     }
 
     /// Protected on load as well as before publication. No live/session facts exist here.
@@ -176,6 +213,7 @@ impl OwnedState {
         )
         .map_err(|_| CommandError::Invalid)?;
         let mut incarnations = BTreeSet::new();
+        let mut open_reviews = BTreeSet::new();
         let mut valid = self.inventory.campaigns.values().all(|c| {
             c.state == CampaignState::Planned
                 && c.revision <= self.revision
@@ -197,27 +235,34 @@ impl OwnedState {
                 && optional(a.uri.as_deref())
         });
         for o in self.inventory.obligations.values() {
-            valid &= o.kind == ObligationKind::Decision
-                && o.responsible == Responsible::Human
+            valid &= o.responsible == Responsible::Human
                 && token(&o.incarnation)
                 && incarnations.insert(&o.incarnation)
                 && o.revision <= self.revision
                 && text(&o.prompt)
-                && optional(o.context.as_deref())
-                && self
-                    .decisions
-                    .get(&o.id)
-                    .is_some_and(|d| text(&d.requested_by))
-                && match (o.state, self.answer(&o.id)) {
-                    (ObligationState::Open, None) => true,
-                    (ObligationState::Resolved, Some(a)) => text(&a.text) && text(&a.actor),
-                    _ => false,
-                };
+                && optional(o.context.as_deref());
+            valid &= match o.kind {
+                ObligationKind::Decision => self.valid_decision(o),
+                ObligationKind::Review => {
+                    self.valid_review(o)
+                        && (o.state != ObligationState::Open
+                            || open_reviews.insert(o.quest.as_ref()))
+                }
+                _ => false,
+            };
         }
-        valid &= self
-            .decisions
-            .keys()
-            .all(|id| self.inventory.obligations.contains_key(id));
+        valid &= self.decisions.keys().all(|id| {
+            self.inventory
+                .obligations
+                .get(id)
+                .is_some_and(|o| o.kind == ObligationKind::Decision)
+        });
+        valid &= self.reviews.keys().all(|id| {
+            self.inventory
+                .obligations
+                .get(id)
+                .is_some_and(|o| o.kind == ObligationKind::Review)
+        });
         let mut ids = BTreeSet::new();
         let first = self.revision - self.receipts.len() as u64;
         for (offset, r) in self.receipts.iter().enumerate() {
@@ -233,6 +278,51 @@ impl OwnedState {
         } else {
             Err(CommandError::Invalid)
         }
+    }
+
+    fn valid_decision(&self, o: &Obligation) -> bool {
+        self.decisions
+            .get(&o.id)
+            .is_some_and(|d| text(&d.requested_by))
+            && match (o.state, self.answer(&o.id)) {
+                (ObligationState::Open, None) => true,
+                (ObligationState::Resolved, Some(a)) => text(&a.text) && text(&a.actor),
+                _ => false,
+            }
+    }
+
+    fn valid_review(&self, o: &Obligation) -> bool {
+        self.review(&o.id).is_some_and(|review| {
+            o.quest.is_some()
+                && review.target.valid()
+                && review.report.as_ref().is_none_or(ReviewReport::valid)
+                && (1..=o.revision).contains(&review.requested_revision)
+                && match (&review.check, review.check_revision) {
+                    (Some(receipt), Some(revision)) => {
+                        receipt.valid()
+                            && review.target.matches(receipt)
+                            && revision > review.requested_revision
+                            && revision <= o.revision
+                    }
+                    (None, None) => true,
+                    _ => false,
+                }
+                && match (o.state, &review.settlement) {
+                    (ObligationState::Open | ObligationState::Superseded, None) => true,
+                    (ObligationState::Resolved, Some(s)) => {
+                        text(&s.actor)
+                            && review.check_passed()
+                            && review
+                                .check
+                                .as_ref()
+                                .is_some_and(|receipt| receipt.captured_at <= s.at)
+                            && review
+                                .check_revision
+                                .is_some_and(|revision| revision < o.revision)
+                    }
+                    _ => false,
+                }
+        })
     }
     fn has_effect(&self, r: &Receipt) -> bool {
         match &r.command.action {
@@ -305,6 +395,63 @@ impl OwnedState {
                     && &a.title == title
                     && &a.uri == uri
             }),
+            Action::RequestReview { .. }
+            | Action::RecordCheck { .. }
+            | Action::SettleReview { .. } => self.has_review_effect(r),
+        }
+    }
+
+    fn has_review_effect(&self, r: &Receipt) -> bool {
+        match &r.command.action {
+            Action::RequestReview {
+                id,
+                quest,
+                incarnation,
+                criterion,
+                target,
+                report,
+            } => {
+                self.inventory.obligations.get(id).is_some_and(|o| {
+                    o.quest.as_ref() == Some(quest)
+                        && &o.incarnation == incarnation
+                        && &o.prompt == criterion
+                        && o.requested_at == r.command.at
+                }) && self.review(id).is_some_and(|review| {
+                    review.requested_revision == r.revision
+                        && &review.target == target
+                        && &review.report == report
+                })
+            }
+            Action::RecordCheck {
+                id,
+                incarnation,
+                receipt,
+            } => {
+                self.inventory
+                    .obligations
+                    .get(id)
+                    .is_some_and(|o| &o.incarnation == incarnation)
+                    && self.review(id).is_some_and(|review| {
+                        review.target.matches(receipt)
+                            && receipt.captured_at <= r.command.at
+                            && review.check_revision.is_some_and(|revision| {
+                                revision > r.revision
+                                    || revision == r.revision
+                                        && review.check.as_ref() == Some(receipt)
+                            })
+                    })
+            }
+            Action::SettleReview { id, incarnation } => {
+                self.inventory
+                    .obligations
+                    .get(id)
+                    .is_some_and(|o| o.revision == r.revision && &o.incarnation == incarnation)
+                    && self
+                        .review(id)
+                        .and_then(|review| review.settlement.as_ref())
+                        .is_some_and(|s| s.actor == r.command.actor && s.at == r.command.at)
+            }
+            _ => unreachable!("typed review receipt dispatcher"),
         }
     }
 }
@@ -343,6 +490,10 @@ pub fn transition(state: &OwnedState, command: &Command) -> Result<Transition, C
         Action::RequestDecision { .. } => request_decision(&mut next, command, revision)?,
         Action::AnswerDecision { .. } => answer_decision(&mut next, command, revision)?,
         Action::RegisterArtifact { .. } => register_artifact(&mut next, command, revision)?,
+        Action::RequestReview { .. } => request_review(&mut next, command, revision)?,
+        Action::RecordCheck { .. } | Action::SettleReview { .. } => {
+            update_review(&mut next, command, revision)?;
+        }
     }
     next.revision = revision;
     let receipt = Receipt {
@@ -359,6 +510,134 @@ pub fn transition(state: &OwnedState, command: &Command) -> Result<Transition, C
         receipt,
         replayed: false,
     })
+}
+
+fn request_review(
+    state: &mut OwnedState,
+    command: &Command,
+    revision: u64,
+) -> Result<(), CommandError> {
+    let Action::RequestReview {
+        id,
+        quest,
+        incarnation,
+        criterion,
+        target,
+        report,
+    } = &command.action
+    else {
+        unreachable!("typed command dispatcher")
+    };
+    own(id.belongs_to(&state.source) && quest.belongs_to(&state.source))?;
+    let campaign = state
+        .inventory
+        .quests
+        .get(quest)
+        .ok_or(CommandError::Reference)?
+        .campaign
+        .clone();
+    vacant(
+        state.inventory.obligations.contains_key(id)
+            || state
+                .inventory
+                .obligations
+                .values()
+                .any(|o| &o.incarnation == incarnation),
+    )?;
+    for o in state.inventory.obligations.values_mut().filter(|o| {
+        o.kind == ObligationKind::Review
+            && o.state == ObligationState::Open
+            && o.quest.as_ref() == Some(quest)
+    }) {
+        o.state = ObligationState::Superseded;
+        o.revision = revision;
+    }
+    state.inventory.obligations.insert(
+        id.clone(),
+        Obligation {
+            id: id.clone(),
+            campaign,
+            quest: Some(quest.clone()),
+            revision,
+            incarnation: incarnation.clone(),
+            kind: ObligationKind::Review,
+            responsible: Responsible::Human,
+            state: ObligationState::Open,
+            prompt: criterion.clone(),
+            context: None,
+            action: "Review changes".into(),
+            resolution: "Explicit settlement for the checked candidate".into(),
+            requested_at: command.at,
+        },
+    );
+    state.reviews.insert(
+        id.clone(),
+        Review {
+            target: target.clone(),
+            report: report.clone(),
+            check: None,
+            settlement: None,
+            requested_revision: revision,
+            check_revision: None,
+        },
+    );
+    Ok(())
+}
+
+fn update_review(
+    state: &mut OwnedState,
+    command: &Command,
+    revision: u64,
+) -> Result<(), CommandError> {
+    let (Action::RecordCheck {
+        id, incarnation, ..
+    }
+    | Action::SettleReview { id, incarnation }) = &command.action
+    else {
+        unreachable!("typed command dispatcher")
+    };
+    own(id.belongs_to(&state.source))?;
+    let obligation = state
+        .inventory
+        .obligations
+        .get_mut(id)
+        .filter(|o| o.kind == ObligationKind::Review && &o.incarnation == incarnation)
+        .ok_or(CommandError::Reference)?;
+    if obligation.state != ObligationState::Open {
+        return Err(CommandError::Conflict);
+    }
+    let review = state.reviews.get_mut(id).ok_or(CommandError::Reference)?;
+    if let Action::RecordCheck { receipt, .. } = &command.action {
+        if !review.target.matches(receipt) {
+            return Err(CommandError::ReviewMismatch);
+        }
+        if receipt.captured_at > command.at
+            || review
+                .check
+                .as_ref()
+                .is_some_and(|last| receipt.captured_at <= last.captured_at)
+        {
+            return Err(CommandError::StaleCheck);
+        }
+        review.check = Some(receipt.clone());
+        review.check_revision = Some(revision);
+    } else {
+        if !review.check_passed()
+            || review
+                .check
+                .as_ref()
+                .is_some_and(|receipt| receipt.captured_at > command.at)
+        {
+            return Err(CommandError::ReviewNotReady);
+        }
+        review.settlement = Some(ReviewSettlement {
+            actor: command.actor.clone(),
+            at: command.at,
+        });
+        obligation.state = ObligationState::Resolved;
+    }
+    obligation.revision = revision;
+    Ok(())
 }
 fn create_campaign(
     state: &mut OwnedState,
@@ -502,6 +781,9 @@ fn answer_decision(
     if &o.incarnation != incarnation {
         return Err(CommandError::Reference);
     }
+    if o.kind != ObligationKind::Decision {
+        return Err(CommandError::Reference);
+    }
     if o.state != ObligationState::Open {
         return Err(CommandError::Conflict);
     }
@@ -636,5 +918,23 @@ fn command_valid(c: &Command) -> bool {
                 ..
             } => token(incarnation) && text(answer),
             Action::RegisterArtifact { title, uri, .. } => text(title) && optional(uri.as_deref()),
+            Action::RequestReview {
+                incarnation,
+                criterion,
+                target,
+                report,
+                ..
+            } => {
+                token(incarnation)
+                    && text(criterion)
+                    && target.valid()
+                    && report.as_ref().is_none_or(ReviewReport::valid)
+            }
+            Action::RecordCheck {
+                incarnation,
+                receipt,
+                ..
+            } => token(incarnation) && receipt.valid(),
+            Action::SettleReview { incarnation, .. } => token(incarnation),
         }
 }

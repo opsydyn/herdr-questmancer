@@ -1,9 +1,11 @@
 //! One serial filesystem owner. Bounded requests/results; no detached writer on shutdown.
 use super::authoring::{
-    Draft, FormKind, Intent, Metadata, Phase, SelectedDetail, artifact_kinds, quest_kind,
+    Draft, FormKind, Intent, Metadata, Phase, ReviewDetail, ReviewFormTarget, SelectedDetail,
+    artifact_kinds, quest_kind,
 };
 use super::{
-    Action, Command, CommandId, OwnedStore, StoreError, StoreSelection, random_source, random_token,
+    Action, CheckReceipt, Command, CommandError, CommandId, OwnedStore, ReportAuthor, ReviewReport,
+    ReviewTarget, StoreError, StoreSelection, random_source, random_token,
 };
 use crate::{
     app::Model,
@@ -17,10 +19,11 @@ use tokio::sync::mpsc;
 #[derive(Debug)]
 enum Operation {
     Setup(StoreSelection, bool, std::path::PathBuf),
-    Submit(Command),
+    Submit(Box<Command>),
     Snapshot,
     Reconcile,
     Read(ObligationId, String, u64),
+    ReadReview(ObligationId, String, u64),
 }
 #[derive(Debug)]
 struct Request {
@@ -31,6 +34,7 @@ struct Request {
 enum ResultValue {
     Snapshot(StoreSelection, Metadata),
     Detail(SelectedDetail),
+    Review(Box<ReviewDetail>),
 }
 #[derive(Debug)]
 struct Response {
@@ -108,6 +112,7 @@ impl OwnedRuntime {
         if self.waiting.is_some() {
             return;
         }
+        Self::load_selected_review(model);
         if model.modal() == &crate::app::Modal::QuestBoard
             && model.authoring().ready()
             && model.authoring().fields.is_empty()
@@ -119,6 +124,7 @@ impl OwnedRuntime {
                     .metadata
                     .as_ref()
                     .and_then(|m| m.inventory.obligations.get(id))
+                    .filter(|o| o.kind == crate::work::ObligationKind::Decision)
                     .cloned(),
                 _ => None,
             };
@@ -161,7 +167,7 @@ impl OwnedRuntime {
             model.authoring_mut().feedback = "Owned request sequence exhausted.".into();
             return;
         };
-        let reading = matches!(&operation, Operation::Read(..));
+        let reading = matches!(&operation, Operation::Read(..) | Operation::ReadReview(..));
         self.next = tag;
         self.at = model.now();
         if self
@@ -181,6 +187,26 @@ impl OwnedRuntime {
             Phase::Saving
         };
     }
+    fn load_selected_review(model: &mut Model) {
+        if model.modal() != &(crate::app::Modal::QuestInbox { detail: true })
+            || !model.authoring().ready()
+            || model.authoring().pending.is_some()
+        {
+            return;
+        }
+        let Some((o, revision)) = crate::work::inbox::owned_review(model) else {
+            return;
+        };
+        if model
+            .authoring()
+            .review
+            .as_ref()
+            .is_none_or(|detail| detail.id != o.id || detail.revision != revision)
+        {
+            let (id, incarnation) = (o.id.clone(), o.incarnation.clone());
+            model.authoring_mut().read_review(id, incarnation, revision);
+        }
+    }
     fn prepare(&mut self, intent: Intent, model: &mut Model) -> Result<Operation, String> {
         match intent {
             Intent::Setup { selection, create } => {
@@ -195,6 +221,7 @@ impl OwnedRuntime {
                 }
                 model.authoring_mut().metadata = None;
                 model.authoring_mut().detail = None;
+                model.authoring_mut().review = None;
                 self.snapshot = None;
                 self.submitted = None;
                 self.remember = true;
@@ -224,13 +251,18 @@ impl OwnedRuntime {
             Intent::Submit(draft) => {
                 let command = make_command(&draft, model)?;
                 self.submitted = Some(command.clone());
-                Ok(Operation::Submit(command))
+                Ok(Operation::Submit(Box::new(command)))
             }
             Intent::Read {
                 id,
                 incarnation,
                 revision,
             } => Ok(Operation::Read(id, incarnation, revision)),
+            Intent::ReadReview {
+                id,
+                incarnation,
+                revision,
+            } => Ok(Operation::ReadReview(id, incarnation, revision)),
             Intent::Refresh => Ok(Operation::Snapshot),
             Intent::Reconcile => Ok(Operation::Reconcile),
         }
@@ -287,41 +319,67 @@ impl OwnedRuntime {
                     model.authoring_mut().form(FormKind::Answer);
                 }
             }
-            Err(error) => {
-                let phase = if matches!(
-                    error,
-                    StoreError::Indeterminate(_) | StoreError::CreationIndeterminate
-                ) {
-                    Phase::Indeterminate
-                } else if matches!(error, StoreError::Command(_)) {
-                    Phase::Ready
-                } else {
-                    Phase::Unavailable
-                };
-                model.authoring_mut().phase = phase;
-                model.authoring_mut().feedback = if phase == Phase::Indeterminate {
-                    format!("May have saved. Check outcome before another submission: {error}")
-                } else {
-                    format!(
-                        "Owned operation not acknowledged: {error}. Draft retained; reopen or refresh before resubmitting."
-                    )
-                };
-                if phase == Phase::Ready {
-                    self.submitted = None;
-                    // Stale references need a checked snapshot, not an automatic command retry.
-                    model.authoring_mut().metadata = None;
-                    model.authoring_mut().phase = Phase::Unavailable;
-                }
-                if phase == Phase::Unavailable
-                    && let Some(s) = &model.authoring().selection
-                    && let Ok(work) = crate::work::reduce(
-                        model.work().clone(),
-                        crate::work::Message::Disconnected(s.source.clone()),
-                    )
-                {
-                    model.replace_work(work);
-                }
+            Ok(ResultValue::Review(detail)) => {
+                model.authoring_mut().review = Some(*detail);
+                model.authoring_mut().phase = Phase::Ready;
             }
+            Err(error) => self.report_operation_error(model, &error),
+        }
+    }
+    fn report_operation_error(&mut self, model: &mut Model, error: &StoreError) {
+        if matches!(
+            error,
+            StoreError::ReviewEvidence(_)
+                | StoreError::Command(
+                    CommandError::ReviewMismatch
+                        | CommandError::ReviewNotReady
+                        | CommandError::StaleCheck
+                )
+        ) || matches!(error, StoreError::Command(CommandError::Invalid))
+            && self.submitted.as_ref().is_some_and(|c| {
+                matches!(
+                    c.action,
+                    Action::RequestReview { .. } | Action::RecordCheck { .. }
+                )
+            })
+        {
+            self.submitted = None;
+            model.authoring_mut().phase = Phase::Ready;
+            model.authoring_mut().feedback = format!("Review remains open. {error}");
+            return;
+        }
+        let phase = if matches!(
+            error,
+            StoreError::Indeterminate(_) | StoreError::CreationIndeterminate
+        ) {
+            Phase::Indeterminate
+        } else if matches!(error, StoreError::Command(_)) {
+            Phase::Ready
+        } else {
+            Phase::Unavailable
+        };
+        model.authoring_mut().phase = phase;
+        model.authoring_mut().feedback = if phase == Phase::Indeterminate {
+            format!("May have saved. Check outcome before another submission: {error}")
+        } else {
+            format!(
+                "Owned operation not acknowledged: {error}. Draft retained; reopen or refresh before resubmitting."
+            )
+        };
+        if phase == Phase::Ready {
+            self.submitted = None;
+            // Stale references need a checked snapshot, not an automatic command retry.
+            model.authoring_mut().metadata = None;
+            model.authoring_mut().phase = Phase::Unavailable;
+        }
+        if phase == Phase::Unavailable
+            && let Some(s) = &model.authoring().selection
+            && let Ok(work) = crate::work::reduce(
+                model.work().clone(),
+                crate::work::Message::Disconnected(s.source.clone()),
+            )
+        {
+            model.replace_work(work);
         }
     }
     async fn publish(&mut self, client: &mut PersistenceClient, model: &mut Model) {
@@ -387,6 +445,7 @@ impl OwnedRuntime {
         {
             model.authoring_mut().fields.clear();
             model.authoring_mut().draft_kind = None;
+            model.authoring_mut().review_target = None;
             model.authoring_mut().menu();
         }
         if let Some((id, incarnation)) = answer_id {
@@ -483,6 +542,26 @@ fn process(
                 answer: detail.answer.clone(),
             }));
         }
+        Operation::ReadReview(id, incarnation, revision) => {
+            let state = owned.checked_state()?;
+            if state.revision() != *revision {
+                return Err(CommandError::Stale.into());
+            }
+            state
+                .inventory()
+                .obligations
+                .get(id)
+                .filter(|o| &o.incarnation == incarnation)
+                .ok_or(CommandError::Reference)?;
+            let review = state.review(id).ok_or(CommandError::Reference)?.clone();
+            let changes = super::review_git::changes(&review.target);
+            return Ok(ResultValue::Review(Box::new(ReviewDetail {
+                id: id.clone(),
+                revision: *revision,
+                review,
+                changes,
+            })));
+        }
         _ => {}
     }
     snapshot(owned, selected)
@@ -556,6 +635,9 @@ fn make_command(draft: &Draft, model: &Model) -> Result<Command, String> {
             title: v[0].clone(),
             uri: optional(2),
         },
+        FormKind::RequestReview | FormKind::RecordCheck | FormKind::SettleReview => {
+            review_action(draft, source, &token)?
+        }
         _ => return Err("Invalid command form".into()),
     };
     Ok(Command {
@@ -566,6 +648,94 @@ fn make_command(draft: &Draft, model: &Model) -> Result<Command, String> {
         at: model.now(),
         action,
     })
+}
+
+fn review_action(
+    draft: &Draft,
+    source: &crate::work::SourceId,
+    token: &str,
+) -> Result<Action, String> {
+    match (draft.kind, &draft.review_target, draft.values.as_slice()) {
+        (
+            FormKind::RequestReview,
+            Some(ReviewFormTarget::Quest { id, .. }),
+            [
+                criterion,
+                repository,
+                base,
+                head,
+                recipe,
+                runner,
+                author,
+                summary,
+            ],
+        ) => {
+            let report = match (author.as_str(), summary.trim().is_empty()) {
+                ("", true) => None,
+                ("Pi", false) => Some(ReviewReport {
+                    author: ReportAuthor::Pi,
+                    summary: summary.clone(),
+                }),
+                ("Codex", false) => Some(ReviewReport {
+                    author: ReportAuthor::Codex,
+                    summary: summary.clone(),
+                }),
+                _ => {
+                    return Err(
+                        "Choose Pi or Codex and supply report text, or leave both empty".into(),
+                    );
+                }
+            };
+            let target = ReviewTarget {
+                repository: repository.trim().into(),
+                base: base.trim().to_owned(),
+                head: head.trim().to_owned(),
+                recipe: recipe.trim().to_owned(),
+                runner: runner.trim().to_owned(),
+            };
+            if !target.valid() {
+                return Err("Use the physical checkout path, two distinct full commit IDs, a recipe and a runner label".into());
+            }
+            Ok(Action::RequestReview {
+                id: ObligationId::new(source, token),
+                quest: id.clone(),
+                incarnation: token.into(),
+                criterion: criterion.clone(),
+                target,
+                report,
+            })
+        }
+        (
+            FormKind::RecordCheck,
+            Some(ReviewFormTarget::Review {
+                id, incarnation, ..
+            }),
+            [input],
+        ) => {
+            let receipt = CheckReceipt::parse(input)?;
+            if !receipt.valid() {
+                return Err(
+                    "The check receipt has an invalid path, commit ID, label or timestamp".into(),
+                );
+            }
+            Ok(Action::RecordCheck {
+                id: id.clone(),
+                incarnation: incarnation.clone(),
+                receipt,
+            })
+        }
+        (
+            FormKind::SettleReview,
+            Some(ReviewFormTarget::Review {
+                id, incarnation, ..
+            }),
+            [confirmation],
+        ) if confirmation == "settle" => Ok(Action::SettleReview {
+            id: id.clone(),
+            incarnation: incarnation.clone(),
+        }),
+        _ => Err("No matching owned quest or review selected".into()),
+    }
 }
 
 impl Drop for OwnedRuntime {

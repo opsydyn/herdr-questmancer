@@ -27,6 +27,11 @@ pub enum Action {
     NextCampaign,
     OpenChronicle,
     OpenQuestBoard,
+    OpenInbox,
+    RequestReview,
+    ImportCheck,
+    SettleReview,
+    LinkReviewAdventurer,
     OpenAuthoring,
     OpenWarTable,
     OpenCharacterPicker,
@@ -84,7 +89,11 @@ pub fn action_for_event_in(event: &Event, modal: &Modal) -> Action {
     if let Event::Mouse(mouse) = event
         && matches!(
             modal,
-            Modal::Scrying | Modal::Chronicle | Modal::QuestBoard | Modal::WarTable
+            Modal::Scrying
+                | Modal::Chronicle
+                | Modal::QuestBoard
+                | Modal::QuestInbox { .. }
+                | Modal::WarTable
         )
     {
         return match mouse.kind {
@@ -136,6 +145,8 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         return match key.code {
             KeyCode::Esc | KeyCode::Char('b') => Action::Dismiss,
             KeyCode::Char('a') => Action::OpenAuthoring,
+            KeyCode::Char('i') => Action::OpenInbox,
+            KeyCode::Char('v') if key.kind == KeyEventKind::Press => Action::RequestReview,
             KeyCode::Char('w') => Action::OpenWarTable,
             KeyCode::Char('!') => Action::NextUrgent,
             KeyCode::Char('j') | KeyCode::Tab => Action::Next,
@@ -147,6 +158,9 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
             KeyCode::Char('s') => Action::DeferSummons,
             _ => Action::None,
         };
+    }
+    if let Modal::QuestInbox { detail } = modal {
+        return inbox_action(key, *detail);
     }
     if matches!(modal, Modal::Scrying) {
         return match key.code {
@@ -178,6 +192,36 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
         return modal_action(key);
     }
     room_action(key)
+}
+
+fn inbox_action(key: KeyEvent, detail: bool) -> Action {
+    match key.code {
+        KeyCode::Char('1' | '2') | KeyCode::F(1 | 2) => room_action(key),
+        KeyCode::Esc | KeyCode::Char('i') => Action::Dismiss,
+        KeyCode::Char('b') => Action::OpenQuestBoard,
+        KeyCode::Char('!') => Action::NextUrgent,
+        KeyCode::Char('j') if detail => Action::ScrollDown,
+        KeyCode::Char('k') if detail => Action::ScrollUp,
+        KeyCode::Tab if detail => Action::NextResult,
+        KeyCode::BackTab if detail => Action::PreviousResult,
+        KeyCode::Char('j') | KeyCode::Tab => Action::Next,
+        KeyCode::Char('k') | KeyCode::BackTab => Action::Previous,
+        KeyCode::Down => Action::ScrollDown,
+        KeyCode::Up => Action::ScrollUp,
+        KeyCode::Enter if !detail && key.kind == KeyEventKind::Press => Action::Submit,
+        KeyCode::Char('o') if key.kind == KeyEventKind::Press => Action::Observe,
+        KeyCode::Char('g') if detail && key.kind == KeyEventKind::Press => Action::Refresh,
+        KeyCode::Char('a') if key.kind == KeyEventKind::Press => Action::OpenAuthoring,
+        KeyCode::Char('v') if key.kind == KeyEventKind::Press => Action::RequestReview,
+        KeyCode::Char('c') if detail && key.kind == KeyEventKind::Press => Action::ImportCheck,
+        KeyCode::Char('x') if detail && key.kind == KeyEventKind::Press => Action::SettleReview,
+        KeyCode::Char('l') if detail && key.kind == KeyEventKind::Press => {
+            Action::LinkReviewAdventurer
+        }
+        KeyCode::Char(' ') => Action::AcknowledgeSummons,
+        KeyCode::Char('s') if key.kind == KeyEventKind::Press => Action::DeferSummons,
+        _ => Action::None,
+    }
 }
 
 fn room_action(key: KeyEvent) -> Action {

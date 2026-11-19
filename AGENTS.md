@@ -7,7 +7,7 @@ older plan or historical review.
 
 ## Product truth
 
-Questmancer `0.2.0` is a Herdr `0.9.4+` / protocol `22` plugin that turns
+Questmancer is a Herdr `0.9.4+` / protocol `22` plugin that turns
 coding-agent state into a cozy, 16-bit adventurers' guild. The user is the **Questmancer**. Herdr workspaces are
 **campaigns** and agents are **adventurers**.
 
@@ -341,7 +341,7 @@ service beyond Herdr's local socket.
 - `config.toml`: user-owned, read-only configuration.
 - `runtime.json`: ephemeral singleton registration.
 - `state.json`: atomic v2 local intent, persona assignments and optional owned path/source pin; v1 migrates explicitly.
-- `owned-work.json`: explicitly selected authoritative v1 work snapshot, answer records and bounded receipts; sibling lifetime writer lock.
+- `owned-work.json`: explicitly selected authoritative work snapshot, answer records and bounded receipts; sibling lifetime writer lock. The first saved revision review advances the owned store from v1 to v2.
 - `chronicle.jsonl`: append-only semantic history.
 - `work-state.json`: versioned source work facts, revision tombstones and local
   seen/deferred intent. Atomic acknowledged publication; no Herdr topology,
@@ -356,7 +356,13 @@ party-name and character changes use acknowledged worker publication.
 
 ## Current product status and remaining gates
 
-Questmancer 0.2.0 is published from clean `11ddd02` on 2026-11-17. Four archives,
+Questmancer 0.2.2 shipped party naming, the character picker, Rat Royalty, room
+refinements and the fixture-backed Inbox preview on 2026-11-18. The production
+Inbox adds quest-grouped summons, pinned revision review and opt-in startup.
+See `docs/manual-test/quest-inbox.md` and `CHANGELOG.md` for workflow and release
+scope.
+
+Questmancer 0.2.0 was published from clean `11ddd02` on 2026-11-17. Four archives,
 checksums, the actual macOS ARM64 installer/runtime and deployed docs are verified.
 See `docs/reviews/2026-11-17-release-0.2.0/README.md` for the
 fresh qualification/publication state and `CHANGELOG.md` for included features.

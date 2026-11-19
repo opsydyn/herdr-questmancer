@@ -72,6 +72,7 @@ bounded_setting!(
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuestmancerConfig {
     pub default_view: View,
+    pub inbox_on_start: bool,
     pub preferences: DisplayPreferences,
     pub output_preview_lines: OutputPreviewLines,
     pub chronicle_max_entries: ChronicleMaxEntries,
@@ -85,6 +86,7 @@ impl Default for QuestmancerConfig {
     fn default() -> Self {
         Self {
             default_view: View::Guild,
+            inbox_on_start: false,
             preferences: DisplayPreferences::default(),
             output_preview_lines: OutputPreviewLines::default(),
             chronicle_max_entries: ChronicleMaxEntries::default(),
@@ -158,6 +160,7 @@ impl PersistencePaths {
 #[serde(default)]
 struct ConfigFile {
     default_view: View,
+    inbox_on_start: bool,
     motion: Motion,
     character_set: CharacterSet,
     color_mode: ColorMode,
@@ -210,6 +213,7 @@ impl Default for ConfigFile {
         let config = QuestmancerConfig::default();
         Self {
             default_view: config.default_view,
+            inbox_on_start: config.inbox_on_start,
             motion: config.preferences.motion,
             character_set: config.preferences.character_set,
             color_mode: config.preferences.color_mode,
@@ -233,6 +237,7 @@ impl TryFrom<ConfigFile> for QuestmancerConfig {
 
         Ok(Self {
             default_view: file.default_view,
+            inbox_on_start: file.inbox_on_start,
             preferences: DisplayPreferences {
                 motion: file.motion,
                 character_set: file.character_set,

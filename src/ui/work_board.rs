@@ -9,7 +9,7 @@ use ratatui::{
     text::Text,
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
-fn area(width: u16, height: u16) -> Rect {
+pub(crate) fn area(width: u16, height: u16) -> Rect {
     let w = width.saturating_sub(4).min(110);
     let h = height.saturating_sub(2).min(36);
     Rect::new((width - w) / 2, (height - h) / 2, w, h)
@@ -100,6 +100,10 @@ fn inventory_rows(model: &Model, height: u16) -> String {
 }
 
 pub fn render(frame: &mut Frame<'_>, model: &Model) {
+    if let crate::app::Modal::QuestInbox { detail } = *model.modal() {
+        crate::ui::quest_inbox::render(frame, model, detail);
+        return;
+    }
     if model.modal() == &crate::app::Modal::OwnedAuthoring {
         crate::ui::owned_authoring::render(frame, model);
         return;
@@ -135,7 +139,7 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
         Paragraph::new(heading).style(PARCHMENT_BORDER),
         Rect::new(inner.x, inner.y, inner.width, 1),
     );
-    let footer_height = if inner.width < 72 { 4 } else { 2 }.min(inner.height.saturating_sub(1));
+    let footer_height = if inner.width < 72 { 5 } else { 2 }.min(inner.height.saturating_sub(1));
     let mut body = Rect::new(
         inner.x,
         inner.y + 1,
@@ -181,9 +185,9 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
         details,
     );
     let footer = if inner.width < 72 {
-        "j/k: work  Up/Down: read\n!: next summons  a: actions\nSpace: seen  s: defer 15m\nEnter: observe  Esc: close"
+        "i: Inbox  v: review\nj/k: work  Up/Down: read\n!: next summons  a: actions\nSpace: seen  s: defer 15m\nEnter: observe  Esc: close"
     } else {
-        "j/k or Tab: work   Up/Down: read   !: next summons   a: actions\nSpace: seen   s: defer 15m   Enter: observe verified pane   Esc: close"
+        "i: Inbox   v: review   a: actions   !: urgent   j/k: work   Up/Down: read\nSpace: seen   s: defer 15m   Enter: observe verified pane   Esc: close"
     };
     frame.render_widget(
         Paragraph::new(footer)

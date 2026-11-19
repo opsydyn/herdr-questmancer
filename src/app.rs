@@ -268,6 +268,9 @@ pub enum Modal {
     Scrying,
     Chronicle,
     QuestBoard,
+    QuestInbox {
+        detail: bool,
+    },
     OwnedAuthoring,
     WarTable,
     CharacterPicker {
@@ -434,6 +437,7 @@ pub struct Model {
     work_source_notice: Option<crate::work::source::SourceNotice>,
     pending_work: Option<crate::work::Projection>,
     work_selection: Option<crate::work::WorkSelection>,
+    inbox_adventurer: Option<crate::work::inbox::AdventurerLink>,
     board_viewport_width: u16,
     work_viewport_height: u16,
     war_campaign: Option<crate::work::CampaignId>,
@@ -442,6 +446,7 @@ pub struct Model {
     scene_transition_floor: Option<Timestamp>,
     party_rest_since: Option<Timestamp>,
     modal: Modal,
+    inbox_is_home: bool,
     adventurer_card_visible: bool,
     output_preview: Option<OutputPreview>,
     output_context: Option<OutputContext>,
@@ -483,6 +488,7 @@ impl Model {
             snapshot_refresh: crate::snapshot_refresh::SnapshotRefresh::default(),
             view,
             authoring: crate::owned_work::authoring::Authoring::default(),
+            inbox_adventurer: None,
             work: crate::work::Projection::default(),
             work_source_notice: None,
             pending_work: None,
@@ -495,6 +501,7 @@ impl Model {
             scene_transition_floor: None,
             party_rest_since: None,
             modal: Modal::None,
+            inbox_is_home: false,
             adventurer_card_visible: false,
             output_preview: None,
             output_context: None,
@@ -555,6 +562,9 @@ impl Model {
         }
         if self.modal == Modal::WarTable {
             self.normalise_war_selection();
+        }
+        if matches!(self.modal, Modal::QuestInbox { .. }) {
+            self.normalise_inbox_selection();
         }
     }
     pub fn open_war_table(&mut self) {
@@ -645,6 +655,7 @@ impl Model {
     }
     pub fn open_quest_board(&mut self) {
         self.keep_counsel_draft();
+        self.inbox_is_home = false;
         self.modal = Modal::QuestBoard;
         self.reading_scroll = 0;
         if self.work_selection.is_none() {
@@ -655,6 +666,86 @@ impl Model {
         self.open_quest_board();
         self.work_selection = Some(selection);
         self.reading_scroll = 0;
+    }
+    pub(crate) fn select_inbox_item(&mut self, id: crate::work::ObligationId) {
+        self.work_selection = Some(crate::work::WorkSelection::Obligation(id));
+        self.reading_scroll = 0;
+    }
+    pub(crate) fn link_inbox_adventurer(&mut self) {
+        let linked = crate::work::view::selected_quest(self)
+            .and_then(|quest| crate::work::inbox::AdventurerLink::new(self, quest));
+        let Some(link) = linked else {
+            self.set_action_feedback(
+                "Select a quest and a live adventurer with verified session identity.".into(),
+            );
+            return;
+        };
+        self.inbox_adventurer = Some(link);
+        self.set_action_feedback("Linked selected adventurer for this review session.".into());
+    }
+    pub(crate) fn inbox_adventurer(&self, quest: &crate::work::QuestId) -> Option<&Agent> {
+        self.inbox_adventurer
+            .as_ref()
+            .filter(|link| &link.quest == quest)?
+            .resolve(self)
+    }
+    pub(crate) fn open_inbox(&mut self, detail: bool) {
+        self.modal = Modal::QuestInbox { detail };
+        self.reading_scroll = 0;
+        self.normalise_inbox_selection();
+    }
+    pub(crate) fn open_startup_inbox(&mut self) {
+        self.inbox_is_home = true;
+        self.open_inbox(false);
+    }
+
+    pub(crate) const fn inbox_is_home(&self) -> bool {
+        self.inbox_is_home
+    }
+    fn normalise_inbox_selection(&mut self) {
+        use crate::work::{WorkSelection, inbox::rows};
+        let rows = rows(&self.work, self.now);
+        let current = self.work_selection.as_ref();
+        let row = rows
+            .iter()
+            .find(|row| current.is_some_and(|s| row.selected(s)))
+            .or(rows.first());
+        self.work_selection = row.map(|row| {
+            current
+                .filter(|s| matches!(s, WorkSelection::Obligation(_)) && row.selected(s))
+                .cloned()
+                .unwrap_or_else(|| WorkSelection::Obligation(row.items[0].clone()))
+        });
+    }
+    pub(crate) fn cycle_inbox(&mut self, forward: bool, within_quest: bool) {
+        use crate::work::{WorkSelection, inbox::rows};
+        let rows = rows(&self.work, self.now);
+        let Some(index) = self
+            .work_selection
+            .as_ref()
+            .and_then(|s| rows.iter().position(|row| row.selected(s)))
+        else {
+            self.normalise_inbox_selection();
+            return;
+        };
+        let step = |index, len| {
+            if forward {
+                (index + 1) % len
+            } else {
+                (index + len - 1) % len
+            }
+        };
+        let id = if within_quest {
+            let items = &rows[index].items;
+            let item = items
+                .iter()
+                .position(|id| self.work_selection == Some(WorkSelection::Obligation(id.clone())))
+                .unwrap_or(0);
+            &items[step(item, items.len())]
+        } else {
+            &rows[step(index, rows.len())].items[0]
+        };
+        self.select_inbox_item(id.clone());
     }
     pub fn cycle_work(&mut self, forward: bool) {
         let items = crate::work::view::items(self);
@@ -676,27 +767,35 @@ impl Model {
         self.reading_scroll = 0;
     }
     pub fn request_work_intent(&mut self, defer: bool) {
+        self.update_work_intent(defer, false);
+    }
+    pub(crate) fn request_inbox_intent(&mut self, defer: bool) {
+        self.update_work_intent(defer, true);
+    }
+    fn update_work_intent(&mut self, defer: bool, restore: bool) {
         let Some(crate::work::WorkSelection::Obligation(id)) = &self.work_selection else {
             self.set_action_feedback("Select an open summons to mark seen or defer.".into());
             return;
         };
-        if self
+        let Some(obligation) = self
             .work
             .obligation(id)
-            .is_none_or(|o| o.state != crate::work::ObligationState::Open)
-        {
+            .filter(|o| o.state == crate::work::ObligationState::Open)
+        else {
             self.set_action_feedback("This source obligation is already closed.".into());
             return;
-        }
+        };
         let mut candidate = self.work.clone();
-        candidate.acknowledge(
-            id,
-            if defer {
-                Some(self.now.plus(Self::SNOOZE))
-            } else {
-                None
-            },
-        );
+        if defer
+            && restore
+            && crate::work::inbox::deferred_until(&self.work, obligation, self.now).is_some()
+        {
+            if let Some(intent) = candidate.intent.get_mut(id) {
+                intent.deferred_until = None;
+            }
+        } else {
+            candidate.acknowledge(id, defer.then(|| self.now.plus(Self::SNOOZE)));
+        }
         self.pending_work = Some(candidate);
     }
     pub fn set_work_viewport_size(&mut self, width: u16, height: u16) {
@@ -742,6 +841,7 @@ impl Model {
     }
 
     pub fn set_connection_at(&mut self, connection: ConnectionState, observed_at: Timestamp) {
+        self.inbox_adventurer = None;
         self.snapshot_refresh
             .connection_changed(connection == ConnectionState::Connected);
         self.domain.capture.connection_changed(
@@ -827,6 +927,13 @@ impl Model {
         }
         self.durable_intent.overlay(&mut domain);
         self.domain = domain;
+        if self
+            .inbox_adventurer
+            .as_ref()
+            .is_some_and(|link| link.resolve(self).is_none())
+        {
+            self.inbox_adventurer = None;
+        }
         self.reconcile_output();
     }
 
@@ -1492,6 +1599,7 @@ impl Model {
             | Modal::Chronicle
             | Modal::OwnedAuthoring
             | Modal::QuestBoard
+            | Modal::QuestInbox { .. }
             | Modal::WarTable
             | Modal::CharacterPicker { .. }
             | Modal::StatusExplanation(_) => None,
@@ -1523,6 +1631,7 @@ impl Model {
             | Modal::Chronicle
             | Modal::OwnedAuthoring
             | Modal::QuestBoard
+            | Modal::QuestInbox { .. }
             | Modal::WarTable
             | Modal::CharacterPicker { .. }
             | Modal::StatusExplanation(_) => {}
@@ -1566,6 +1675,7 @@ impl Model {
             | Modal::Chronicle
             | Modal::OwnedAuthoring
             | Modal::QuestBoard
+            | Modal::QuestInbox { .. }
             | Modal::WarTable
             | Modal::CharacterPicker { .. }
             | Modal::StatusExplanation(_) => {}
@@ -1586,6 +1696,7 @@ impl Model {
             | Modal::Chronicle
             | Modal::OwnedAuthoring
             | Modal::QuestBoard
+            | Modal::QuestInbox { .. }
             | Modal::WarTable
             | Modal::CharacterPicker { .. }
             | Modal::StatusExplanation(_) => {}
@@ -1594,6 +1705,7 @@ impl Model {
 
     pub fn dismiss_modal(&mut self) {
         self.modal = Modal::None;
+        self.inbox_is_home = false;
         self.reading_scroll = 0;
     }
 
@@ -1798,6 +1910,9 @@ impl Model {
             ),
             Modal::QuestBoard => {
                 crate::ui::work_board::detail_line_count(self, self.board_viewport_width)
+            }
+            Modal::QuestInbox { detail: true } => {
+                crate::ui::quest_inbox::detail_lines(self, self.board_viewport_width).len()
             }
             Modal::Chronicle => self.chronicle_chapter_lines().map_or_else(
                 || self.chronicle_entries(usize::MAX).len().max(1),

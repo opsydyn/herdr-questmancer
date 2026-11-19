@@ -5,7 +5,7 @@ use std::{
 
 use proptest::prelude::*;
 use questmancer::{
-    app::{CharacterSet, ColorMode, DisplayPreferences, Motion, View},
+    app::{CharacterSet, ColorMode, DisplayPreferences, Modal, Motion, View},
     config::{OutputPreviewLines, PersistencePaths},
     domain::{AdventurerPersona, ChronicleEntry, ChronicleEvent, PersonaKey, Timestamp},
     persistence::{PersistedStateV1, StartupData, effective_view, load_startup},
@@ -92,6 +92,7 @@ async fn absent_files_use_defaults_without_diagnostics() {
     let startup = load_startup(paths(Some(config.path()), Some(state.path())), None).await;
 
     assert_eq!(startup.model.view(), View::Guild);
+    assert_eq!(startup.model.modal(), &Modal::None);
     assert_eq!(startup.model.preferences(), &DisplayPreferences::default());
     assert_eq!(startup.model.settings().output_preview_lines.get(), 80);
     assert_eq!(
@@ -106,6 +107,66 @@ async fn absent_files_use_defaults_without_diagnostics() {
         Some(state.path().join("chronicle.jsonl"))
     );
     assert!(startup.diagnostics.is_empty());
+}
+
+#[tokio::test]
+async fn opt_in_inbox_overlays_the_saved_room_and_preserves_board_and_explicit_launches() {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    use questmancer::{interaction::reduce_action, ui::input::action_for_event_in};
+
+    let config = tempfile::tempdir().unwrap();
+    let state_dir = tempfile::tempdir().unwrap();
+    tokio::fs::write(config.path().join("config.toml"), "inbox_on_start = true\n")
+        .await
+        .unwrap();
+    tokio::fs::write(
+        state_dir.path().join("state.json"),
+        serde_json::to_vec(&state(View::Delve, DisplayPreferences::default())).unwrap(),
+    )
+    .await
+    .unwrap();
+    let paths = paths(Some(config.path()), Some(state_dir.path()));
+
+    let press = |model: &mut questmancer::app::Model, code| {
+        let event = Event::Key(KeyEvent::new(code, KeyModifiers::NONE));
+        if questmancer::owned_work::authoring::handle_event(model, &event) {
+            return;
+        }
+        let action = action_for_event_in(&event, model.modal());
+        let _ = reduce_action(model, action);
+    };
+
+    let mut startup = load_startup(paths.clone(), None).await;
+    assert_eq!(startup.model.view(), View::Delve);
+    assert_eq!(startup.model.modal(), &Modal::QuestInbox { detail: false });
+    assert!(startup.model.work().sources.is_empty());
+    press(&mut startup.model, KeyCode::Char('a'));
+    assert_eq!(startup.model.modal(), &Modal::OwnedAuthoring);
+    press(&mut startup.model, KeyCode::Esc);
+    assert_eq!(startup.model.modal(), &Modal::QuestInbox { detail: false });
+    press(&mut startup.model, KeyCode::Esc);
+    assert_eq!(startup.model.modal(), &Modal::None);
+    assert_eq!(startup.model.view(), View::Delve);
+    press(&mut startup.model, KeyCode::Char('b'));
+    press(&mut startup.model, KeyCode::Char('i'));
+    press(&mut startup.model, KeyCode::Esc);
+    assert_eq!(startup.model.modal(), &Modal::QuestBoard);
+    drop(startup);
+
+    for view in [View::Guild, View::Delve] {
+        let explicit = load_startup(paths.clone(), Some(view)).await;
+        assert_eq!(explicit.model.view(), view);
+        assert_eq!(explicit.model.modal(), &Modal::None);
+    }
+
+    let mut startup = load_startup(paths, None).await;
+    press(&mut startup.model, KeyCode::Char('b'));
+    assert_eq!(startup.model.modal(), &Modal::QuestBoard);
+    press(&mut startup.model, KeyCode::Char('i'));
+    press(&mut startup.model, KeyCode::Char('1'));
+    assert_eq!(startup.model.modal(), &Modal::None);
+    assert_eq!(startup.model.view(), View::Guild);
+    assert!(!state_dir.path().join("owned-work.json").exists());
 }
 
 #[tokio::test]

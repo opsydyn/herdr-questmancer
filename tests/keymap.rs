@@ -19,6 +19,8 @@ fn contexts() -> Vec<Modal> {
     vec![
         Modal::None,
         Modal::QuestBoard,
+        Modal::QuestInbox { detail: false },
+        Modal::QuestInbox { detail: true },
         Modal::WarTable,
         Modal::Scrying,
         Modal::Chronicle,

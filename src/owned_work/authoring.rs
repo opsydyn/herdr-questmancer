@@ -1,9 +1,10 @@
 //! Ephemeral forms and typed intent. No filesystem, clock, identity allocation or agent effects.
-use super::{Answer, StoreSelection};
+use super::{Answer, Review, StoreSelection};
 use crate::{
     app::{Modal, Model},
     work::{
-        ArtifactKind, CampaignId, Inventory, ObligationId, ObligationState, QuestKind, SourceId,
+        ArtifactKind, CampaignId, Inventory, ObligationId, ObligationKind, ObligationState,
+        QuestId, QuestKind, SourceId,
     },
 };
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
@@ -23,6 +24,28 @@ pub struct SelectedDetail {
     pub context: Option<String>,
     pub requested_by: String,
     pub answer: Option<Answer>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReviewDetail {
+    pub id: ObligationId,
+    pub revision: u64,
+    pub review: Review,
+    pub changes: Result<Vec<String>, String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum ReviewFormTarget {
+    Quest {
+        id: QuestId,
+        title: String,
+    },
+    Review {
+        id: ObligationId,
+        incarnation: String,
+        title: String,
+        head: String,
+    },
 }
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Phase {
@@ -44,6 +67,9 @@ pub enum FormKind {
     Request,
     Answer,
     Artifact,
+    RequestReview,
+    RecordCheck,
+    SettleReview,
 }
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Surface {
@@ -109,6 +135,11 @@ pub enum Intent {
         incarnation: String,
         revision: u64,
     },
+    ReadReview {
+        id: ObligationId,
+        incarnation: String,
+        revision: u64,
+    },
     Refresh,
     Reconcile,
 }
@@ -119,6 +150,7 @@ pub struct Draft {
     pub campaign: Option<CampaignId>,
     pub decision: Option<(ObligationId, String)>,
     pub revision: u64,
+    pub(crate) review_target: Option<ReviewFormTarget>,
 }
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Authoring {
@@ -129,6 +161,7 @@ pub struct Authoring {
     pub selection: Option<StoreSelection>,
     pub campaign: Option<CampaignId>,
     pub detail: Option<SelectedDetail>,
+    pub review: Option<ReviewDetail>,
     pub fields: Vec<Field>,
     pub focus: usize,
     pub cursor: usize,
@@ -140,13 +173,15 @@ pub struct Authoring {
     pub(crate) pending: Option<Intent>,
     pub(crate) return_after_read: bool,
     pub(crate) draft_kind: Option<FormKind>,
+    pub(crate) review_target: Option<ReviewFormTarget>,
+    pub(crate) return_to_inbox: Option<bool>,
 }
 impl Phase {
     pub fn label(self) -> &'static str {
         match self {
             Self::Unavailable => "Owner unavailable",
             Self::Ready => "Ready",
-            Self::Reading => "Checking decision detail",
+            Self::Reading => "Checking selected work",
             Self::Saving => "Saving",
             Self::RememberPending => "Store open; selection pending",
             Self::ViewPending => "Saved; view pending",
@@ -281,6 +316,31 @@ impl Authoring {
                 text("URI (optional)", false),
                 self.quest_field(),
             ],
+            FormKind::RequestReview => vec![
+                text("Acceptance criterion", true),
+                text("Physical Git checkout path", false),
+                text("Base commit (full ID)", false),
+                text("Candidate commit (full ID)", false),
+                text("Required check recipe", false),
+                text("Trusted local runner label", false),
+                Field::choices(
+                    "Report attribution",
+                    vec![
+                        (String::new(), "No report".into()),
+                        ("Pi".into(), "Pi".into()),
+                        ("Codex".into(), "Codex".into()),
+                    ],
+                ),
+                text("Adventurer report (optional)", true),
+            ],
+            FormKind::RecordCheck => vec![text("Trusted local check receipt (JSON)", true)],
+            FormKind::SettleReview => vec![Field::choices(
+                "Decision for this revision",
+                vec![
+                    (String::new(), "Keep review open".into()),
+                    ("settle".into(), "Settle this exact revision".into()),
+                ],
+            )],
             FormKind::Answer => {
                 let Some(detail) = &self.detail else {
                     self.feedback = "Load the selected decision before answering.".into();
@@ -354,6 +414,19 @@ impl Authoring {
             .iter()
             .map(|f| f.value().to_owned())
             .collect::<Vec<_>>();
+        if kind == FormKind::SettleReview && values.first().is_none_or(|s| s != "settle") {
+            self.feedback = "Choose Settle this exact revision to confirm.".into();
+            return;
+        }
+        if kind == FormKind::RequestReview
+            && values
+                .get(..6)
+                .is_none_or(|fields| fields.iter().any(|s| s.trim().is_empty()))
+        {
+            self.feedback =
+                "Complete the criterion, checkout, commit IDs, recipe and runner.".into();
+            return;
+        }
         if values.first().is_none_or(|s| s.trim().is_empty())
             || matches!(kind, FormKind::Quest | FormKind::Artifact) && values[1].is_empty()
         {
@@ -380,6 +453,7 @@ impl Authoring {
                 .as_ref()
                 .map(|d| (d.id.clone(), d.incarnation.clone())),
             revision: self.metadata.as_ref().map_or(0, |m| m.revision),
+            review_target: self.review_target.clone(),
         }));
         self.phase = Phase::Saving;
         self.feedback = "Saving; submitted text is frozen.".into();
@@ -390,6 +464,7 @@ impl Authoring {
         }
         self.fields.clear();
         self.draft_kind = None;
+        self.review_target = None;
         self.menu();
         self.feedback = "Draft discarded.".into();
     }
@@ -413,6 +488,16 @@ impl Authoring {
         self.detail = None;
         self.surface = Surface::Detail;
         self.scroll = 0;
+    }
+
+    pub(crate) fn read_review(&mut self, id: ObligationId, incarnation: String, revision: u64) {
+        self.pending = Some(Intent::ReadReview {
+            id,
+            incarnation,
+            revision,
+        });
+        self.phase = Phase::Reading;
+        self.review = None;
     }
 }
 pub fn artifact_kinds() -> &'static [ArtifactKind] {
@@ -473,8 +558,13 @@ pub fn handle_event(model: &mut Model, event: &Event) -> bool {
         }
         if key.code == KeyCode::Esc {
             if model.authoring().surface == Surface::Menu || model.authoring().busy() {
+                let back_to_inbox = model.authoring_mut().return_to_inbox.take();
                 model.authoring_mut().menu();
-                model.open_quest_board();
+                if let Some(detail) = back_to_inbox {
+                    model.open_inbox(detail);
+                } else {
+                    model.open_quest_board();
+                }
             } else {
                 model.authoring_mut().menu();
             }
@@ -519,7 +609,10 @@ pub fn handle_event(model: &mut Model, event: &Event) -> bool {
                 m.inventory
                     .obligations
                     .values()
-                    .filter(|o| a.campaign.as_ref().is_none_or(|c| c == &o.campaign))
+                    .filter(|o| {
+                        o.kind == ObligationKind::Decision
+                            && a.campaign.as_ref().is_none_or(|c| c == &o.campaign)
+                    })
                     .count()
             }),
             _ => usize::MAX,
@@ -556,7 +649,10 @@ pub fn handle_event(model: &mut Model, event: &Event) -> bool {
                 m.inventory
                     .obligations
                     .values()
-                    .filter(|o| a.campaign.as_ref().is_none_or(|c| c == &o.campaign))
+                    .filter(|o| {
+                        o.kind == ObligationKind::Decision
+                            && a.campaign.as_ref().is_none_or(|c| c == &o.campaign)
+                    })
                     .nth(a.cursor)
             })
             .cloned();
@@ -645,7 +741,9 @@ fn handle_menu(a: &mut Authoring, selected: Option<crate::work::WorkSelection>) 
                     .as_ref()
                     .and_then(|m| m.inventory.obligations.get(&id))
                     .cloned();
-                if let Some(o) = obligation.filter(|o| o.state == ObligationState::Open) {
+                if let Some(o) = obligation.filter(|o| {
+                    o.kind == ObligationKind::Decision && o.state == ObligationState::Open
+                }) {
                     a.return_after_read = true;
                     a.read(o.id, o.incarnation);
                 } else {

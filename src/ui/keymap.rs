@@ -49,6 +49,31 @@ pub const BINDINGS: &[Binding] = &[
         action: Action::OpenQuestBoard,
     },
     Binding {
+        keys: "i (Board)",
+        description: "Read the Quest Inbox",
+        action: Action::OpenInbox,
+    },
+    Binding {
+        keys: "v (Board)",
+        description: "Request an owned quest review",
+        action: Action::RequestReview,
+    },
+    Binding {
+        keys: "c (Review)",
+        description: "Import a local check receipt",
+        action: Action::ImportCheck,
+    },
+    Binding {
+        keys: "x (Review)",
+        description: "Settle the exact checked revision",
+        action: Action::SettleReview,
+    },
+    Binding {
+        keys: "l (Review)",
+        description: "Link the selected adventurer",
+        action: Action::LinkReviewAdventurer,
+    },
+    Binding {
         keys: "a (Board)",
         description: "Owned work actions and store setup",
         action: Action::OpenAuthoring,

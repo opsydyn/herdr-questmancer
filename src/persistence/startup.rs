@@ -98,6 +98,9 @@ pub async fn load_startup(paths: PersistencePaths, explicit_view: Option<View>) 
     }
     let work_cache =
         restore_work_cache(cache_path, &mut model, &mut projects, &mut diagnostics).await;
+    if config.inbox_on_start && explicit_view.is_none() {
+        model.open_startup_inbox();
+    }
 
     StartupData {
         model,

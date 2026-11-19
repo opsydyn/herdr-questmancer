@@ -57,6 +57,148 @@ fn state_with_request() -> OwnedState {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)] // The full review contract shares a single candidate and obligation.
+fn review_settlement_requires_the_exact_check_and_survives_retry() {
+    use questmancer::owned_work::{CheckReceipt, CheckResult, ReviewTarget};
+    use questmancer::work::ObligationState;
+
+    let source = SourceId::new("owned:review");
+    let mut state = OwnedState::new(source.clone()).unwrap();
+    state = transition(&state, &create_campaign(&source)).unwrap().state;
+    let quest = QuestId::new(&source, "inbox");
+    let create = command(
+        &source,
+        1,
+        Action::CreateQuest {
+            id: quest.clone(),
+            campaign: CampaignId::new(&source, "campaign"),
+            title: "Inbox review".into(),
+            description: None,
+            kind: QuestKind::Ship,
+        },
+    );
+    state = transition(&state, &create).unwrap().state;
+    let id = ObligationId::new(&source, "review");
+    let target = ReviewTarget {
+        repository: "/tmp/inbox-repo".into(),
+        base: "a".repeat(40),
+        head: "b".repeat(40),
+        recipe: "just verify".into(),
+        runner: "Local operator".into(),
+    };
+    let request = command(
+        &source,
+        2,
+        Action::RequestReview {
+            id: id.clone(),
+            quest: quest.clone(),
+            incarnation: "review-1".into(),
+            criterion: "Keep input accessible".into(),
+            target: target.clone(),
+            report: None,
+        },
+    );
+    state = transition(&state, &request).unwrap().state;
+    let record = |head: String, result| {
+        command(
+            &source,
+            state.revision(),
+            Action::RecordCheck {
+                id: id.clone(),
+                incarnation: "review-1".into(),
+                receipt: CheckReceipt {
+                    repository: target.repository.clone(),
+                    head,
+                    recipe: target.recipe.clone(),
+                    runner: target.runner.clone(),
+                    captured_at: Timestamp::from_millis(1002),
+                    result,
+                },
+            },
+        )
+    };
+    let settle = |revision| {
+        command(
+            &source,
+            revision,
+            Action::SettleReview {
+                id: id.clone(),
+                incarnation: "review-1".into(),
+            },
+        )
+    };
+    assert_eq!(
+        transition(&state, &record(target.base.clone(), CheckResult::Passed)),
+        Err(CommandError::ReviewMismatch)
+    );
+    assert_eq!(
+        transition(&state, &settle(3)),
+        Err(CommandError::ReviewNotReady)
+    );
+    let failed = transition(&state, &record(target.head.clone(), CheckResult::Failed))
+        .unwrap()
+        .state;
+    assert_eq!(
+        transition(&failed, &settle(4)),
+        Err(CommandError::ReviewNotReady)
+    );
+    let passed = transition(&state, &record(target.head.clone(), CheckResult::Passed))
+        .unwrap()
+        .state;
+    let mut replacement = request.clone();
+    let new_review = ObligationId::new(&source, "replacement-review");
+    replacement.expected_revision = passed.revision();
+    replacement.id = CommandId::new("replacement-command");
+    let Action::RequestReview {
+        id: replacement_id,
+        incarnation,
+        target,
+        ..
+    } = &mut replacement.action
+    else {
+        unreachable!()
+    };
+    replacement_id.clone_from(&new_review);
+    *incarnation = "review-2".into();
+    target.head = "c".repeat(40);
+    let replacement = transition(&passed, &replacement).unwrap().state;
+    assert_eq!(
+        replacement.inventory().obligations[&id].state,
+        ObligationState::Superseded
+    );
+    assert_eq!(
+        replacement.inventory().obligations[&new_review].state,
+        ObligationState::Open
+    );
+    assert!(replacement.review(&new_review).unwrap().check.is_none());
+    assert_eq!(
+        transition(&replacement, &settle(5)),
+        Err(CommandError::Conflict)
+    );
+    let settled = transition(&passed, &settle(4)).unwrap();
+    assert_eq!(
+        settled.state.inventory().obligations[&id].state,
+        ObligationState::Resolved
+    );
+    assert_eq!(
+        settled
+            .state
+            .review(&id)
+            .unwrap()
+            .settlement
+            .as_ref()
+            .unwrap()
+            .actor,
+        "Questmancer"
+    );
+    assert!(transition(&settled.state, &settle(4)).unwrap().replayed);
+    assert_eq!(
+        settled.state.inventory().quests[&quest].state,
+        questmancer::work::QuestState::Planned
+    );
+}
+
+#[test]
 fn retries_rejections_and_terminal_incarnations_preserve_authority() {
     let state = state_with_request();
     let source = state.source();

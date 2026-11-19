@@ -32,6 +32,8 @@ pub enum StoreError {
     Protected(String),
     #[error("owned store I/O failed: {0}")]
     Io(String),
+    #[error("local review evidence unavailable: {0}")]
+    ReviewEvidence(String),
     #[error("owned command {0:?} may have committed; reconcile before retrying")]
     Indeterminate(super::CommandId),
     #[error("owned store creation may have committed; explicitly reopen the same selection")]
@@ -152,6 +154,16 @@ impl OwnedStore {
         if next.replayed {
             return Ok(next.receipt);
         }
+        let target = match &command.action {
+            super::Action::RequestReview { target, .. } => Some(target),
+            super::Action::SettleReview { id, .. } => {
+                next.state.review(id).map(|review| &review.target)
+            }
+            _ => None,
+        };
+        if let Some(target) = target {
+            super::review_git::changes(target).map_err(StoreError::ReviewEvidence)?;
+        }
         let bytes = encode(&next.state)?;
         match self.lease.publish(&bytes, Some(&self.stamp), hook) {
             Ok(stamp) => {
@@ -198,7 +210,7 @@ impl OwnedStore {
 fn encode(state: &OwnedState) -> Result<Vec<u8>, StoreError> {
     state.validate()?;
     let mut bytes = serde_json::to_vec(&Snapshot {
-        version: 1,
+        version: if state.has_reviews() { 2 } else { 1 },
         state: state.clone(),
     })
     .map_err(io)?;
@@ -210,11 +222,24 @@ fn encode(state: &OwnedState) -> Result<Vec<u8>, StoreError> {
 }
 fn decode(bytes: &[u8]) -> Result<OwnedState, StoreError> {
     let value = strict_json::parse(bytes).map_err(|e| StoreError::Protected(e.to_string()))?;
-    if value.get("version").and_then(serde_json::Value::as_u64) != Some(1) {
+    if !matches!(
+        value.get("version").and_then(serde_json::Value::as_u64),
+        Some(1 | 2)
+    ) {
         return Err(StoreError::Protected("unsupported version".into()));
+    }
+    if value["version"] == 1 && value["state"].get("reviews").is_some() {
+        return Err(StoreError::Protected(
+            "reviews require owned format v2".into(),
+        ));
     }
     let snapshot: Snapshot =
         serde_json::from_value(value).map_err(|e| StoreError::Protected(e.to_string()))?;
+    if (snapshot.version == 2) != snapshot.state.has_reviews() {
+        return Err(StoreError::Protected(
+            "owned review format does not match its version".into(),
+        ));
+    }
     snapshot
         .state
         .validate()

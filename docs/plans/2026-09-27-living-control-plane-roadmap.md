@@ -51,6 +51,8 @@ Later stages do not follow automatically from agreeing to own the backend.
 The [Quest Inbox study](../reviews/2026-11-18-quest-inbox/README.md) explores
 an inbox-first home and a revision-bound review action in Storybook. Its
 fixture evidence supports interaction review before the next live-work slice.
+The [production Inbox plan](2026-11-18-production-quest-inbox.md) records the
+Pi and Codex dogfood, the Board-first delivery and the opt-in Inbox home.
 
 ## M1 product proof
 

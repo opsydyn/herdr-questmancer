@@ -72,6 +72,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
     }
     if intercept_war_table(model, action, &mut commands)
         || intercept_work_board(model, action, &mut commands)
+        || intercept_inbox(model, action, &mut commands)
     {
         return finish_reduction(model, &before, ControlFlow::Continue(()), commands);
     }
@@ -175,6 +176,11 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         | Action::SelectAt { .. }
         | Action::Redraw
         | Action::OpenAuthoring
+        | Action::OpenInbox
+        | Action::RequestReview
+        | Action::ImportCheck
+        | Action::SettleReview
+        | Action::LinkReviewAdventurer
         | Action::NameParty
         | Action::None => ControlFlow::Continue(()),
     };
@@ -653,13 +659,21 @@ fn select_next_urgent(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         .map_or(0, |i| (i + 1) % queue.len().max(1));
     match queue.get(index) {
         Some(AttentionTarget::Obligation(id)) => {
-            model.select_work(WorkSelection::Obligation(id.clone()));
+            if matches!(model.modal(), Modal::QuestInbox { .. }) {
+                model.select_inbox_item(id.clone());
+                model.open_inbox(false);
+            } else {
+                model.select_work(WorkSelection::Obligation(id.clone()));
+            }
         }
         Some(AttentionTarget::Agent(key)) => {
             let key = key.clone();
             let before = selected_pane(model);
             model.clear_work_selection();
-            if matches!(model.modal(), Modal::QuestBoard | Modal::WarTable) {
+            if matches!(
+                model.modal(),
+                Modal::QuestBoard | Modal::QuestInbox { .. } | Modal::WarTable
+            ) {
                 model.dismiss_modal();
             }
             model.select_agent(&key);
@@ -767,6 +781,10 @@ fn intercept_work_board(
     }
     match action {
         Action::Dismiss | Action::OpenQuestBoard => model.dismiss_modal(),
+        Action::OpenInbox => model.open_inbox(false),
+        Action::RequestReview => {
+            open_review_form(model, crate::owned_work::authoring::FormKind::RequestReview);
+        }
         Action::OpenWarTable => model.open_war_table(),
         Action::Next => model.cycle_work(true),
         Action::Previous => model.cycle_work(false),
@@ -793,6 +811,118 @@ fn intercept_work_board(
     true
 }
 
+fn intercept_inbox(model: &mut Model, action: Action, commands: &mut Vec<AgentCommand>) -> bool {
+    use crate::owned_work::authoring::FormKind;
+    let Modal::QuestInbox { detail } = *model.modal() else {
+        return false;
+    };
+    match action {
+        Action::Dismiss if detail => model.open_inbox(false),
+        Action::Dismiss if model.inbox_is_home() => model.dismiss_modal(),
+        Action::Dismiss | Action::OpenQuestBoard => model.open_quest_board(),
+        Action::Switch(view) => {
+            model.dismiss_modal();
+            model.switch_to(view);
+        }
+        Action::Submit if model.work_selection().is_some() => model.open_inbox(true),
+        Action::Next => model.cycle_inbox(true, false),
+        Action::Previous => model.cycle_inbox(false, false),
+        Action::NextResult => model.cycle_inbox(true, true),
+        Action::PreviousResult => model.cycle_inbox(false, true),
+        Action::ScrollUp | Action::ScrollDown if detail => {
+            model.scroll_reading(action == Action::ScrollDown);
+        }
+        Action::ScrollUp | Action::ScrollDown => {
+            model.cycle_inbox(action == Action::ScrollDown, false);
+        }
+        Action::NextUrgent => select_next_urgent(model, commands),
+        Action::AcknowledgeSummons => model.request_inbox_intent(false),
+        Action::DeferSummons => model.request_inbox_intent(true),
+        Action::Observe => {
+            if let Some(agent) = crate::work::inbox::observer(model) {
+                commands.push(AgentCommand::FocusVerifiedPane {
+                    pane_id: agent.pane_id.clone(),
+                    identity: agent.capture_identity.clone(),
+                });
+            } else {
+                model.set_action_feedback(
+                    "Observe unavailable: no verified live adventurer binding.".into(),
+                );
+            }
+        }
+        Action::LinkReviewAdventurer => model.link_inbox_adventurer(),
+        Action::Refresh if model.authoring().ready() => model.authoring_mut().review = None,
+        Action::RequestReview => open_review_form(model, FormKind::RequestReview),
+        Action::ImportCheck => open_review_form(model, FormKind::RecordCheck),
+        Action::SettleReview => open_review_form(model, FormKind::SettleReview),
+        _ => {}
+    }
+    true
+}
+
+fn open_review_form(model: &mut Model, kind: crate::owned_work::authoring::FormKind) {
+    use crate::{
+        owned_work::authoring::{FormKind, ReviewFormTarget, Surface},
+        work::{ObligationState, inbox, view},
+    };
+    let target = if kind == FormKind::RequestReview {
+        view::selected_quest(model)
+            .and_then(|id| {
+                model
+                    .authoring()
+                    .metadata
+                    .as_ref()?
+                    .inventory
+                    .quests
+                    .get(id)
+            })
+            .map(|q| ReviewFormTarget::Quest {
+                id: q.id.clone(),
+                title: q.title.clone(),
+            })
+    } else {
+        inbox::owned_review(model).and_then(|(o, _)| {
+            let detail = inbox::current_detail(model)?;
+            if o.state != ObligationState::Open
+                || kind == FormKind::SettleReview
+                    && !(detail.review.check_passed() && detail.changes.is_ok())
+            {
+                return None;
+            }
+            let title = model.work().quest(o.quest.as_ref()?)?.title.clone();
+            Some(ReviewFormTarget::Review {
+                id: o.id.clone(),
+                incarnation: o.incarnation.clone(),
+                title,
+                head: detail.review.target.head.clone(),
+            })
+        })
+    };
+    let Some(target) = target else {
+        model.set_action_feedback(match kind {
+            FormKind::RequestReview => "Select a quest in your opened local store to request a review.",
+            FormKind::RecordCheck => "Select an open owned review and wait for its details to load.",
+            _ => "Settlement requires the pinned change summary and a passing check for its candidate.",
+        }.into());
+        return;
+    };
+    let from_inbox = match *model.modal() {
+        Modal::QuestInbox { detail } => Some(detail),
+        _ => None,
+    };
+    let authoring = model.authoring_mut();
+    authoring.form(kind);
+    if authoring.surface == Surface::Form(kind) && authoring.feedback.is_empty() {
+        authoring.review_target = Some(target);
+        authoring.return_to_inbox = from_inbox;
+    } else {
+        let feedback = authoring.feedback.clone();
+        model.set_action_feedback(feedback);
+        return;
+    }
+    model.open_owned_authoring();
+}
+
 fn submit_modal(model: &mut Model, commands: &mut Vec<AgentCommand>) {
     match model.modal() {
         Modal::Counsel { .. } => submit_counsel(model, commands),
@@ -803,6 +933,7 @@ fn submit_modal(model: &mut Model, commands: &mut Vec<AgentCommand>) {
         | Modal::Chronicle
         | Modal::OwnedAuthoring
         | Modal::QuestBoard
+        | Modal::QuestInbox { .. }
         | Modal::CharacterPicker { .. }
         | Modal::PartyName { .. }
         | Modal::StatusExplanation(_)
@@ -811,6 +942,10 @@ fn submit_modal(model: &mut Model, commands: &mut Vec<AgentCommand>) {
 }
 
 fn open_authoring(model: &mut Model) {
+    let from_inbox = match *model.modal() {
+        Modal::QuestInbox { detail } => Some(detail),
+        _ => None,
+    };
     let selected = crate::work::view::selected_quest(model)
         .and_then(|q| model.authoring().metadata.as_ref()?.inventory.quests.get(q))
         .map(|q| q.campaign.clone());
@@ -829,5 +964,6 @@ fn open_authoring(model: &mut Model) {
         model.authoring_mut().campaign = selected;
     }
     model.authoring_mut().menu();
+    model.authoring_mut().return_to_inbox = from_inbox;
     model.open_owned_authoring();
 }

@@ -1,7 +1,7 @@
 //! Contextual parchment using the existing production scene overlay path.
 use crate::{
     app::Model,
-    owned_work::authoring::{Authoring, FormKind, Surface, menu_entries},
+    owned_work::authoring::{Authoring, FormKind, ReviewFormTarget, Surface, menu_entries},
     ui::{
         theme::{PARCHMENT, PARCHMENT_BORDER},
         work_board::wrap_text,
@@ -22,6 +22,9 @@ pub fn heading(kind: FormKind) -> &'static str {
         FormKind::Request => "Request decision",
         FormKind::Answer => "Answer decision",
         FormKind::Artifact => "Register artifact",
+        FormKind::RequestReview => "Request revision review",
+        FormKind::RecordCheck => "Import check receipt",
+        FormKind::SettleReview => "Settle review",
     }
 }
 fn detail_rows(a: &Authoring, compose_hint: bool) -> Vec<String> {
@@ -89,7 +92,10 @@ pub fn rows(a: &Authoring, width: u16) -> (Vec<String>, usize) {
                 .metadata
                 .iter()
                 .flat_map(|m| m.inventory.obligations.values())
-                .filter(|o| a.campaign.as_ref().is_none_or(|c| c == &o.campaign))
+                .filter(|o| {
+                    o.kind == crate::work::ObligationKind::Decision
+                        && a.campaign.as_ref().is_none_or(|c| c == &o.campaign)
+                })
                 .enumerate()
             {
                 if i == a.cursor {
@@ -210,6 +216,27 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
 fn form_rows(a: &Authoring, kind: FormKind, width: u16, body: &mut Vec<String>) -> usize {
     let mut anchor = 0;
     body.push(heading(kind).into());
+    if matches!(
+        kind,
+        FormKind::RequestReview | FormKind::RecordCheck | FormKind::SettleReview
+    ) {
+        match &a.review_target {
+            Some(ReviewFormTarget::Quest { title, .. }) => {
+                body.push(format!("Quest: {title}"));
+                body.push("A new request replaces any open review for this quest.".into());
+            }
+            Some(ReviewFormTarget::Review { title, head, .. }) => {
+                body.push(format!("Quest: {title}"));
+                body.push(format!("Candidate: {head}"));
+                if kind == FormKind::RecordCheck {
+                    body.push(
+                        "Import only the receipt from the runner you chose for this review.".into(),
+                    );
+                }
+            }
+            None => {}
+        }
+    }
     if kind == FormKind::Answer {
         body.extend(detail_rows(a, false));
     }

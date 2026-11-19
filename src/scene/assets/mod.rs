@@ -3,6 +3,7 @@ pub mod archetypes;
 pub mod cat;
 pub mod delve;
 pub mod guild_hall;
+pub(crate) mod inbox_scroll;
 pub mod keepsakes;
 pub mod librarian;
 pub mod palette;

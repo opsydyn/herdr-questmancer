@@ -4,6 +4,23 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+- Open the Quest Inbox from the Board with `b`, then `i`. Summons are grouped
+  by quest, with seen and 15-minute deferral controls and review history.
+- Request a review with `v` on an owned quest. Review a pinned local Git
+  change summary alongside optional Pi or Codex reports and registered PR
+  links. Import the local operator's check receipt and explicitly settle only
+  after the required check passes for the exact candidate. Quest lifecycle
+  and PR state are managed separately.
+- Set `inbox_on_start = true` to open the Inbox over the usual room. Explicit
+  Guild Hall and Delve launches go straight to the requested room.
+- Redraw eleven adventurer portraits and the Librarian in the compact 16-bit
+  style of Wizard and Mage. Compatible terminals show the artwork in the
+  character picker, Adventurer cards and the Librarian's Ledger.
+- Existing owned stores open directly. The first saved revision review writes
+  owned-work format v2, which requires this release or later.
+
+## [0.2.2] - 2026-11-18
+
 - Add flagstones and worn thresholds to the Delve and more wood, rug, and hearth
   detail to the Hall. In fitted Delve rooms with full motion, adventurers can
   walk to their stations when Herdr reports fresh work and the aisle is clear.
@@ -34,6 +51,10 @@ All notable changes to this project will be documented here.
   Wizard, Druid, Artificer and Runewright have distinct small silhouettes.
 - Add fitted Hall and Delve Storybook parties with one adventurer of every class
   for checking silhouette, presence and density together.
+
+## [0.2.1] - 2026-11-17
+
+- Follow-up distribution of the 0.2.0 feature set.
 
 ## [0.2.0] - 2026-11-17
 

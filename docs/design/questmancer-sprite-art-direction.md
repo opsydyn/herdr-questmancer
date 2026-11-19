@@ -67,6 +67,33 @@ registered authored class sprite in a `24x32` canvas is the unconditional fallba
 renderer and its half-block adapter remain the correct foundation for the world
 itself.
 
+## Post-Inbox art-direction audit
+
+The [completed lineup audit](reviews/2026-11-18-lineup-audit/README.md)
+compares all 15 selectable adventurers and the Librarian. The human Ghostty
+review follows the [Inbox and art work](../plans/2026-11-18-production-quest-inbox.md).
+Use the production Wizard and Mage portraits as the native artwork references
+alongside the [original 16-bit reference](../../reference-art/questmancer-option-a-north-star.png).
+Match their compact proportions, short limbs, broad pixel clusters and clear
+outlines. Each class can keep its own signature props and colour accents.
+The [native portrait pass](reviews/2026-11-18-native-portrait-alignment/README.md)
+started with a shorter Artificer and simpler Rat Royalty. The revised cards
+use broader pixel clusters for the Artificer's apron and machinery and Rat
+Royalty's crown and cape. Compare new portraits with both references in the
+production card bounds to distinguish illustration changes from placement.
+
+Build a side-by-side Storybook comparison for every selectable character,
+including Rat Royalty, with the Librarian alongside as a supporting character.
+Show the native profile, character picker, `24x32` fallback and `16x24` and
+`8x12` world sprites. Compare at actual terminal sizes in the Hall and Delve
+and use a shared baseline in the comparison sheet. Rate proportions, outline
+and pixel clusters, palette and contrast, footprint in the card and whether
+each class keeps a recognisable silhouette and signature prop at roster scale.
+
+Deliver a per-character decision to keep, adjust framing or revise the art,
+with one before-and-after study for any shared change in direction. Review the
+lineup before commissioning an asset pass.
+
 Detection describes the complete pane transport, not merely the outer terminal.
 For Herdr-managed panes, native Kitty graphics require
 `experimental.kitty_graphics = true` in Herdr configuration. Questmancer must

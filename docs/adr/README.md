@@ -16,3 +16,5 @@
   — accepted production promotion; full masters through eleven, smaller authored sprites through sixty-four, stable seats and unchanged full-size profiles.
 - [0008 — One writer per Questmancer profile](0008-profile-writer.md)
   — serializes profile writes and supports read-only secondary panes.
+- [0009 — Keep Quest Inbox review decisions in owned work](0009-production-quest-inbox.md)
+  — accepted for the Board-first build and local check receipts.

@@ -27,8 +27,12 @@ marks the selected adventurer; contextual parchment overlays handle counsel,
 search and scrying without replacing the scene with a dashboard. A persistent
 Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
 
-## What's new in 0.2.0
+## Questmancer at a glance
 
+- **An Inbox for work that needs your attention.** Press `b`, then `i` to
+  triage summons across quests, or opt in to opening the Inbox at startup.
+  Review a pinned Git candidate alongside its check receipt and optional Pi
+  or Codex report. Explicit settlement records the reviewed revision.
 - **Rooms that fit the party.** The Hall and Delve fit their complete rooms
   proportionally in compatible Kitty panes. Up to eleven adventurers retain
   detailed `16x24` sprites; 12–32 use authored `8x12` sprites in staggered seats,
@@ -38,9 +42,10 @@ Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
   answer decisions, and register artifacts in an explicitly selected local
   store. The Quest Board and War Table keep work available independently of
   live agent sessions. Seen/deferred requests remain separate from answers.
-- **Clearer characters.** Bramble Sage Druid, Storm Channeler Sorcerer,
-  Sunward Chaplain Cleric and the Librarian's Keeper of the Stacks refresh
-  improve class silhouettes while retaining authored sprite fallbacks.
+- **Choose your adventurers' characters.** Press `e` to preview and select
+  a character, including the opt-in Rat Royalty. The [native portrait lineup](docs/design/reviews/2026-11-18-native-portrait-alignment/lineup.png)
+  uses the compact 16-bit style of Wizard and Mage. Authored half-block art
+  provides the fallback on other terminals.
 - **Current Herdr and Pi setup.** Herdr 0.9.4+ / protocol 22 compatibility,
   standard Kitty transport, and a qualified supported Pi integration recipe.
   Pi working/resting reports retain native session identity; resting alone
@@ -48,17 +53,23 @@ Librarian in the Guild Hall opens the fixed Librarian's Ledger handbook.
 
 Selection and counsel counts remain readable below fitted rooms. Other modal
 parchments and unsupported graphics/geometry use responsive half-block output.
-Parties above 64 use the explicit fallback; they are not silently omitted from
-a claimed complete fit. See [automatic density](docs/manual-test/automatic-density.md),
+Parties above 64 use the explicit fallback. See
+[automatic density](docs/manual-test/automatic-density.md),
 [owned work authoring](docs/manual-test/owned-work-authoring.md) and the
-[release notes](CHANGELOG.md#020---2026-11-17). Automated PTY/pixel checks and
-recorded production-art approvals are separate from exhaustive native acceptance.
+[changelog](CHANGELOG.md).
 
 ## Two rooms, one party
 
 | Guild Hall · the whole-party home | Delve · active work in connected chambers |
 | --- | --- |
 | ![Questmancer Guild Hall showing the whole party at workstations](site/src/assets/screenshots/guild-hall.png) | ![Questmancer Delve showing adventurers working in connected chambers](site/src/assets/screenshots/delve.png) |
+
+## Character sprite sheet
+
+![All fifteen selectable adventurers at world and crowded-roster scale, alongside the Librarian](docs/design/reviews/2026-11-18-native-portrait-alignment/sprite-sheet.png)
+
+Press `e` in either room to preview a character for the selected adventurer.
+See the [larger illustrated portraits](docs/design/reviews/2026-11-18-native-portrait-alignment/lineup.png) used in compatible terminals.
 
 ## Operational evidence
 
@@ -108,6 +119,9 @@ The installer selects the archives matching `herdr-plugin.toml` and verifies
 `SHA256SUMS`. Release archives cover macOS and Linux on ARM64 and x86-64.
 See the [release process](docs/release-process.md) for dated verification and
 [source linking](#link-a-local-guild) when developing from this checkout.
+
+For a GitHub-installed plugin, run `herdr plugin update opsydyn.questmancer`
+and reopen the Questmancer pane to load the updated binary.
 
 ## Use with Pi
 
@@ -225,6 +239,8 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `Tab` | Move to the next campaign's party |
 | `c` | Open the Chronicle |
 | `b` | Open the Quest Board |
+| `i` in Quest Board | Open the Quest Inbox |
+| `v` in Quest Board | Request a revision review for the selected owned quest |
 | `w` | Open or close the War Table |
 | `a` in Quest Board | Open owned-work Actions and store setup |
 | `Tab` in Chronicle | Last-hour guild chapter / records |
@@ -385,6 +401,7 @@ Create `config.toml` there when defaults are not sufficient:
 
 ```toml
 default_view = "guild"            # guild | delve
+inbox_on_start = false            # open the Quest Inbox on ordinary launches
 motion = "full"                   # full | reduced | none
 character_set = "unicode"         # unicode | ascii
 color_mode = "xterm256"           # xterm256 | ansi16
@@ -754,6 +771,28 @@ the truncation repair, and unperformed native-terminal acceptance. M1 is complet
 for its fixture-backed scope and included in 0.2.0; native-terminal acceptance
 remains separate.
 
+
+## Quest Inbox
+
+Open the Quest Board with `b`, then press `i` for the Inbox. The queue groups
+summons by quest and keeps campaign-wide summons visible. Enter opens the
+selected details, and Tab cycles the quest's summons and review history. Space
+marks an item seen. `s` defers it for 15 minutes or restores it to the due queue.
+
+Set `inbox_on_start = true` in Questmancer's `config.toml` to open the Inbox
+over your usual room. Esc returns to the room and `b` opens the Board. The
+Guild Hall and Delve launch actions and explicit `--view` launches go directly
+to the requested room. Use `a` to reach store setup from an empty Inbox.
+
+Select an owned quest on the Board and press `v` to request a review of two
+pinned local Git commits. An open review shows its acceptance criterion,
+changed files, any Pi or Codex report supplied with the request and any
+registered PR link. Press `c` to import the chosen runner's receipt. Press
+`x` to confirm settlement once the pinned change summary is available and the
+required check has passed for that candidate. The review and its outcome
+survive a restart. See the [local review walkthrough](docs/manual-test/quest-inbox.md).
+The first saved revision review updates the owned store to v2. Keep a copy
+of the store before starting a revision review if you may need to downgrade.
 
 ## War Table
 

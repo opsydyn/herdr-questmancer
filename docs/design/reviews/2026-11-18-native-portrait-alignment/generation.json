@@ -1,0 +1,243 @@
+{
+  "tool": "built-in imagegen",
+  "reference_inputs": [
+    "src/assets/portraits/wizard-card.png",
+    "src/assets/portraits/mage-card.png"
+  ],
+  "preserved_sha256": {
+    "wizard": "e987390104fdaf20834730f4df7d10784decb1d24188c638d8f1a8ddf361eda0",
+    "mage": "547c1f72debdd63ba3038e870a4ef231a5e8d7334f98e606696ea5a0c5c6ef90",
+    "rogue": "2ba6484e1477f78638f9a8e70068299564c26d1754a1fbfe701844a04b17e8cc",
+    "barbarian": "b76aaecda64ff28c30c83dee0cdf72d9db281a556c0a4f7734034c67d60c2c48"
+  },
+  "redraws": [
+    {
+      "name": "artificer",
+      "generated_file": "exec-8e71b2e2-3471-42b9-a5c8-45f5a2215a02.png",
+      "prompt": "Redraw the third image, a Questmancer adventurer for a cozy 16-bit RPG terminal card. Images 1 and 2 are the exact house style references (Wizard and Mage). Match their visibly chunky square pixel clusters and strong dark stepped outlines. Draw on a low-resolution square pixel grid then upscale with nearest neighbor. A huge head, blocky torso, very short legs and broad boots, cute squat body proportions comparable to the Wizard. A few flat, warm palette ramps and large uninterrupted patches, with enough negative space to recognize the primary prop. Single full-body character centered with feet and props fully included, on genuinely transparent alpha. Keep silhouette clean. No ground, shadows, glows beyond silhouette, lettering, or frame. Use materially fewer detail marks than the third input.\nRevised Artificer. Keep the friendly stocky adult dwarf, white beard, brass goggles with cyan lenses perched on forehead, a single oversized blocky steel wrench, teal coat and brown apron. Use one clearly visible cyan vial as the single workshop accent. Simplify the backpack to one silhouette and combine all belts and machinery into a small handful of broad shapes. Give the head nearly the same visual weight as the body. Three main tones per material. Large boots directly beneath short legs.",
+      "asset": "src/assets/portraits/artificer-card.png",
+      "previous_sha256": "d24cfb0cda00f89728ad00dec9d7d511c13f3b561379ff2258db753ae57a83f5",
+      "generated_sha256": "097a4aed5a20cf5c7abe21940c190b7072d9133cf3b317850512990b8c3d5214",
+      "production_sha256": "6fb882b15c1aff6ef2f4ff5e2663ca314a738707d2137ba95b0e644456c37948",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        36,
+        77,
+        348,
+        438
+      ]
+    },
+    {
+      "name": "rat-royalty",
+      "generated_file": "exec-7ddfb910-40c4-45cb-a722-e4aecf612cbd.png",
+      "prompt": "Redraw the third image, a Questmancer adventurer for a cozy 16-bit RPG terminal card. Images 1 and 2 are the exact house style references (Wizard and Mage). Match their visibly chunky square pixel clusters and strong dark stepped outlines. Draw on a low-resolution square pixel grid then upscale with nearest neighbor. A huge head, blocky torso, very short legs and broad boots, cute squat body proportions comparable to the Wizard. A few flat, warm palette ramps and large uninterrupted patches, with enough negative space to recognize the primary prop. Single full-body character centered with feet and props fully included, on genuinely transparent alpha. Keep silhouette clean. No ground, shadows, glows beyond silhouette, lettering, or frame. Use materially fewer detail marks than the third input.\nRevised Rat Royalty. Preserve the distinctive rat muzzle, pink round ears, little tail curl to one side, blocky golden crown, short sceptre with a single sapphire, red-purple royal cape, and a wide cream collar. Delightful cheeky expression with tall ears. Huge head and compact body with short feet. Treat the purple cloth and cream collar as broad flat masses, one clasp, one spot or two at most, broad angular tail. Keep the costume readable with no ornate fine trim, jewellery or fur lines.",
+      "asset": "src/assets/portraits/rat-royalty-card.png",
+      "previous_sha256": "87346fb6b8df609b79a849a494f786bdd4f5d3d33237a85a77f9cb26a6dbbb9e",
+      "generated_sha256": "e67b7cb9ecc13ab5ffe0c1c715bc424cab4af029a38ea27edf3dca7887be25d4",
+      "production_sha256": "6831ce7371d3ebfc574efa2fe720b64f619362ace371cdbc1a1ef0d416fabff9",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        44,
+        77,
+        341,
+        438
+      ]
+    },
+    {
+      "name": "sorcerer",
+      "generated_file": "exec-1f7f4360-658c-4806-9148-530bd833064b.png",
+      "prompt": "Redraw the original Questmancer sorcerer portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the light silver streak in the swept storm-black hair, bright cyan storm orb, plum mantle, boots and expressive face. Compact hair shape with two or three groups, short deep purple coat, chunky hands and boots, shorter sturdy legs. One spare bolt within the orb silhouette, no surrounding particles. The orb is held in one hand, the other is down and open. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/portraits/sorcerer-card.png",
+      "previous_sha256": "590d08cb7741722d6c8d73ef5b82e8bd003cfefffd6c7068677000445012a101",
+      "generated_sha256": "385365c19951c30587c3e9d353a0fa0920aa47c5b1ef6534461831e008a09e6e",
+      "production_sha256": "bba534ff6d401c6cc406e513cd36bf803f51c76b8c39b7cbf32281eeacb3b193",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        78,
+        78,
+        306,
+        438
+      ]
+    },
+    {
+      "name": "bard",
+      "generated_file": "exec-603d9105-5cd9-4532-87b4-b13f463cb0a1.png",
+      "prompt": "Redraw the original Questmancer bard portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the jovial expression, broad plum hat and single feather, warm gold lute, plum cape and leather boots. Give Bard a huge grin and compact bouncy stance, with a simple lute held against the chest. A few opaque marks on the lute itself, no floating notes or narrow precise strings. Keep the hat, feather and lute readable. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/portraits/bard-card.png",
+      "previous_sha256": "3ed3e72ecf32931c5e60867eddb72edd7ce1939efa2aa03632d82fbd2e310938",
+      "generated_sha256": "6a7af72f7f8f5992d5f3a80a5ea06fe7004472e970778f89545750bfa57492fd",
+      "production_sha256": "991218723fc47c4bcc9c70418c78888baa04307ee84fb8a1ce2baf6f6cdd6e34",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        72,
+        78,
+        311,
+        438
+      ]
+    },
+    {
+      "name": "testmender",
+      "generated_file": "exec-bfd17ada-f16e-4338-8f07-c3497c23d2e8.png",
+      "prompt": "Redraw the original Questmancer testmender portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the bright green brass goggles, white hair, deep olive work coat, green apron and one primary tall glass probe. One reflected highlight in the green instrument, one simple pouch and only a few belt shapes. Stumpy legs, big dark brown boots and a compact torso. Give the bright green instrument head a round silhouette and a plain bronze shaft so it differs from the Artificer wrench and Druid branch. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/portraits/testmender-card.png",
+      "previous_sha256": "ee4b76d179efb1665ceb620d54f2fd2e879ac2616f46197fe0d8ad390d01a27d",
+      "generated_sha256": "6f7148320a5c9c49a0dcf52cbbbc55f6083956560c3a67ad5d20b163d8b07572",
+      "production_sha256": "af14dad348ef7dc1c9de4717f53bc5be4bbe3bcb41bb30c2f9cc3bc8182ac750",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        33,
+        77,
+        351,
+        438
+      ]
+    },
+    {
+      "name": "runewright",
+      "generated_file": "exec-bec15a3d-4669-4ddd-9957-06b96ce74baf.png",
+      "prompt": "Redraw the original Questmancer runewright portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the ginger-white beard, earthy green hood and massive two-sided gray-blue rune hammer on a dark staff, with a bright cyan rune in a broad clean shape. Use teal and copper accents and only one secondary glyph. Dark trousers and broad sturdy boots. The rune hammer head is a distinct uninterrupted silhouette. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/portraits/runewright-card.png",
+      "previous_sha256": "3e629c925cfa4d7c20ef0cc0c0d655afe8be72d71424ce47c61caa98a8a25d1a",
+      "generated_sha256": "a929769f1e80689ee50bfcfa02183b034ea44235845515a2ca9706b3cbce7d14",
+      "production_sha256": "17a4232dc7c4bf3ae3c93f598dc1b9a0a299f185b96c0eea753e42bbdd796c82",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        31,
+        78,
+        353,
+        438
+      ]
+    },
+    {
+      "name": "cleric",
+      "generated_file": "exec-bd9483b0-1f40-474a-906c-966116bb6dcb.png",
+      "prompt": "Redraw the original Questmancer cleric portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the bearded friendly expression, white and gold vestments with blue lining, gold sunburst staff and small book-shaped buckler. The large bright vestment masses dominate. One blue jewel and one gold cross glyph with a few broad strokes. Keep the staff and book silhouettes distinct. Arms and legs are short, with chunky hands and boots. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/portraits/cleric-card.png",
+      "previous_sha256": "d2bdf4d155bb452dfcdd2a06042d9f70f5889a5a4ad399a62a03340a5f27e91c",
+      "generated_sha256": "5bd3a324e7bbdaf8ced65ee7c40fd5f74692be5d0c25bf0ea4709355455558bb",
+      "production_sha256": "31a9addbd9337a996b91e77e204a3fc0670a5d083eca0e9f3205f5abf086c091",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        37,
+        78,
+        347,
+        438
+      ]
+    },
+    {
+      "name": "paladin",
+      "generated_file": "exec-74816b47-c807-419d-aacd-bdfc59209f73.png",
+      "prompt": "Redraw the original Questmancer paladin portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the original enclosed steel helm, heavy golden shield with a single bright heraldic cross shape, short upright hammer and deep red cape. Preserve the stocky armour. Simplify the gold rim and visible armour to blocky areas of light, mid and dark steel. Give the helmet a clear sharp dark visor and chunky boots. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/portraits/paladin-card.png",
+      "previous_sha256": "77d04a95aed0f480812c7559222178eb9eb95d406ec3dc5c8704f80dcd558a0d",
+      "generated_sha256": "ce15a3eeba92b55b0e85b78a0f2dc92e6c149ef9ce3a1fab3b13a11565c4711b",
+      "production_sha256": "db8b8d7794095b41daff46510fed455ec938e0626e85066b34437da24f6cb09b",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        24,
+        83,
+        361,
+        438
+      ]
+    },
+    {
+      "name": "druid",
+      "generated_file": "exec-665609e4-46a1-472e-8889-ab1c2bc778ed.png",
+      "prompt": "Redraw the original Questmancer druid portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the white beard, deep green hood with two branching twigs, one gold clasp, leafy hem, brown boots and crooked wooden staff with a broad green leaf glow. Reduce flower and leaf clusters to a few large shapes. Keep the hood silhouette darker than the beard, big round head and compact torso. One small blue flower as a restrained accent. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/portraits/druid-card.png",
+      "previous_sha256": "2143a2deed9967a606b5267447bf977293545caa05a1c7b570126d89f7462f17",
+      "generated_sha256": "10ca7cccadd2d6433254325bd9222f905e650c16980e189655d589492b5c71a9",
+      "production_sha256": "f1ddb1cbf6397933680c1f6685f6bfccf9cfff7e88b5d50fcdf68d431d4ffef1",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        45,
+        78,
+        339,
+        438
+      ]
+    },
+    {
+      "name": "ranger",
+      "generated_file": "exec-51b3e13d-8510-419c-a400-a47e7b4e39f1.png",
+      "prompt": "Redraw the original Questmancer ranger portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the blond fringe under the broad muted forest-green hood, crescent wooden bow, compact quiver and leather arm guards. Use broad green cape masses and a chunky cedar bow. Two clean arrow fletch shapes for the quiver; no other details more important than the bow. Keep a compact, alert stance and dark boots. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/portraits/ranger-card.png",
+      "previous_sha256": "482ce59d0aa89f59803a7c6db0e429c28f2ec745d247221e78be46ae667488b4",
+      "generated_sha256": "738e2a2bf8b2c60d6f3fd592c2299f5854f9803d7cf6ee7fd25d065d56a353f9",
+      "production_sha256": "5c781a90ec8223cd8ba786734d62d718d1414d035ee3e0f8c49b554a8cb98556",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        46,
+        78,
+        338,
+        438
+      ]
+    },
+    {
+      "name": "pathseeker",
+      "generated_file": "exec-7556836f-b447-4963-aacd-45f54db89346.png",
+      "prompt": "Redraw the original Questmancer pathseeker portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the chestnut hair under a short moss-brown hood, muted olive travel cloak, broad rolled pack, and forked walking staff with one small green hanging lantern. Merge straps and buckles into one colour block with one clasp, prioritise the staff and roll silhouette. Small round sturdy body, short legs, chunky brown boots. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/portraits/pathseeker-card.png",
+      "previous_sha256": "76b10ccd8958b81a49d73986ccf6b7c56a3cd79b528d53919601b52a257884a9",
+      "generated_sha256": "1c82a69879e5b4615db663c13385598670ec78569fec4a831456b8c70b14aae4",
+      "production_sha256": "ab10aa6581cb6642dbbbc1227760bb5de8ac67052d25fe345a2ae3a7e7cd9257",
+      "production_canvas": [
+        384,
+        512
+      ],
+      "alpha_128_bounds": [
+        34,
+        77,
+        351,
+        438
+      ]
+    },
+    {
+      "name": "librarian",
+      "generated_file": "exec-6605fd4d-7973-4b4b-b702-3d1fe774781e.png",
+      "prompt": "Redraw the original Questmancer librarian portrait in image 3 to match the cozy 16-bit pixel art of Wizard and Mage (images 1 and 2). Preserve the identity and palette of image 3. Use square 16-bit pixel steps throughout including the silhouette, aiming for an apparent grid roughly 45 pixels tall in the character. Use hard dark outlines and a few broad warm colour clusters per material, with restrained highlights and no gradients, gloss or fine interior lines. Big head and short sturdy limbs with a wide compact body matching the Wizard's proportions. Friendly, expressive face. Keep the original warm orangutan librarian with round bronze spectacles, burnt orange fur, a broad purple robe, two thick books in one arm and one held in the other. Squat body, large broad face and distinctive orange hair, short broad feet. Use separate dark green, red, and muted blue for the three book covers. Keep the closed book outlines bold and calm, friendly face easily read. No floating props. Full body including the boots and all held props with breathing room on all sides. Isolated, genuinely transparent RGBA background, no surface, no shadow, no border, no text, no cast glow.",
+      "asset": "src/assets/librarian.png",
+      "previous_sha256": "cd8742a77ba6cb9ee5fcca266679f1edb39c46407706ecb0a3ce0c0785dd373a",
+      "generated_sha256": "3702dd79bed252be475422ea209ecb611ffc0aba6b8c92c36059b4b9b3518ec8",
+      "production_sha256": "8dc2ada2ec1cfd086f4f297e578e9054a2d6e4f0443a04cbe190f67fac6c77ec",
+      "production_canvas": [
+        1024,
+        1024
+      ],
+      "alpha_128_bounds": [
+        173,
+        74,
+        851,
+        939
+      ]
+    }
+  ]
+}

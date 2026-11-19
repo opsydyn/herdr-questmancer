@@ -5,9 +5,14 @@ Questmancer, workspaces are campaigns, agents are adventurers, blocked work
 raises summons, and explicit completion returns spoils. Herdr owns live facts;
 Questmancer owns presentation and a small amount of durable local intent.
 
-## Current release — 0.2.0, 2026-11-17
+## Published 0.2 series
 
-Version 0.2.0 is published from clean `11ddd02`, with all four archives, checksums,
+[0.2.2](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.2.2)
+published the core UX updates, including party naming, per-adventurer character
+selection, Rat Royalty, Delve movement and a Storybook Inbox preview. See the
+[changelog](CHANGELOG.md#022---2026-11-18) for the scope of that release.
+
+Version 0.2.0 was published from clean `11ddd02`, with all four archives, checksums,
 the actual macOS ARM64 installer and deployed docs verified. It includes the Quest Board/War Table, explicit local owned-work
 authoring, Herdr 0.9.4+ compatibility, revised class/Librarian art, proportional
 Hall/Delve fitting, profile masking and automatic party density through 64 actors.
@@ -32,6 +37,16 @@ durability, party identity, status, Herdr and world-art work after 0.2.0.
 The [room studies](docs/reviews/2026-11-18-core-ux/README.md) carry the visual
 comparison and review prompts. Keep their Storybook evidence separate from
 native acceptance.
+
+## Production Quest Inbox and portrait pass
+
+The opt-in startup preference passed the engineering and managed Herdr checks
+in the [production Inbox plan](docs/plans/2026-11-18-production-quest-inbox.md).
+The [character lineup audit](docs/design/reviews/2026-11-18-lineup-audit/README.md)
+records the 16-bit proportion and detail findings. The
+[native portrait pass](docs/design/reviews/2026-11-18-native-portrait-alignment/README.md)
+applies them to the class cards and Librarian's Ledger. The final human
+Ghostty review covers the Inbox and artwork together.
 
 ## Historical baseline — 2026-09-09
 
