@@ -1,0 +1,277 @@
+{
+  "commit": "db6be41",
+  "candidate_sha256": "41f46dcef0fdcf0bf13308c61d4e772bc74172237129eb6fe7dd6e93ac3e2f2f",
+  "herdr_version": "0.9.5",
+  "protocol": 22,
+  "scope": "Isolated real Herdr server, synthetic agents, release binary",
+  "automated": {
+    "command": "just release-verify",
+    "rust_tests": 887,
+    "rust_test_runs": 68,
+    "shell_tests": 28,
+    "result": "passed"
+  },
+  "party": [
+    {
+      "role": "forge",
+      "pane": "w1:p1",
+      "tab": "w1:t1",
+      "state": "working",
+      "qualified": true,
+      "identity_kind": "id"
+    },
+    {
+      "role": "watch",
+      "pane": "w1:p2",
+      "tab": "w1:t2",
+      "state": "idle",
+      "qualified": false,
+      "identity_kind": null
+    },
+    {
+      "role": "counsel",
+      "pane": "w1:p3",
+      "tab": "w1:t3",
+      "state": "blocked",
+      "qualified": false,
+      "identity_kind": null
+    }
+  ],
+  "checks": {
+    "view_keys": [
+      "guild",
+      "delve",
+      "guild"
+    ],
+    "live_party_size": 3,
+    "room_ansi_transition_digests": {
+      "guild": "f71c00277c389256800b628bcd4ae4cc31c1cdedb44b485a7b9960301bda15ac",
+      "delve": "b2c15bb47675207b6764d873584558181a2b90a6082bc39f371a4b3e1dff7284"
+    },
+    "metadata_only_link_refused": true,
+    "explicit_clear_kept_focus_on_sentinel": true,
+    "replacement_revoked_link_and_kept_focus_on_sentinel": true,
+    "verified_focus_surfaces": [
+      "Quest Board",
+      "War Table",
+      "Quest Inbox",
+      "Explicitly relinked replacement"
+    ],
+    "restart_requires_explicit_link": true,
+    "owned_store_bytes_unchanged": true,
+    "raw_sessions_absent_from_saved_profile": true,
+    "cache_contains_no_bindings": true,
+    "managed_guild_delve_guild": true,
+    "managed_singleton": true,
+    "managed_excluded_from_party": true
+  },
+  "managed_actions": [
+    "open",
+    "open",
+    "close",
+    "open",
+    "open",
+    "guild",
+    "delve",
+    "guild"
+  ],
+  "managed_actions_exit_zero": true,
+  "shared_server_trial": {
+    "custom_report_state": "working",
+    "custom_report_qualified": false,
+    "original_focus_retained": true,
+    "protected_panes_retained": true,
+    "trial_workspace_absent": true
+  },
+  "retained_review": {
+    "workspace": "w1",
+    "workspace_label": "Questmancer association review",
+    "pane": "w1:pA",
+    "view": "delve",
+    "party_size": 0,
+    "live": true,
+    "attach": "python3 /tmp/qm-live-association.USm1QV/isolated.py attach",
+    "party_size_at_capture": 3,
+    "party_state": "three test receivers interrupted after capture",
+    "focused_surface": "user-opened isolated shell"
+  },
+  "native_visual_acceptance": "hall and delve fit and native Mage portrait observed",
+  "native_color_recheck": {
+    "previous_pane": "w1:p5",
+    "pane": "w1:p6",
+    "inherited_no_color": "1",
+    "pane_override": "NO_COLOR=",
+    "before_guild": {
+      "half_blocks": 8978,
+      "rgb_sequences": 0,
+      "distinct_rgb": 0
+    },
+    "after_views": {
+      "guild": {
+        "half_blocks": 5910,
+        "rgb_sequences": 3506,
+        "distinct_rgb": 147
+      },
+      "delve": {
+        "half_blocks": 5874,
+        "rgb_sequences": 7648,
+        "distinct_rgb": 474
+      }
+    },
+    "view": "guild",
+    "same_party_and_sessions": true
+  },
+  "kitty_follow_up": {
+    "regular_managed_ledger_fallback_observed": true,
+    "regular_managed_pty_geometry_at_inspection": {
+      "rows": 52,
+      "columns": 211,
+      "width_px": 1688,
+      "height_px": 936
+    },
+    "isolated_headless_managed_query": {
+      "grid_and_pixel_geometry": [
+        42,
+        149,
+        0,
+        0
+      ],
+      "picker_batch": [
+        "\u001b_Gi=31;OK\u001b\\",
+        "\u001b[?62;22c",
+        "\u001b[0n"
+      ],
+      "kitty_alone": [
+        "\u001b_Gi=31;OK\u001b\\"
+      ],
+      "geometry_alone": []
+    },
+    "regular_server_disposable_plain_query": {
+      "grid_and_pixel_geometry": [
+        52,
+        210,
+        1680,
+        936
+      ],
+      "picker_batch": [
+        "\u001b_Gi=31;OK\u001b\\",
+        "\u001b[?62;22c",
+        "\u001b[6;18;8t",
+        "\u001b[0n"
+      ],
+      "kitty_alone": [
+        "\u001b_Gi=31;OK\u001b\\"
+      ],
+      "geometry_alone": [
+        "\u001b[6;18;8t"
+      ],
+      "disposable_workspace_removed": true,
+      "pre_existing_panes_present": true,
+      "original_focus_retained": true
+    },
+    "regular_server_disposable_offline_release": {
+      "graphics_actions_over_entire_run": {
+        "q": 1,
+        "T": 3,
+        "d": 2
+      },
+      "graphics_actions_startup_through_guild": {
+        "q": 1,
+        "T": 1
+      },
+      "graphics_actions_after_ledger_heading": {
+        "T": 2,
+        "d": 2
+      },
+      "disposable_workspace_removed": true,
+      "pre_existing_panes_present": true,
+      "original_focus_retained": true
+    },
+    "regular_managed_fallback_cause": "unconfirmed",
+    "native_visual_acceptance": "hall and delve fit and native Mage portrait observed",
+    "direct_ghostty_isolated_refresh": {
+      "cold_managed_query": {
+        "grid_and_pixel_geometry": [
+          54,
+          209,
+          0,
+          0
+        ],
+        "picker_batch": [
+          "\u001b_Gi=31;OK\u001b\\",
+          "\u001b[?62;22c",
+          "\u001b[0n"
+        ],
+        "kitty_alone": [
+          "\u001b_Gi=31;OK\u001b\\"
+        ],
+        "geometry_alone": []
+      },
+      "warm_managed_launch": {
+        "pane": "w1:pA",
+        "same_party_and_sessions": true,
+        "initial": [
+          54,
+          209,
+          0,
+          0
+        ],
+        "final": [
+          54,
+          209,
+          1672,
+          972
+        ],
+        "waited_ms": 69108,
+        "pixel_geometry_ready": true
+      },
+      "room_terminal_frames": {
+        "views": {
+          "guild": {
+            "half_blocks": 0,
+            "kitty_placeholders": 4900,
+            "has_three_adventurers": true,
+            "visible_frame_sha256": "e6a71b6d565205d4dc6ffbd6d59d29290e7516bc1c51b4f4b16fc754b7b93312"
+          },
+          "delve": {
+            "half_blocks": 0,
+            "kitty_placeholders": 4900,
+            "has_three_adventurers": true,
+            "visible_frame_sha256": "e6a71b6d565205d4dc6ffbd6d59d29290e7516bc1c51b4f4b16fc754b7b93312"
+          }
+        },
+        "returned_to_guild": true,
+        "cold_refresh_geometry": {
+          "rows": 54,
+          "columns": 209,
+          "width_px": 0,
+          "height_px": 0
+        },
+        "party_size": 3
+      },
+      "visual_resize_acceptance": "pass at captured sizes after resize and warm launch",
+      "ghostty_captures": [
+        {
+          "view": "guild",
+          "file": "ghostty-guild-hall.png",
+          "captured_at": "2026-11-19T19:40:02+00:00",
+          "width_px": 1248,
+          "height_px": 725,
+          "sha256": "b9d23ae05957b02f5576058d234debdbc448cc613175bc3dbc57dc799d8ca0db",
+          "party_size": 3,
+          "observation": "Hall remains fitted with the native Mage portrait and profile open"
+        },
+        {
+          "view": "delve",
+          "file": "ghostty-delve.png",
+          "captured_at": "2026-11-19T19:40:11+00:00",
+          "width_px": 1239,
+          "height_px": 717,
+          "sha256": "eb24c51c35d3950375aed5a57fe1eafc3598d8eeb6a40591dca00dd1ed887619",
+          "party_size": 3,
+          "observation": "Complete fitted Delve with three adventurers, distinct state cues and selection"
+        }
+      ]
+    }
+  }
+}
