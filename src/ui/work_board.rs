@@ -99,6 +99,30 @@ fn inventory_rows(model: &Model, height: u16) -> String {
         .join("\n")
 }
 
+fn render_notice(frame: &mut Frame<'_>, model: &Model, mut body: Rect) -> Rect {
+    let notice = if model.authoring().busy() {
+        Some(format!(
+            "Owned work: {} (a: result)",
+            model.authoring().phase.label()
+        ))
+    } else {
+        model.action_feedback().map(str::to_owned)
+    };
+    if let Some(label) = notice {
+        let lines = wrap_text(&label, body.width);
+        let height = u16::try_from(lines.len())
+            .unwrap_or(u16::MAX)
+            .min(body.height);
+        frame.render_widget(
+            Paragraph::new(lines.join("\n")).style(PARCHMENT_BORDER),
+            Rect::new(body.x, body.y, body.width, height),
+        );
+        body.y = body.y.saturating_add(height);
+        body.height = body.height.saturating_sub(height);
+    }
+    body
+}
+
 pub fn render(frame: &mut Frame<'_>, model: &Model) {
     if let crate::app::Modal::QuestInbox { detail } = *model.modal() {
         crate::ui::quest_inbox::render(frame, model, detail);
@@ -139,29 +163,21 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
         Paragraph::new(heading).style(PARCHMENT_BORDER),
         Rect::new(inner.x, inner.y, inner.width, 1),
     );
-    let footer_height = if inner.width < 72 { 5 } else { 2 }.min(inner.height.saturating_sub(1));
-    let mut body = Rect::new(
+    let footer = if inner.width < 72 {
+        "i: Inbox  v: review  t: state\np: prerequisites  y: assign\nl/L: link/clear  a: actions\nj/k: work  ↑/↓: read  !: next\nSpace: seen  s: defer\nEnter: observe  Esc: close"
+    } else {
+        "i: Inbox  v: review  t: state  p: prerequisites  y: assign\nl/L: link/clear  a: actions  !: next  j/k: work  ↑/↓: read\nSpace: seen  s: defer  Enter: observe  Esc: close"
+    };
+    let footer_height = u16::try_from(footer.lines().count())
+        .unwrap_or(u16::MAX)
+        .min(inner.height.saturating_sub(1));
+    let body = Rect::new(
         inner.x,
         inner.y + 1,
         inner.width,
         inner.height.saturating_sub(footer_height + 1),
     );
-    if model.authoring().busy() {
-        let label = format!(
-            "Owned work: {} (a: result)",
-            model.authoring().phase.label()
-        );
-        let lines = wrap_text(&label, body.width);
-        let h = u16::try_from(lines.len())
-            .unwrap_or(u16::MAX)
-            .min(body.height);
-        frame.render_widget(
-            Paragraph::new(lines.join("\n")).style(PARCHMENT_BORDER),
-            Rect::new(body.x, body.y, body.width, h),
-        );
-        body.y = body.y.saturating_add(h);
-        body.height = body.height.saturating_sub(h);
-    }
+    let body = render_notice(frame, model, body);
     let details = if inner.width >= 72 {
         let list = Rect::new(body.x, body.y, 30, body.height);
         let rows = inventory_rows(model, body.height);
@@ -184,11 +200,6 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
         .style(PARCHMENT),
         details,
     );
-    let footer = if inner.width < 72 {
-        "i: Inbox  v: review  t: state\np: prerequisites  y: assign\na: actions  j/k: work  ↑/↓: read\n!: next  Space: seen  s: defer\nEnter: observe  Esc: close"
-    } else {
-        "i: Inbox  v: review  t: state  p: prerequisites  y: assign  a: actions\n!: next  j/k: work  ↑/↓: read  Space: seen  s: defer  Enter: observe  Esc"
-    };
     frame.render_widget(
         Paragraph::new(footer)
             .style(PARCHMENT_BORDER)

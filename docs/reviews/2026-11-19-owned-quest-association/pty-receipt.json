@@ -1,0 +1,18 @@
+{
+  "baseline_commit": "e01485d",
+  "candidate_sha256": "41f46dcef0fdcf0bf13308c61d4e772bc74172237129eb6fe7dd6e93ac3e2f2f",
+  "socket": "disposable Herdr protocol 22 fixture",
+  "linked_observe": [
+    "pane.get",
+    "pane.focus"
+  ],
+  "stale_observe": [
+    "pane.get"
+  ],
+  "stale_link_cleared_on_verification_failure": true,
+  "unlinked_observe_and_restart_observe": [],
+  "owned_store_bytes_preserved": true,
+  "raw_session_absent_from_persisted_profile": true,
+  "terminal_teardown_and_test_profile_cleanup": true,
+  "live_herdr_resources_created": 0
+}

@@ -75,7 +75,14 @@ The Quest Board records, replaces and clears a named assignee for an owned
 quest. The owned writer checks the previous assignment and uses v5 to record
 the change. The Board and War Table read the acknowledged projection. See
 [ADR 0012](../adr/0012-owned-quest-assignment.md) and the [qualification ledger](../reviews/2026-11-19-owned-quest-assignment/README.md).
-Verified Herdr association remains a separate slice.
+
+## L2d · Verified Herdr association
+
+The Quest Board links a current owned quest to the selected qualified
+adventurer for this Herdr connection. Verified Observe is available from
+the Board, War Table and Inbox. See
+[ADR 0013](../adr/0013-verified-owned-quest-association.md) and the
+[qualification ledger](../reviews/2026-11-19-owned-quest-association/README.md).
 
 ## M1 product proof
 

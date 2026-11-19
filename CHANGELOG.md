@@ -17,6 +17,9 @@ All notable changes to this project will be documented here.
   The first change writes owned-work format v4, which is kept after link removal.
 - Press `y` on an owned quest in the Quest Board to set, replace, or clear
   its named assignee. The first assignment edit writes owned-work format v5.
+- Link the selected live adventurer to an owned quest with `l` and clear
+  the connection-scoped association with `L`. Observe verifies the current
+  Herdr pane occupant before focusing it.
 
 ## [0.2.4] - 2026-11-19
 

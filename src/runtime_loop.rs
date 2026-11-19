@@ -626,6 +626,15 @@ pub fn apply_command_result(
         CommandResult::Focused(pane_id) => {
             model.set_action_feedback(format!("observing {pane_id}"));
         }
+        CommandResult::FocusIdentityChanged {
+            pane_id,
+            identity,
+            message,
+        } => {
+            model.revoke_adventurer_links(&pane_id, &identity);
+            model.set_action_feedback(format!("focus pane failed: {message}"));
+            queue_snapshot_refresh(model, &mut effects);
+        }
         result @ (CommandResult::CounselSent { .. }
         | CommandResult::CounselTextFailed { .. }
         | CommandResult::CounselTextUncertain { .. }

@@ -244,6 +244,7 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `t` in Quest Board | Change the selected owned quest's state |
 | `p` in Quest Board | Add or remove a prerequisite of the selected owned quest |
 | `y` in Quest Board | Set or clear the selected owned quest's assignee |
+| `l` / `L` in Quest Board | Link or clear the selected adventurer for this connection |
 | `w` | Open or close the War Table |
 | `a` in Quest Board | Open owned-work Actions and store setup |
 | `Tab` in Chronicle | Last-hour guild chapter / records |
@@ -857,6 +858,11 @@ Press `y` to record or replace an assignee by name, or clear the assignment.
 The Board and War Table recover recorded responsibility after restart. Observe
 still requires a verified live binding. The first assignment edit raises the
 store to v5. Keep a copy before upgrading if you may need to downgrade.
+
+Select a live adventurer in the Hall or Delve, then select an owned quest
+on the Board and press `l`. A verified link enables Observe from the Board,
+War Table and Inbox. Press `L` on the quest to clear the link. Links are
+connection-scoped and need to be set again after reconnect or restart.
 
 Tab moves focus, Enter activates a focused button or inserts a multiline newline,
 Up/Down or wheel reads context, and bracketed paste is literal and bounded. Esc keeps

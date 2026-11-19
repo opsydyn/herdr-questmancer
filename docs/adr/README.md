@@ -24,3 +24,5 @@
   — accepted for same-campaign links and owned-store v4.
 - [0012 — Record explicit assignment on owned quests](0012-owned-quest-assignment.md)
   — accepted for named responsibility and owned-store v5.
+- [0013 — Verify the live adventurer associated with an owned quest](0013-verified-owned-quest-association.md)
+  — accepted for connection-scoped links and verified Observe.

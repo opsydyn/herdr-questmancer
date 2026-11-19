@@ -174,6 +174,20 @@ fn append_quest(lines: &mut Vec<String>, model: &Model) {
                 .as_ref()
                 .map_or("Unassigned", |a| a.name.as_str())
         ));
+        let associated = model.owned_quest_adventurer(id);
+        if let Some(adventurer) = associated {
+            lines.push(format!("Live association: {}", adventurer.persona.name));
+        }
+        if matches!(model.modal(), crate::app::Modal::QuestBoard)
+            && model.has_current_owned_quest(id)
+            && let Some(candidate) = model.selected_agent()
+            && associated.is_none_or(|adventurer| adventurer.key != candidate.key)
+        {
+            lines.push(format!(
+                "Selected adventurer to link: {}",
+                candidate.persona.name
+            ));
+        }
         for dep in &q.dependencies {
             lines.push(model.work().quest(dep).map_or_else(
                 || format!("Dependency: {} | missing", dep.as_str()),
@@ -199,11 +213,13 @@ fn append_quest(lines: &mut Vec<String>, model: &Model) {
         {
             lines.extend(artifact_details(artifact));
         }
-        lines.push(if super::bound_agent(model, id).is_some() {
-            "Enter: observe verified adventurer pane".into()
-        } else {
-            "Observe unavailable: no verified live adventurer binding.".into()
-        });
+        lines.push(
+            if associated.is_some() || super::bound_agent(model, id).is_some() {
+                "Enter: observe verified adventurer pane".into()
+            } else {
+                "Observe unavailable: no verified live adventurer binding.".into()
+            },
+        );
     }
 }
 

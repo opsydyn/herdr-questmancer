@@ -56,6 +56,11 @@ pub enum AgentCommand {
 #[derive(Clone, Debug, PartialEq)]
 pub enum CommandResult {
     Focused(PaneId),
+    FocusIdentityChanged {
+        pane_id: PaneId,
+        identity: CaptureIdentity,
+        message: &'static str,
+    },
     CounselSent {
         pane_id: PaneId,
         request: CounselRequest,
@@ -276,12 +281,17 @@ impl CommandExecutor {
         if self.is_managed_pane(&pane_id) {
             return Self::refused_managed_pane("focus pane");
         }
+        let changed = |message| CommandResult::FocusIdentityChanged {
+            pane_id: pane_id.clone(),
+            identity: identity.clone(),
+            message,
+        };
         let operation = async {
             let current = self
                 .client
                 .get_pane(pane_id.as_str())
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|error| failed("focus pane", error))?;
             let observed =
                 CaptureIdentity::from_parts(&current.terminal_id, current.agent_session.as_ref());
             if current.pane_id != pane_id.as_str()
@@ -289,28 +299,29 @@ impl CommandExecutor {
                 || &observed != identity
                 || Presence::from(current.agent_status) == Presence::Exited
             {
-                return Err(
-                    "The adventurer session has changed. Link its current session to observe."
-                        .into(),
-                );
+                return Err(changed(
+                    "The adventurer session has changed. Link its current session to observe.",
+                ));
             }
             let focused = self
                 .client
                 .focus_pane(pane_id.as_str())
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|error| failed("focus pane", error))?;
             let observed =
                 CaptureIdentity::from_parts(&focused.terminal_id, focused.agent_session.as_ref());
-            if !focused.focused || focused.pane_id != pane_id.as_str() || &observed != identity {
-                return Err(
-                    "Herdr could not confirm focus on the verified adventurer session.".into(),
-                );
+            let unconfirmed = "Herdr could not confirm focus on the verified adventurer session.";
+            if focused.pane_id != pane_id.as_str() || &observed != identity {
+                return Err(changed(unconfirmed));
             }
-            Ok::<(), String>(())
+            if !focused.focused {
+                return Err(failed("focus pane", unconfirmed));
+            }
+            Ok(())
         };
         match tokio::time::timeout(std::time::Duration::from_secs(2), operation).await {
             Ok(Ok(())) => CommandResult::Focused(pane_id),
-            Ok(Err(message)) => failed("focus pane", message),
+            Ok(Err(result)) => result,
             Err(_) => failed(
                 "focus pane",
                 "Verifying or focusing the adventurer timed out",

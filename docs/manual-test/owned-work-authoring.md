@@ -79,6 +79,23 @@ requires its own live binding even when an adventurer has a matching name.
 The first assignment edit upgrades the owned store to v5 and clearing the
 last assignment retains v5. See the [verification ledger](../reviews/2026-11-19-owned-quest-assignment/README.md).
 
+## Link a verified Herdr adventurer
+
+In the Hall or Delve, select a test-owned adventurer with a complete
+native session identity. Open the Board with `b`, select an owned quest
+row, and check the adventurer named as the link candidate. Press `l` and
+confirm the resulting **Live association** is listed beside the recorded
+assignee. Use Enter to observe from the Board and War Table, or use
+`o` on a summons for that quest in the Inbox.
+
+Use `L` on the quest row to clear it and confirm Observe is unavailable.
+Repeat the link, replace or exit the test adventurer, and check that the
+old link cannot be used. After a reconnect or restart, verify Observe is
+unavailable until the adventurer is explicitly linked again. Metadata-only
+synthetic reports without native session identity are useful for room
+testing and should be refused for association. Use the
+[guarded scene procedure](questmancer-scene-preview.md) for test-owned panes.
+
 ## Input and recovery
 
 - Tab/Shift-Tab moves between fields and buttons. Enter inserts a newline in

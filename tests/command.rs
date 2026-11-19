@@ -134,7 +134,7 @@ async fn status_explanation_is_scoped_to_the_same_pane_occupant() {
 }
 
 #[tokio::test]
-async fn inbox_observe_revalidates_the_pane_occupant_before_focusing() {
+async fn verified_observe_checks_the_current_occupant_before_and_after_focus() {
     use questmancer::{domain::CaptureIdentity, herdr::protocol::AgentSessionInfo};
 
     let (_directory, path, listener) = listener();
@@ -146,22 +146,28 @@ async fn inbox_observe_revalidates_the_pane_occupant_before_focusing() {
     };
     let observed_session = session.clone();
     let server = tokio::spawn(async move {
-        for terminal in ["replacement", "current"] {
+        for (before, after) in [
+            ("replacement", None),
+            ("current", Some("current")),
+            ("current", Some("replacement")),
+        ] {
             let (mut stream, _) = listener.accept().await.unwrap();
             let call = request(&mut stream).await;
             assert_eq!(call["method"], "pane.get");
             respond(&mut stream, &call, json!({"type": "pane_info", "pane": {
-                "pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1", "terminal_id": terminal,
+                "pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1", "terminal_id": before,
                 "focused": false, "agent_status": "idle", "revision": 8, "agent_session": observed_session
             }})).await;
+            if let Some(terminal) = after {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let call = request(&mut stream).await;
+                assert_eq!(call["method"], "pane.focus");
+                respond(&mut stream, &call, json!({"type": "pane_info", "pane": {
+                    "pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1", "terminal_id": terminal,
+                    "focused": true, "agent_status": "idle", "revision": 9, "agent_session": observed_session
+                }})).await;
+            }
         }
-        let (mut stream, _) = listener.accept().await.unwrap();
-        let call = request(&mut stream).await;
-        assert_eq!(call["method"], "pane.focus");
-        respond(&mut stream, &call, json!({"type": "pane_info", "pane": {
-            "pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1", "terminal_id": "current",
-            "focused": true, "agent_status": "idle", "revision": 9, "agent_session": observed_session
-        }})).await;
     });
     let executor = CommandExecutor::new(HerdrClient::new(path), None);
     let pane_id = PaneId::new("w1:p1");
@@ -170,11 +176,14 @@ async fn inbox_observe_revalidates_the_pane_occupant_before_focusing() {
         identity: CaptureIdentity::from_parts("current", Some(&session)),
     };
     assert!(
-        matches!(executor.execute(focus.clone()).await, CommandResult::Failed { message, .. } if message.contains("session has changed"))
+        matches!(executor.execute(focus.clone()).await, CommandResult::FocusIdentityChanged { message, .. } if message.contains("session has changed"))
     );
     assert_eq!(
-        executor.execute(focus).await,
+        executor.execute(focus.clone()).await,
         CommandResult::Focused(pane_id)
+    );
+    assert!(
+        matches!(executor.execute(focus).await, CommandResult::FocusIdentityChanged { message, .. } if message.contains("could not confirm"))
     );
     server.await.unwrap();
 }

@@ -4,54 +4,16 @@ use super::{
     WorkSelection,
 };
 use crate::{
-    app::{ConnectionState, Model},
-    domain::{Agent, AgentKey, CaptureIdentity, PaneId, Presence, Timestamp},
+    app::Model,
+    domain::{Agent, Timestamp},
 };
 use std::collections::{BTreeMap, BTreeSet};
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct AdventurerLink {
-    pub quest: QuestId,
-    adventurer: AgentKey,
-    pane: PaneId,
-    identity: CaptureIdentity,
-}
-
-impl AdventurerLink {
-    pub(crate) fn new(model: &Model, quest: &QuestId) -> Option<Self> {
-        let agent = model.selected_agent()?;
-        if model.connection() != &ConnectionState::Connected
-            || agent.presence == Presence::Exited
-            || model.managed_pane_id() == Some(&agent.pane_id)
-        {
-            return None;
-        }
-        if !agent.capture_identity.is_qualified() {
-            return None;
-        }
-        Some(Self {
-            quest: quest.clone(),
-            adventurer: agent.key.clone(),
-            pane: agent.pane_id.clone(),
-            identity: agent.capture_identity.clone(),
-        })
-    }
-
-    pub(crate) fn resolve<'a>(&self, model: &'a Model) -> Option<&'a Agent> {
-        let agent = model.domain().agents.get(&self.adventurer)?;
-        (model.connection() == &ConnectionState::Connected
-            && model.managed_pane_id() != Some(&agent.pane_id)
-            && agent.presence != Presence::Exited
-            && agent.pane_id == self.pane
-            && agent.capture_identity == self.identity)
-            .then_some(agent)
-    }
-}
 
 pub(crate) fn observer(model: &Model) -> Option<&Agent> {
     let quest = super::view::selected_quest(model)?;
     model
         .inbox_adventurer(quest)
+        .or_else(|| model.owned_quest_adventurer(quest))
         .or_else(|| super::bound_agent(model, quest))
 }
 

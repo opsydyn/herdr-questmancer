@@ -32,6 +32,7 @@ pub enum Action {
     ChangeQuestLifecycle,
     EditQuestPrerequisites,
     EditQuestAssignment,
+    ChangeQuestAssociation(QuestAssociation),
     ImportCheck,
     SettleReview,
     LinkReviewAdventurer,
@@ -56,6 +57,13 @@ pub enum Action {
     Backspace,
     ClearInput,
     None,
+}
+
+/// Explicit changes to the selected owned quest's in-memory association.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QuestAssociation {
+    Link,
+    Clear,
 }
 
 pub fn action_for_scene_event_in(event: &Event, modal: &Modal, scene: &SceneFrame) -> Action {
@@ -153,6 +161,12 @@ fn action_for_in(key: KeyEvent, modal: &Modal) -> Action {
             KeyCode::Char('t') if key.kind == KeyEventKind::Press => Action::ChangeQuestLifecycle,
             KeyCode::Char('p') if key.kind == KeyEventKind::Press => Action::EditQuestPrerequisites,
             KeyCode::Char('y') if key.kind == KeyEventKind::Press => Action::EditQuestAssignment,
+            KeyCode::Char('l') if key.kind == KeyEventKind::Press => {
+                Action::ChangeQuestAssociation(QuestAssociation::Link)
+            }
+            KeyCode::Char('L') if key.kind == KeyEventKind::Press => {
+                Action::ChangeQuestAssociation(QuestAssociation::Clear)
+            }
             KeyCode::Char('w') => Action::OpenWarTable,
             KeyCode::Char('!') => Action::NextUrgent,
             KeyCode::Char('j') | KeyCode::Tab => Action::Next,

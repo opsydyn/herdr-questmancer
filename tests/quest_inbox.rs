@@ -1,15 +1,19 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use questmancer::{
     app::{ConnectionState, Modal, Model, View},
+    command::AgentCommand,
     domain::{DomainState, Timestamp},
-    herdr::protocol::{SessionSnapshotResult, SuccessResponse},
+    herdr::{
+        protocol::{AgentSessionInfo, SessionSnapshotResult, SuccessResponse},
+        supervisor::ConnectionUpdate,
+    },
     interaction::{ActionReduction, reduce_action},
     owned_work::{
         Action, CheckReceipt, CheckResult, Command, CommandId, OwnedRuntime, OwnedStore,
         StoreSelection, authoring,
     },
     persistence::{PersistenceClient, PersistenceWorker, WorkerPaths, load_work_cache},
-    runtime_loop::dispatch_action_effects,
+    runtime_loop::{apply_connection_update, dispatch_action_effects},
     ui::input::action_for_event_in,
     work::{CampaignId, ObligationState, QuestId, QuestKind, QuestState, SourceId, WorkSelection},
 };
@@ -135,6 +139,18 @@ fn open_review(model: &mut Model) {
     assert_eq!(model.modal(), &Modal::QuestInbox { detail: false });
     let _ = key(model, KeyCode::Enter);
     assert_eq!(model.modal(), &Modal::QuestInbox { detail: true });
+}
+
+fn association_snapshot() -> questmancer::herdr::protocol::SessionSnapshot {
+    let mut response: SuccessResponse<SessionSnapshotResult> =
+        serde_json::from_str(include_str!("fixtures/herdr/session_snapshot.json")).unwrap();
+    response.result.snapshot.agents[0].agent_session = Some(AgentSessionInfo {
+        source: "test".into(),
+        agent: "codex".into(),
+        kind: "session".into(),
+        value: "private-test-session".into(),
+    });
+    response.result.snapshot
 }
 
 #[tokio::test]
@@ -362,6 +378,203 @@ async fn board_records_replaces_and_clears_a_local_assignment() {
         .unwrap()
         .unwrap();
     assert_eq!(cache.projection.quest(&quest), Some(persisted));
+}
+
+#[tokio::test]
+async fn owned_quest_association_enables_verified_observe_without_writing_a_binding() {
+    let directory =
+        tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+    let source = SourceId::new("owned:promo");
+    let selection =
+        StoreSelection::new(directory.path().join("owned-work.json"), source.clone()).unwrap();
+    let original = include_bytes!("fixtures/owned-work/pre-lifecycle-v2.json");
+    std::fs::write(&selection.path, original).unwrap();
+    let quest = QuestId::new(&source, "picker");
+    let paths = WorkerPaths::new(Some(directory.path().join("state.json")), None);
+    let (mut client, _, worker) = PersistenceWorker::start(paths.clone());
+    let mut model = Model::new(View::Guild);
+    let mut runtime = OwnedRuntime::start(&paths, &mut model).unwrap();
+    model
+        .authoring_mut()
+        .request_setup(selection.clone(), false);
+    apply(&mut runtime, &mut client, &mut model).await;
+    let _ = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(association_snapshot()),
+        Timestamp::from_millis(2),
+    );
+    let agent = model.selected_agent().unwrap().clone();
+    let expected = AgentCommand::FocusVerifiedPane {
+        pane_id: agent.pane_id.clone(),
+        identity: agent.capture_identity.clone(),
+    };
+    model.select_work(WorkSelection::Quest(quest.clone()));
+    let cache_path = paths.work_path().unwrap();
+    let cached = std::fs::read(&cache_path).unwrap();
+    assert!(key(&mut model, KeyCode::Enter).unwrap().commands.is_empty());
+    let linked = key(&mut model, KeyCode::Char('l')).unwrap();
+    assert!(linked.commands.is_empty() && linked.persistence.is_empty());
+    assert!(render(&model, 120, 30).contains("Live association"));
+    assert_eq!(
+        key(&mut model, KeyCode::Enter).unwrap().commands,
+        std::slice::from_ref(&expected)
+    );
+    model.select_work(WorkSelection::Quest(quest.clone()));
+    let _ = key(&mut model, KeyCode::Char('i'));
+    assert_eq!(
+        questmancer::work::view::selected_quest(&model),
+        Some(&quest)
+    );
+    assert_eq!(
+        key(&mut model, KeyCode::Char('o')).unwrap().commands,
+        std::slice::from_ref(&expected)
+    );
+    model.select_work(WorkSelection::Quest(quest.clone()));
+    let _ = key(&mut model, KeyCode::Char('w'));
+    assert_eq!(
+        key(&mut model, KeyCode::Enter).unwrap().commands,
+        std::slice::from_ref(&expected)
+    );
+    assert_eq!(std::fs::read(&selection.path).unwrap(), original);
+    assert_eq!(std::fs::read(&cache_path).unwrap(), cached);
+
+    // A new acknowledged owned revision preserves this connection's link.
+    model.select_work(WorkSelection::Quest(quest.clone()));
+    let _ = key(&mut model, KeyCode::Char('y'));
+    for code in [KeyCode::Down, KeyCode::Tab] {
+        let _ = key(&mut model, code);
+    }
+    paste(&mut model, "Release reviewer");
+    for code in [KeyCode::Tab, KeyCode::Enter] {
+        let _ = key(&mut model, code);
+    }
+    apply(&mut runtime, &mut client, &mut model).await;
+    let _ = key(&mut model, KeyCode::Esc);
+    assert_eq!(
+        key(&mut model, KeyCode::Enter).unwrap().commands,
+        [expected]
+    );
+    let saved = std::fs::read_to_string(&selection.path).unwrap();
+    let cached = std::fs::read_to_string(&cache_path).unwrap();
+    assert!(!saved.contains("private-test-session") && !cached.contains("private-test-session"));
+    assert!(
+        load_work_cache(&cache_path)
+            .await
+            .unwrap()
+            .unwrap()
+            .projection
+            .sources[&source]
+            .bindings
+            .is_empty()
+    );
+
+    let _ = key(&mut model, KeyCode::Char('L'));
+    assert!(key(&mut model, KeyCode::Enter).unwrap().commands.is_empty());
+    runtime.shutdown(&mut client, &mut model).await.unwrap();
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+}
+
+#[test]
+fn owned_quest_association_requires_current_unambiguous_evidence_and_never_revives() {
+    use questmancer::{
+        domain::{AgentKey, CaptureIdentity, PaneId, Presence},
+        sources::local_work::LocalWorkSource,
+        work::{Freshness, Projection, reduce},
+    };
+    let directory =
+        tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+    let source = SourceId::new("owned:association");
+    let selection =
+        StoreSelection::new(directory.path().join("owned-work.json"), source.clone()).unwrap();
+    let quest = seed(&selection);
+    let store = OwnedStore::open(&selection.path, &source).unwrap();
+    let projection = Projection::default();
+    let baseline = LocalWorkSource::new(store.state(), &projection)
+        .unwrap()
+        .baseline(store.state(), Timestamp::from_millis(1))
+        .unwrap();
+    let work = reduce(projection, baseline.message).unwrap();
+    let mut model = Model::new(View::Guild);
+    model.authoring_mut().selection = Some(selection);
+    model.replace_work(work.clone());
+    let _ = apply_connection_update(
+        &mut model,
+        ConnectionUpdate::Connected(association_snapshot()),
+        Timestamp::from_millis(2),
+    );
+    model.select_work(WorkSelection::Quest(quest));
+    let original = model.domain().clone();
+    let candidate = model.selected_agent().unwrap().key.clone();
+    let can_observe = |model: &mut Model| !key(model, KeyCode::Enter).unwrap().commands.is_empty();
+    let link = |model: &mut Model| {
+        let _ = key(model, KeyCode::Char('l'));
+    };
+    for (invalid_domain, link_allowed) in [
+        ("same pane, different terminal", true),
+        ("moved pane", true),
+        ("unqualified report", false),
+        ("exited", false),
+        ("ambiguous pane", false),
+        ("missing agent", false),
+    ] {
+        link(&mut model);
+        assert!(can_observe(&mut model));
+        let mut changed = original.clone();
+        let agent = changed.agents.get_mut(&candidate).unwrap();
+        match invalid_domain {
+            "same pane, different terminal" => {
+                let CaptureIdentity::Session { terminal, .. } = &mut agent.capture_identity else {
+                    panic!("fixture must provide complete session evidence");
+                };
+                *terminal = "replacement-terminal".into();
+            }
+            "moved pane" => agent.pane_id = PaneId::new("moved:pane"),
+            "unqualified report" => agent.capture_identity = CaptureIdentity::Unqualified,
+            "exited" => agent.presence = Presence::Exited,
+            "ambiguous pane" => {
+                let mut another = agent.clone();
+                another.key = AgentKey::new("ambiguous-agent");
+                changed.agents.insert(another.key.clone(), another);
+            }
+            "missing agent" => {
+                changed.agents.remove(&candidate);
+            }
+            _ => unreachable!("all invalid domain scenarios are declared"),
+        }
+        model.replace_domain(changed);
+        assert!(!can_observe(&mut model), "{invalid_domain}");
+        if !link_allowed {
+            link(&mut model);
+            assert!(!can_observe(&mut model), "{invalid_domain}");
+        }
+        model.replace_domain(original.clone());
+        assert!(
+            !can_observe(&mut model),
+            "{invalid_domain} revived an old link"
+        );
+    }
+    link(&mut model);
+    let pane = model.selected_agent().unwrap().pane_id.clone();
+    model.set_managed_pane_id(Some(pane));
+    link(&mut model);
+    assert!(!can_observe(&mut model));
+    model.set_managed_pane_id(None);
+    assert!(!can_observe(&mut model));
+    link(&mut model);
+    let mut cached = work.clone();
+    cached.sources.get_mut(&source).unwrap().freshness = Freshness::Cached;
+    model.replace_work(cached);
+    link(&mut model);
+    assert!(!can_observe(&mut model));
+    model.replace_work(work);
+    assert!(!can_observe(&mut model));
+    link(&mut model);
+    model.set_connection(ConnectionState::Offline);
+    link(&mut model);
+    assert!(!can_observe(&mut model));
+    model.set_connection(ConnectionState::Connected);
+    assert!(!can_observe(&mut model));
 }
 
 #[tokio::test]

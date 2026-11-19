@@ -74,6 +74,11 @@ pub const BINDINGS: &[Binding] = &[
         action: Action::EditQuestAssignment,
     },
     Binding {
+        keys: "l / L (Board)",
+        description: "Link / clear adventurer",
+        action: Action::ChangeQuestAssociation(super::input::QuestAssociation::Link),
+    },
+    Binding {
         keys: "c (Review)",
         description: "Import a local check receipt",
         action: Action::ImportCheck,

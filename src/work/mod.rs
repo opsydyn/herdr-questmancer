@@ -2,6 +2,7 @@
 mod types;
 pub use types::*;
 
+pub(crate) mod association;
 mod attention;
 mod reducer;
 pub use attention::{AttentionTarget, WorkSelection, bound_agent, queue};

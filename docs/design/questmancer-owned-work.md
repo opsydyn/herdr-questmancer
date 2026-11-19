@@ -27,6 +27,12 @@ checks the prior value and stores the change with its receipt in v5. Live
 Herdr association remains separately verified. See the [assignment decision](../adr/0012-owned-quest-assignment.md)
 and [verification ledger](../reviews/2026-11-19-owned-quest-assignment/README.md).
 
+L2d adds connection-scoped Herdr association for owned quests. The Board
+records the explicit link in the running model. Observe uses Herdr's
+verified focus path. The association does not enter the work writer or
+cache. See the [association decision](../adr/0013-verified-owned-quest-association.md)
+and [verification ledger](../reviews/2026-11-19-owned-quest-association/README.md).
+
 This extends the [living control-plane contract](questmancer-living-control-plane.md)
 for a work source we own. External sources retain authority over their own facts.
 It supersedes the requirement to qualify Herdr Projects as the next product step.

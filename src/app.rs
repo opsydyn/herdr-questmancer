@@ -7,11 +7,13 @@ use crate::{
     chronicle_chapter::{ChapterRequest, ChapterWindow},
     config::OutputPreviewLines,
     domain::{
-        AdventurerClass, Agent, AgentKey, DomainState, PaneId, PersonaKey, Presence, Timestamp,
+        AdventurerClass, Agent, AgentKey, CaptureIdentity, DomainState, PaneId, PersonaKey,
+        Presence, Timestamp,
     },
     ledger::LedgerPageId,
     persistence::DurableIntent,
     update::{AppEvent, update},
+    work::{Freshness, Projection, QuestId, SourceState, association::AdventurerLink},
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -437,7 +439,8 @@ pub struct Model {
     work_source_notice: Option<crate::work::source::SourceNotice>,
     pending_work: Option<crate::work::Projection>,
     work_selection: Option<crate::work::WorkSelection>,
-    inbox_adventurer: Option<crate::work::inbox::AdventurerLink>,
+    inbox_adventurer: Option<(QuestId, AdventurerLink)>,
+    owned_quest_links: BTreeMap<QuestId, AdventurerLink>,
     board_viewport_width: u16,
     work_viewport_height: u16,
     war_campaign: Option<crate::work::CampaignId>,
@@ -489,6 +492,7 @@ impl Model {
             view,
             authoring: crate::owned_work::authoring::Authoring::default(),
             inbox_adventurer: None,
+            owned_quest_links: BTreeMap::new(),
             work: crate::work::Projection::default(),
             work_source_notice: None,
             pending_work: None,
@@ -552,6 +556,7 @@ impl Model {
 
     pub fn replace_work(&mut self, work: crate::work::Projection) {
         self.work = work;
+        self.reconcile_adventurer_links();
         if self
             .work_selection
             .as_ref()
@@ -673,7 +678,7 @@ impl Model {
     }
     pub(crate) fn link_inbox_adventurer(&mut self) {
         let linked = crate::work::view::selected_quest(self)
-            .and_then(|quest| crate::work::inbox::AdventurerLink::new(self, quest));
+            .and_then(|quest| Some((quest.clone(), AdventurerLink::selected(self)?)));
         let Some(link) = linked else {
             self.set_action_feedback(
                 "Select a quest and a live adventurer with verified session identity.".into(),
@@ -684,10 +689,75 @@ impl Model {
         self.set_action_feedback("Linked selected adventurer for this review session.".into());
     }
     pub(crate) fn inbox_adventurer(&self, quest: &crate::work::QuestId) -> Option<&Agent> {
-        self.inbox_adventurer
+        let (_, link) = self
+            .inbox_adventurer
             .as_ref()
-            .filter(|link| &link.quest == quest)?
-            .resolve(self)
+            .filter(|(id, _)| id == quest)?;
+        link.resolve(&self.domain, self.managed_pane_id())
+    }
+    pub(crate) fn has_current_owned_quest(&self, quest: &QuestId) -> bool {
+        current_owned_source(&self.work, self.authoring.selection.as_ref())
+            .is_some_and(|source| source.inventory.quests.contains_key(quest))
+    }
+    pub(crate) fn owned_quest_adventurer(&self, quest: &QuestId) -> Option<&Agent> {
+        if self.connection != ConnectionState::Connected || !self.has_current_owned_quest(quest) {
+            return None;
+        }
+        self.owned_quest_links
+            .get(quest)?
+            .resolve(&self.domain, self.managed_pane_id())
+    }
+    pub(crate) fn link_owned_quest(&mut self, quest: QuestId) {
+        if !self.has_current_owned_quest(&quest) {
+            self.set_action_feedback("Select a current quest in the open owned store.".into());
+            return;
+        }
+        let Some(link) = AdventurerLink::selected(self) else {
+            self.set_action_feedback(
+                "Select a live adventurer with verified session identity in the Hall or Delve."
+                    .into(),
+            );
+            return;
+        };
+        self.owned_quest_links.insert(quest, link);
+        self.set_action_feedback(
+            "Linked the selected adventurer for this Herdr connection.".into(),
+        );
+    }
+    pub(crate) fn unlink_owned_quest(&mut self, quest: &QuestId) {
+        let removed = self.owned_quest_links.remove(quest).is_some();
+        self.set_action_feedback(if removed {
+            "Live association cleared.".into()
+        } else {
+            "This quest has no live association.".into()
+        });
+    }
+    pub(crate) fn revoke_adventurer_links(&mut self, pane: &PaneId, identity: &CaptureIdentity) {
+        if self
+            .inbox_adventurer
+            .as_ref()
+            .is_some_and(|(_, link)| link.matches(pane, identity))
+        {
+            self.inbox_adventurer = None;
+        }
+        self.owned_quest_links
+            .retain(|_, link| !link.matches(pane, identity));
+    }
+    fn reconcile_adventurer_links(&mut self) {
+        let managed = self.managed_pane_id.as_ref();
+        let domain = &self.domain;
+        if self
+            .inbox_adventurer
+            .as_ref()
+            .is_some_and(|(_, link)| link.resolve(domain, managed).is_none())
+        {
+            self.inbox_adventurer = None;
+        }
+        let source = current_owned_source(&self.work, self.authoring.selection.as_ref());
+        self.owned_quest_links.retain(|quest, link| {
+            source.is_some_and(|source| source.inventory.quests.contains_key(quest))
+                && link.resolve(domain, managed).is_some()
+        });
     }
     pub(crate) fn open_inbox(&mut self, detail: bool) {
         self.modal = Modal::QuestInbox { detail };
@@ -842,6 +912,7 @@ impl Model {
 
     pub fn set_connection_at(&mut self, connection: ConnectionState, observed_at: Timestamp) {
         self.inbox_adventurer = None;
+        self.owned_quest_links.clear();
         self.snapshot_refresh
             .connection_changed(connection == ConnectionState::Connected);
         self.domain.capture.connection_changed(
@@ -927,13 +998,7 @@ impl Model {
         }
         self.durable_intent.overlay(&mut domain);
         self.domain = domain;
-        if self
-            .inbox_adventurer
-            .as_ref()
-            .is_some_and(|link| link.resolve(self).is_none())
-        {
-            self.inbox_adventurer = None;
-        }
+        self.reconcile_adventurer_links();
         self.reconcile_output();
     }
 
@@ -2227,6 +2292,7 @@ impl Model {
 
     pub fn set_managed_pane_id(&mut self, pane_id: Option<PaneId>) {
         self.managed_pane_id = pane_id;
+        self.reconcile_adventurer_links();
         self.reconcile_output();
     }
 
@@ -2237,4 +2303,13 @@ impl Model {
     pub const fn goblins_mut(&mut self) -> &mut GoblinState {
         &mut self.goblins
     }
+}
+
+fn current_owned_source<'a>(
+    work: &'a Projection,
+    selection: Option<&crate::owned_work::StoreSelection>,
+) -> Option<&'a SourceState> {
+    work.sources
+        .get(&selection?.source)
+        .filter(|source| source.freshness == Freshness::Current)
 }

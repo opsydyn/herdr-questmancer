@@ -8,7 +8,7 @@ use crate::{
     scene::SceneFrame,
     ui::{
         copy::{SUMMONS_ACKNOWLEDGED, no_match},
-        input::Action,
+        input::{Action, QuestAssociation},
     },
     update::Command,
 };
@@ -181,6 +181,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         | Action::ChangeQuestLifecycle
         | Action::EditQuestPrerequisites
         | Action::EditQuestAssignment
+        | Action::ChangeQuestAssociation(_)
         | Action::ImportCheck
         | Action::SettleReview
         | Action::LinkReviewAdventurer
@@ -762,11 +763,14 @@ fn intercept_war_table(
     true
 }
 fn observe_work(model: &mut Model, commands: &mut Vec<AgentCommand>) {
-    let pane = crate::work::view::selected_quest(model)
-        .and_then(|q| crate::work::bound_agent(model, q))
-        .map(|a| a.pane_id.clone());
-    if let Some(pane) = pane {
-        commands.push(AgentCommand::FocusPane(pane));
+    let quest = crate::work::view::selected_quest(model);
+    if let Some(agent) = quest.and_then(|id| model.owned_quest_adventurer(id)) {
+        commands.push(AgentCommand::FocusVerifiedPane {
+            pane_id: agent.pane_id.clone(),
+            identity: agent.capture_identity.clone(),
+        });
+    } else if let Some(agent) = quest.and_then(|id| crate::work::bound_agent(model, id)) {
+        commands.push(AgentCommand::FocusPane(agent.pane_id.clone()));
     } else {
         model.set_action_feedback(
             "Observe unavailable: no verified live adventurer binding.".into(),
@@ -791,6 +795,7 @@ fn intercept_work_board(
         Action::ChangeQuestLifecycle => open_lifecycle_form(model),
         Action::EditQuestPrerequisites => open_prerequisite_form(model),
         Action::EditQuestAssignment => open_assignment_form(model),
+        Action::ChangeQuestAssociation(change) => edit_quest_association(model, change),
         Action::OpenWarTable => model.open_war_table(),
         Action::Next => model.cycle_work(true),
         Action::Previous => model.cycle_work(false),
@@ -799,22 +804,22 @@ fn intercept_work_board(
         }
         Action::AcknowledgeSummons => model.request_work_intent(false),
         Action::DeferSummons => model.request_work_intent(true),
-        Action::Observe => {
-            let pane = crate::work::view::selected_quest(model)
-                .and_then(|q| crate::work::bound_agent(model, q))
-                .map(|a| a.pane_id.clone());
-            if let Some(pane) = pane {
-                commands.push(AgentCommand::FocusPane(pane));
-            } else {
-                model.set_action_feedback(
-                    "Observe unavailable: no verified live adventurer binding.".into(),
-                );
-            }
-        }
+        Action::Observe => observe_work(model, commands),
         Action::NextUrgent => select_next_urgent(model, commands),
         _ => {}
     }
     true
+}
+
+fn edit_quest_association(model: &mut Model, change: QuestAssociation) {
+    let Some(crate::work::WorkSelection::Quest(id)) = model.work_selection().cloned() else {
+        model.set_action_feedback("Select a quest row to edit its live association.".into());
+        return;
+    };
+    match change {
+        QuestAssociation::Link => model.link_owned_quest(id),
+        QuestAssociation::Clear => model.unlink_owned_quest(&id),
+    }
 }
 
 fn intercept_inbox(model: &mut Model, action: Action, commands: &mut Vec<AgentCommand>) -> bool {
