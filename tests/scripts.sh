@@ -104,8 +104,9 @@ case "$*" in
       printf '{"pane_id":"new-pane","initial_view":"%s"}\n' "$FAKE_REGISTER_VIEW" \
         >"$HERDR_PLUGIN_STATE_DIR/runtime.json"
     fi
-    printf '{"result":{"plugin_pane":{"pane":{"pane_id":"new-pane"}}}}\n'
+    printf '{"result":{"plugin_pane":{"pane":{"pane_id":"new-pane","tab_id":"new-tab"}}}}\n'
     ;;
+  "tab focus new-tab") [[ -z ${FAKE_TAB_FOCUS_FAILURE:-} ]] ;;
 esac
 SH
   chmod +x "$path"
@@ -147,6 +148,7 @@ run_control() {
   FAKE_REGISTER_VIEW="${FAKE_REGISTER_VIEW:-}" \
   FAKE_REGISTER_DURING_DATE="${FAKE_REGISTER_DURING_DATE:-}" \
   FAKE_LN_FAILURE="${FAKE_LN_FAILURE:-}" \
+  FAKE_TAB_FOCUS_FAILURE="${FAKE_TAB_FOCUS_FAILURE:-}" \
   FAKE_HERDR_LOG="$TMP/herdr.log" \
   PATH="$TMP/bin:$PATH" \
     "$ROOT/herdr/control.sh" "$@"
@@ -158,7 +160,8 @@ test_open_creates_one_delve_pane() {
 
   run_control delve
 
-  assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.questmancer --entrypoint guild-hall --placement tab --env QUESTMANCER_INITIAL_VIEW=delve --focus"
+  assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.questmancer --entrypoint guild-hall --placement tab --env QUESTMANCER_WAIT_FOR_PANE_PIXELS=1 --env QUESTMANCER_INITIAL_VIEW=delve --focus"
+  assert_contains "$TMP/herdr.log" "tab focus new-tab"
   assert_contains "$TMP/state/runtime.json" '"pane_id":"new-pane"'
 }
 
@@ -169,11 +172,22 @@ test_open_and_closed_toggle_omit_initial_view() {
 
     run_control "$action"
 
-    assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.questmancer --entrypoint guild-hall --placement tab --focus"
+    assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.questmancer --entrypoint guild-hall --placement tab --env QUESTMANCER_WAIT_FOR_PANE_PIXELS=1 --focus"
+    assert_contains "$TMP/herdr.log" "tab focus new-tab"
     if grep -F -- "--env QUESTMANCER_INITIAL_VIEW" "$TMP/herdr.log" >/dev/null; then
       fail "$action passed an explicit initial view"
     fi
   done
+}
+
+test_open_preserves_registration_when_tab_focus_fails() {
+  rm -rf "$TMP/state"
+  : >"$TMP/herdr.log"
+
+  FAKE_TAB_FOCUS_FAILURE=1 run_control open
+
+  assert_contains "$TMP/herdr.log" "tab focus new-tab"
+  assert_contains "$TMP/state/runtime.json" '"pane_id":"new-pane"'
 }
 
 test_control_does_not_overwrite_runtime_registration() {
@@ -214,6 +228,7 @@ test_open_focuses_a_live_existing_pane() {
   run_control open
 
   assert_contains "$TMP/herdr.log" "plugin pane focus live-pane"
+  assert_not_contains "$TMP/herdr.log" "tab focus"
   if grep -F "plugin pane open" "$TMP/herdr.log" >/dev/null; then
     fail "open created a duplicate pane"
   fi
@@ -267,7 +282,8 @@ test_stale_state_is_replaced() {
   run_control guild
 
   assert_contains "$TMP/herdr.log" "pane get stale-pane"
-  assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.questmancer --entrypoint guild-hall --placement tab --env QUESTMANCER_INITIAL_VIEW=guild --focus"
+  assert_contains "$TMP/herdr.log" "plugin pane open --plugin opsydyn.questmancer --entrypoint guild-hall --placement tab --env QUESTMANCER_WAIT_FOR_PANE_PIXELS=1 --env QUESTMANCER_INITIAL_VIEW=guild --focus"
+  assert_contains "$TMP/herdr.log" "tab focus new-tab"
   assert_contains "$TMP/state/runtime.json" '"pane_id":"new-pane"'
 }
 
@@ -571,6 +587,7 @@ test_run_falls_back_to_debug_binary
 test_run_maps_only_exact_initial_views
 test_open_creates_one_delve_pane
 test_open_and_closed_toggle_omit_initial_view
+test_open_preserves_registration_when_tab_focus_fails
 test_control_does_not_overwrite_runtime_registration
 test_control_fallback_publication_is_atomic_no_clobber
 test_control_reports_fallback_publication_failure
@@ -648,4 +665,4 @@ test_no_file_is_both_tracked_and_ignored
 test_install_documents_the_native_path
 test_scripts_use_only_tools_the_runner_has
 
-echo "scripts: 28 passed"
+echo "scripts: 29 passed"

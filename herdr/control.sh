@@ -60,7 +60,7 @@ write_runtime() {
 open_pane() {
   local initial_view=$1
   local switch_existing=${2:-false}
-  local pane_id response
+  local pane_id response tab_id
   if pane_id=$(live_pane_id); then
     if [[ $switch_existing == true ]]; then
       case $initial_view in
@@ -72,26 +72,24 @@ open_pane() {
     return
   fi
 
-  if [[ $initial_view == default ]]; then
-    response=$("$HERDR" plugin pane open \
-      --plugin "$PLUGIN_ID" \
-      --entrypoint "$ENTRYPOINT" \
-      --placement tab \
-      --focus)
-  else
-    response=$("$HERDR" plugin pane open \
-      --plugin "$PLUGIN_ID" \
-      --entrypoint "$ENTRYPOINT" \
-      --placement tab \
-      --env "$INITIAL_VIEW_ENV=$initial_view" \
-      --focus)
+  local -a args=(--plugin "$PLUGIN_ID" --entrypoint "$ENTRYPOINT" --placement tab
+    --env QUESTMANCER_WAIT_FOR_PANE_PIXELS=1)
+  if [[ $initial_view != default ]]; then
+    args+=(--env "$INITIAL_VIEW_ENV=$initial_view")
   fi
+  response=$("$HERDR" plugin pane open "${args[@]}" --focus)
   pane_id=$(printf '%s\n' "$response" | sed -n 's/.*"pane_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
   if [[ -z $pane_id ]]; then
     echo "questmancer could not read the new pane id" >&2
     exit 1
   fi
   write_runtime "$pane_id" "$initial_view"
+
+  # Stock Herdr applies the attached client's pixel geometry on tab focus.
+  tab_id=$(printf '%s\n' "$response" | sed -n 's/.*"tab_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
+  if [[ -n $tab_id ]]; then
+    "$HERDR" tab focus "$tab_id" >/dev/null || true
+  fi
 }
 
 close_pane() {

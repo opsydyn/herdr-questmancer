@@ -123,6 +123,11 @@ See the [release process](docs/release-process.md) for dated verification and
 For a GitHub-installed plugin, run `herdr plugin update opsydyn.questmancer`
 and reopen the Questmancer pane to load the updated binary.
 
+In a Ghostty window already attached to Herdr, use the same `open` action.
+With Herdr's Kitty graphics enabled and measured terminal pixels available,
+Questmancer fits the Hall and Delve proportionally and shows native portraits.
+See [native graphics troubleshooting](docs/troubleshooting/native-portrait-rendering.md#opening-in-an-attached-ghostty-window).
+
 ## Use with Pi
 
 Install Pi and configure a working provider/model in Pi, then install Herdr's
@@ -184,7 +189,7 @@ The linked plugin runner resolves `target/release/questmancer`, then
 `cargo build --release`, reopen the Questmancer pane; relinking is unnecessary
 while Herdr is still linked to this checkout.
 
-### Develop in Ghostty with stock Herdr
+### Isolated Ghostty testing for contributors
 
 From a plain Ghostty shell in this checkout, run `just dev-ghostty`. It builds
 the release binary from the checkout, links it in an isolated Herdr session,

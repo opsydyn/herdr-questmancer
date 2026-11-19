@@ -407,6 +407,21 @@ pub async fn run(initial_view: Option<View>) -> Result<()> {
     run_application(initial_view).await
 }
 
+/// A fresh managed tab can have a character grid before Herdr applies the
+/// attached client's pixel geometry. The terminal Picker still decides whether
+/// the pane supports native images.
+async fn wait_for_managed_pane_pixels() {
+    let _ = tokio::time::timeout(Duration::from_millis(500), async {
+        while let Ok(size) = rustix::termios::tcgetwinsize(io::stdout()) {
+            if size.ws_xpixel != 0 && size.ws_ypixel != 0 {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await;
+}
+
 #[allow(
     clippy::too_many_lines,
     reason = "the application lifecycle keeps startup, runtime, persistence and terminal cleanup together"
@@ -439,6 +454,11 @@ async fn run_application(initial_view: Option<View>) -> Result<()> {
         .ok()
         .filter(|value| !value.is_empty())
         .map(PaneId::new);
+    if managed_pane_id.is_some()
+        && std::env::var("QUESTMANCER_WAIT_FOR_PANE_PIXELS").as_deref() == Ok("1")
+    {
+        wait_for_managed_pane_pixels().await;
+    }
     let picker = ratatui_image::picker::Picker::from_query_stdio();
     let portraits = match &picker {
         Ok(picker) => PortraitGallery::from_picker(picker),

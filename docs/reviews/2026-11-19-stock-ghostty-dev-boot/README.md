@@ -1,5 +1,8 @@
 # Stock Herdr dev boot in Ghostty
 
+The [normal-action review](../2026-11-19-attached-kitty-open/README.md)
+records the subsequent fix for opening after client attachment.
+
 - **Result** · Complete. The launcher passed and the Hall, Delve and native portrait were verified in Ghostty on stock Herdr.
 - **Claim** · `just dev-ghostty` starts the source-linked Questmancer plugin on stock Herdr without a manual resize.
 - **Evidence** · A failing ordinary launch, two fresh boots, a reattach, and the [Hall](ghostty-hall.png) and [Delve with native portrait](ghostty-delve-portrait.png) captures. See the [receipt](receipt.json).

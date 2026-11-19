@@ -1,0 +1,148 @@
+{
+  "source_base": "9d5df38",
+  "stock_herdr_version": "0.9.5",
+  "protocol": 22,
+  "stock_herdr_sha256": "fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2",
+  "questmancer_candidate_sha256": "f37681207198e8c4e1b20029d982a2e7743c72cd7842e33dcae0344dcd805496",
+  "managed_geometry_order": [
+    "rows",
+    "columns",
+    "pixel_width",
+    "pixel_height"
+  ],
+  "baseline": {
+    "operation": "herdr plugin action invoke opsydyn.questmancer.open",
+    "client_already_attached": true,
+    "pty_geometry": [
+      44,
+      128,
+      0,
+      0
+    ],
+    "half_blocks": 5310,
+    "kitty_placeholders": 0
+  },
+  "runs": [
+    {
+      "mode": "shell",
+      "geometry": [
+        44,
+        129,
+        1032,
+        792
+      ],
+      "outer_resize_events": 0,
+      "render": {
+        "hall": {
+          "kitty": 3600,
+          "half_blocks": 0
+        },
+        "delve": {
+          "kitty": 3600,
+          "half_blocks": 0
+        },
+        "character_preview": {
+          "kitty": 2442,
+          "half_blocks": 0
+        },
+        "ledger": {
+          "kitty": 264,
+          "half_blocks": 3787
+        }
+      },
+      "ordinary_action_before_tab_focus": true,
+      "singleton_reused": true
+    },
+    {
+      "mode": "api",
+      "geometry": [
+        38,
+        98,
+        784,
+        684
+      ],
+      "outer_resize_events": 0,
+      "render": {
+        "hall": {
+          "kitty": 1600,
+          "half_blocks": 0
+        },
+        "delve": {
+          "kitty": 1600,
+          "half_blocks": 0
+        },
+        "adventurer_card": {
+          "kitty": 1120,
+          "half_blocks": 24,
+          "kitty_inside_card": 360
+        },
+        "character_preview": {
+          "kitty": 720,
+          "half_blocks": 0
+        },
+        "ledger": {
+          "kitty": 264,
+          "half_blocks": 1866
+        }
+      },
+      "ordinary_action_before_tab_focus": true,
+      "singleton_reused": true
+    },
+    {
+      "mode": "disabled",
+      "geometry": [
+        44,
+        129,
+        0,
+        0
+      ],
+      "outer_resize_events": 0,
+      "render": {
+        "hall": {
+          "kitty": 0,
+          "half_blocks": 5361
+        },
+        "delve": {
+          "kitty": 0,
+          "half_blocks": 5325
+        },
+        "ledger": {
+          "kitty": 0,
+          "half_blocks": 4171
+        }
+      },
+      "ordinary_action_before_tab_focus": true,
+      "singleton_reused": true
+    }
+  ],
+  "ghostty_review": {
+    "source": "user confirmation and screenshots",
+    "launch": "normal plugin open action in an already-attached Ghostty window",
+    "captures": [
+      {
+        "view": "Hall",
+        "file": "ghostty-hall.png",
+        "local_capture_time": "2026-11-19 22:22:18",
+        "pixel_width": 848,
+        "pixel_height": 507,
+        "sha256": "d6e78c1020b0007d8086ec5c44b298f585bdacce3892c2ce4e10bb5033e3ecd5"
+      },
+      {
+        "view": "Delve",
+        "file": "ghostty-delve.png",
+        "local_capture_time": "2026-11-19 22:22:25",
+        "pixel_width": 847,
+        "pixel_height": 502,
+        "sha256": "3d7b3ba8053cb5c8ba3b5b2b9ba86fd63d246139e7c310937fe8d81d81e17c4a"
+      },
+      {
+        "view": "Hall with native Rogue portrait",
+        "file": "ghostty-hall-native-portrait.png",
+        "local_capture_time": "2026-11-19 22:23:53",
+        "pixel_width": 698,
+        "pixel_height": 417,
+        "sha256": "002699b0df77525530d484493c867dafccba020e4a974895cf0ee0ad6520e9f2"
+      }
+    ]
+  }
+}

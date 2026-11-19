@@ -74,6 +74,31 @@ In 0.9.4, disabling Kitty graphics also stops advertising image support. Keep
 headless runtime is not a native terminal appearance review. See the
 [compatibility receipt](../reviews/2026-10-14-herdr-094/README.md).
 
+### Opening in an attached Ghostty window
+
+With Ghostty already attached to Herdr, open Questmancer using its normal
+plugin action:
+
+```sh
+herdr plugin action invoke opsydyn.questmancer.open
+```
+
+Stock Herdr 0.9.5 can create a plugin pane with terminal rows and columns
+but zero pixel dimensions even when the client already has measured cell
+pixels. When an action creates a new Questmancer tab, the plugin explicitly
+focuses that tab using Herdr's regular focus command, which applies those
+measurements. The managed entrypoint waits up to 500 ms for both pixel
+dimensions before running its normal terminal capability query. Repeated
+`open` actions reuse the existing pane.
+
+The whole-room Hall and Delve fit and native portraits require Kitty to
+negotiate successfully. Missing geometry or unavailable Kitty uses the
+authored fallback. After updating from a build that started in fallback,
+close and reopen Questmancer to run startup negotiation on the new build.
+
+[Herdr issue #5594](https://github.com/herdrdev/herdr/issues/5594),
+[normal-action verification with Ghostty captures](../reviews/2026-11-19-attached-kitty-open/README.md).
+
 ### Repeatable Ghostty dev boot
 
 Open a new Ghostty window and run this from the checkout's plain shell. The
@@ -95,11 +120,8 @@ stays available when the client detaches. To finish the dev session, run
 `herdr server stop` from a shell inside its isolated workspace. The temporary
 directory retains its logs and state for inspection.
 
-Once Questmancer is open in this session, `opsydyn.questmancer.open` focuses the
-existing tab. Creating a fresh tab after the first attachment can still hit the
-stock Herdr geometry issue. Start a fresh dev boot to repeat the startup check.
-[Herdr issue #5594](https://github.com/herdrdev/herdr/issues/5594),
-[stock Ghostty review](../reviews/2026-11-19-stock-ghostty-dev-boot/README.md).
+See the [stock Ghostty dev-boot review](../reviews/2026-11-19-stock-ghostty-dev-boot/README.md)
+for the pane-before-attachment workflow.
 
 ## Historical empty-region failure
 
