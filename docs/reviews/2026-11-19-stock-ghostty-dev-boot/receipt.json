@@ -41,7 +41,7 @@
     "retained_party": 3,
     "extra_shell_preserved": true,
     "view": "guild",
-    "visual_confirmation": "Guild Hall verified; Delve and portrait capture pending",
+    "visual_confirmation": "Hall fit, Delve fit with the adventurer card open, and the native Gnome Druid portrait verified in Ghostty",
     "ghostty_captures": [
       {
         "view": "guild",
@@ -53,6 +53,18 @@
         ],
         "sha256": "98be616a0617457cddf46219311f3bdf8ef833c3ffda9ce0cf0efc1688b94feb",
         "observation": "complete fitted Guild Hall with three adventurers in a split pane"
+      },
+      {
+        "view": "delve with adventurer card",
+        "file": "ghostty-delve-portrait.png",
+        "captured_at": "2026-11-19T21:57:01+00:00",
+        "reattached_at": "2026-11-19T21:56:49.667821Z",
+        "width_height_px": [
+          850,
+          877
+        ],
+        "sha256": "7fa3fc02f798d76550c79093f7d8913d2ff877db3439d6fb037c58b3f7614ebd",
+        "observation": "Fitted Delve and three synthetic adventurers visible beneath the card; Pi’s Gnome Druid uses the native portrait."
       }
     ]
   },
