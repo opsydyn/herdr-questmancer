@@ -551,6 +551,64 @@ fn profile_preserves_fitted_world_scale_and_image_lease_in_both_rooms() {
 }
 
 #[test]
+fn character_picker_keeps_fitted_room_scale_during_preview_resize_and_cancel() {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
+    use questmancer::{interaction::reduce_scene_action, ui::input::Action};
+
+    for view in [View::Guild, View::Delve] {
+        let mut model = hall_fit_fixture(StoryContext::fixed(), FitParty::Five);
+        model.switch_to(view);
+        let original = model.selected_agent().unwrap().persona.class;
+        let mut graphics = WorldFit::new(CellPixels::new(8, 16));
+        let (before, _, _) = draw(&mut graphics, &model, (120, 34));
+        let open = Event::Key(KeyEvent::new(KeyCode::Char('e'), KeyModifiers::NONE));
+        let action = graphics.action_for_event(&open, &model, &before);
+        let _ = reduce_scene_action(&mut model, action, &before);
+
+        let (scene, text, removed) = draw(&mut graphics, &model, (120, 34));
+        assert!(text.contains("CHOOSE CHARACTER"));
+        assert!(
+            removed.is_empty(),
+            "{view:?}: picker retired the fitted room"
+        );
+        assert_eq!(graphics.uploads(), 1);
+        assert!(
+            scene
+                .actors
+                .iter()
+                .all(|actor| before.actors.contains(actor))
+        );
+        let wheel = Event::Mouse(MouseEvent {
+            kind: MouseEventKind::ScrollDown,
+            column: 70,
+            row: 12,
+            modifiers: KeyModifiers::NONE,
+        });
+        assert_eq!(
+            graphics.action_for_event(&wheel, &model, &scene),
+            Action::Next
+        );
+        let _ = reduce_scene_action(&mut model, Action::Next, &scene);
+        assert!(draw(&mut graphics, &model, (120, 34)).2.is_empty());
+        assert_eq!(graphics.uploads(), 1);
+
+        let (resized, text, removed) = draw(&mut graphics, &model, (96, 28));
+        assert!(
+            text.contains("a=T,U=1"),
+            "{view:?}: fitted resize must upload"
+        );
+        assert_eq!(removed.len(), 1);
+        let _ = reduce_scene_action(&mut model, Action::Dismiss, &resized);
+        let (restored, text, removed) = draw(&mut graphics, &model, (96, 28));
+        assert!(!text.contains("CHOOSE CHARACTER"));
+        assert_eq!(restored.actors.len(), before.actors.len());
+        assert!(removed.is_empty());
+        assert_eq!(graphics.uploads(), 2);
+        assert_eq!(model.selected_agent().unwrap().persona.class, original);
+    }
+}
+
+#[test]
 fn automatic_small_party_keeps_its_image_and_safe_hit_map_beneath_profiles() {
     use questmancer::storybook::density::{self, PartySize};
     use questmancer::ui::scene_overlays::adventurer_card_area;

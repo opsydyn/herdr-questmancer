@@ -158,7 +158,7 @@ impl FitPreview {
         let overlay = model.modal() != &Modal::None || model.adventurer_card_visible();
         let drawn_at = Instant::now();
         let study = room_study(story, drawn_at - self.walk_started);
-        self.profile_mask = crate::ui::world_fit::profile_mask(frame.area(), model);
+        self.profile_mask = crate::ui::world_fit::parchment_occlusion(frame.area(), model);
         let projection = self
             .geometry
             .filter(|_| model.modal() == &Modal::None)

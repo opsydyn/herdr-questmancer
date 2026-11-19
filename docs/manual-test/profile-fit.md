@@ -1,4 +1,4 @@
-# Fitted world with an adventurer profile
+# Fitted world with a profile or character picker
 
 Use the existing owned dogfood UI or the fixed stories below. Computer Use cannot
 inspect Ghostty; this remains a human visual check. Interact only with the owned
@@ -21,9 +21,13 @@ UI and synthetic/fixed adventurers for testing. Keep the remaining resources ope
 5. Check a native class portrait and authored fallback. The profile must remain
    opaque over the world, including its edges and right gutter. Check card text
    and keepsake art as well as the portrait.
-6. Other modal parchments retain their existing behavior; closing them returns
-   to the fitted scene/profile as appropriate. Profile coverage is not authority
-   to send counsel or operate a real agent pane.
+6. Verify **[e] Change character** in the card footer, including at 60x14.
+   In both rooms, open the character picker with `e` from the room and from a
+   profile. The picker opens along the right edge. Compare the visible room's
+   scale and position before and after opening it. Resize, preview another
+   character with the arrow keys or wheel, then cancel with `Esc`. Check that
+   the fitted room returns with the original saved character and without any
+   stale parchment or image over the picker.
 
 Fixed stories, with no Herdr or persistent work:
 

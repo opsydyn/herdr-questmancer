@@ -38,7 +38,7 @@ pub struct WorldFit {
     cleanup: Vec<u32>,
     painted: bool,
     uploads: usize,
-    profile_mask: Option<Rect>,
+    occlusion: Option<Rect>,
 }
 
 impl fmt::Debug for WorldFit {
@@ -81,7 +81,7 @@ impl WorldFit {
             cleanup: Vec::new(),
             painted: false,
             uploads: 0,
-            profile_mask: None,
+            occlusion: None,
         }
     }
 
@@ -123,8 +123,9 @@ impl WorldFit {
         model: &Model,
         scene: &SceneFrame,
     ) -> super::input::Action {
-        if let crossterm::event::Event::Mouse(mouse) = event
-            && self.profile_mask.is_some_and(|area| {
+        if model.modal() == &Modal::None
+            && let crossterm::event::Event::Mouse(mouse) = event
+            && self.occlusion.is_some_and(|area| {
                 area.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
             })
         {
@@ -135,7 +136,8 @@ impl WorldFit {
 
     fn paint(&mut self, frame: &mut Frame<'_>, model: &Model) -> Option<SceneFrame> {
         self.painted = false;
-        if model.modal() != &Modal::None || model.preferences().color_mode == ColorMode::Ansi16 {
+        if !keeps_room_layout(model.modal()) || model.preferences().color_mode == ColorMode::Ansi16
+        {
             return None;
         }
         let area = frame.area();
@@ -184,7 +186,7 @@ impl WorldFit {
             frame,
             &self.cache.as_ref()?.protocol,
             scene.transform.area,
-            self.profile_mask,
+            self.occlusion,
         );
         scene_overlays::render_party_status(frame, model);
         self.painted = true;
@@ -209,6 +211,10 @@ pub fn delete_image(id: u32) -> String {
     format!("\x1b_Ga=d,d=I,i={id},q=2;\x1b\\")
 }
 
+fn keeps_room_layout(modal: &Modal) -> bool {
+    matches!(modal, Modal::None | Modal::CharacterPicker { .. })
+}
+
 /// Both native and fallback output share the production overlay and input paths.
 pub fn render_application(
     frame: &mut Frame<'_>,
@@ -218,12 +224,12 @@ pub fn render_application(
     graphics: &mut WorldFit,
 ) -> SceneFrame {
     let presentation = ScenePresentation::from_model(model);
-    graphics.profile_mask = profile_mask(frame.area(), model);
+    graphics.occlusion = parchment_occlusion(frame.area(), model);
     let mut scene = if let Some(scene) = graphics.paint(frame, model) {
         scene
     } else {
         let mut area = frame.area();
-        let status = model.modal() == &Modal::None && area.height >= 16 && area.width >= 24;
+        let status = keeps_room_layout(model.modal()) && area.height >= 16 && area.width >= 24;
         if status {
             area.height -= 2;
         }
@@ -247,14 +253,19 @@ pub fn render_application(
         scene
     };
     scene_overlays::render_scene_overlays(frame, model, &presentation, portraits);
-    mask_scene_regions(&mut scene, graphics.profile_mask);
+    mask_scene_regions(&mut scene, graphics.occlusion);
     scene
 }
 
-/// Include the existing one-column right gutter so all exposed bands start at
-/// source column zero. The profile rectangle itself remains unchanged.
-pub(crate) fn profile_mask(area: Rect, model: &Model) -> Option<Rect> {
-    scene_overlays::adventurer_card_area(area, model).map(|card| {
+/// Include the right gutter so every exposed image band starts at source column zero.
+pub(crate) fn parchment_occlusion(area: Rect, model: &Model) -> Option<Rect> {
+    let parchment = match model.modal() {
+        Modal::CharacterPicker { .. } => {
+            Some(scene_overlays::character_picker_area(area).unwrap_or(area))
+        }
+        _ => scene_overlays::adventurer_card_area(area, model),
+    };
+    parchment.map(|card| {
         Rect::new(
             card.x,
             card.y,
@@ -265,7 +276,7 @@ pub(crate) fn profile_mask(area: Rect, model: &Model) -> Option<Rect> {
 }
 
 /// Render the same virtual image through visible row bands. A band's first cell
-/// always survives the profile overlay, including the initial upload prefix.
+/// always survives the parchment overlay, including the initial upload prefix.
 pub(crate) fn paint_image_bands(
     frame: &mut Frame<'_>,
     protocol: &SlicedProtocol,
@@ -303,7 +314,7 @@ pub(crate) fn paint_image_bands(
 }
 
 /// Click targets belong only to complete, visible actors. Keyboard selection
-/// still traverses the whole domain party while a profile covers its neighbours.
+/// still traverses the whole domain party while a parchment covers its neighbours.
 pub(crate) fn mask_scene_regions(scene: &mut SceneFrame, mask: Option<Rect>) {
     let Some(mask) = mask else {
         return;

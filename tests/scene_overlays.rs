@@ -1236,7 +1236,7 @@ fn keepsake_details_follow_the_saved_assignment_without_crowding_card_facts() {
                         "Esc close",
                         "r counsel",
                         "o scry",
-                        "[e] Character",
+                        "[e] Change character",
                     ] {
                         assert!(
                             screen.contains(expected),
@@ -1315,6 +1315,8 @@ fn long_live_labels_cannot_displace_card_status_keepsake_or_controls() {
             "Campaign: Questmancer",
             "Keepsake: Ribbon",
             "Tied once. Retold many times.",
+            "[e] Change character",
+            "[i] Status",
             "Esc close",
             "o scry",
         ] {

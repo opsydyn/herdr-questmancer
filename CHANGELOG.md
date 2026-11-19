@@ -4,6 +4,11 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+- Keep the Guild Hall and Delve fitted while the character picker is open.
+- Show `[e] Change character` on Adventurer cards, including the smallest card.
+
+## [0.2.3] - 2026-11-19
+
 - Open the Quest Inbox from the Board with `b`, then `i`. Summons are grouped
   by quest, with seen and 15-minute deferral controls and review history.
 - Request a review with `v` on an owned quest. Review a pinned local Git

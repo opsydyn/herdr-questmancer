@@ -261,8 +261,9 @@ save the choice or `Esc` to cancel. `End` moves to **Restore automatic**.
 When the terminal supports native images, the picker shows the selected
 character's illustration. Other terminals show its authored sprite.
 The saved character follows the adventurer's Questmancer persona in both rooms.
-The adventurer card and the first Librarian's Ledger (`?`) page also show
-**[e] Character** in their controls.
+Adventurer cards show **[e] Change character**, and the first Librarian's
+Ledger (`?`) page lists **[e] Character**. The picker opens along the right
+edge and keeps the Hall or Delve at its current scale as you preview choices.
 Press `p` in the Ledger to name the party in both rooms. `Enter` saves,
 `Esc` cancels, and clearing the draft with `Ctrl-U` then saving restores
 the default. Party names and character choices require a writable profile.

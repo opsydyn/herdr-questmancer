@@ -415,10 +415,11 @@ pub fn adventurer_card_area(area: Rect, model: &Model) -> Option<Rect> {
         .width
         .saturating_sub(4)
         .min(if detailed { 78 } else { 48 });
-    let height = (if detailed { 18 } else { 13 }).min(area.height.saturating_sub(2));
+    let height = if detailed { 18 } else { 13 };
+    let top = (area.height - height).min(2);
     Some(Rect::new(
         area.right() - width - 1,
-        area.y + 2,
+        area.y + top,
         width,
         height,
     ))
@@ -494,8 +495,8 @@ fn render_adventurer_card(
 
 fn adventurer_card_controls() -> [Line<'static>; 2] {
     [
+        Line::from("[e] Change character · [i] Status"),
         Line::from("Esc close · Enter observe · r counsel · o scry"),
-        Line::from("[e] Character · [i] Status"),
     ]
 }
 
@@ -607,6 +608,14 @@ fn render_sprite_portrait(
     flush_rgb(frame.buffer_mut(), area, &pixels, PAPER, colour_mode);
 }
 
+pub(crate) fn character_picker_area(viewport: Rect) -> Option<Rect> {
+    let mut picker =
+        centered(viewport, 70, 23).filter(|area| area.width >= 20 && area.height >= 8)?;
+    // Match the profile's right gutter so the fitted room needs no horizontal crop.
+    picker.x = viewport.right() - picker.width - 1;
+    Some(picker)
+}
+
 fn render_character_picker(
     frame: &mut Frame<'_>,
     model: &Model,
@@ -621,9 +630,7 @@ fn render_character_picker(
     else {
         return;
     };
-    let Some(area) =
-        centered(frame.area(), 70, 23).filter(|area| area.width >= 20 && area.height >= 8)
-    else {
+    let Some(area) = character_picker_area(frame.area()) else {
         frame.render_widget(Clear, frame.area());
         frame.render_widget(
             Paragraph::new("Widen pane\nEsc cancel").style(PARCHMENT),
