@@ -4,6 +4,8 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-11-19
+
 - Restore proportional Hall and Delve fitting and native portraits when
   opening Questmancer from an already attached Kitty-capable Herdr client.
 - Press `t` on an owned quest in the Quest Board to mark it active, mark it

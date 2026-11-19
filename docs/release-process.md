@@ -6,7 +6,23 @@ Three things cut a release, and each owns one job.
 | --- | --- | --- |
 | Version | `release-plz` on `main` | a release pull request, then the `vX.Y.Z` tag |
 | Binaries | `release.yml`, explicitly dispatched after tagging | four archives and `SHA256SUMS` on a GitHub release |
-| Registry | `release.yml`, gated | a crates.io publish when `PUBLISH_TO_CRATES=true`; live setting unverified |
+| Registry | `release.yml`, gated | a crates.io publish when `PUBLISH_TO_CRATES=true` |
+
+## Published 0.2.5 release — 2026-11-19
+
+[Questmancer v0.2.5](https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.2.5)
+ships Kitty startup for the normal Herdr `open` action and the owned-quest
+lifecycle, prerequisites, assignment and verified live association changes.
+Release automation tagged `d824597` after [PR #17](https://github.com/opsydyn/herdr-questmancer/pull/17).
+The tagged gate and four platform builds passed. Downloaded archives match
+the published checksums. Crates.io publication was skipped.
+See the [release qualification](reviews/2026-11-19-release-0.2.5/README.md).
+
+To upgrade a GitHub-installed plugin, run
+`herdr plugin update opsydyn.questmancer`. Close the old Questmancer
+pane and wait for it to close. In the same attached Ghostty window, run
+`herdr plugin action invoke opsydyn.questmancer.open`.
+See the [native graphics guide](troubleshooting/native-portrait-rendering.md#opening-in-an-attached-ghostty-window).
 
 ## Published 0.2.0 release — 2026-11-17
 

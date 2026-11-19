@@ -1,0 +1,215 @@
+{
+  "tag": "v0.2.5",
+  "source_commit": "d824597d04120eb460fc12561c11cb92fc6a71de",
+  "release": "https://github.com/opsydyn/herdr-questmancer/releases/tag/v0.2.5",
+  "published_at_utc": "2026-11-19T22:38:14Z",
+  "release_pr": "https://github.com/opsydyn/herdr-questmancer/pull/17",
+  "workflow": {
+    "url": "https://github.com/opsydyn/herdr-questmancer/actions/runs/44629363116",
+    "conclusion": "success",
+    "jobs": {
+      "Verify tagged commit": "success",
+      "Build aarch64-apple-darwin": "success",
+      "Build x86_64-apple-darwin": "success",
+      "Build aarch64-unknown-linux-gnu": "success",
+      "Build x86_64-unknown-linux-gnu": "success",
+      "Publish release": "success",
+      "Publish to crates.io": "skipped"
+    },
+    "packaged_crate_bytes": 3336529
+  },
+  "local_gate": {
+    "rust_tests": 887,
+    "rust_suites": 68,
+    "shell_checks": 29,
+    "property_cases": 4096,
+    "property_tests": 158,
+    "property_suites": 8,
+    "property_source_commit": "aed7cdf130eb9f2b2feb0ca993c96cdd9819fca9"
+  },
+  "published_notes_match_tagged_changelog": true,
+  "published_checksums_sha256": "74f634d4f99fbc35e035ca80a55aa14bc58cad163e557a26b8a7e459eb126c64",
+  "archive_evidence": {
+    "questmancer-v0.2.5-aarch64-apple-darwin.tar.gz": {
+      "bytes": 5532555,
+      "sha256": "c934f7ae9cf961d7f84f858928e16d1fc57b6a830537a2aa0cd12738d22abbad",
+      "binary_sha256": "3016b38ff42e36ace81c1ca5fd3c6ade18e103aca8372d6c756391834f31620a",
+      "platform": "Mach-O 64-bit executable arm64"
+    },
+    "questmancer-v0.2.5-aarch64-unknown-linux-gnu.tar.gz": {
+      "bytes": 5562182,
+      "sha256": "1920457017fb8878d8b1c410c357dea157d05ce95778b100d9bde5dea0012e41",
+      "binary_sha256": "4b2e753de66aefe17ac00ad9cfddce9c2e005b6f5280d5a73c216bfe6522fe6f",
+      "platform": "ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=dc8673a9328df60aa14aeb38306c33f064560f0f, stripped"
+    },
+    "questmancer-v0.2.5-x86_64-apple-darwin.tar.gz": {
+      "bytes": 5728600,
+      "sha256": "be04c71cacc31aa8dd9d8da7dfd8b6b718dbb2ecc8346b4dcff9a10c80016c6b",
+      "binary_sha256": "3d93074b0225bbb6ce64288c2e2ecf7a9c3c0968e7a9b77061949f8e3f571e81",
+      "platform": "Mach-O 64-bit executable x86_64"
+    },
+    "questmancer-v0.2.5-x86_64-unknown-linux-gnu.tar.gz": {
+      "bytes": 5849036,
+      "sha256": "7868aaf382191346b75a0eed207fea34b9470bb8e97752c6c8cf311bb5e307cd",
+      "binary_sha256": "11bb1f6c7210ebb6f22b8eb8d153908516c44999979ed650f4a38f28db7d8377",
+      "platform": "ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=26f505502525e88299279aa376718b947a43af34, stripped"
+    }
+  },
+  "native_installer": {
+    "command": "herdr plugin install opsydyn/herdr-questmancer --ref v0.2.5 --yes",
+    "version_output": "questmancer 0.2.5",
+    "installed_matches_apple_arm64_archive": true,
+    "installer_scope": "disposable non-shared Herdr instance",
+    "test_server_stopped": true
+  },
+  "installed_binary_kitty_probe": {
+    "mode": "shell",
+    "herdr_version": "0.9.5",
+    "herdr_sha256": "fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2",
+    "questmancer_sha256": "3016b38ff42e36ace81c1ca5fd3c6ade18e103aca8372d6c756391834f31620a",
+    "geometry": [
+      38,
+      98,
+      784,
+      684
+    ],
+    "outer_resize_events": 0,
+    "render": {
+      "hall": {
+        "kitty": 1600,
+        "half_blocks": 0
+      },
+      "delve": {
+        "kitty": 1600,
+        "half_blocks": 0
+      },
+      "adventurer_card": {
+        "kitty": 1120,
+        "half_blocks": 24,
+        "kitty_inside_card": 360
+      },
+      "character_preview": {
+        "kitty": 720,
+        "half_blocks": 0
+      },
+      "ledger": {
+        "kitty": 264,
+        "half_blocks": 1866
+      }
+    },
+    "ordinary_action_before_tab_focus": true,
+    "singleton_reused": true
+  },
+  "downloaded_binary_durability_probes": {
+    "lifecycle": {
+      "candidate_sha256": "3016b38ff42e36ace81c1ca5fd3c6ade18e103aca8372d6c756391834f31620a",
+      "published_0_2_4_sha256": "e265e082d5925ca7ad6455bd3fb187a6af525f3643026b09b492f8c31e5f295a",
+      "acknowledged": [
+        {
+          "revision": 6,
+          "state": "Active",
+          "columns": 120,
+          "rows": 34
+        },
+        {
+          "revision": 7,
+          "state": "Completed",
+          "columns": 60,
+          "rows": 20
+        },
+        {
+          "revision": 8,
+          "state": "Active",
+          "columns": 120,
+          "rows": 34
+        }
+      ],
+      "legacy_open_kept_bytes": true,
+      "confirmed_after_restart": true,
+      "open_summons_and_review_unchanged": true,
+      "published_binary_refused_v3_and_preserved_bytes": true,
+      "normal_quit_and_terminal_teardown_sequences": true,
+      "test_directory_removed": true,
+      "herdr_resources_created": 0
+    },
+    "prerequisites": {
+      "baseline_commit": "0a9752f",
+      "candidate_sha256": "3016b38ff42e36ace81c1ca5fd3c6ade18e103aca8372d6c756391834f31620a",
+      "previous_lifecycle_sha256": "5d291df00e5bbf8bf3a5847377a354c200280d19817cd766974654e68d410c1c",
+      "previous_matches_lifecycle_receipt": true,
+      "previous_seeded_v3_opened_without_rewrite": true,
+      "acknowledged": [
+        {
+          "operation": "Add",
+          "revision": 7,
+          "columns": 120,
+          "rows": 34
+        },
+        {
+          "operation": "Remove",
+          "revision": 8,
+          "columns": 60,
+          "rows": 20
+        }
+      ],
+      "unselected_saves_and_cycle_preserved_bytes": true,
+      "link_visible_after_process_restart": true,
+      "earlier_reader_refused_v4_after_last_link_removed": true,
+      "lifecycle_obligations_review_and_artifacts_preserved": true,
+      "terminal_teardown_and_test_profile_cleanup": true,
+      "herdr_resources_created": 0
+    },
+    "assignment": {
+      "baseline_commit": "230067c",
+      "candidate_sha256": "3016b38ff42e36ace81c1ca5fd3c6ade18e103aca8372d6c756391834f31620a",
+      "previous_prerequisite_sha256": "aad3d8131c4cd9e2a95895980ddf2594e1eac855cb0cdff8c5364fd01d1d3e73",
+      "previous_matches_prerequisite_receipt": true,
+      "previous_seeded_v4_opened_without_rewrite": true,
+      "acknowledged": [
+        {
+          "operation": "Assign",
+          "revision": 7,
+          "columns": 120,
+          "rows": 34
+        },
+        {
+          "operation": "Replace",
+          "revision": 8,
+          "columns": 60,
+          "rows": 20
+        },
+        {
+          "operation": "Clear",
+          "revision": 9,
+          "columns": 60,
+          "rows": 20
+        }
+      ],
+      "keep_current_preserved_bytes": true,
+      "assignee_visible_after_process_restart": true,
+      "observe_unavailable_without_verified_binding": true,
+      "earlier_reader_refused_v5_after_clear": true,
+      "prerequisites_lifecycle_obligations_reviews_and_artifacts_preserved": true,
+      "terminal_teardown_and_test_profile_cleanup": true,
+      "herdr_resources_created": 0
+    },
+    "association": {
+      "baseline_commit": "e01485d",
+      "candidate_sha256": "3016b38ff42e36ace81c1ca5fd3c6ade18e103aca8372d6c756391834f31620a",
+      "socket": "disposable Herdr protocol 22 fixture",
+      "linked_observe": [
+        "pane.get",
+        "pane.focus"
+      ],
+      "stale_observe": [
+        "pane.get"
+      ],
+      "stale_link_cleared_on_verification_failure": true,
+      "unlinked_observe_and_restart_observe": [],
+      "owned_store_bytes_preserved": true,
+      "raw_session_absent_from_persisted_profile": true,
+      "terminal_teardown_and_test_profile_cleanup": true,
+      "live_herdr_resources_created": 0
+    }
+  }
+}
