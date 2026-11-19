@@ -20,3 +20,5 @@
   — accepted for the Board-first build and local check receipts.
 - [0010 — Record explicit quest lifecycle in owned work](0010-owned-quest-lifecycle.md)
   — accepted first L2 slice for the Quest Board and serial owned store.
+- [0011 — Edit prerequisites between owned quests](0011-owned-quest-prerequisites.md)
+  — accepted for same-campaign links and owned-store v4.

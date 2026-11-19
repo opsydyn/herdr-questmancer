@@ -204,6 +204,78 @@ async fn board_quest_lifecycle_requires_confirmation_and_survives_restart() {
 }
 
 #[tokio::test]
+async fn board_edits_and_reopens_owned_prerequisites() {
+    let directory =
+        tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+    let source = SourceId::new("owned:promo");
+    let selection =
+        StoreSelection::new(directory.path().join("owned-work.json"), source.clone()).unwrap();
+    let original = include_bytes!("fixtures/owned-work/pre-lifecycle-v2.json");
+    std::fs::write(&selection.path, original).unwrap();
+    let dependent = QuestId::new(&source, "picker");
+    let prerequisite = QuestId::new(&source, "web");
+    let edge = (prerequisite.clone(), dependent.clone());
+    let paths = WorkerPaths::new(Some(directory.path().join("state.json")), None);
+    let (mut client, _, worker) = PersistenceWorker::start(paths.clone());
+    let mut model = Model::new(View::Guild);
+    let mut runtime = OwnedRuntime::start(&paths, &mut model).unwrap();
+    model
+        .authoring_mut()
+        .request_setup(selection.clone(), false);
+    apply(&mut runtime, &mut client, &mut model).await;
+    assert_eq!(std::fs::read(&selection.path).unwrap(), original);
+
+    for (operation, present) in [("Add", true), ("Remove", false)] {
+        model.select_work(WorkSelection::Quest(dependent.clone()));
+        let original = std::fs::read(&selection.path).unwrap();
+        let _ = key(&mut model, KeyCode::Char('p'));
+        assert_eq!(model.modal(), &Modal::OwnedAuthoring);
+        let _ = key(&mut model, KeyCode::Tab);
+        let _ = key(&mut model, KeyCode::Enter);
+        assert_eq!(std::fs::read(&selection.path).unwrap(), original);
+        assert!(model.authoring().ready());
+        let _ = key(&mut model, KeyCode::BackTab);
+        let _ = key(&mut model, KeyCode::Down);
+        let preview = render(&model, 60, 20);
+        assert!(
+            preview.contains(&format!("{operation} Web migration")),
+            "{preview}"
+        );
+        let _ = key(&mut model, KeyCode::Tab);
+        let _ = key(&mut model, KeyCode::Enter);
+        apply(&mut runtime, &mut client, &mut model).await;
+        assert!(model.authoring().ready(), "{}", model.authoring().feedback);
+        assert_eq!(version(&selection.path), 4);
+        let _ = key(&mut model, KeyCode::Esc);
+        assert_eq!(model.modal(), &Modal::QuestBoard);
+        assert_eq!(
+            render(&model, 90, 28).contains("Dependency: Web migration | Planned"),
+            present
+        );
+        let _ = key(&mut model, KeyCode::Char('w'));
+        let graph = questmancer::work::graph::CampaignGraph::from_model(&model).unwrap();
+        assert_eq!(graph.edges.contains(&edge), present);
+        assert!(
+            !graph
+                .edges
+                .contains(&(dependent.clone(), prerequisite.clone()))
+        );
+    }
+    runtime.shutdown(&mut client, &mut model).await.unwrap();
+    client.shutdown().await.unwrap();
+    worker.await.unwrap();
+    let reopened = OwnedStore::open(&selection.path, &source).unwrap();
+    let quest = &reopened.state().inventory().quests[&dependent];
+    assert!(quest.dependencies.is_empty());
+    assert_eq!(quest.state, QuestState::Planned);
+    let cache = load_work_cache(&paths.work_path().unwrap())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(cache.projection.quest(&dependent), Some(quest));
+}
+
+#[tokio::test]
 #[allow(clippy::too_many_lines)] // End-to-end Board input, Git evidence, owner and cache reopen.
 async fn board_inbox_rejects_stale_evidence_and_reopens_defer_and_settlement() {
     let directory =

@@ -1,4 +1,7 @@
-use super::{CheckReceipt, Review, ReviewReport, ReviewSettlement, ReviewTarget};
+use super::{
+    CheckReceipt, PrerequisiteChange, Review, ReviewReport, ReviewSettlement, ReviewTarget,
+    prerequisite,
+};
 use crate::{
     domain::Timestamp,
     work::{
@@ -84,6 +87,12 @@ pub enum Action {
     ChangeQuestLifecycle {
         id: QuestId,
         change: QuestLifecycleChange,
+    },
+    /// Change one prerequisite of the identified dependent quest.
+    ChangeQuestPrerequisite {
+        id: QuestId,
+        prerequisite_id: QuestId,
+        change: PrerequisiteChange,
     },
     RequestDecision {
         id: ObligationId,
@@ -176,6 +185,14 @@ pub enum CommandError {
     Reference,
     #[error("requested change does not match the quest's current state")]
     QuestLifecycle,
+    #[error("a quest cannot be its own prerequisite")]
+    PrerequisiteSelf,
+    #[error("both quests must belong to the same campaign")]
+    PrerequisiteCampaign,
+    #[error("the prerequisite already exists or is already removed")]
+    PrerequisitePresence,
+    #[error("this prerequisite would create a cycle")]
+    PrerequisiteCycle,
     #[error("check receipt does not match the pinned repository, revision, recipe or runner")]
     ReviewMismatch,
     #[error(
@@ -187,6 +204,12 @@ pub enum CommandError {
     #[error("owned revision exhausted")]
     Exhausted,
 }
+struct PriorQuest<'a> {
+    state: QuestState,
+    dependencies: BTreeSet<&'a QuestId>,
+    created: bool,
+}
+
 impl OwnedState {
     pub fn new(source: SourceId) -> Result<Self, CommandError> {
         if !owned_source(&source) {
@@ -236,6 +259,19 @@ impl OwnedState {
             .any(|quest| quest.state != QuestState::Planned)
     }
 
+    pub(crate) fn has_prerequisite_edits(&self) -> bool {
+        self.receipts.iter().any(|receipt| {
+            matches!(
+                receipt.command.action,
+                Action::ChangeQuestPrerequisite { .. }
+            )
+        }) || self
+            .inventory
+            .quests
+            .values()
+            .any(|quest| !quest.dependencies.is_empty())
+    }
+
     /// Protected on load as well as before publication. No live/session facts exist here.
     pub fn validate(&self) -> Result<(), CommandError> {
         if !owned_source(&self.source)
@@ -258,6 +294,7 @@ impl OwnedState {
             },
         )
         .map_err(|_| CommandError::Invalid)?;
+        prerequisite::validate(&self.inventory)?;
         let mut incarnations = BTreeSet::new();
         let mut open_reviews = BTreeSet::new();
         let mut valid = self.inventory.campaigns.values().all(|c| {
@@ -268,7 +305,6 @@ impl OwnedState {
         }) && self.inventory.quests.values().all(|q| {
             QuestLifecycleChange::for_state(q.state).is_some()
                 && q.assignment.is_none()
-                && q.dependencies.is_empty()
                 && q.kind != QuestKind::Unspecified
                 && q.revision <= self.revision
                 && text(&q.title)
@@ -311,23 +347,28 @@ impl OwnedState {
         });
         let mut ids = BTreeSet::new();
         let mut quest_receipts = BTreeMap::new();
+        let quest_creations: BTreeMap<_, _> = self
+            .receipts
+            .iter()
+            .filter_map(|r| match &r.command.action {
+                Action::CreateQuest { id, .. } => Some((id, r.revision)),
+                _ => None,
+            })
+            .collect();
         let first = self.revision - self.receipts.len() as u64;
-        for (offset, r) in self.receipts.iter().enumerate() {
+        for (offset, r) in self.receipts.iter().enumerate().rev() {
             valid &= r.revision == first + offset as u64 + 1
                 && r.command.expected_revision == r.revision - 1
                 && r.command.source == self.source
                 && command_valid(&r.command)
                 && ids.insert(&r.command.id)
-                && self.has_effect(r, &mut quest_receipts);
+                && self.has_effect(r, &mut quest_receipts, &quest_creations);
         }
         valid &= self
             .inventory
             .quests
             .values()
-            .all(|quest| match quest_receipts.get(&quest.id) {
-                Some(&(revision, state)) => quest.revision == revision && quest.state == state,
-                None => quest.revision <= first,
-            });
+            .all(|quest| quest_receipts.contains_key(&quest.id) || quest.revision <= first);
         if valid {
             Ok(())
         } else {
@@ -380,9 +421,10 @@ impl OwnedState {
         })
     }
     fn has_effect<'a>(
-        &self,
+        &'a self,
         r: &'a Receipt,
-        quest_receipts: &mut BTreeMap<&'a QuestId, (u64, QuestState)>,
+        quest_receipts: &mut BTreeMap<&'a QuestId, PriorQuest<'a>>,
+        quest_creations: &BTreeMap<&QuestId, u64>,
     ) -> bool {
         match &r.command.action {
             Action::CreateCampaign {
@@ -392,32 +434,10 @@ impl OwnedState {
             } => self.inventory.campaigns.get(id).is_some_and(|c| {
                 c.revision == r.revision && &c.name == name && &c.objective == objective
             }),
-            Action::CreateQuest {
-                id,
-                campaign,
-                title,
-                description,
-                kind,
-            } => self.inventory.quests.get(id).is_some_and(|q| {
-                &q.campaign == campaign
-                    && &q.title == title
-                    && &q.description == description
-                    && &q.kind == kind
-                    && quest_receipts
-                        .insert(id, (r.revision, QuestState::Planned))
-                        .is_none()
-            }),
-            Action::ChangeQuestLifecycle { id, change } => {
-                let (from, to) = change.states();
-                if !self.inventory.quests.contains_key(id)
-                    || quest_receipts
-                        .get(id)
-                        .is_some_and(|&(_, prior)| prior != from)
-                {
-                    return false;
-                }
-                quest_receipts.insert(id, (r.revision, to));
-                true
+            Action::CreateQuest { id, .. }
+            | Action::ChangeQuestLifecycle { id, .. }
+            | Action::ChangeQuestPrerequisite { id, .. } => {
+                self.has_quest_effect(id, r, quest_receipts, quest_creations)
             }
             Action::RequestDecision {
                 id,
@@ -471,6 +491,75 @@ impl OwnedState {
             Action::RequestReview { .. }
             | Action::RecordCheck { .. }
             | Action::SettleReview { .. } => self.has_review_effect(r),
+        }
+    }
+
+    fn has_quest_effect<'a>(
+        &'a self,
+        id: &'a QuestId,
+        receipt: &'a Receipt,
+        quest_receipts: &mut BTreeMap<&'a QuestId, PriorQuest<'a>>,
+        quest_creations: &BTreeMap<&QuestId, u64>,
+    ) -> bool {
+        let Some(quest) = self.inventory.quests.get(id) else {
+            return false;
+        };
+        if !quest_receipts.contains_key(id) && quest.revision != receipt.revision {
+            return false;
+        }
+        // Undo retained edits from the saved state. The state before the window is unknown.
+        let prior = quest_receipts.entry(id).or_insert_with(|| PriorQuest {
+            state: quest.state,
+            dependencies: quest.dependencies.iter().collect(),
+            created: false,
+        });
+        if prior.created {
+            return false;
+        }
+        match &receipt.command.action {
+            Action::CreateQuest {
+                campaign,
+                title,
+                description,
+                kind,
+                ..
+            } => {
+                prior.created = true;
+                &quest.campaign == campaign
+                    && &quest.title == title
+                    && &quest.description == description
+                    && &quest.kind == kind
+                    && prior.state == QuestState::Planned
+                    && prior.dependencies.is_empty()
+            }
+            Action::ChangeQuestLifecycle { change, .. } => {
+                let (from, to) = change.states();
+                if prior.state != to {
+                    return false;
+                }
+                prior.state = from;
+                true
+            }
+            Action::ChangeQuestPrerequisite {
+                prerequisite_id: prerequisite,
+                change,
+                ..
+            } => {
+                id != prerequisite
+                    && self
+                        .inventory
+                        .quests
+                        .get(prerequisite)
+                        .is_some_and(|other| other.campaign == quest.campaign)
+                    && quest_creations
+                        .get(prerequisite)
+                        .is_none_or(|created| *created < receipt.revision)
+                    && match change {
+                        PrerequisiteChange::Add => prior.dependencies.remove(prerequisite),
+                        PrerequisiteChange::Remove => prior.dependencies.insert(prerequisite),
+                    }
+            }
+            _ => unreachable!("typed quest receipt dispatcher"),
         }
     }
 
@@ -573,6 +662,14 @@ pub fn transition(state: &OwnedState, command: &Command) -> Result<Transition, C
             }
             quest.state = to;
             quest.revision = revision;
+        }
+        Action::ChangeQuestPrerequisite {
+            id,
+            prerequisite_id: prerequisite,
+            change,
+        } => {
+            own(id.belongs_to(&next.source) && prerequisite.belongs_to(&next.source))?;
+            change.apply(&mut next.inventory, id, prerequisite, revision)?;
         }
         Action::RequestDecision { .. } => request_decision(&mut next, command, revision)?,
         Action::AnswerDecision { .. } => answer_decision(&mut next, command, revision)?,
@@ -993,7 +1090,7 @@ fn command_valid(c: &Command) -> bool {
                 kind,
                 ..
             } => text(title) && optional(description.as_deref()) && *kind != QuestKind::Unspecified,
-            Action::ChangeQuestLifecycle { .. } => true,
+            Action::ChangeQuestLifecycle { .. } | Action::ChangeQuestPrerequisite { .. } => true,
             Action::RequestDecision {
                 incarnation,
                 prompt,

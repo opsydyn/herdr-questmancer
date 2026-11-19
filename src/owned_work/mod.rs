@@ -1,8 +1,10 @@
 //! Explicit human commands own this source. Work projections and Chronicle do not.
+mod prerequisite;
 mod review;
 mod review_git;
 mod state;
 mod store;
+pub use prerequisite::PrerequisiteChange;
 pub use review::{
     CheckReceipt, CheckResult, ReportAuthor, Review, ReviewReport, ReviewSettlement, ReviewTarget,
 };

@@ -48,6 +48,23 @@ Opening a v1 or v2 store preserves its bytes. The first successful lifecycle
 change upgrades it to v3. Keep a copy of the owned store before that change if
 you may need to downgrade. See the [verification ledger](../reviews/2026-11-19-owned-quest-lifecycle/README.md).
 
+## Edit quest prerequisites
+
+Select the dependent quest in the Board and press `p`. Use Up/Down to choose
+an **Add** or **Remove** entry, then Tab to **Save prerequisite change** and
+press Enter. The choices come from other owned quests in that campaign.
+The initial choice requires an explicit selection before saving.
+
+Check the dependency on the Board and open the War Table with `w`. Follow
+the arrow from the prerequisite to the dependent quest. Restart and confirm
+the link is still present. Return to the dependent and remove it with `p`.
+Try adding a link that would form a cycle. The form should explain the
+rejection and let you choose a different qualifying link.
+
+The first saved prerequisite edit upgrades the store to v4. Keep a pre-v4
+copy if you may need to downgrade. Removing all links keeps the store at v4.
+See the [verification ledger](../reviews/2026-11-19-owned-quest-prerequisites/README.md).
+
 ## Input and recovery
 
 - Tab/Shift-Tab moves between fields and buttons. Enter inserts a newline in

@@ -179,6 +179,7 @@ pub fn reduce_action(model: &mut Model, action: Action) -> ActionReduction {
         | Action::OpenInbox
         | Action::RequestReview
         | Action::ChangeQuestLifecycle
+        | Action::EditQuestPrerequisites
         | Action::ImportCheck
         | Action::SettleReview
         | Action::LinkReviewAdventurer
@@ -787,6 +788,7 @@ fn intercept_work_board(
             open_review_form(model, crate::owned_work::authoring::FormKind::RequestReview);
         }
         Action::ChangeQuestLifecycle => open_lifecycle_form(model),
+        Action::EditQuestPrerequisites => open_prerequisite_form(model),
         Action::OpenWarTable => model.open_war_table(),
         Action::Next => model.cycle_work(true),
         Action::Previous => model.cycle_work(false),
@@ -940,6 +942,32 @@ fn open_lifecycle_form(model: &mut Model) {
     }
 }
 
+fn open_prerequisite_form(model: &mut Model) {
+    use crate::{
+        owned_work::authoring::{FormKind, FormTarget},
+        work::WorkSelection,
+    };
+    let target = model.authoring().metadata.as_ref().and_then(|metadata| {
+        let WorkSelection::Quest(id) = model.work_selection()? else {
+            return None;
+        };
+        let quest = metadata.inventory.quests.get(id)?;
+        Some(FormTarget::QuestPrerequisites {
+            id: id.clone(),
+            title: quest.title.clone(),
+            current: quest.dependencies.clone(),
+            revision: metadata.revision,
+        })
+    });
+    if let Some(target) = target {
+        open_contextual_owned_form(model, FormKind::QuestPrerequisites, target);
+    } else {
+        model.set_action_feedback(
+            "Select a quest in your opened local store to edit prerequisites.".into(),
+        );
+    }
+}
+
 fn open_contextual_owned_form(
     model: &mut Model,
     kind: crate::owned_work::authoring::FormKind,
@@ -952,9 +980,8 @@ fn open_contextual_owned_form(
         _ => None,
     };
     let authoring = model.authoring_mut();
-    authoring.form(kind);
+    authoring.form_with_target(kind, Some(target));
     if authoring.surface == Surface::Form(kind) && authoring.feedback.is_empty() {
-        authoring.form_target = Some(target);
         authoring.return_to_inbox = from_inbox;
     } else {
         let feedback = authoring.feedback.clone();

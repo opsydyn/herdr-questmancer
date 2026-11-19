@@ -20,6 +20,7 @@ pub fn heading(kind: FormKind) -> &'static str {
         FormKind::Campaign => "Create campaign",
         FormKind::Quest => "Create quest",
         FormKind::QuestLifecycle => "Change quest state",
+        FormKind::QuestPrerequisites => "Edit prerequisites",
         FormKind::Request => "Request decision",
         FormKind::Answer => "Answer decision",
         FormKind::Artifact => "Register artifact",
@@ -235,7 +236,8 @@ fn form_rows(a: &Authoring, kind: FormKind, width: u16, body: &mut Vec<String>) 
                     );
                 }
             }
-            Some(FormTarget::QuestLifecycle { .. }) | None => {}
+            Some(FormTarget::QuestLifecycle { .. } | FormTarget::QuestPrerequisites { .. })
+            | None => {}
         }
     }
     if kind == FormKind::QuestLifecycle
@@ -244,6 +246,11 @@ fn form_rows(a: &Authoring, kind: FormKind, width: u16, body: &mut Vec<String>) 
         let (from, to) = change.states();
         body.push(format!("Quest: {title}"));
         body.push(format!("{} · {from:?} → {to:?}", change.label()));
+    }
+    if kind == FormKind::QuestPrerequisites
+        && let Some(FormTarget::QuestPrerequisites { title, .. }) = &a.form_target
+    {
+        body.push(format!("Dependent quest: {title}"));
     }
     if kind == FormKind::Answer {
         body.extend(detail_rows(a, false));
@@ -274,10 +281,10 @@ fn form_rows(a: &Authoring, kind: FormKind, width: u16, body: &mut Vec<String>) 
     body.push(format!(
         "{} [{}]",
         if a.focus == a.fields.len() { ">" } else { " " },
-        if kind == FormKind::Answer {
-            "Save answer"
-        } else {
-            heading(kind)
+        match kind {
+            FormKind::Answer => "Save answer",
+            FormKind::QuestPrerequisites => "Save prerequisite change",
+            _ => heading(kind),
         }
     ));
     if a.focus == a.fields.len() {

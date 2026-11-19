@@ -1,0 +1,27 @@
+{
+  "baseline_commit": "0a9752f",
+  "candidate_sha256": "aad3d8131c4cd9e2a95895980ddf2594e1eac855cb0cdff8c5364fd01d1d3e73",
+  "previous_lifecycle_sha256": "5d291df00e5bbf8bf3a5847377a354c200280d19817cd766974654e68d410c1c",
+  "previous_matches_lifecycle_receipt": true,
+  "previous_seeded_v3_opened_without_rewrite": true,
+  "acknowledged": [
+    {
+      "operation": "Add",
+      "revision": 7,
+      "columns": 120,
+      "rows": 34
+    },
+    {
+      "operation": "Remove",
+      "revision": 8,
+      "columns": 60,
+      "rows": 20
+    }
+  ],
+  "unselected_saves_and_cycle_preserved_bytes": true,
+  "link_visible_after_process_restart": true,
+  "earlier_reader_refused_v4_after_last_link_removed": true,
+  "lifecycle_obligations_review_and_artifacts_preserved": true,
+  "terminal_teardown_and_test_profile_cleanup": true,
+  "herdr_resources_created": 0
+}

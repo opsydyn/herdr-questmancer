@@ -242,6 +242,7 @@ focuses Questmancer unless invoked from its own pane, where it closes it.
 | `i` in Quest Board | Open the Quest Inbox |
 | `v` in Quest Board | Request a revision review for the selected owned quest |
 | `t` in Quest Board | Change the selected owned quest's state |
+| `p` in Quest Board | Add or remove a prerequisite of the selected owned quest |
 | `w` | Open or close the War Table |
 | `a` in Quest Board | Open owned-work Actions and store setup |
 | `Tab` in Chronicle | Last-hour guild chapter / records |
@@ -844,7 +845,12 @@ Select an owned quest on the Board and press `t` to mark it active, mark it
 complete, or reopen it. The form shows the proposed transition and requires
 explicit confirmation. The Board and War Table recover the saved state after
 restart. Open decisions and review summons keep their own status. The first
-successful quest-state change writes owned-store format v3.
+successful quest-state change raises older owned stores to format v3.
+
+Press `p` on the dependent quest to add or remove a prerequisite in the same
+campaign. The writer checks for cycles and the War Table shows each saved
+link from prerequisite to dependent. The first saved edit raises the store to
+v4. Keep a pre-v4 copy if you may need to downgrade.
 
 Tab moves focus, Enter activates a focused button or inserts a multiline newline,
 Up/Down or wheel reads context, and bracketed paste is literal and bounded. Esc keeps

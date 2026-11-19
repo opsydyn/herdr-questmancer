@@ -14,6 +14,7 @@ use std::{
 };
 
 const MAX_BYTES: usize = 16 * 1024 * 1024;
+const PREREQUISITE_VERSION: u32 = 4;
 const READ: OFlags = OFlags::RDONLY
     .union(OFlags::CLOEXEC)
     .union(OFlags::NOFOLLOW)
@@ -42,7 +43,7 @@ pub enum StoreError {
 #[derive(Debug)]
 pub struct OwnedStore {
     lease: Lease,
-    state: OwnedState,
+    snapshot: Snapshot,
     stamp: Stamp,
     pending: Option<Pending>,
 }
@@ -70,12 +71,12 @@ struct Stamp {
 }
 #[derive(Debug)]
 struct Pending {
-    state: OwnedState,
+    snapshot: Snapshot,
     bytes: Vec<u8>,
     stamp: Stamp,
     receipt: Receipt,
 }
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Snapshot {
     version: u32,
@@ -90,12 +91,15 @@ enum PublishStep {
 impl OwnedStore {
     /// Explicit creation in an existing physical directory. Never imports a cache.
     pub fn create(path: &Path, source: SourceId) -> Result<Self, StoreError> {
-        let state = OwnedState::new(source)?;
+        let snapshot = Snapshot {
+            version: 1,
+            state: OwnedState::new(source)?,
+        };
         let lease = Lease::acquire(path)?;
         if lease.read()?.is_some() {
             return Err(StoreError::Selection);
         }
-        let bytes = encode(&state)?;
+        let bytes = encode(&snapshot)?;
         let stamp = lease
             .publish(&bytes, None, |_| Ok(()))
             .map_err(|(e, replaced)| {
@@ -107,7 +111,7 @@ impl OwnedStore {
             })?;
         Ok(Self {
             lease,
-            state,
+            snapshot,
             stamp,
             pending: None,
         })
@@ -116,20 +120,20 @@ impl OwnedStore {
     pub fn open(path: &Path, source: &SourceId) -> Result<Self, StoreError> {
         let lease = Lease::acquire(path)?;
         let (bytes, stamp) = lease.read()?.ok_or(StoreError::Selection)?;
-        let state = decode(&bytes)?;
-        if state.source() != source {
+        let snapshot = decode(&bytes)?;
+        if snapshot.state.source() != source {
             return Err(StoreError::Selection);
         }
         lease.sync_current(&stamp)?;
         Ok(Self {
             lease,
-            state,
+            snapshot,
             stamp,
             pending: None,
         })
     }
     pub fn state(&self) -> &OwnedState {
-        &self.state
+        &self.snapshot.state
     }
     /// Validate the selected file before exposing acknowledged state.
     pub fn checked_state(&self) -> Result<&OwnedState, StoreError> {
@@ -141,7 +145,7 @@ impl OwnedStore {
         if stamp != self.stamp {
             return Err(StoreError::Selection);
         }
-        Ok(&self.state)
+        Ok(self.state())
     }
     pub fn execute(&mut self, command: &Command) -> Result<Receipt, StoreError> {
         self.execute_with(command, |_| Ok(()))
@@ -159,7 +163,7 @@ impl OwnedStore {
         if current != self.stamp {
             return Err(StoreError::Selection);
         }
-        let next = transition(&self.state, command)?;
+        let next = transition(self.state(), command)?;
         if next.replayed {
             return Ok(next.receipt);
         }
@@ -173,10 +177,14 @@ impl OwnedStore {
         if let Some(target) = target {
             super::review_git::changes(target).map_err(StoreError::ReviewEvidence)?;
         }
-        let bytes = encode(&next.state)?;
+        let snapshot = Snapshot {
+            version: self.snapshot.version.max(snapshot_version(&next.state)),
+            state: next.state,
+        };
+        let bytes = encode(&snapshot)?;
         match self.lease.publish(&bytes, Some(&self.stamp), hook) {
             Ok(stamp) => {
-                self.state = next.state;
+                self.snapshot = snapshot;
                 self.stamp = stamp;
                 Ok(next.receipt)
             }
@@ -184,7 +192,7 @@ impl OwnedStore {
             Err((_, Some(stamp))) => {
                 let id = next.receipt.command.id.clone();
                 self.pending = Some(Pending {
-                    state: next.state,
+                    snapshot,
                     bytes,
                     stamp,
                     receipt: next.receipt,
@@ -200,9 +208,9 @@ impl OwnedStore {
             return Ok(None);
         };
         let (bytes, stamp) = self.lease.read()?.ok_or(StoreError::Selection)?;
-        if stamp == pending.stamp && bytes == pending.bytes && decode(&bytes)? == pending.state {
+        if stamp == pending.stamp && bytes == pending.bytes && decode(&bytes)? == pending.snapshot {
             self.lease.sync_current(&stamp)?;
-            self.state = pending.state.clone();
+            self.snapshot = pending.snapshot.clone();
             self.stamp = stamp;
             let receipt = pending.receipt.clone();
             self.pending = None;
@@ -216,13 +224,9 @@ impl OwnedStore {
     }
 }
 
-fn encode(state: &OwnedState) -> Result<Vec<u8>, StoreError> {
-    state.validate()?;
-    let mut bytes = serde_json::to_vec(&Snapshot {
-        version: snapshot_version(state),
-        state: state.clone(),
-    })
-    .map_err(io)?;
+fn encode(snapshot: &Snapshot) -> Result<Vec<u8>, StoreError> {
+    snapshot.state.validate()?;
+    let mut bytes = serde_json::to_vec(snapshot).map_err(io)?;
     bytes.push(b'\n');
     if bytes.len() > MAX_BYTES {
         return Err(StoreError::Protected("byte limit exceeded".into()));
@@ -230,7 +234,9 @@ fn encode(state: &OwnedState) -> Result<Vec<u8>, StoreError> {
     Ok(bytes)
 }
 fn snapshot_version(state: &OwnedState) -> u32 {
-    if state.has_quest_lifecycle() {
+    if state.has_prerequisite_edits() {
+        PREREQUISITE_VERSION
+    } else if state.has_quest_lifecycle() {
         3
     } else if state.has_reviews() {
         2
@@ -238,11 +244,11 @@ fn snapshot_version(state: &OwnedState) -> u32 {
         1
     }
 }
-fn decode(bytes: &[u8]) -> Result<OwnedState, StoreError> {
+fn decode(bytes: &[u8]) -> Result<Snapshot, StoreError> {
     let value = strict_json::parse(bytes).map_err(|e| StoreError::Protected(e.to_string()))?;
     if !matches!(
         value.get("version").and_then(serde_json::Value::as_u64),
-        Some(1..=3)
+        Some(1..=4)
     ) {
         return Err(StoreError::Protected("unsupported version".into()));
     }
@@ -253,7 +259,10 @@ fn decode(bytes: &[u8]) -> Result<OwnedState, StoreError> {
     }
     let snapshot: Snapshot =
         serde_json::from_value(value).map_err(|e| StoreError::Protected(e.to_string()))?;
-    if snapshot.version != snapshot_version(&snapshot.state) {
+    // A v4 store stays v4 after its last link and edit receipt are gone.
+    if snapshot.version < PREREQUISITE_VERSION
+        && snapshot.version != snapshot_version(&snapshot.state)
+    {
         return Err(StoreError::Protected(
             "owned snapshot contents do not match its version".into(),
         ));
@@ -262,7 +271,7 @@ fn decode(bytes: &[u8]) -> Result<OwnedState, StoreError> {
         .state
         .validate()
         .map_err(|e| StoreError::Protected(e.to_string()))?;
-    Ok(snapshot.state)
+    Ok(snapshot)
 }
 impl Lease {
     fn acquire(path: &Path) -> Result<Self, StoreError> {
@@ -457,7 +466,7 @@ mod tests {
     use super::*;
     use crate::{
         domain::Timestamp,
-        owned_work::{Action, CommandId, QuestLifecycleChange},
+        owned_work::{Action, CommandId, PrerequisiteChange, QuestLifecycleChange},
         work::{CampaignId, QuestId, QuestKind, QuestState},
     };
     fn setup() -> (tempfile::TempDir, OwnedStore, Command) {
@@ -585,6 +594,67 @@ mod tests {
         );
         assert_eq!(reopened.execute(&change).unwrap(), receipt);
     }
+    #[test]
+    fn first_prerequisite_save_reconciles_the_v4_envelope() {
+        let dir =
+            tempfile::tempdir_in(std::fs::canonicalize(std::env::temp_dir()).unwrap()).unwrap();
+        let path = dir.path().join("owned-work.json");
+        let legacy = include_bytes!("../../tests/fixtures/owned-work/pre-lifecycle-v2.json");
+        std::fs::write(&path, legacy).unwrap();
+        let source = SourceId::new("owned:promo");
+        let id = QuestId::new(&source, "picker");
+        let prerequisite = QuestId::new(&source, "web");
+        let command = Command {
+            id: CommandId::new("first-prerequisite"),
+            source: source.clone(),
+            expected_revision: 5,
+            actor: "Questmancer".into(),
+            at: Timestamp::from_millis(1000),
+            action: Action::ChangeQuestPrerequisite {
+                id: id.clone(),
+                prerequisite_id: prerequisite.clone(),
+                change: PrerequisiteChange::Add,
+            },
+        };
+        let mut store = OwnedStore::open(&path, &source).unwrap();
+        assert!(matches!(
+            store.execute_with(&command, |step| {
+                if step == PublishStep::FileSynced {
+                    Err(io("injected failure before replacement"))
+                } else {
+                    Ok(())
+                }
+            }),
+            Err(StoreError::Io(_))
+        ));
+        assert_eq!(std::fs::read(&path).unwrap(), legacy);
+        assert!(matches!(
+            store.execute_with(&command, |step| {
+                if step == PublishStep::Replaced {
+                    Err(io("injected acknowledgement loss after replacement"))
+                } else {
+                    Ok(())
+                }
+            }),
+            Err(StoreError::Indeterminate(_))
+        ));
+        assert!(matches!(
+            store.checked_state(),
+            Err(StoreError::Indeterminate(_))
+        ));
+        assert_eq!(store.snapshot.version, 2);
+        let receipt = store.reconcile().unwrap().unwrap();
+        assert_eq!(store.snapshot.version, PREREQUISITE_VERSION);
+        assert_eq!(store.execute(&command).unwrap(), receipt);
+        drop(store);
+        let reopened = OwnedStore::open(&path, &source).unwrap();
+        assert_eq!(reopened.snapshot.version, PREREQUISITE_VERSION);
+        assert_eq!(
+            reopened.state().inventory().quests[&id].dependencies,
+            [prerequisite]
+        );
+    }
+
     #[test]
     fn after_replacement_loss_blocks_commands_then_recovers_the_same_receipt() {
         let (_dir, mut store, command) = setup();

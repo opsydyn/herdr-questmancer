@@ -327,6 +327,13 @@ impl OwnedRuntime {
         }
     }
     fn report_operation_error(&mut self, model: &mut Model, error: &StoreError) {
+        if matches!(error, StoreError::Command(CommandError::PrerequisiteCycle)) {
+            self.submitted = None;
+            model.authoring_mut().phase = Phase::Ready;
+            model.authoring_mut().feedback =
+                "This link would create a cycle. Choose another prerequisite.".into();
+            return;
+        }
         if matches!(
             error,
             StoreError::ReviewEvidence(_)
@@ -619,6 +626,7 @@ fn make_command(draft: &Draft, model: &Model) -> Result<Command, String> {
             }
             _ => return Err("Confirm the change for the selected owned quest".into()),
         },
+        FormKind::QuestPrerequisites => prerequisite_action(draft, quest(0)?)?,
         FormKind::Request => Action::RequestDecision {
             id: ObligationId::new(source, &token),
             campaign: campaign()?,
@@ -658,6 +666,23 @@ fn make_command(draft: &Draft, model: &Model) -> Result<Command, String> {
         actor: "Questmancer".into(),
         at: model.now(),
         action,
+    })
+}
+
+fn prerequisite_action(draft: &Draft, prerequisite_id: Option<QuestId>) -> Result<Action, String> {
+    let Some(FormTarget::QuestPrerequisites { id, current, .. }) = &draft.form_target else {
+        return Err("Select an owned quest to edit prerequisites".into());
+    };
+    let prerequisite_id = prerequisite_id.ok_or("Choose a prerequisite to add or remove")?;
+    let change = if current.contains(&prerequisite_id) {
+        super::PrerequisiteChange::Remove
+    } else {
+        super::PrerequisiteChange::Add
+    };
+    Ok(Action::ChangeQuestPrerequisite {
+        id: id.clone(),
+        prerequisite_id,
+        change,
     })
 }
 

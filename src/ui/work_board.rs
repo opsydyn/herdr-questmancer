@@ -185,9 +185,9 @@ pub fn render(frame: &mut Frame<'_>, model: &Model) {
         details,
     );
     let footer = if inner.width < 72 {
-        "i: Inbox  v: review  t: state\nj/k: work  Up/Down: read\n!: next summons  a: actions\nSpace: seen  s: defer 15m\nEnter: observe  Esc: close"
+        "i: Inbox  v: review  t: state\np: prerequisites  a: actions\nj/k: work  ↑/↓: read  !: next\nSpace: seen  s: defer 15m\nEnter: observe  Esc: close"
     } else {
-        "i: Inbox   v: review   t: state   a: actions   !: urgent   j/k: work\nUp/Down: read   Space: seen   s: defer 15m   Enter: observe   Esc: close"
+        "i: Inbox  v: review  t: state  p: prerequisites  a: actions  !: urgent\nj/k: work  ↑/↓: read  Space: seen  s: defer  Enter: observe  Esc: close"
     };
     frame.render_widget(
         Paragraph::new(footer)

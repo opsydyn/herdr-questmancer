@@ -2,8 +2,8 @@ use questmancer::{
     app::{Model, View},
     domain::Timestamp,
     owned_work::{
-        Action, Command, CommandError, CommandId, OwnedState, OwnedStore, QuestLifecycleChange,
-        StoreError, transition,
+        Action, Command, CommandError, CommandId, OwnedState, OwnedStore, PrerequisiteChange,
+        QuestLifecycleChange, StoreError, transition,
     },
     persistence::{PersistenceWorker, WorkerPaths, load_work_cache},
     sources::local_work::LocalWorkSource,
@@ -463,6 +463,210 @@ fn lifecycle_rejects_wrong_source_state_and_revision_and_checks_retained_receipt
         Err(StoreError::Protected(_))
     ));
     assert_eq!(std::fs::read(&path).unwrap(), forged);
+}
+
+#[test]
+fn prerequisite_commands_reject_wrong_endpoints_and_transitive_cycles_without_writing() {
+    let dir = tempdir();
+    let path = dir.path().join("owned-work.json");
+    let source = SourceId::new("owned:promo");
+    std::fs::write(&path, PRE_LIFECYCLE_V2).unwrap();
+    let mut store = OwnedStore::open(&path, &source).unwrap();
+    let main = CampaignId::new(&source, "release");
+    let other = CampaignId::new(&source, "campaign");
+    let picker = QuestId::new(&source, "picker");
+    let web = QuestId::new(&source, "web");
+    let tests = QuestId::new(&source, "tests");
+    let outside = QuestId::new(&source, "outside");
+    let add = PrerequisiteChange::Add;
+    let remove = PrerequisiteChange::Remove;
+    let edit = |revision, id: &QuestId, prerequisite: &QuestId, change| {
+        command(
+            &source,
+            revision,
+            Action::ChangeQuestPrerequisite {
+                id: id.clone(),
+                prerequisite_id: prerequisite.clone(),
+                change,
+            },
+        )
+    };
+    let mut another_campaign = create_campaign(&source);
+    another_campaign.expected_revision = 5;
+    store.execute(&another_campaign).unwrap();
+    for (revision, id, campaign) in [(6, &tests, main), (7, &outside, other)] {
+        store
+            .execute(&command(
+                &source,
+                revision,
+                Action::CreateQuest {
+                    id: id.clone(),
+                    campaign,
+                    title: id.as_str().into(),
+                    description: None,
+                    kind: QuestKind::Ship,
+                },
+            ))
+            .unwrap();
+    }
+    store.execute(&edit(8, &picker, &web, add)).unwrap();
+    store.execute(&edit(9, &web, &tests, add)).unwrap();
+    let saved = std::fs::read(&path).unwrap();
+    let foreign = QuestId::new(&SourceId::new("other-source"), "web");
+    let missing = QuestId::new(&source, "missing");
+    let mut stale = edit(8, &picker, &tests, add);
+    stale.id = CommandId::new("stale-prerequisite");
+    let invalid_adds = [
+        (&picker, &foreign, CommandError::ForeignSource),
+        (&foreign, &picker, CommandError::ForeignSource),
+        (&picker, &missing, CommandError::Reference),
+        (&picker, &outside, CommandError::PrerequisiteCampaign),
+        (&picker, &picker, CommandError::PrerequisiteSelf),
+        (&picker, &web, CommandError::PrerequisitePresence),
+        (&tests, &picker, CommandError::PrerequisiteCycle),
+    ];
+    let invalid_edits = invalid_adds
+        .into_iter()
+        .map(|(id, prerequisite, error)| (edit(10, id, prerequisite, add), error))
+        .chain([
+            (
+                edit(10, &picker, &tests, remove),
+                CommandError::PrerequisitePresence,
+            ),
+            (stale, CommandError::Stale),
+        ]);
+    for (invalid, rejection) in invalid_edits {
+        assert!(
+            matches!(store.execute(&invalid), Err(StoreError::Command(found)) if found == rejection),
+            "{invalid:?} must fail with {rejection:?}"
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), saved);
+    }
+    assert_eq!(
+        store.state().inventory().quests[&picker].dependencies,
+        std::slice::from_ref(&web)
+    );
+    assert_eq!(
+        store.state().inventory().quests[&web].dependencies,
+        std::slice::from_ref(&tests)
+    );
+    assert!(
+        store.state().inventory().quests[&tests]
+            .dependencies
+            .is_empty()
+    );
+    drop(store);
+    let mut forged: serde_json::Value = serde_json::from_slice(&saved).unwrap();
+    forged["state"]["inventory"]["quests"][tests.as_str()]["dependencies"] =
+        serde_json::json!([picker]);
+    assert_protected_prerequisites(&path, &source, &forged);
+}
+
+#[test]
+fn prerequisite_format_survives_link_removal_and_receipt_eviction() {
+    let dir = tempdir();
+    let path = dir.path().join("owned-work.json");
+    let source = SourceId::new("owned:promo");
+    let picker = QuestId::new(&source, "picker");
+    let web = QuestId::new(&source, "web");
+    let campaign = CampaignId::new(&source, "release");
+    std::fs::write(&path, PRE_LIFECYCLE_V2).unwrap();
+    let mut store = OwnedStore::open(&path, &source).unwrap();
+    let add = command(
+        &source,
+        6,
+        Action::ChangeQuestPrerequisite {
+            id: picker.clone(),
+            prerequisite_id: web.clone(),
+            change: PrerequisiteChange::Add,
+        },
+    );
+    let remove = command(
+        &source,
+        8,
+        Action::ChangeQuestPrerequisite {
+            id: picker.clone(),
+            prerequisite_id: web,
+            change: PrerequisiteChange::Remove,
+        },
+    );
+    let fill = |revision| {
+        command(
+            &source,
+            revision,
+            Action::RegisterArtifact {
+                id: ArtifactId::new(&source, &format!("artifact-{revision}")),
+                campaign: campaign.clone(),
+                quest: Some(picker.clone()),
+                kind: ArtifactKind::Report,
+                title: "Iteration evidence".into(),
+                uri: None,
+            },
+        )
+    };
+    for action in [
+        command(
+            &source,
+            5,
+            Action::ChangeQuestLifecycle {
+                id: picker.clone(),
+                change: QuestLifecycleChange::MarkActive,
+            },
+        ),
+        add.clone(),
+        command(
+            &source,
+            7,
+            Action::ChangeQuestLifecycle {
+                id: picker.clone(),
+                change: QuestLifecycleChange::MarkComplete,
+            },
+        ),
+        remove.clone(),
+    ] {
+        let receipt = store.execute(&action).unwrap();
+        let saved = std::fs::read(&path).unwrap();
+        assert_eq!(store.execute(&action).unwrap(), receipt);
+        assert_eq!(std::fs::read(&path).unwrap(), saved);
+    }
+    let saved = std::fs::read(&path).unwrap();
+    drop(store);
+    let mut corrupt: serde_json::Value = serde_json::from_slice(&saved).unwrap();
+    corrupt["version"] = 3.into();
+    assert_protected_prerequisites(&path, &source, &corrupt);
+    corrupt["version"] = 4.into();
+    corrupt["state"]["receipts"][8]["command"]["action"]["change"] = "Add".into();
+    assert_protected_prerequisites(&path, &source, &corrupt);
+    std::fs::write(&path, &saved).unwrap();
+    let mut store = OwnedStore::open(&path, &source).unwrap();
+    for revision in 9..137 {
+        store.execute(&fill(revision)).unwrap();
+    }
+    drop(store);
+    let mut store = OwnedStore::open(&path, &source).unwrap();
+    assert!(store.state().receipt(&add.id).is_none());
+    assert!(store.state().receipt(&remove.id).is_none());
+    let quest = &store.state().inventory().quests[&picker];
+    assert!(quest.dependencies.is_empty());
+    assert_eq!((quest.revision, quest.state), (9, QuestState::Completed));
+    store.execute(&fill(137)).unwrap();
+    let final_snapshot: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(final_snapshot["version"], 4);
+}
+
+fn assert_protected_prerequisites(
+    path: &std::path::Path,
+    source: &SourceId,
+    document: &serde_json::Value,
+) {
+    let bytes = serde_json::to_vec(document).unwrap();
+    std::fs::write(path, &bytes).unwrap();
+    assert!(matches!(
+        OwnedStore::open(path, source),
+        Err(StoreError::Protected(_))
+    ));
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
 }
 
 #[test]

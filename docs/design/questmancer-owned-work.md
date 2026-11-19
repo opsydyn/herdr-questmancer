@@ -17,6 +17,11 @@ receipt. Decision answers, revision reviews and Herdr execution retain
 separate authority. See the [lifecycle decision](../adr/0010-owned-quest-lifecycle.md)
 and its [qualification ledger](../reviews/2026-11-19-owned-quest-lifecycle/README.md).
 
+L2b adds one-link prerequisite edits between owned quests in the same
+campaign. The writer enforces an acyclic graph and keeps the owned-store
+format at v4 after its first prerequisite edit. See the [prerequisite decision](../adr/0011-owned-quest-prerequisites.md)
+and [verification ledger](../reviews/2026-11-19-owned-quest-prerequisites/README.md).
+
 This extends the [living control-plane contract](questmancer-living-control-plane.md)
 for a work source we own. External sources retain authority over their own facts.
 It supersedes the requirement to qualify Herdr Projects as the next product step.

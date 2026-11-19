@@ -52,6 +52,12 @@ pub(crate) enum FormTarget {
         change: QuestLifecycleChange,
         revision: u64,
     },
+    QuestPrerequisites {
+        id: QuestId,
+        title: String,
+        current: Vec<QuestId>,
+        revision: u64,
+    },
 }
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Phase {
@@ -71,6 +77,7 @@ pub enum FormKind {
     Campaign,
     Quest,
     QuestLifecycle,
+    QuestPrerequisites,
     Request,
     Answer,
     Artifact,
@@ -235,6 +242,9 @@ impl Authoring {
             })
     }
     pub fn form(&mut self, kind: FormKind) {
+        self.form_with_target(kind, None);
+    }
+    pub(crate) fn form_with_target(&mut self, kind: FormKind, target: Option<FormTarget>) {
         if self.busy() {
             self.feedback =
                 "An owned operation is outstanding. Return to its result or check outcome.".into();
@@ -266,10 +276,11 @@ impl Authoring {
             self.feedback = "Choose an owned campaign, then reopen the action.".into();
             return;
         }
-        let Some(fields) = self.form_fields(kind) else {
+        let Some(fields) = self.form_fields(kind, target.as_ref()) else {
             return;
         };
         self.fields = fields;
+        self.form_target = target;
         self.surface = Surface::Form(kind);
         self.draft_kind = Some(kind);
         self.focus = 0;
@@ -277,7 +288,7 @@ impl Authoring {
         self.follow_focus = false;
         self.feedback.clear();
     }
-    fn form_fields(&mut self, kind: FormKind) -> Option<Vec<Field>> {
+    fn form_fields(&mut self, kind: FormKind, target: Option<&FormTarget>) -> Option<Vec<Field>> {
         let text = Field::text;
         Some(match kind {
             FormKind::CreateStore => {
@@ -355,6 +366,7 @@ impl Authoring {
                     ("confirm".into(), "Confirm this change".into()),
                 ],
             )],
+            FormKind::QuestPrerequisites => vec![self.prerequisite_field(target)?],
             FormKind::Answer => {
                 let Some(detail) = &self.detail else {
                     self.feedback = "Load the selected decision before answering.".into();
@@ -393,6 +405,35 @@ impl Authoring {
             )
             .collect();
         Field::choices("Quest (optional)", choices)
+    }
+    fn prerequisite_field(&mut self, target: Option<&FormTarget>) -> Option<Field> {
+        let Some(FormTarget::QuestPrerequisites { id, current, .. }) = target else {
+            return None;
+        };
+        let quests = &self.metadata.as_ref()?.inventory.quests;
+        let selected = quests.get(id)?;
+        let mut choices = vec![(String::new(), "Choose a prerequisite change".into())];
+        choices.extend(
+            quests
+                .values()
+                .filter(|quest| &quest.id != id && quest.campaign == selected.campaign)
+                .map(|quest| {
+                    let verb = if current.contains(&quest.id) {
+                        "Remove"
+                    } else {
+                        "Add"
+                    };
+                    (
+                        quest.id.as_str().to_owned(),
+                        format!("{verb} {} [{}]", quest.title, quest.id.as_str()),
+                    )
+                }),
+        );
+        if choices.len() == 1 {
+            self.feedback = "Create another owned quest in this campaign first.".into();
+            return None;
+        }
+        Some(Field::choices("Prerequisite change", choices))
     }
     pub fn edit(&mut self, text: &str) {
         if self.busy() || !matches!(self.surface, Surface::Form(_)) {
@@ -436,6 +477,10 @@ impl Authoring {
             self.feedback = "Choose Confirm this change to save the new quest state.".into();
             return;
         }
+        if kind == FormKind::QuestPrerequisites && values.first().is_none_or(String::is_empty) {
+            self.feedback = "Choose a prerequisite to add or remove before saving.".into();
+            return;
+        }
         if kind == FormKind::RequestReview
             && values
                 .get(..6)
@@ -462,7 +507,10 @@ impl Authoring {
             return;
         }
         let revision = match self.form_target {
-            Some(FormTarget::QuestLifecycle { revision, .. }) => revision,
+            Some(
+                FormTarget::QuestLifecycle { revision, .. }
+                | FormTarget::QuestPrerequisites { revision, .. },
+            ) => revision,
             _ => self.metadata.as_ref().map_or(0, |m| m.revision),
         };
         // Random source for CreateStore is supplied only at the runtime effect boundary.

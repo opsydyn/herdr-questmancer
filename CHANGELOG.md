@@ -12,6 +12,9 @@ All notable changes to this project will be documented here.
   quest state if a downgrade may be needed.
 - Release the owned store's writer lock on shutdown, even if a concurrent
   process briefly retains a copied file descriptor.
+- Press `p` on an owned quest in the Quest Board to add or remove a
+  same-campaign prerequisite. Saved links appear on the War Table.
+  The first change writes owned-work format v4, which is kept after link removal.
 
 ## [0.2.4] - 2026-11-19
 

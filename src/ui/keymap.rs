@@ -64,6 +64,11 @@ pub const BINDINGS: &[Binding] = &[
         action: Action::ChangeQuestLifecycle,
     },
     Binding {
+        keys: "p (Board)",
+        description: "Edit quest prerequisites",
+        action: Action::EditQuestPrerequisites,
+    },
+    Binding {
         keys: "c (Review)",
         description: "Import a local check receipt",
         action: Action::ImportCheck,

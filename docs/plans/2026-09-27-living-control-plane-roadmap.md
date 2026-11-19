@@ -60,8 +60,15 @@ The Quest Board can mark an owned quest active, mark it complete and reopen
 it. The owned store records the transition with its receipt. See
 [ADR 0010](../adr/0010-owned-quest-lifecycle.md) and the
 [qualification ledger](../reviews/2026-11-19-owned-quest-lifecycle/README.md).
-Dependency editing and assignment remain later slices. The shipped authoring
-and Inbox still have their prepared human Ghostty review.
+The shipped authoring and Inbox still have their prepared human Ghostty review.
+
+## L2b · Owned quest prerequisites
+
+The Quest Board adds and removes a prerequisite within an owned campaign.
+The owned writer enforces an acyclic graph and the War Table displays
+acknowledged links. See [ADR 0011](../adr/0011-owned-quest-prerequisites.md)
+and the [qualification ledger](../reviews/2026-11-19-owned-quest-prerequisites/README.md).
+Explicit assignment and verified Herdr association are later slices.
 
 ## M1 product proof
 
