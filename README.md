@@ -184,6 +184,13 @@ The linked plugin runner resolves `target/release/questmancer`, then
 `cargo build --release`, reopen the Questmancer pane; relinking is unnecessary
 while Herdr is still linked to this checkout.
 
+### Develop in Ghostty with stock Herdr
+
+From a plain Ghostty shell in this checkout, run `just dev-ghostty`. It builds
+the release binary from the checkout, links it in an isolated Herdr session,
+and calls the normal Questmancer `open` action before attaching the window.
+See the [dev boot workflow](docs/troubleshooting/native-portrait-rendering.md#repeatable-ghostty-dev-boot).
+
 ### Cutting over an older development link
 
 Close and unlink the previous local plugin before linking Questmancer. The

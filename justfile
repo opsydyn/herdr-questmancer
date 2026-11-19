@@ -52,6 +52,9 @@ release-verify: verify release-check
 run view="guild":
     cargo run -- ui --view {{view}}
 
+dev-ghostty:
+    python3 scripts/dev-ghostty.py
+
 install-local:
     cargo build --release
     mkdir -p bin

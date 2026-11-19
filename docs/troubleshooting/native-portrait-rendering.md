@@ -74,6 +74,33 @@ In 0.9.4, disabling Kitty graphics also stops advertising image support. Keep
 headless runtime is not a native terminal appearance review. See the
 [compatibility receipt](../reviews/2026-10-14-herdr-094/README.md).
 
+### Repeatable Ghostty dev boot
+
+Open a new Ghostty window and run this from the checkout's plain shell. The
+launcher uses the installed `herdr` on `PATH` and Python 3.
+
+```sh
+just dev-ghostty
+```
+
+The launcher creates a temporary, isolated Herdr session and links the current
+checkout. It invokes `herdr plugin action invoke opsydyn.questmancer.open` and
+waits for the action to create the managed tab. It then attaches the Ghostty
+client. The managed entrypoint waits briefly for measured PTY pixels before
+starting Questmancer, and it uses the app's normal fallback if those pixels
+remain unavailable. The initial workspace has no prestarted agents.
+
+The launcher prints a reattach command for that exact dev session. The server
+stays available when the client detaches. To finish the dev session, run
+`herdr server stop` from a shell inside its isolated workspace. The temporary
+directory retains its logs and state for inspection.
+
+Once Questmancer is open in this session, `opsydyn.questmancer.open` focuses the
+existing tab. Creating a fresh tab after the first attachment can still hit the
+stock Herdr geometry issue. Start a fresh dev boot to repeat the startup check.
+[Herdr issue #5594](https://github.com/herdrdev/herdr/issues/5594),
+[stock Ghostty review](../reviews/2026-11-19-stock-ghostty-dev-boot/README.md).
+
 ## Historical empty-region failure
 
 The Adventurer parchment and text rendered correctly, but the portrait region

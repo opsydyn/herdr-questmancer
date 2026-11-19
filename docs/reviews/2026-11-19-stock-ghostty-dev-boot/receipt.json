@@ -1,0 +1,165 @@
+{
+  "herdr": "stock 0.9.5",
+  "ghostty": "1.4.0",
+  "launch_order": "create managed tab, wait for measured pixels, attach first client, launch source build",
+  "direct_ghostty_attachment": {
+    "geometry_wait": {
+      "initial": [
+        42,
+        149,
+        0,
+        0
+      ],
+      "final": [
+        54,
+        210,
+        1680,
+        972
+      ],
+      "waited_ms": 114977,
+      "pixel_geometry_ready": true
+    },
+    "stock_herdr_sha256": "fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2",
+    "questmancer_sha256": "41f46dcef0fdcf0bf13308c61d4e772bc74172237129eb6fe7dd6e93ac3e2f2f",
+    "observed_window_resize_events": 0,
+    "rooms": {
+      "guild": {
+        "kitty_placeholders": 2500,
+        "half_blocks": 0,
+        "party_size": 3
+      },
+      "delve": {
+        "kitty_placeholders": 2500,
+        "half_blocks": 0,
+        "party_size": 3
+      },
+      "ledger": {
+        "kitty_placeholders": 264,
+        "half_blocks": 3505
+      }
+    },
+    "retained_party": 3,
+    "extra_shell_preserved": true,
+    "view": "guild",
+    "visual_confirmation": "Guild Hall verified; Delve and portrait capture pending",
+    "ghostty_captures": [
+      {
+        "view": "guild",
+        "file": "ghostty-hall.png",
+        "captured_at": "2026-11-19T21:43:07+00:00",
+        "width_height_px": [
+          981,
+          874
+        ],
+        "sha256": "98be616a0617457cddf46219311f3bdf8ef833c3ffda9ce0cf0efc1688b94feb",
+        "observation": "complete fitted Guild Hall with three adventurers in a split pane"
+      }
+    ]
+  },
+  "separate_test_pty": {
+    "launch": "stock Herdr, managed pane prepared before its first client attachment",
+    "geometry_wait": {
+      "initial": [
+        42,
+        149,
+        0,
+        0
+      ],
+      "final": [
+        44,
+        128,
+        1024,
+        792
+      ],
+      "waited_ms": 482,
+      "pixel_geometry_ready": true
+    },
+    "resize_events_at_start": 0,
+    "herdr_sha256": "fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2",
+    "questmancer_sha256": "41f46dcef0fdcf0bf13308c61d4e772bc74172237129eb6fe7dd6e93ac3e2f2f",
+    "client_initial_grid_and_cell": [
+      129,
+      44,
+      8,
+      18
+    ],
+    "managed_grid_and_pixel_size": [
+      44,
+      129,
+      1032,
+      792
+    ],
+    "rooms": {
+      "guild": {
+        "kitty_placeholders": 3600,
+        "half_blocks": 0,
+        "party_size": 3
+      },
+      "delve": {
+        "kitty_placeholders": 3600,
+        "half_blocks": 0,
+        "party_size": 3
+      }
+    },
+    "ledger_kitty_placeholders": 264,
+    "same_client_and_geometry": true,
+    "retained_party_size": 3,
+    "visual_confirmation": "test PTY only"
+  },
+  "deployment_scope": "isolated developer session",
+  "ordinary_open_after_attachment": {
+    "operation": "herdr plugin action invoke opsydyn.questmancer.open",
+    "client_already_attached": true,
+    "pty_geometry": [
+      44,
+      128,
+      0,
+      0
+    ],
+    "half_blocks": 5310,
+    "kitty_placeholders": 0
+  },
+  "repeatable_launcher": {
+    "command": "just dev-ghostty",
+    "first_open": "normal action before first client attachment",
+    "test_client": "real stock Herdr client attached through two test PTYs",
+    "fresh_boots": [
+      {
+        "outer_grid_rows_cols": [
+          45,
+          155
+        ],
+        "kitty_placeholders": {
+          "guild": 3600,
+          "delve": 3600,
+          "ledger": 264
+        },
+        "window_resize_events": 0,
+        "reattach_same_pane": true,
+        "second_open_reuses_pane_and_process": true
+      },
+      {
+        "outer_grid_rows_cols": [
+          39,
+          124
+        ],
+        "kitty_placeholders": {
+          "guild": 1600,
+          "delve": 1600,
+          "ledger": 264
+        },
+        "window_resize_events": 0,
+        "reattach_same_pane": false,
+        "second_open_reuses_pane_and_process": true
+      }
+    ],
+    "nested_and_noninteractive_starts_rejected": true,
+    "zero_pixel_wait_returns_after_five_seconds": true,
+    "release_verify": {
+      "result": "passed",
+      "rust_tests": 887,
+      "rust_runs": 68,
+      "shell_checks": 28
+    }
+  }
+}
